@@ -319,6 +319,8 @@ with gr.Blocks(title="PlanExe") as demo:
                     
             https://github.com/neoneye/PlanExe
 
+            [PlanExe Discord](https://neoneye.github.io/PlanExe-web/discord)
+
             """)
 
     # Start the planning assistant with streaming updates.
