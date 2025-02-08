@@ -18,7 +18,7 @@ source venv/bin/activate
 
 # Configuration
 
-Getting PlanExe working with OpenRouter. (PlanExe can use may other AI providers, such as Ollama, LM Studio).
+Getting PlanExe working with OpenRouter. (PlanExe can use other AI providers, such as Ollama, LM Studio).
 
 1. Go to [OpenRouter](https://openrouter.ai/), create an account, purchase 5 USD in credits (plenty for making a several plans), and generate an API key.
 
