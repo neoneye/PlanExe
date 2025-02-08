@@ -41,4 +41,4 @@ To stop the server at any time, press `Ctrl+C` in your terminal.
 
 # Community & Support
 
-Join the [PlanExe Discord](https://discord.gg/RXQmnxsqAA) to chat about PlanExe, share ideas, and get help.
+Join the [PlanExe Discord](https://neoneye.github.io/PlanExe-web/discord) to chat about PlanExe, share ideas, and get help.
