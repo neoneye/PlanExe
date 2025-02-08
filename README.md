@@ -39,16 +39,6 @@ This command launches a server at http://localhost:7860. Open that link in your 
 
 To stop the server at any time, press `Ctrl+C` in your terminal.
 
-# Contributing
+# Community & Support
 
-Contributions are always welcome! If you want to improve PlanExe, open an issue or submit a pull request. Whether it’s bug fixes, new features, or better documentation, your help makes PlanExe better for everyone.
-
-	1.	Fork the repository.
-	2.	Create a new branch for your feature or bug fix.
-	3.	Commit your changes.
-	4.	Open a pull request describing your changes.
-	
-# Happy Planning!
-
-If you have any questions or ideas, feel free to open an issue or reach out.
-Together, let’s turn vague dreams into real, executable plans.
+Join the [PlanExe Discord](https://discord.gg/RXQmnxsqAA) to chat about PlanExe, share ideas, and get help.
