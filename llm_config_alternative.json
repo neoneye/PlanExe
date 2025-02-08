@@ -1,0 +1,83 @@
+{
+    "ollama-microsoft-phi4": {
+        "comment": "This is runs on your own computer. It's free. It's slower than llama3.1",
+        "class": "Ollama",
+        "arguments": {
+            "model": "phi4:latest",
+            "temperature": 0.5,
+            "request_timeout": 120.0,
+            "is_function_calling_model": false
+        }
+    },
+    "openrouter-paid-qwen-turbo": {
+        "comment": "This is somewhat working. It's paid, so check the pricing before use.",
+        "class": "OpenRouter",
+        "arguments": {
+            "model": "qwen/qwen-turbo",
+            "api_key": "${OPENROUTER_API_KEY}",
+            "temperature": 0.1,
+            "timeout": 60.0,
+            "is_function_calling_model": false,
+            "is_chat_model": true,
+            "max_tokens": 8192,
+            "max_retries": 5
+        }
+    },
+    "openrouter-paid-mistral-small-24b-instruct-2501": {
+        "comment": "This is somewhat working. It's paid, so check the pricing before use.",
+        "class": "OpenRouter",
+        "arguments": {
+            "model": "mistralai/mistral-small-24b-instruct-2501",
+            "api_key": "${OPENROUTER_API_KEY}",
+            "temperature": 0.1,
+            "timeout": 60.0,
+            "is_function_calling_model": false,
+            "is_chat_model": true,
+            "max_tokens": 8192,
+            "max_retries": 5
+        }
+    },
+    "openrouter-paid-amazon-nova-lite-v1": {
+        "comment": "This is medium fast. It's paid, so check the pricing before use.",
+        "class": "OpenRouter",
+        "arguments": {
+            "model": "amazon/nova-lite-v1",
+            "api_key": "${OPENROUTER_API_KEY}",
+            "temperature": 0.1,
+            "timeout": 60.0,
+            "is_function_calling_model": false,
+            "is_chat_model": true,
+            "max_tokens": 8192,
+            "max_retries": 5
+        }
+    },
+    "openrouter-paid-deepseek-chat": {
+        "comment": "This is slow. It's paid, so check the pricing before use.",
+        "class": "OpenRouter",
+        "arguments": {
+            "model": "deepseek/deepseek-chat",
+            "api_key": "${OPENROUTER_API_KEY}",
+            "temperature": 0.1,
+            "timeout": 60.0,
+            "is_function_calling_model": false,
+            "is_chat_model": true,
+            "max_tokens": 8192,
+            "max_retries": 5
+        }
+    },
+    "deepseek-chat": {
+        "comment": "This used to be fast, but is now slow. It's cheap.",
+        "class": "OpenAILike",
+        "arguments": {
+            "model": "deepseek-chat",
+            "api_key": "${DEEPSEEK_API_KEY}",
+            "api_base": "https://api.deepseek.com/v1",
+            "temperature": 0.1,
+            "timeout": 60.0,
+            "is_function_calling_model": false,
+            "is_chat_model": true,
+            "max_tokens": 4096,
+            "max_retries": 5
+        }
+    }
+}

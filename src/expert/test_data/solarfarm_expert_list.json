@@ -1,0 +1,74 @@
+[
+  {
+    "id": "a0f6dfa3-45f6-4126-9843-79995b9ea935",
+    "title": "Renewable Energy Policy Specialist",
+    "knowledge": "Danish renewable energy policies, government incentives, and regulatory frameworks.",
+    "why": "To provide insights on the current policy landscape and potential future changes that may impact the solar farm project.",
+    "what": "Assessing the likelihood of continued government support for renewable energy projects and identifying potential risks associated with relying on subsidies and incentives.",
+    "skills": "Analyzing policy documents, understanding regulatory frameworks, and communicating complex information to stakeholders.",
+    "search_query": "Renewable Energy Policy Specialist in Denmark"
+  },
+  {
+    "id": "208da91f-97cb-4915-b1f8-265ce759d13f",
+    "title": "Community Engagement Expert",
+    "knowledge": "Effective community engagement strategies, local attitudes towards solar farms, and social impact assessments.",
+    "why": "To provide guidance on how to engage with the local community, address concerns, and gain support for the project.",
+    "what": "Developing a comprehensive community engagement plan, assessing local attitudes towards solar farms, and identifying potential risks associated with negative public perception.",
+    "skills": "Community outreach, stakeholder analysis, and conflict resolution.",
+    "search_query": "Community Engagement Expert in Denmark"
+  },
+  {
+    "id": "bb34f731-0162-4e09-a1bc-6c62a811ef71",
+    "title": "Energy Storage Specialist",
+    "knowledge": "Energy storage solutions, their feasibility, and potential for mitigating intermittency.",
+    "why": "To provide expertise on the development of an energy storage solution plan and its integration with the solar farm project.",
+    "what": "Assessing different energy storage solutions, evaluating their feasibility, and identifying potential risks associated with technological disruptions.",
+    "skills": "Energy storage system design, feasibility studies, and technical writing.",
+    "search_query": "Energy Storage Specialist in Denmark"
+  },
+  {
+    "id": "fa98fa94-386d-4ed3-b216-d079ffaa276a",
+    "title": "Cybersecurity Expert",
+    "knowledge": "Solar farm control systems security, potential cybersecurity threats, and mitigation strategies.",
+    "why": "To provide guidance on implementing a robust cybersecurity plan to protect the solar farm's control systems.",
+    "what": "Developing a comprehensive cybersecurity plan, identifying potential risks associated with cybersecurity threats, and evaluating the effectiveness of mitigation strategies.",
+    "skills": "Cybersecurity risk assessment, threat analysis, and incident response planning.",
+    "search_query": "Cybersecurity Expert in Denmark"
+  },
+  {
+    "id": "1325be99-ba08-4283-9297-ab8098589d51",
+    "title": "Grid Infrastructure Specialist",
+    "knowledge": "Danish grid infrastructure capacity, energy distribution optimization, and integration of renewable energy sources.",
+    "why": "To provide insights on the grid infrastructure's ability to handle the solar farm's output and identify potential risks associated with integrating the solar farm into the grid.",
+    "what": "Assessing the grid infrastructure's capacity to handle the solar farm's output, evaluating the feasibility of smart grid technologies, and identifying potential risks associated with energy distribution disruptions.",
+    "skills": "Grid system analysis, energy distribution optimization, and technical writing.",
+    "search_query": "Grid Infrastructure Specialist in Denmark"
+  },
+  {
+    "id": "d019beb2-f900-4e43-8ca6-920a24bc7fda",
+    "title": "Agrivoltaics Expert",
+    "knowledge": "Agricultural applications of solar farms, agrivoltaic systems design, and integration with other sectors (e.g., agriculture, electric vehicle charging infrastructure).",
+    "why": "To provide expertise on the development of a 'killer application' by integrating the solar farm with agricultural activities.",
+    "what": "Evaluating the feasibility of agrivoltaics, assessing potential revenue streams, and identifying potential risks associated with integrating the solar farm with other sectors.",
+    "skills": "Agrivoltaic system design, agricultural applications of solar energy, and business development.",
+    "search_query": "Agrivoltaics Expert in Denmark"
+  },
+  {
+    "id": "b8f51b0f-0875-4601-9871-ad94446f11c9",
+    "title": "Data Analytics and AI Specialist",
+    "knowledge": "Solar farm performance optimization using data analytics and AI, predictive maintenance strategies, and energy storage solution integration.",
+    "why": "To provide insights on how to optimize the solar farm's performance using data analytics and AI, and identify potential risks associated with relying on these technologies.",
+    "what": "Developing a comprehensive data analytics and AI plan, evaluating the feasibility of predictive maintenance strategies, and identifying potential risks associated with technological disruptions.",
+    "skills": "Data analysis, machine learning, and technical writing.",
+    "search_query": "Data Analytics and AI Specialist in Denmark"
+  },
+  {
+    "id": "54b7837f-92d1-4e3d-ac54-0228f014a582",
+    "title": "Economic Development Expert",
+    "knowledge": "Renewable energy project economic viability, cost-benefit analysis of different energy storage solutions, and potential risks associated with market fluctuations.",
+    "why": "To provide expertise on the economic feasibility of the solar farm project and identify potential risks associated with market fluctuations.",
+    "what": "Conducting a comprehensive cost-benefit analysis, evaluating the economic viability of the solar farm project, and identifying potential risks associated with market disruptions.",
+    "skills": "Cost-benefit analysis, market research, and financial modeling.",
+    "search_query": "Economic Development Expert in Denmark"
+  }
+]

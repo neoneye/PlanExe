@@ -1,0 +1,42 @@
+[
+  {
+    "question": "What is the target capacity of the solar farm in megawatts?",
+    "assumptions": "Assumption: The project will aim for a moderate-sized solar farm with an initial capacity of 50 MW, taking into account Denmark's renewable energy goals and available land.",
+    "assessments": "Title: Financial Feasibility Assessment\nDescription: Evaluation of the financial viability of the solar farm.\nDetails: With an initial investment of approximately DKK 375 million (\u20ac50 million), the project can expect a return on investment of around 7-8% per annum, considering Denmark's feed-in tariffs and tax incentives. However, this may be affected by fluctuations in global panel prices and local labor costs."
+  },
+  {
+    "question": "What is the expected timeline for the solar farm's construction?",
+    "assumptions": "Assumption: The project will adhere to Denmark's renewable energy regulations and guidelines, requiring a minimum of 6 months for environmental impact assessments and permitting.",
+    "assessments": "Title: Timeline & Milestones Assessment\nDescription: Evaluation of the project schedule.\nDetails: With a team of experienced engineers and technicians, construction can be completed within 12-14 months. However, this timeline may be impacted by weather conditions, equipment delivery delays, or unforeseen site-specific challenges."
+  },
+  {
+    "question": "What is the estimated workforce required for the solar farm's construction?",
+    "assumptions": "Assumption: The project will follow industry best practices and hire local labor, taking into account Denmark's high labor costs.",
+    "assessments": "Title: Resources & Personnel Assessment\nDescription: Evaluation of the human resources needed.\nDetails: With an estimated 50-60 workers required for peak construction periods, the project can expect to incur a significant labor cost. To mitigate this, local partnerships and training programs will be explored to ensure a smooth transition of skills."
+  },
+  {
+    "question": "What are the relevant regulations and permits required for the solar farm?",
+    "assumptions": "Assumption: The project will comply with Denmark's Renewable Energy Act (RE-Act) and adhere to EU directives on environmental impact assessments.",
+    "assessments": "Title: Governance & Regulations Assessment\nDescription: Evaluation of regulatory compliance.\nDetails: The project must obtain necessary permits from the Danish Environmental Protection Agency, including a permit for the solar farm's construction and operation. Failure to comply with regulations may result in fines or even project cancellation."
+  },
+  {
+    "question": "What are the potential environmental impacts of the solar farm?",
+    "assumptions": "Assumption: The project will prioritize sustainability and minimize environmental footprint, adhering to Denmark's green energy policies.",
+    "assessments": "Title: Environmental Impact Assessment\nDescription: Evaluation of the solar farm's ecological impact.\nDetails: While the solar farm itself has a minimal carbon footprint, potential environmental concerns include habitat disruption and visual pollution. To mitigate these effects, the project will work with local stakeholders to ensure that any negative impacts are minimized."
+  },
+  {
+    "question": "How will the solar farm be connected to the grid?",
+    "assumptions": "Assumption: The project will utilize Denmark's existing high-voltage transmission infrastructure and adhere to EU directives on grid connection.",
+    "assessments": "Title: Grid Connection Assessment\nDescription: Evaluation of the solar farm's integration with the national grid.\nDetails: With a 50 MW capacity, the solar farm will require a dedicated 132 kV line from the nearest substation. This will be designed and constructed in collaboration with Energinet.dk to ensure seamless integration."
+  },
+  {
+    "question": "What is the expected level of stakeholder engagement?",
+    "assumptions": "Assumption: The project will maintain open communication channels with local communities, ensuring their concerns are addressed.",
+    "assessments": "Title: Stakeholder Involvement Assessment\nDescription: Evaluation of community outreach and engagement.\nDetails: Regular public meetings and information sessions will be held to keep stakeholders informed about the project's progress. This includes partnering with local organizations to address any environmental or social concerns."
+  },
+  {
+    "question": "What are the operational systems required for the solar farm?",
+    "assumptions": "Assumption: The project will utilize industry-standard SCADA systems and adhere to Denmark's energy management guidelines.",
+    "assessments": "Title: Operational Systems Assessment\nDescription: Evaluation of the solar farm's operational infrastructure.\nDetails: With a focus on efficiency and reliability, the project will implement an advanced SCADA system for real-time monitoring and control. This will also enable remote maintenance and troubleshooting."
+  }
+]

@@ -1,0 +1,103 @@
+{
+  "task_dependency_details": [
+    {
+      "dependent_task_id": "6e6e7e83-8db9-4ac9-88d3-0aeda252a19e",
+      "depends_on_task_id_list": [
+        "303c1a0b-9609-4297-8862-5b42a6230b2b"
+      ],
+      "depends_on_task_explanation_list": [
+        "Land Acquisition and Preparation must be completed before Procuring Land for Solar Farm starts."
+      ]
+    },
+    {
+      "dependent_task_id": "9180ee65-d7cf-47fe-ad75-b4bf073b4a16",
+      "depends_on_task_id_list": [
+        "1d3a023b-9c92-401a-9010-70e08109b0a3"
+      ],
+      "depends_on_task_explanation_list": [
+        "Design and Planning must be completed before Design Solar Farm Layout starts."
+      ]
+    },
+    {
+      "dependent_task_id": "9180ee65-d7cf-47fe-ad75-b4bf073b4a16",
+      "depends_on_task_id_list": [
+        "7570b5c4-50bc-4ba8-bb80-db193521759a"
+      ],
+      "depends_on_task_explanation_list": [
+        "Conduct Environmental Impact Assessments must be completed before Design Solar Farm Layout starts."
+      ]
+    },
+    {
+      "dependent_task_id": "d82ca21a-e022-48b7-9376-9c9b0db5b812",
+      "depends_on_task_id_list": [
+        "1d3a023b-9c92-401a-9010-70e08109b0a3"
+      ],
+      "depends_on_task_explanation_list": [
+        "Design and Planning must be completed before Secure Funding for the Solar Farm starts."
+      ]
+    },
+    {
+      "dependent_task_id": "27ae8461-08a1-4718-b450-c255a8e08866",
+      "depends_on_task_id_list": [
+        "44fd780c-3052-4323-94c7-bdd86ca6d12f"
+      ],
+      "depends_on_task_explanation_list": [
+        "Funding and Resource Acquisition must be completed before Establish Project Team starts."
+      ]
+    },
+    {
+      "dependent_task_id": "27ae8461-08a1-4718-b450-c255a8e08866",
+      "depends_on_task_id_list": [
+        "303c1a0b-9609-4297-8862-5b42a6230b2b"
+      ],
+      "depends_on_task_explanation_list": [
+        "Land Acquisition and Preparation must be completed before Establish Project Team starts."
+      ]
+    },
+    {
+      "dependent_task_id": "d394dea7-7104-4b8a-9d64-b16645f79c7e",
+      "depends_on_task_id_list": [
+        "44fd780c-3052-4323-94c7-bdd86ca6d12f"
+      ],
+      "depends_on_task_explanation_list": [
+        "Funding and Resource Acquisition must be completed before Implement Safety Protocols and Training Sessions starts."
+      ]
+    },
+    {
+      "dependent_task_id": "5ff82e11-0436-430c-9a2f-3482bb0e2a99",
+      "depends_on_task_id_list": [
+        "d5d79ebd-c7eb-47ed-b955-48c85541259d"
+      ],
+      "depends_on_task_explanation_list": [
+        "Risk Management and Compliance must be completed before Mitigate Environmental Risks starts."
+      ]
+    },
+    {
+      "dependent_task_id": "0f9184fe-973b-4126-8ea3-09459614130e",
+      "depends_on_task_id_list": [
+        "d5d79ebd-c7eb-47ed-b955-48c85541259d"
+      ],
+      "depends_on_task_explanation_list": [
+        "Risk Management and Compliance must be completed before Address Local Community Concerns starts."
+      ]
+    },
+    {
+      "dependent_task_id": "3a3add9b-6edd-464b-970a-c4cab9a2b366",
+      "depends_on_task_id_list": [
+        "74d93fb2-6d2d-4ef8-b91a-ce496860faae"
+      ],
+      "depends_on_task_explanation_list": [
+        "Project Team and Safety Planning must be completed before Implement Project Plans and Activities starts."
+      ]
+    },
+    {
+      "dependent_task_id": "5ff82e11-0436-430c-9a2f-3482bb0e2a99",
+      "depends_on_task_id_list": [
+        "9180ee65-d7cf-47fe-ad75-b4bf073b4a16"
+      ],
+      "depends_on_task_explanation_list": [
+        "Design Solar Farm Layout must be completed before Mitigate Environmental Risks starts."
+      ]
+    }
+  ]
+}

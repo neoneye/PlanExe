@@ -1,0 +1,167 @@
+{
+  "wbs_project": {
+    "id": "74282312-d669-43f6-a040-31e11d1fc3a9",
+    "description": "Find TV Remote",
+    "extra_fields": {
+      "final_deliverable": "Functional Remote"
+    },
+    "task_children": [
+      {
+        "id": "be38c44e-32c2-402b-b53c-cd80c7e82170",
+        "description": "Project Initiation",
+        "task_children": [
+          {
+            "id": "53129dfa-f0c5-469f-be45-16663dfb40d1",
+            "description": "Define project scope and objectives",
+            "extra_fields": {
+              "depends_on_task_ids": [],
+              "depends_on_task_explanations": [],
+              "delay_risks": "Lack of clear initial requirements from stakeholders, potential for scope creep later in the project.",
+              "days_min": 100,
+              "days_max": 200,
+              "days_realistic": 150
+            },
+            "task_children": [
+              {
+                "id": "d7567a02-b75c-4bc7-a349-a08a774c9c92",
+                "description": "Gather initial requirements",
+                "extra_fields": {
+                  "resources_needed": [
+                    "Stakeholder interviews",
+                    "Observation notes"
+                  ]
+                }
+              },
+              {
+                "id": "12753361-bd0a-436c-bd2b-b0c596c63965",
+                "description": "Establish change management process",
+                "extra_fields": {
+                  "resources_needed": [
+                    "Change management template",
+                    "Approval process"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "a6af23c3-12e0-43c3-96e1-cb2150d30fb3",
+            "description": "Identify key stakeholders and communicate project importance",
+            "extra_fields": {
+              "depends_on_task_ids": [
+                "53129dfa-f0c5-469f-be45-16663dfb40d1"
+              ],
+              "depends_on_task_explanations": [
+                "Stakeholders need to be identified after the project scope and objectives are defined."
+              ],
+              "delay_risks": "Stakeholders may not be immediately available or may not prioritize the project, leading to delays in communication.",
+              "days_min": 1,
+              "days_max": 3,
+              "days_realistic": 2
+            }
+          },
+          {
+            "id": "35e979c9-3ea7-4ab1-989d-72c2aa175160",
+            "description": "Assess resources and dependencies",
+            "extra_fields": {
+              "depends_on_task_ids": [
+                "53129dfa-f0c5-469f-be45-16663dfb40d1"
+              ],
+              "depends_on_task_explanations": [
+                "Resources and dependencies can only be assessed after the project scope and objectives are defined."
+              ],
+              "delay_risks": "Unavailability of required resources or dependencies, such as access to the fridge or time constraints.",
+              "days_min": 300,
+              "days_max": 400,
+              "days_realistic": 350
+            },
+            "task_children": [
+              {
+                "id": "3c6dbc17-29bb-48af-9c36-934f682a6e14",
+                "description": "Confirm fridge access availability",
+                "extra_fields": {
+                  "resources_needed": [
+                    "Household members",
+                    "Fridge key or access code"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "d94e9340-d09a-476f-bba1-e67e56c1cbed",
+        "description": "Search Execution",
+        "task_children": [
+          {
+            "id": "70118361-cacc-4c97-a456-7633d05d9843",
+            "description": "Access the fridge and conduct initial search",
+            "extra_fields": {
+              "depends_on_task_ids": [
+                "35e979c9-3ea7-4ab1-989d-72c2aa175160"
+              ],
+              "depends_on_task_explanations": [
+                "Access to the fridge and initial search can only begin after resources and dependencies are assessed."
+              ],
+              "delay_risks": "Fridge may be locked or inaccessible, or the remote may be buried under other items, making it difficult to locate quickly.",
+              "days_max": 1
+            },
+            "task_children": [
+              {
+                "id": "dcd12504-4741-4e41-850e-eae7727068f3",
+                "description": "Confirm fridge access",
+                "extra_fields": {
+                  "resources_needed": [
+                    "Household members",
+                    "Fridge key or access code"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "8f49df0f-064e-4213-a16b-66e43d6ff91c",
+            "description": "Expand search to other common areas if remote is not found in the fridge",
+            "extra_fields": {
+              "depends_on_task_ids": [
+                "70118361-cacc-4c97-a456-7633d05d9843"
+              ],
+              "depends_on_task_explanations": [
+                "Expanding the search to other areas is necessary only if the remote is not found in the fridge."
+              ],
+              "delay_risks": "Expanding the search to other areas may lead to distractions or time-consuming exploration of unrelated spaces.",
+              "days_max": 1
+            },
+            "task_children": [
+              {
+                "id": "7ed1bb76-ca0a-4c8e-9475-f590ac39a509",
+                "description": "Search living room for remote",
+                "extra_fields": {
+                  "resources_needed": [
+                    "Time",
+                    "Household members"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "4ea89bdc-6772-4b4c-b3be-172ab4f2770f",
+            "description": "Check remote functionality immediately upon finding it",
+            "extra_fields": {
+              "depends_on_task_ids": [
+                "70118361-cacc-4c97-a456-7633d05d9843",
+                "8f49df0f-064e-4213-a16b-66e43d6ff91c"
+              ],
+              "depends_on_task_explanations": [
+                "Remote functionality must be checked immediately after finding it, whether in the fridge or elsewhere."
+              ],
+              "delay_risks": "The remote may be found but could be non-functional due to damage or battery depletion."
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

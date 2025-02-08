@@ -1,0 +1,61 @@
+[
+  {
+    "id": "2d6452f9-274f-4160-aca4-642e9b0c6446",
+    "name": "Obtain Land Permit",
+    "description": "Secure necessary permits for land use and environmental impact assessments.",
+    "resources_needed": [
+      "Land permit"
+    ],
+    "parent_id": "6e6e7e83-8db9-4ac9-88d3-0aeda252a19e"
+  },
+  {
+    "id": "3f7c2b4a-16bb-4245-9073-c012b9ef2e24",
+    "name": "Conduct Environmental Impact Assessment",
+    "description": "Assess potential environmental impacts of solar farm on local ecosystem.",
+    "resources_needed": [
+      "Environmental experts",
+      "Equipment for assessment"
+    ],
+    "parent_id": "6e6e7e83-8db9-4ac9-88d3-0aeda252a19e"
+  },
+  {
+    "id": "61d1b93e-1c3c-4177-ada2-76d4697632f9",
+    "name": "Address Land Acquisition Delays",
+    "description": "Mitigate delays in land acquisition due to regulatory hurdles or disputes with local residents.",
+    "resources_needed": [
+      "Communication channels",
+      "Mediation processes"
+    ],
+    "parent_id": "6e6e7e83-8db9-4ac9-88d3-0aeda252a19e"
+  },
+  {
+    "id": "aba85c55-284a-4905-84b8-e68682fbb7f1",
+    "name": "Conduct Environmental Impact Assessments",
+    "description": "Ensure availability of necessary resources and personnel for the assessment process, engage with external experts if needed, establish a contingency plan for potential delays.",
+    "resources_needed": [
+      "qualified personnel",
+      "necessary resources"
+    ],
+    "parent_id": "7570b5c4-50bc-4ba8-bb80-db193521759a"
+  },
+  {
+    "id": "cd379b6c-925e-4ba9-955c-b0a4bec3aa07",
+    "name": "Develop Assessment Report",
+    "description": "Compile and analyze data from environmental impact assessments to create a comprehensive report.",
+    "resources_needed": [
+      "software",
+      "expertise"
+    ],
+    "parent_id": "7570b5c4-50bc-4ba8-bb80-db193521759a"
+  },
+  {
+    "id": "19cfa8ce-1171-4157-828e-e1b900cb0ad4",
+    "name": "Share Results with Stakeholders",
+    "description": "Communicate findings from environmental impact assessments to relevant parties, including project team members, local residents, and regulatory bodies.",
+    "resources_needed": [
+      "communication channels",
+      "stakeholder engagement tools"
+    ],
+    "parent_id": "7570b5c4-50bc-4ba8-bb80-db193521759a"
+  }
+]

@@ -1,0 +1,50 @@
+[
+  {
+    "task_id": "303c1a0b-9609-4297-8862-5b42a6230b2b",
+    "delay_risks": "Delays in land acquisition due to regulatory hurdles, disputes with local residents over compensation for land use.",
+    "mitigation_strategy": "Establish open communication channels with local residents and stakeholders to address concerns, engage in mediation processes when necessary, and ensure compliance with Denmark's land-use regulations.",
+    "days_min": 30,
+    "days_max": 60,
+    "days_realistic": 45
+  },
+  {
+    "task_id": "6e6e7e83-8db9-4ac9-88d3-0aeda252a19e",
+    "delay_risks": "Inadequate environmental impact assessments leading to unforeseen consequences, delays in obtaining necessary permits and licenses.",
+    "mitigation_strategy": "Conduct thorough environmental impact assessments, engage with local stakeholders and experts to identify potential risks, ensure compliance with Denmark's environmental regulations.",
+    "days_min": 20,
+    "days_max": 40,
+    "days_realistic": 30
+  },
+  {
+    "task_id": "7570b5c4-50bc-4ba8-bb80-db193521759a",
+    "delay_risks": "Delays in conducting environmental impact assessments due to unavailability of resources, lack of qualified personnel.",
+    "mitigation_strategy": "Ensure availability of necessary resources and personnel for the assessment process, engage with external experts if needed, establish a contingency plan for potential delays.",
+    "days_min": 15,
+    "days_max": 30,
+    "days_realistic": 22
+  },
+  {
+    "task_id": "1d3a023b-9c92-401a-9010-70e08109b0a3",
+    "delay_risks": "Delays in design process due to complexity of solar farm layout, potential for stakeholder input and feedback.",
+    "mitigation_strategy": "Establish clear communication channels with stakeholders, utilize project management tools to track progress, and schedule regular meetings to ensure timely completion of the task.",
+    "days_min": 30,
+    "days_max": 60,
+    "days_realistic": 45
+  },
+  {
+    "task_id": "9180ee65-d7cf-47fe-ad75-b4bf073b4a16",
+    "delay_risks": "Design errors or inaccuracies in solar farm layout, potential for changes to be made after completion.",
+    "mitigation_strategy": "Conduct thorough design reviews and quality checks, utilize 3D modeling software to visualize the layout, and schedule regular meetings with stakeholders to ensure their input is incorporated into the design process.",
+    "days_min": 20,
+    "days_max": 40,
+    "days_realistic": 30
+  },
+  {
+    "task_id": "73f16e9d-58f0-4447-b8e2-beb13eedc1e5",
+    "delay_risks": "Delays in creating detailed project plans due to complexity of the solar farm project, potential for changes to be made after completion.",
+    "mitigation_strategy": "Establish clear communication channels with stakeholders, utilize project management tools to track progress, and schedule regular meetings to ensure timely completion of the task.",
+    "days_min": 15,
+    "days_max": 30,
+    "days_realistic": 22
+  }
+]
