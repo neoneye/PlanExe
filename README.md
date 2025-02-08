@@ -2,6 +2,8 @@
 
 PlanExe is a planning AI. You input a vague description of what you want and PlanExe outputs a plan.
 
+![Screenshot of PlanExe](/extra/planexe-humanoid-factory.jpg?raw=true "Screenshot of PlanExe")
+
 # Installation
 
 Clone this repo, then install and activate a virtual environment. Finally, install the required packages:
