@@ -315,13 +315,9 @@ with gr.Blocks(title="PlanExe") as demo:
 
     with gr.Tab("Join the community"):
         gr.Markdown("""
-            # PlanExe
-                    
-            https://github.com/neoneye/PlanExe
-
-            [PlanExe Discord](https://neoneye.github.io/PlanExe-web/discord)
-
-            """)
+- [GitHub](https://github.com/neoneye/PlanExe) the source code.
+- [Discord](https://neoneye.github.io/PlanExe-web/discord) join the community. Suggestions, feedback, and questions are welcome.
+""")
 
     # Start the planning assistant with streaming updates.
     submit_btn.click(fn=run_planner, inputs=[submit_btn, prompt_input, model_radio, speedvsdetail_radio], outputs=output_markdown)
