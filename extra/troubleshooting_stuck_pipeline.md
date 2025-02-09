@@ -20,6 +20,6 @@ The exceptions rarely have useful info.
 
 - **Censorship**, if it's a sensitive topic, then the LLM may refuse to answer.
 - **Timeout**, that happens often when using AI providers in the cloud.
-- **Invalid json**, responds from the server that doesn't adhere to the json schema.
+- **Invalid json**, responds from the server that doesn't adhere to the json schema. Too high a temperature setting may cause the LLM to be too creative and diverge from the json schema. Try use a lower temperature.
 - **Too long answer**, if the respond from the server gets too long so it gets truncated, so it's invalid json.
 - **Other**, there may be other reasons that I'm not aware of, please let me know if you encounter such a scenario.
