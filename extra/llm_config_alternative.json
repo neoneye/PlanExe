@@ -9,6 +9,36 @@
             "is_function_calling_model": false
         }
     },
+    "openai-paid-o1": {
+        "comment": "This is paid. Possible free to use for a limited time. Check the pricing before use.",
+        "class": "OpenAI",
+        "arguments": {
+            "model": "o1",
+            "api_key": "${OPENAI_API_KEY}",
+            "api_base": "https://api.openai.com/v1",
+            "temperature": 1.0,
+            "timeout": 60.0,
+            "is_function_calling_model": false,
+            "is_chat_model": true,
+            "max_completion_tokens": 10000,
+            "max_retries": 5
+        }
+    },
+    "openai-paid-gpt-4o": {
+        "comment": "This is paid. Possible free to use for a limited time. Check the pricing before use.",
+        "class": "OpenAI",
+        "arguments": {
+            "model": "gpt-4o",
+            "api_key": "${OPENAI_API_KEY}",
+            "api_base": "https://api.openai.com/v1",
+            "temperature": 1.0,
+            "timeout": 60.0,
+            "is_function_calling_model": true,
+            "is_chat_model": true,
+            "max_tokens": 4096,
+            "max_retries": 5
+        }
+    },
     "openrouter-paid-qwen-turbo": {
         "comment": "This is somewhat working. It's paid, so check the pricing before use.",
         "class": "OpenRouter",
