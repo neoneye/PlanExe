@@ -49,14 +49,6 @@ for prompt_item in all_prompts:
 available_models = get_available_llms()
 available_model_names = [model for model in available_models]
 
-def log_process_output(pipe, label):
-    """
-    Reads lines from the given pipe and prints them to the console with a label.
-    """
-    for line in iter(pipe.readline, b''):
-        if line:
-            print(f"[{label}] {line.decode().rstrip()}")
-
 def has_pipeline_complete_file(path_dir: str):
     """
     Checks if the pipeline has completed by looking for the completion file.
@@ -156,18 +148,23 @@ def run_planner(submit_or_retry_button: str, plan_prompt: str, llm_model: str, s
     # Launch the pipeline as a separate Python process.
     command = [sys.executable, "-m", MODULE_PATH_PIPELINE]
     print(f"Executing command: {' '.join(command)}")
-    active_proc = subprocess.Popen(
-        command,
-        cwd=".",
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=False
-    )
     # Spawn threads to print process output to the console.
     if RELAY_PROCESS_OUTPUT:
-        threading.Thread(target=log_process_output, args=(active_proc.stdout, "stdout"), daemon=True).start()
-        threading.Thread(target=log_process_output, args=(active_proc.stderr, "stderr"), daemon=True).start()
+        active_proc = subprocess.Popen(
+            command,
+            cwd=".",
+            env=env,
+            stdout=None,
+            stderr=None
+        )
+    else:
+        active_proc = subprocess.Popen(
+            command,
+            cwd=".",
+            env=env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
 
     # Obtain process id
     child_process_id = active_proc.pid
