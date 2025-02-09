@@ -29,6 +29,7 @@ from src.wbs.wbs_task import WBSTask, WBSProject
 from src.wbs.wbs_populate import WBSPopulate
 from src.llm_factory import get_llm
 from src.format_json_for_use_in_query import format_json_for_use_in_query
+from src.utils.get_env_as_string import get_env_as_string
 
 logger = logging.getLogger(__name__)
 DEFAULT_LLM_MODEL = "ollama-llama3.1"
@@ -927,5 +928,7 @@ if __name__ == '__main__':
     task = FullPlanPipeline(speedvsdetail=speedvsdetail, llm_model=model)
     if run_id is not None:
         task.run_id = run_id
+
+    # logger.info("Environment variables Luigi:\n" + get_env_as_string() + "\n\n\n")
 
     luigi.build([task], local_scheduler=True, workers=1)

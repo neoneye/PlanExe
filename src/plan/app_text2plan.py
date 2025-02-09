@@ -14,6 +14,7 @@ from src.plan.filenames import FilenameEnum
 from src.plan.plan_file import PlanFile
 from src.plan.speedvsdetail import SpeedVsDetailEnum
 from src.prompt.prompt_catalog import PromptCatalog
+from src.utils.get_env_as_string import get_env_as_string
     
 # Global variables
 active_proc = None
@@ -325,6 +326,8 @@ with gr.Blocks(title="PlanExe") as demo:
     stop_btn.click(fn=stop_planner, outputs=status_markdown)
     retry_btn.click(fn=run_planner, inputs=[retry_btn, prompt_input, model_radio, speedvsdetail_radio], outputs=output_markdown)
     open_dir_btn.click(fn=open_output_dir, outputs=status_markdown)
+
+# print("Environment variables Gradio:\n" + get_env_as_string() + "\n\n\n")
 
 print("Press Ctrl+C to exit.")
 demo.launch()
