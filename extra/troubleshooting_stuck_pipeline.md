@@ -1,12 +1,12 @@
 # Troubleshooting a stuck pipeline
 
-The gradio app (`app_text2plan.py`) starts the `run_plan_pipeline` process via a `Popen` call. I guess the gradio app is a slightly different environment than via commandline `python -m src.plan.run_plan_pipeline`.
+The gradio app (`app_text2plan.py`) starts the `run_plan_pipeline` process via a `Popen` call. I guess the gradio app runs in a slightly different environment than when running via commandline `python -m src.plan.run_plan_pipeline`.
 
 ## Manually resuming a stuck pipeline
 
 In the UI copy/paste the run_id that is stuck, eg: `20250209_030626`
 
-Insert it on commandline, and run the pipeline.
+Insert it on commandline, and run the pipeline, like this:
 
 ```bash
 PROMPT> RUN_ID=20250209_030626 python -m src.plan.run_plan_pipeline
