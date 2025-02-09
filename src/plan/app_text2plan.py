@@ -15,6 +15,7 @@ from src.plan.plan_file import PlanFile
 from src.plan.speedvsdetail import SpeedVsDetailEnum
 from src.prompt.prompt_catalog import PromptCatalog
 from src.utils.get_env_as_string import get_env_as_string
+from src.utils.time_since_last_modification import time_since_last_modification
     
 # Global variables
 active_proc = None
@@ -194,8 +195,9 @@ def run_planner(submit_or_retry_button: str, plan_prompt: str, llm_model: str, s
             yield markdown_builder.to_markdown()
             break
 
+        last_update = ceil(time_since_last_modification(run_path))
         markdown_builder = MarkdownBuilder()
-        markdown_builder.status(f"Working. {duration} seconds elapsed.")
+        markdown_builder.status(f"Working. {duration} seconds elapsed. Last output update was {last_update} seconds ago.")
         markdown_builder.path_to_run_dir(absolute_path_to_run_dir)
         markdown_builder.list_files(run_path)
         yield markdown_builder.to_markdown()
