@@ -4,6 +4,8 @@ PlanExe is a planning AI. You input a vague description of what you want and Pla
 
 ![Screenshot of PlanExe](/extra/planexe-humanoid-factory.jpg?raw=true "Screenshot of PlanExe")
 
+[YouTube video: Using PlanExe to plan a lunar base](https://www.youtube.com/watch?v=7AM2F1C4CGI)
+
 # Installation
 
 Clone this repo, then install and activate a virtual environment. Finally, install the required packages:
