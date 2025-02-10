@@ -268,7 +268,8 @@ class SWOTAnalysisTask(PlanTask):
             json.dump(swot_raw_dict, f, indent=2)
 
         # Write the SWOT analysis as Markdown.
-        with self.output()['markdown'].open("w") as f:
+        markdown_path = self.output()['markdown'].path
+        with open(markdown_path, "w", encoding="utf-8") as f:
             f.write(swot_markdown)
 
         logger.info("SWOT analysis complete.")
@@ -310,7 +311,8 @@ class ExpertReviewTask(PlanTask):
             pre_project_assessment_dict = json.load(f)
         with self.input()['project_plan'].open("r") as f:
             project_plan_dict = json.load(f)
-        with self.input()['swot_analysis']['markdown'].open("r") as f:
+        swot_markdown_path = self.input()['swot_analysis']['markdown'].path
+        with open(swot_markdown_path, "r", encoding="utf-8") as f:
             swot_markdown = f.read()
 
         # Build the query.
