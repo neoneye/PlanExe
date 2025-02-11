@@ -6,6 +6,7 @@ from typing import Optional, Any, Dict
 from llama_index.core.llms.llm import LLM
 from llama_index.llms.ollama import Ollama
 from llama_index.llms.openai_like import OpenAILike
+from llama_index.llms.openai import OpenAI
 from llama_index.llms.together import TogetherLLM
 from llama_index.llms.groq import Groq
 from llama_index.llms.lmstudio import LMStudio
