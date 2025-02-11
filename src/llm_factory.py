@@ -1,3 +1,4 @@
+import logging
 import os
 import json
 from dotenv import dotenv_values
@@ -10,11 +11,19 @@ from llama_index.llms.groq import Groq
 from llama_index.llms.lmstudio import LMStudio
 from llama_index.llms.openrouter import OpenRouter
 
+# You can disable this if you don't want to send app info to OpenRouter.
+SEND_APP_INFO_TO_OPENROUTER = True
+
+logger = logging.getLogger(__name__)
+
 __all__ = ["get_llm", "get_available_llms"]
 
-# Define paths and load environment variables and config
+# Load .env values and merge with system environment variables.
+# This one-liner makes sure any secret injected by Hugging Face, like OPENROUTER_API_KEY
+# overrides what’s in your .env file.
 _dotenv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
-_dotenv_dict = dotenv_values(dotenv_path=_dotenv_path)
+_dotenv_dict = {**dotenv_values(dotenv_path=_dotenv_path), **os.environ}
+
 _config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "llm_config.json"))
 
 
@@ -24,7 +33,7 @@ def load_config(config_path: str) -> Dict[str, Any]:
         with open(config_path, "r") as f:
             return json.load(f)
     except FileNotFoundError:
-        print(f"Warning: config.json not found at {config_path}. Using default settings.")
+        logger.error(f"Warning: llm_config.json not found at {config_path}. Using default settings.")
         return {}
     except json.JSONDecodeError as e:
         raise ValueError(f"Error decoding JSON from {config_path}: {e}")
@@ -76,7 +85,7 @@ def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
 
     if llm_name not in _llm_configs:
         # If llm_name doesn't exits in _llm_configs, then we go through default settings
-        print(f"Warning: LLM '{llm_name}' not found in config.json. Falling back to hardcoded defaults.")
+        logger.error(f"LLM '{llm_name}' not found in config.json. Falling back to hardcoded defaults.")
         raise ValueError(f"Unsupported LLM name: {llm_name}")
 
     config = _llm_configs[llm_name]
@@ -88,6 +97,19 @@ def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
 
     # Override with any kwargs passed to get_llm()
     arguments.update(kwargs)
+
+    if class_name == "OpenRouter" and SEND_APP_INFO_TO_OPENROUTER:
+        # https://openrouter.ai/rankings
+        # https://openrouter.ai/docs/api-reference/overview#headers
+        arguments_extra = {
+            "additional_kwargs": {
+                "extra_headers": {
+                    "HTTP-Referer": "https://github.com/neoneye/PlanExe",
+                    "X-Title": "PlanExe"
+                }
+            }
+        }
+        arguments.update(arguments_extra)
 
     # Dynamically instantiate the class
     try:
