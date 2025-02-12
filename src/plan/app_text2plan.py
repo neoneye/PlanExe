@@ -1,5 +1,9 @@
 """
+Start the UI in single user mode.
 PROMPT> python -m src.plan.app_text2plan
+
+Start the UI in multi user mode, as on: Hugging Face Spaces.
+PROMPT> IS_HUGGINGFACE_SPACES=true python -m src.plan.app_text2plan
 """
 import gradio as gr
 import os
@@ -7,16 +11,46 @@ import subprocess
 import time
 import sys
 import threading
+import logging
+from dataclasses import dataclass
 from math import ceil
 from src.llm_factory import get_available_llms
-from src.plan.generate_run_id import generate_run_id
+from src.plan.generate_run_id import generate_run_id, RUN_ID_PREFIX
 from src.plan.create_zip_archive import create_zip_archive
 from src.plan.filenames import FilenameEnum
 from src.plan.plan_file import PlanFile
 from src.plan.speedvsdetail import SpeedVsDetailEnum
 from src.prompt.prompt_catalog import PromptCatalog
+from src.purge.purge_old_runs import start_purge_scheduler
 from src.utils.get_env_as_string import get_env_as_string
+from src.utils.is_huggingface_spaces import is_huggingface_spaces
 from src.utils.time_since_last_modification import time_since_last_modification
+
+# Slightly different behavior when running inside Hugging Face Spaces, where it's not possible to open a file explorer.
+# And it's multi-user, so we need to keep track of the state for each user.
+IS_HUGGINGFACE_SPACES = is_huggingface_spaces()
+
+@dataclass
+class Config:
+    use_uuid_as_run_id: bool
+    visible_open_output_dir_button: bool
+    allow_only_openrouter_models: bool
+    enable_purge_old_runs: bool
+
+CONFIG_LOCAL = Config(
+    use_uuid_as_run_id=False,
+    visible_open_output_dir_button=True,
+    allow_only_openrouter_models=False,
+    enable_purge_old_runs=False,
+)
+CONFIG_HUGGINGFACE_SPACES = Config(
+    use_uuid_as_run_id=True,
+    visible_open_output_dir_button=False,
+    allow_only_openrouter_models=True,
+    enable_purge_old_runs=True,
+)
+
+CONFIG = CONFIG_HUGGINGFACE_SPACES if IS_HUGGINGFACE_SPACES else CONFIG_LOCAL
 
 MODULE_PATH_PIPELINE = "src.plan.run_plan_pipeline"
 DEFAULT_PROMPT_UUID = "4dc34d55-0d0d-4e9d-92f4-23765f49dd29"
@@ -26,6 +60,8 @@ RELAY_PROCESS_OUTPUT = False
 
 # Global constant for the zip creation interval (in seconds)
 ZIP_INTERVAL_SECONDS = 10
+
+RUN_DIR = "run"
 
 # Load prompt catalog and examples.
 prompt_catalog = PromptCatalog()
@@ -44,8 +80,11 @@ gradio_examples = []
 for prompt_item in all_prompts:
     gradio_examples.append([prompt_item.prompt])
 
-available_models = get_available_llms()
-available_model_names = [model for model in available_models]
+all_available_models = get_available_llms()
+if CONFIG.allow_only_openrouter_models:
+    available_model_names = [model for model in all_available_models if model.startswith("openrouter")]
+else:
+    available_model_names = all_available_models
 
 def has_pipeline_complete_file(path_dir: str):
     """
@@ -88,9 +127,18 @@ class MarkdownBuilder:
 class SessionState:
     """
     In a multi-user environment (e.g. Hugging Face Spaces), this class hold each users state.
-    In a single-user environment, this class is used to hold the state of the current session.
+    In a single-user environment, this class is used to hold the state of that lonely user.
+
+    IDEA: Persist the user settings for longer. The settings survive a page refresh, but not a server restart.
+    The browser has a local storage. Can Gradio access that, so that the settings are remembered between sessions?
     """
     def __init__(self):
+        # Settings: the user's OpenRouter API key.
+        self.openrouter_api_key = "" # Initialize to empty string
+        # Settings: The model that the user has picked.
+        self.llm_model = available_model_names[0]
+        # Settings: The speedvsdetail that the user has picked.
+        self.speedvsdetail = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW
         # Holds the subprocess.Popen object for the currently running pipeline process.
         self.active_proc = None
         # A threading.Event used to signal that the running process should stop.
@@ -108,14 +156,11 @@ class SessionState:
         """
         return self
 
-def run_planner(submit_or_retry_button, plan_prompt, llm_model, speedvsdetail, session_state: SessionState):
+def run_planner(submit_or_retry_button, plan_prompt, session_state: SessionState):
     """
     Generator function for launching the pipeline process and streaming updates.
     The session state is carried in a SessionState instance.
     """
-    # Initialize session_state if needed.
-    if session_state is None:
-        session_state = SessionState()
 
     # Clear any previous stop signal.
     session_state.stop_event.clear()
@@ -126,17 +171,15 @@ def run_planner(submit_or_retry_button, plan_prompt, llm_model, speedvsdetail, s
         if not session_state.latest_run_id:
             raise ValueError("No previous run to retry. Please submit a plan first.")
         run_id = session_state.latest_run_id
-        run_path = os.path.join("run", run_id)
+        run_path = os.path.join(RUN_DIR, run_id)
         absolute_path_to_run_dir = session_state.latest_run_dir
         print(f"Retrying the run with ID: {run_id}")
         if not os.path.exists(run_path):
             raise Exception(f"The run path is supposed to exist from an earlier run. However the no run path exists: {run_path}")
         
     elif submit_or_retry == "submit":
-        # use_uuid = True # TODO: determine if the app is running on huggingface spaces
-        use_uuid = False
-        run_id = generate_run_id(use_uuid)
-        run_path = os.path.join("run", run_id)
+        run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
+        run_path = os.path.join(RUN_DIR, run_id)
         absolute_path_to_run_dir = os.path.abspath(run_path)
 
         print(f"Submitting a new run with ID: {run_id}")
@@ -154,8 +197,15 @@ def run_planner(submit_or_retry_button, plan_prompt, llm_model, speedvsdetail, s
     # Set environment variables for the pipeline.
     env = os.environ.copy()
     env["RUN_ID"] = run_id
-    env["LLM_MODEL"] = llm_model
-    env["SPEED_VS_DETAIL"] = speedvsdetail
+    env["LLM_MODEL"] = session_state.llm_model
+    env["SPEED_VS_DETAIL"] = session_state.speedvsdetail
+
+    # If there is a non-empty OpenRouter API key, set it as an environment variable.
+    if session_state.openrouter_api_key and len(session_state.openrouter_api_key) > 0:
+        print("Setting OpenRouter API key as environment variable.")
+        env["OPENROUTER_API_KEY"] = session_state.openrouter_api_key
+    else:
+        print("No OpenRouter API key provided.")
 
     start_time = time.perf_counter()
     # Initialize the last zip creation time to be ZIP_INTERVAL_SECONDS in the past
@@ -269,8 +319,6 @@ def stop_planner(session_state: SessionState):
     """
     Sets a stop flag in the session_state and attempts to terminate the active process.
     """
-    if session_state is None:
-        session_state = SessionState()
 
     session_state.stop_event.set()
 
@@ -290,8 +338,6 @@ def open_output_dir(session_state: SessionState):
     """
     Opens the latest output directory in the native file explorer.
     """
-    if session_state is None:
-        session_state = SessionState()
 
     latest_run_dir = session_state.latest_run_dir
     if not latest_run_dir or not os.path.exists(latest_run_dir):
@@ -307,6 +353,29 @@ def open_output_dir(session_state: SessionState):
         return f"Opened the directory: {latest_run_dir}", session_state
     except Exception as e:
         return f"Failed to open directory: {e}", session_state
+
+def update_openrouter_api_key(openrouter_api_key, session_state: SessionState):
+    """Updates the OpenRouter API key in the session state."""
+    session_state.openrouter_api_key = openrouter_api_key
+    return openrouter_api_key, session_state
+
+def update_model_radio(llm_model, session_state: SessionState):
+    """Updates the llm_model in the session state"""
+    session_state.llm_model = llm_model
+    return llm_model, session_state
+
+def update_speedvsdetail_radio(speedvsdetail, session_state: SessionState):
+    """Updates the speedvsdetail in the session state"""
+    session_state.speedvsdetail = speedvsdetail
+    return speedvsdetail, session_state
+
+def initialize_settings(session_state: SessionState):
+    """Initializes the settings from session_state, if available."""
+    return (session_state.openrouter_api_key,
+            session_state.llm_model,
+            session_state.speedvsdetail,
+            session_state)
+
 
 # Build the Gradio UI using Blocks.
 with gr.Blocks(title="PlanExe") as demo_text2plan:
@@ -324,7 +393,7 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
                     submit_btn = gr.Button("Submit", variant='primary')
                     stop_btn = gr.Button("Stop")
                     retry_btn = gr.Button("Retry")
-                    open_dir_btn = gr.Button("Open Output Dir")
+                    open_dir_btn = gr.Button("Open Output Dir", visible=CONFIG.visible_open_output_dir_button)
 
                 output_markdown = gr.Markdown("Output will appear here...")
                 status_markdown = gr.Markdown("Status messages will appear here...")
@@ -354,24 +423,31 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
             label="Speed vs Detail",
             interactive=True 
         )
+        openrouter_api_key_text = gr.Textbox(
+            label="OpenRouter API Key",
+            type="password",
+            placeholder="Enter your OpenRouter API key (optional)",
+            info="Sign up at [OpenRouter](https://openrouter.ai/) to get an API key. A small top-up (e.g. 5 USD) is needed to access paid models."
+        )
 
     with gr.Tab("Join the community"):
         gr.Markdown("""
 - [GitHub](https://github.com/neoneye/PlanExe) the source code.
 - [Discord](https://neoneye.github.io/PlanExe-web/discord) join the community. Suggestions, feedback, and questions are welcome.
 """)
-    # Create a hidden state to hold our SessionState instance.
+    
+    # Manage the state of the current user
     session_state = gr.State(SessionState())
 
     # Submit and Retry buttons call run_planner and update the state.
     submit_btn.click(
         fn=run_planner,
-        inputs=[submit_btn, prompt_input, model_radio, speedvsdetail_radio, session_state],
+        inputs=[submit_btn, prompt_input, session_state],
         outputs=[output_markdown, download_output, session_state]
     )
     retry_btn.click(
         fn=run_planner,
-        inputs=[retry_btn, prompt_input, model_radio, speedvsdetail_radio, session_state],
+        inputs=[retry_btn, prompt_input, session_state],
         outputs=[output_markdown, download_output, session_state]
     )
     # The Stop button uses the state to terminate the running process.
@@ -387,8 +463,45 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
         outputs=[status_markdown, session_state]
     )
 
-if __name__ == "__main__":
+    openrouter_api_key_text.change(
+        fn=update_openrouter_api_key,
+        inputs=[openrouter_api_key_text, session_state],
+        outputs=[openrouter_api_key_text, session_state]
+    )
+    model_radio.change(
+        fn=update_model_radio,
+        inputs=[model_radio, session_state],
+        outputs=[model_radio, session_state]
+    )
+    speedvsdetail_radio.change(
+        fn=update_speedvsdetail_radio,
+        inputs=[speedvsdetail_radio, session_state],
+        outputs=[speedvsdetail_radio, session_state]
+    )
+
+
+    demo_text2plan.load(
+        fn=initialize_settings,
+        inputs=[session_state],
+        outputs=[openrouter_api_key_text, model_radio, speedvsdetail_radio, session_state]
+    )
+
+def run_app_text2plan():
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler()
+        ]
+    )
+
+    if CONFIG.enable_purge_old_runs:
+        start_purge_scheduler(run_dir=os.path.abspath(RUN_DIR), purge_interval_seconds=60*60, prefix=RUN_ID_PREFIX)
+
     # print("Environment variables Gradio:\n" + get_env_as_string() + "\n\n\n")
 
     print("Press Ctrl+C to exit.")
     demo_text2plan.launch()
+
+if __name__ == "__main__":
+    run_app_text2plan()
