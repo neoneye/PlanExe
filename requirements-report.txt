@@ -1,0 +1,2 @@
+pandas>=2.0.0
+markdown>=3.4.0 
