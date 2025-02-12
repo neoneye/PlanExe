@@ -53,6 +53,7 @@ llama-index-readers-llama-parse==0.4.0
 llama-parse==0.5.19
 lockfile==0.12.2
 luigi==3.6.0
+markdown>=3.4.0 
 markdown-it-py==3.0.0
 MarkupSafe==2.1.5
 marshmallow==3.24.2
@@ -67,7 +68,7 @@ ollama==0.4.5
 openai==1.59.5
 orjson==3.10.14
 packaging==24.2
-pandas==2.2.3
+pandas>=2.2.0
 pillow==11.1.0
 propcache==0.2.1
 pydantic==2.10.4
