@@ -33,6 +33,7 @@ IS_HUGGINGFACE_SPACES = is_huggingface_spaces()
 @dataclass
 class Config:
     use_uuid_as_run_id: bool
+    visible_top_header: bool
     visible_open_output_dir_button: bool
     visible_openrouter_api_key_textbox: bool
     allow_only_openrouter_models: bool
@@ -40,6 +41,7 @@ class Config:
 
 CONFIG_LOCAL = Config(
     use_uuid_as_run_id=False,
+    visible_top_header=True,
     visible_open_output_dir_button=True,
     visible_openrouter_api_key_textbox=False,
     allow_only_openrouter_models=False,
@@ -47,6 +49,7 @@ CONFIG_LOCAL = Config(
 )
 CONFIG_HUGGINGFACE_SPACES = Config(
     use_uuid_as_run_id=True,
+    visible_top_header=False,
     visible_open_output_dir_button=False,
     visible_openrouter_api_key_textbox=True,
     allow_only_openrouter_models=True,
@@ -379,10 +382,16 @@ def initialize_settings(session_state: SessionState):
             session_state.speedvsdetail,
             session_state)
 
+def check_api_key(session_state: SessionState):
+    """Checks if the API key is provided and returns a warning if not."""
+    if CONFIG.visible_openrouter_api_key_textbox and (not session_state.openrouter_api_key or len(session_state.openrouter_api_key) == 0):
+        return "<div style='background-color: #FF7777; color: black; border: 1px solid red; padding: 10px;'>Welcome to PlanExe. Please provide an OpenRouter API key in the <b>Settings</b> tab to start using PlanExe.</div>"
+    return "" # No warning
 
 # Build the Gradio UI using Blocks.
 with gr.Blocks(title="PlanExe") as demo_text2plan:
-    gr.Markdown("# PlanExe: crack open pandora’s box of ideas")
+    gr.Markdown("# PlanExe: crack open pandora’s box of ideas", visible=CONFIG.visible_top_header)
+    api_key_warning = gr.Markdown()
     with gr.Tab("Main"):
         with gr.Row():
             with gr.Column(scale=2, min_width=300):
@@ -448,11 +457,19 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
         fn=run_planner,
         inputs=[submit_btn, prompt_input, session_state],
         outputs=[output_markdown, download_output, session_state]
+    ).then(
+        fn=check_api_key,  # Check after submitting.
+        inputs=[session_state],
+        outputs=[api_key_warning]
     )
     retry_btn.click(
         fn=run_planner,
         inputs=[retry_btn, prompt_input, session_state],
         outputs=[output_markdown, download_output, session_state]
+    ).then(
+        fn=check_api_key,  # Check after retrying.
+        inputs=[session_state],
+        outputs=[api_key_warning]
     )
     # The Stop button uses the state to terminate the running process.
     stop_btn.click(
@@ -471,6 +488,10 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
         fn=update_openrouter_api_key,
         inputs=[openrouter_api_key_text, session_state],
         outputs=[openrouter_api_key_text, session_state]
+    ).then(
+        fn=check_api_key,  # Check when the API key changes.
+        inputs=[session_state],
+        outputs=[api_key_warning]
     )
     model_radio.change(
         fn=update_model_radio,
@@ -488,6 +509,10 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
         fn=initialize_settings,
         inputs=[session_state],
         outputs=[openrouter_api_key_text, model_radio, speedvsdetail_radio, session_state]
+    ).then(
+        fn=check_api_key,  # Check on initial load.
+        inputs=[session_state],
+        outputs=[api_key_warning]
     )
 
 def run_app_text2plan():
