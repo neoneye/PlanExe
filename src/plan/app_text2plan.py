@@ -34,18 +34,21 @@ IS_HUGGINGFACE_SPACES = is_huggingface_spaces()
 class Config:
     use_uuid_as_run_id: bool
     visible_open_output_dir_button: bool
+    visible_openrouter_api_key_textbox: bool
     allow_only_openrouter_models: bool
     enable_purge_old_runs: bool
 
 CONFIG_LOCAL = Config(
     use_uuid_as_run_id=False,
     visible_open_output_dir_button=True,
+    visible_openrouter_api_key_textbox=False,
     allow_only_openrouter_models=False,
     enable_purge_old_runs=False,
 )
 CONFIG_HUGGINGFACE_SPACES = Config(
     use_uuid_as_run_id=True,
     visible_open_output_dir_button=False,
+    visible_openrouter_api_key_textbox=True,
     allow_only_openrouter_models=True,
     enable_purge_old_runs=True,
 )
@@ -426,8 +429,9 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
         openrouter_api_key_text = gr.Textbox(
             label="OpenRouter API Key",
             type="password",
-            placeholder="Enter your OpenRouter API key (optional)",
-            info="Sign up at [OpenRouter](https://openrouter.ai/) to get an API key. A small top-up (e.g. 5 USD) is needed to access paid models."
+            placeholder="Enter your OpenRouter API key (required)",
+            info="Sign up at [OpenRouter](https://openrouter.ai/) to get an API key. A small top-up (e.g. 5 USD) is needed to access paid models.",
+            visible=CONFIG.visible_openrouter_api_key_textbox
         )
 
     with gr.Tab("Join the community"):
