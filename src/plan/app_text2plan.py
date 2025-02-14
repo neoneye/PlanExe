@@ -3,7 +3,7 @@ Start the UI in single user mode.
 PROMPT> python -m src.plan.app_text2plan
 
 Start the UI in multi user mode, as on: Hugging Face Spaces.
-PROMPT> IS_HUGGINGFACE_SPACES=true python -m src.plan.app_text2plan
+PROMPT> IS_HUGGINGFACE_SPACES=true HUGGINGFACE_SPACES_BROWSERSTATE_SECRET=random123 python -m src.plan.app_text2plan
 """
 import gradio as gr
 import os
@@ -12,6 +12,7 @@ import time
 import sys
 import threading
 import logging
+import json
 from dataclasses import dataclass
 from math import ceil
 from src.llm_factory import get_available_llms
@@ -23,7 +24,8 @@ from src.plan.speedvsdetail import SpeedVsDetailEnum
 from src.prompt.prompt_catalog import PromptCatalog
 from src.purge.purge_old_runs import start_purge_scheduler
 from src.utils.get_env_as_string import get_env_as_string
-from src.utils.is_huggingface_spaces import is_huggingface_spaces
+from src.huggingface_spaces.is_huggingface_spaces import is_huggingface_spaces
+from src.huggingface_spaces.huggingface_spaces_browserstate_secret import huggingface_spaces_browserstate_secret
 from src.utils.time_since_last_modification import time_since_last_modification
 
 # Slightly different behavior when running inside Hugging Face Spaces, where it's not possible to open a file explorer.
@@ -37,7 +39,9 @@ class Config:
     visible_open_output_dir_button: bool
     visible_openrouter_api_key_textbox: bool
     allow_only_openrouter_models: bool
+    run_planner_check_api_key_is_provided: bool
     enable_purge_old_runs: bool
+    browser_state_secret: str
 
 CONFIG_LOCAL = Config(
     use_uuid_as_run_id=False,
@@ -45,7 +49,9 @@ CONFIG_LOCAL = Config(
     visible_open_output_dir_button=True,
     visible_openrouter_api_key_textbox=False,
     allow_only_openrouter_models=False,
+    run_planner_check_api_key_is_provided=False,
     enable_purge_old_runs=False,
+    browser_state_secret=None, # Not used in local mode
 )
 CONFIG_HUGGINGFACE_SPACES = Config(
     use_uuid_as_run_id=True,
@@ -53,7 +59,9 @@ CONFIG_HUGGINGFACE_SPACES = Config(
     visible_open_output_dir_button=False,
     visible_openrouter_api_key_textbox=True,
     allow_only_openrouter_models=True,
+    run_planner_check_api_key_is_provided=True,
     enable_purge_old_runs=True,
+    browser_state_secret=huggingface_spaces_browserstate_secret(),
 )
 
 CONFIG = CONFIG_HUGGINGFACE_SPACES if IS_HUGGINGFACE_SPACES else CONFIG_LOCAL
@@ -134,9 +142,6 @@ class SessionState:
     """
     In a multi-user environment (e.g. Hugging Face Spaces), this class hold each users state.
     In a single-user environment, this class is used to hold the state of that lonely user.
-
-    IDEA: Persist the user settings for longer. The settings survive a page refresh, but not a server restart.
-    The browser has a local storage. Can Gradio access that, so that the settings are remembered between sessions?
     """
     def __init__(self):
         # Settings: the user's OpenRouter API key.
@@ -162,11 +167,52 @@ class SessionState:
         """
         return self
 
-def run_planner(submit_or_retry_button, plan_prompt, session_state: SessionState):
+def initialize_browser_settings(browser_state, session_state: SessionState):
+    try:
+        settings = json.loads(browser_state) if browser_state else {}
+    except Exception:
+        settings = {}
+    openrouter_api_key = settings.get("openrouter_api_key_text", "")
+    model = settings.get("model_radio", available_model_names[0])
+    speedvsdetail = settings.get("speedvsdetail_radio", SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW)
+    session_state.openrouter_api_key = openrouter_api_key
+    session_state.llm_model = model
+    session_state.speedvsdetail = speedvsdetail
+    return openrouter_api_key, model, speedvsdetail, browser_state, session_state
+
+def update_browser_settings_callback(openrouter_api_key, model, speedvsdetail, browser_state, session_state: SessionState):
+    try:
+        settings = json.loads(browser_state) if browser_state else {}
+    except Exception:
+        settings = {}
+    settings["openrouter_api_key_text"] = openrouter_api_key
+    settings["model_radio"] = model
+    settings["speedvsdetail_radio"] = speedvsdetail
+    updated_browser_state = json.dumps(settings)
+    session_state.openrouter_api_key = openrouter_api_key
+    session_state.llm_model = model
+    session_state.speedvsdetail = speedvsdetail
+    return updated_browser_state, openrouter_api_key, model, speedvsdetail, session_state
+
+def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_state: SessionState):
     """
     Generator function for launching the pipeline process and streaming updates.
     The session state is carried in a SessionState instance.
     """
+
+    # Sync persistent settings from BrowserState into session_state
+    try:
+        settings = json.loads(browser_state) if browser_state else {}
+    except Exception:
+        settings = {}
+    session_state.openrouter_api_key = settings.get("openrouter_api_key_text", session_state.openrouter_api_key)
+    session_state.llm_model = settings.get("model_radio", session_state.llm_model)
+    session_state.speedvsdetail = settings.get("speedvsdetail_radio", session_state.speedvsdetail)
+
+    # Check if an OpenRouter API key is required and provided.
+    if CONFIG.run_planner_check_api_key_is_provided:
+        if session_state.openrouter_api_key is None or len(session_state.openrouter_api_key) == 0:
+            raise ValueError("An OpenRouter API key is required to use PlanExe. Please provide an API key in the Settings tab.")
 
     # Clear any previous stop signal.
     session_state.stop_event.clear()
@@ -360,28 +406,6 @@ def open_output_dir(session_state: SessionState):
     except Exception as e:
         return f"Failed to open directory: {e}", session_state
 
-def update_openrouter_api_key(openrouter_api_key, session_state: SessionState):
-    """Updates the OpenRouter API key in the session state."""
-    session_state.openrouter_api_key = openrouter_api_key
-    return openrouter_api_key, session_state
-
-def update_model_radio(llm_model, session_state: SessionState):
-    """Updates the llm_model in the session state"""
-    session_state.llm_model = llm_model
-    return llm_model, session_state
-
-def update_speedvsdetail_radio(speedvsdetail, session_state: SessionState):
-    """Updates the speedvsdetail in the session state"""
-    session_state.speedvsdetail = speedvsdetail
-    return speedvsdetail, session_state
-
-def initialize_settings(session_state: SessionState):
-    """Initializes the settings from session_state, if available."""
-    return (session_state.openrouter_api_key,
-            session_state.llm_model,
-            session_state.speedvsdetail,
-            session_state)
-
 def check_api_key(session_state: SessionState):
     """Checks if the API key is provided and returns a warning if not."""
     if CONFIG.visible_openrouter_api_key_textbox and (not session_state.openrouter_api_key or len(session_state.openrouter_api_key) == 0):
@@ -451,23 +475,24 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
     
     # Manage the state of the current user
     session_state = gr.State(SessionState())
+    browser_state = gr.BrowserState("", storage_key="PlanExeStorage1", secret=CONFIG.browser_state_secret)
 
     # Submit and Retry buttons call run_planner and update the state.
     submit_btn.click(
         fn=run_planner,
-        inputs=[submit_btn, prompt_input, session_state],
+        inputs=[submit_btn, prompt_input, browser_state, session_state],
         outputs=[output_markdown, download_output, session_state]
     ).then(
-        fn=check_api_key,  # Check after submitting.
+        fn=check_api_key,
         inputs=[session_state],
         outputs=[api_key_warning]
     )
     retry_btn.click(
         fn=run_planner,
-        inputs=[retry_btn, prompt_input, session_state],
+        inputs=[retry_btn, prompt_input, browser_state, session_state],
         outputs=[output_markdown, download_output, session_state]
     ).then(
-        fn=check_api_key,  # Check after retrying.
+        fn=check_api_key,
         inputs=[session_state],
         outputs=[api_key_warning]
     )
@@ -476,6 +501,10 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
         fn=stop_planner,
         inputs=session_state,
         outputs=[status_markdown, session_state]
+    ).then(
+        fn=check_api_key,
+        inputs=[session_state],
+        outputs=[api_key_warning]
     )
     # Open Output Dir button.
     open_dir_btn.click(
@@ -484,33 +513,44 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
         outputs=[status_markdown, session_state]
     )
 
+    # Unified change callbacks for settings.
     openrouter_api_key_text.change(
-        fn=update_openrouter_api_key,
-        inputs=[openrouter_api_key_text, session_state],
-        outputs=[openrouter_api_key_text, session_state]
+        fn=update_browser_settings_callback,
+        inputs=[openrouter_api_key_text, model_radio, speedvsdetail_radio, browser_state, session_state],
+        outputs=[browser_state, openrouter_api_key_text, model_radio, speedvsdetail_radio, session_state]
     ).then(
-        fn=check_api_key,  # Check when the API key changes.
+        fn=check_api_key,
         inputs=[session_state],
         outputs=[api_key_warning]
     )
+
     model_radio.change(
-        fn=update_model_radio,
-        inputs=[model_radio, session_state],
-        outputs=[model_radio, session_state]
-    )
-    speedvsdetail_radio.change(
-        fn=update_speedvsdetail_radio,
-        inputs=[speedvsdetail_radio, session_state],
-        outputs=[speedvsdetail_radio, session_state]
-    )
-
-
-    demo_text2plan.load(
-        fn=initialize_settings,
-        inputs=[session_state],
-        outputs=[openrouter_api_key_text, model_radio, speedvsdetail_radio, session_state]
+        fn=update_browser_settings_callback,
+        inputs=[openrouter_api_key_text, model_radio, speedvsdetail_radio, browser_state, session_state],
+        outputs=[browser_state, openrouter_api_key_text, model_radio, speedvsdetail_radio, session_state]
     ).then(
-        fn=check_api_key,  # Check on initial load.
+        fn=check_api_key,
+        inputs=[session_state],
+        outputs=[api_key_warning]
+    )
+
+    speedvsdetail_radio.change(
+        fn=update_browser_settings_callback,
+        inputs=[openrouter_api_key_text, model_radio, speedvsdetail_radio, browser_state, session_state],
+        outputs=[browser_state, openrouter_api_key_text, model_radio, speedvsdetail_radio, session_state]
+    ).then(
+        fn=check_api_key,
+        inputs=[session_state],
+        outputs=[api_key_warning]
+    )
+
+    # Initialize settings on load from persistent browser_state.
+    demo_text2plan.load(
+        fn=initialize_browser_settings,
+        inputs=[browser_state, session_state],
+        outputs=[openrouter_api_key_text, model_radio, speedvsdetail_radio, browser_state, session_state]
+    ).then(
+        fn=check_api_key,
         inputs=[session_state],
         outputs=[api_key_warning]
     )

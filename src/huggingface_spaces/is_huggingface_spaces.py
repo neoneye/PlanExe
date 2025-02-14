@@ -1,8 +1,8 @@
 """
-PROMPT> IS_HUGGINGFACE_SPACES=true python -m src.utils.is_huggingface_spaces
+PROMPT> IS_HUGGINGFACE_SPACES=true python -m src.huggingface_spaces.is_huggingface_spaces
 True
 
-PROMPT> python -m src.utils.is_huggingface_spaces 
+PROMPT> python -m src.huggingface_spaces.is_huggingface_spaces
 False
 """
 import os
