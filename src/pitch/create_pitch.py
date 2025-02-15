@@ -125,8 +125,7 @@ WBS Level 2:
 if __name__ == "__main__":
     from llama_index.llms.ollama import Ollama
 
-    # TODO: Eliminate hardcoded paths
-    basepath = '/Users/neoneye/Desktop/planexe_data'
+    basepath = os.path.join(os.path.dirname(__file__), 'test_data')
 
     def load_json(relative_path: str) -> dict:
         path = os.path.join(basepath, relative_path)
@@ -135,9 +134,9 @@ if __name__ == "__main__":
             the_json = json.load(f)
         return the_json
 
-    plan_json = load_json('002-project_plan.json')
-    wbs_level1_json = load_json('004-wbs_level1.json')
-    wbs_level2_json = load_json('005-wbs_level2.json')
+    plan_json = load_json('lunar_base-project_plan.json')
+    wbs_level1_json = load_json('lunar_base-wbs_level1.json')
+    wbs_level2_json = load_json('lunar_base-wbs_level2.json')
 
     model_name = "llama3.1:latest"
     # model_name = "qwen2.5-coder:latest"

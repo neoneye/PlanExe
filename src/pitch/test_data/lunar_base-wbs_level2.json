@@ -1,0 +1,184 @@
+[
+  {
+    "id": "890d6738-aa20-42e6-a472-c59a188a9cad",
+    "major_phase_title": "Project Initiation & Planning",
+    "subtasks": [
+      {
+        "id": "8bcefb17-013c-45cf-8482-b6a4de629efb",
+        "description": "Define Project Scope and Objectives"
+      },
+      {
+        "id": "b76e3b08-02b2-4490-bf69-8c86febf29a9",
+        "description": "Secure Funding and Resources"
+      },
+      {
+        "id": "9ca53d3d-16ed-4349-93f1-767ee4e9ee4b",
+        "description": "Establish Project Team and Governance"
+      },
+      {
+        "id": "6e16a6a9-5880-41b5-a92b-ef9edfd9b5e3",
+        "description": "Develop Detailed Project Plan"
+      },
+      {
+        "id": "0f9dbae8-654a-4efc-9f4d-3bd946c48bd1",
+        "description": "Conduct Risk Assessment"
+      }
+    ]
+  },
+  {
+    "id": "2b65c62b-9149-44ef-a6e2-a5fc28667ce7",
+    "major_phase_title": "Site Selection & Lunar Reconnaissance",
+    "subtasks": [
+      {
+        "id": "13ba1269-63a4-4a6d-9e7d-39581278e338",
+        "description": "Analyze Lunar Reconnaissance Orbiter Data"
+      },
+      {
+        "id": "9a85ae94-1c9d-413a-b39f-712f1ec1b672",
+        "description": "Identify Potential Landing Sites"
+      },
+      {
+        "id": "4261937b-4fc4-4feb-bccd-bb048b25af67",
+        "description": "Model Radiation Exposure Levels"
+      },
+      {
+        "id": "a11410e6-3300-4242-b59d-965a0099dffa",
+        "description": "Assess Lunar Hazards"
+      },
+      {
+        "id": "f23c4fc4-f432-4802-9d38-44762fd045f5",
+        "description": "Select Optimal Landing Site"
+      }
+    ]
+  },
+  {
+    "id": "8430c5f9-c0df-42bf-940e-473a4b039f95",
+    "major_phase_title": "Habitat Module Design & Development",
+    "subtasks": [
+      {
+        "id": "6355f874-61d0-4b64-bc1c-7a726702fa2a",
+        "description": "Define Habitat Module Internal Volume"
+      },
+      {
+        "id": "58bb4dd4-f8ab-4022-a3ae-decd734df008",
+        "description": "Design Life Support Systems"
+      },
+      {
+        "id": "aefc27c5-e531-4b98-b975-9d94246aab9d",
+        "description": "Develop Radiation Shielding"
+      },
+      {
+        "id": "18c839b3-c13e-4889-9204-ea91cfc85533",
+        "description": "Design Power Generation System"
+      },
+      {
+        "id": "4d5e1093-c97e-4236-9953-2a001f85b824",
+        "description": "Develop Habitat Module Prototype"
+      }
+    ]
+  },
+  {
+    "id": "9da53cb2-533c-458f-8c09-5b0a2de809e3",
+    "major_phase_title": "Equipment & Resource Procurement",
+    "subtasks": [
+      {
+        "id": "8ea81b95-9789-4d28-a617-006b8b0f4ddb",
+        "description": "Procure Advanced Composite Materials"
+      },
+      {
+        "id": "e46984fd-d43a-494e-ae0f-964036115c30",
+        "description": "Acquire Medical Equipment and Medications"
+      },
+      {
+        "id": "72708542-1833-4132-a8e4-06a01264f5f3",
+        "description": "Develop Backup Return Vehicle"
+      },
+      {
+        "id": "3b7f2306-282b-4db0-acbe-015f47b2c02c",
+        "description": "Manufacture Spacesuits"
+      },
+      {
+        "id": "44a22ae3-972e-45a4-8d33-3c7fb2b48129",
+        "description": "Secure Lunar Regolith Samples"
+      }
+    ]
+  },
+  {
+    "id": "8d633161-907e-4cc2-9d4d-ab6761f9c269",
+    "major_phase_title": "Launch & Lunar Transportation",
+    "subtasks": [
+      {
+        "id": "262f8926-186c-48c4-97e5-6043894dbe9a",
+        "description": "Prepare Launch Vehicle"
+      },
+      {
+        "id": "6d094c7f-bbd1-4b98-bbdb-5060c175efdb",
+        "description": "Transport Habitat Module to Launch Site"
+      },
+      {
+        "id": "f6c8009d-9e6d-415c-96cf-71d704c27a3e",
+        "description": "Conduct Launch Operations"
+      },
+      {
+        "id": "74b8c707-7fd7-4186-9f34-fbaa4c405458",
+        "description": "Perform Lunar Transfer Orbit Maneuvers"
+      },
+      {
+        "id": "3a603c57-9623-4551-97d1-369231f4ad06",
+        "description": "Execute Lunar Landing"
+      }
+    ]
+  },
+  {
+    "id": "d4043460-f75b-47af-a038-3e27d5269c67",
+    "major_phase_title": "Base Construction & Setup",
+    "subtasks": [
+      {
+        "id": "dd0d2912-64f6-4a19-83d9-9bf398841ebf",
+        "description": "Deploy Habitat Module"
+      },
+      {
+        "id": "4724b64a-dd67-4d5f-8ef1-8d3702e46caf",
+        "description": "Install Life Support Systems"
+      },
+      {
+        "id": "56eacb38-081f-4d4b-8b48-4b819fc6745f",
+        "description": "Establish Power Generation"
+      },
+      {
+        "id": "02edd7c0-3c5d-4765-809b-7f1435fc8f16",
+        "description": "Set Up Research Facilities"
+      },
+      {
+        "id": "93f51791-4db6-45b0-a26a-b1851a68b852",
+        "description": "Implement Lunar Dust Mitigation Strategy"
+      }
+    ]
+  },
+  {
+    "id": "fdcca24a-3673-444e-85e8-8ef06b17ff1b",
+    "major_phase_title": "Base Operation & Maintenance",
+    "subtasks": [
+      {
+        "id": "77dbba2b-fd2d-41e9-8b7f-fffecfbdb1a4",
+        "description": "Conduct Scientific Research"
+      },
+      {
+        "id": "06f7c01c-c693-48fd-8068-f1c19a0f9f32",
+        "description": "Maintain Life Support Systems"
+      },
+      {
+        "id": "0382ccbd-e3b9-4d90-90a6-3b69450005ac",
+        "description": "Monitor Radiation Levels"
+      },
+      {
+        "id": "d07a7414-2283-4597-ae0f-8db50e87b1c2",
+        "description": "Perform Equipment Maintenance"
+      },
+      {
+        "id": "5e24afc6-84c3-4668-b456-ee43991167cf",
+        "description": "Manage Waste and Resources"
+      }
+    ]
+  }
+]
