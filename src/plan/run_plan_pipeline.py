@@ -22,7 +22,7 @@ from src.expert.expert_orchestrator import ExpertOrchestrator
 from src.plan.create_wbs_level1 import CreateWBSLevel1
 from src.plan.create_wbs_level2 import CreateWBSLevel2
 from src.plan.create_wbs_level3 import CreateWBSLevel3
-from src.plan.create_pitch import CreatePitch
+from src.pitch.create_pitch import CreatePitch
 from src.plan.identify_wbs_task_dependencies import IdentifyWBSTaskDependencies
 from src.plan.estimate_wbs_task_durations import EstimateWBSTaskDurations
 from src.wbs.wbs_task import WBSTask, WBSProject

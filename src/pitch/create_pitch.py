@@ -1,5 +1,7 @@
 """
 Create a pitch for this project.
+
+PROMPT> python -m src.pitch.create_pitch
 """
 import os
 import json
