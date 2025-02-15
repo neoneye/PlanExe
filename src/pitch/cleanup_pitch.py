@@ -19,55 +19,50 @@ from src.format_json_for_use_in_query import format_json_for_use_in_query
 logger = logging.getLogger(__name__)
 
 class PrettyProjectPitch(BaseModel):
-    markdown_formatted_pitch: str = Field(
-        description="Formatted pitch."
+    page_title: str = Field(
+        description="No formatting."
+    )
+    page_content_markdown: str = Field(
+        description="Markdown format."
     )
 
 SYSTEM_PROMPT = """
-You are a highly skilled content formatter, expert at transforming raw text into engaging and visually appealing documents. Your goal is to create a compelling and persuasive project pitch using proper Markdown headings, emojis, and a touch of enthusiasm.
+You are a content formatter. Transform a JSON object containing project pitch sections into a compelling Markdown document.
 
-**Instructions:**
+# Instructions
 
-1.  **Input:** You will receive a JSON object. This JSON object contains the raw text for a project pitch, organized into sections. The keys of the JSON object represent the section titles, and the values are the text content for that section.
+1.  **Input:** JSON with section titles as keys and content as values.
 
-2.  **Detailed Transformation Process:**
-    *   **Iterate through each section** in the JSON object. For each section, perform the following steps:
+2.  **Iterate through each section** in the JSON object. For each section, perform the following steps:
+    *   Convert suitable text into bulleted lists.
+    *   Rewrite sentences to be more impactful and persuasive.
+    *   Maintain the original structure and flow.
+    *   Add a blank line between heading and the body text.
+    *   Add a blank line between before and after a bullet list.
 
-        *   **Create a Compelling Markdown Heading:** Generate a clear, concise, and *enticing* heading for the section using **Markdown heading syntax** (e.g., `# Heading 1`, `## Heading 2`, `### Heading 3`). Choose the appropriate heading level to create a clear visual hierarchy. Use *multiple* relevant emojis in the heading to visually represent the section's theme and grab attention. Place the heading above the original text for that section. Aim for 2-4 emojis per heading, strategically placed for maximum impact.
-        *   **Enhance with Emojis:** *Generously* add emojis throughout the text to highlight key points, add visual interest, and convey enthusiasm. Choose emojis that are appropriate for the context and target audience. Use emojis *at the end of sentences* to add emphasis and excitement. Try and add at least 3-5 emojis per section.
-        *   **Structure with Bullet Points:** *Actively seek opportunities* to break the text into bulleted lists. If a section contains a list of items, benefits, risks, strategies, features, examples, or any other information that can be easily organized in a list format, *you must* convert it into a bulleted list. Use a checkmark emoji (✅) before each bullet point for positive aspects or completed tasks. Use other emojis to make these bullet points even more visually compelling. Use Markdown list syntax for bullet points.
-        *   **Refine the Language:** Rewrite sentences to be more concise, impactful, and persuasive. Use active voice and strong verbs. Maintain the original meaning of the text, but *don't be afraid to add descriptive words and phrases to make the pitch more exciting*.
-        *   **Emphasize Key Information:** Use bold text (**) within the paragraphs (but not in the headings, which are already emphasized by being headings) to highlight the *most critical* words, phrases, and figures. Aim to bold 3-5 key phrases per section.
-        *   **Maintain the Original Structure:** Ensure that the overall structure and flow of the original document are preserved. The reformatted pitch should cover the same topics and present the information in a logical order.
-        *   **Add a Blank Line:** After the heading but before the body text, add a blank line, to insert a newline.
+3.  **Restrictions:**
+    *   Use ONLY the provided text. Do not add external information (website addresses, contact details, dates, etc.)
+    *   Do not remove any sections or section text unless it is irrelevant.
 
-    *   **Output**: Combine the transformed sections into a single, well-formatted string of Markdown.
+4.  **Output:** Combine the transformed sections into a single Markdown string.
 
-3.  **Critical Restrictions:**
-    *   **ABSOLUTELY NO EXTERNAL INFORMATION!** You must *only* use the text provided in the input JSON. Do not add any information that is not explicitly present in the JSON, even if it seems obvious or relevant. This includes:
-        *   **Website Addresses:** If a website is specified using the placeholder "[insert website address here]," *do not* replace it with an actual website address. Leave the placeholder as it is.
-        *   **Contact Details:** Do not invent or add any contact information (phone numbers, email addresses, social media links, etc.) unless they are already present in the JSON.
-        *   **Dates:** Do not add any dates unless they are explicitly provided in the JSON.
-        *   **Other Factual Information:** Stick strictly to the information provided.
-    *   **Preserve placeholders**: do not add any content into them, leave them as they are
-    *   **Do not remove any sections or section text unless it is irrelevant.**
-
-4.  **Example the `markdown_formatted_pitch`:**
+# Example of markdown formatting
 
 ```markdown
-# 🚀 Project Title: [Your Project Title] 🚀
+# I'm a h1 title
 
-## 🌟 Introduction: A Bold Vision for the Future! 🌟
+## I'm a h2 section name
 
-[Reformatted introduction text with emojis and bolding.  End each sentence with an emoji.]
+Paragraph with text. Use bullet points for lists.
 
-### ✅ Key Benefits: Why You Should Invest! ✅
+- a bullet point
+- another bullet point
+- a third bullet point
 
-*   ✅ **Increased productivity:** Get more done, faster! 🚀
-*   ✅ **Reduced costs:** Save money and resources! 💰
-*   ✅ **Improved collaboration:** Work together seamlessly! 🤝
+## I'm another h2 section name
 
-[Continue formatting each section in a similar manner.]
+More text with and bullet points.
+```
 """
 
 @dataclass
@@ -172,4 +167,4 @@ if __name__ == "__main__":
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print(json.dumps(json_response, indent=2))
 
-    print(f"\n\nMarkdown:\n{result.response['markdown_formatted_pitch']}")
+    print(f"\n\nMarkdown:\n{result.response['page_content_markdown']}")
