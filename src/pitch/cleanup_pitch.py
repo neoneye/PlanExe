@@ -19,6 +19,9 @@ from src.format_json_for_use_in_query import format_json_for_use_in_query
 logger = logging.getLogger(__name__)
 
 class OutputDocument(BaseModel):
+    tags: list[str] = Field(
+        description="What kind of content is in the document."
+    )
     title: str = Field(
         description="No formatting."
     )
@@ -26,10 +29,7 @@ class OutputDocument(BaseModel):
         description="Markdown format."
     )
     final_markdown: str = Field(
-        description="Markdown format. Fix missing newlines."
-    )
-    tags: list[str] = Field(
-        description="What kind of content is in the document."
+        description="Markdown format."
     )
 
 SYSTEM_PROMPT = """
@@ -39,33 +39,46 @@ You are a content formatter. Transform a JSON object containing project pitch se
 
 1.  **Input:** JSON with section titles as keys and content as values.
 
-2.  **Iterate through all sections** in the JSON object and perform the following steps:
+2.  **Draft Markdown:** Iterate through all sections in the JSON object and perform the following steps:
     - Convert suitable text into markdown with bulleted lists.
     - Rewrite sentences to be more impactful and persuasive.
-    - Add a blank line between heading and the body text.
-    - Add a blank line between before and after a bullet list.
     - You are encouraged to move sentences around to improve the flow of the text.
 
 3.  **Restrictions:**
     - Use ONLY the provided text. Do not add external information (website addresses, contact details, dates, etc.)
     - Do not remove any sections or section text unless it is irrelevant.
     - The reformatted pitch must cover the same topics as the original JSON object.
+    - Use newlines before and after headings.
 
 4. **Tone:**
     - For short, everyday tasks: Use an informal, energetic tone, fewer paragraphs, shorter bullet points.
 	- For big, strategic projects: Adopt a formal, detailed style, multiple sections, more thorough risk/benefit analysis.
 
-5.  **Page tags:**
+5.  **Final Markdown:**
+    - Take the draft markdown and refine it further.
+    - Bold important keywords or phrases, like **very important words**.
+    - Don't bold headings or subheadings, since they are already formatted.
+    - Repair invalid markdown syntax.
+    - Ensure the final markdown is well-structured.
+
+6.  **Page tags:**
     - Find the most suitable keywords for the page content. Don't use hashtags or special characters.
 
-# Example of markdown formatting of a section
+# Example of markdown formatting
 
 ```markdown
-Paragraph with text. Use bullet points for lists.
+# Document title
 
+## Section Title
+
+Paragraph with text. Use bullet points for lists.
 - I'm a bullet point
 - Another bullet point
 - Yet another bullet point
+
+## Another Section Title
+
+etc.
 
 ```
 """
