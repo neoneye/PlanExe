@@ -18,12 +18,18 @@ from src.format_json_for_use_in_query import format_json_for_use_in_query
 
 logger = logging.getLogger(__name__)
 
-class PrettyProjectPitch(BaseModel):
-    page_title: str = Field(
+class OutputDocument(BaseModel):
+    title: str = Field(
         description="No formatting."
     )
-    page_content_markdown: str = Field(
+    draft_markdown: str = Field(
         description="Markdown format."
+    )
+    final_markdown: str = Field(
+        description="Markdown format. Fix missing newlines."
+    )
+    tags: list[str] = Field(
+        description="What kind of content is in the document."
     )
 
 SYSTEM_PROMPT = """
@@ -33,35 +39,30 @@ You are a content formatter. Transform a JSON object containing project pitch se
 
 1.  **Input:** JSON with section titles as keys and content as values.
 
-2.  **Iterate through each section** in the JSON object. For each section, perform the following steps:
-    *   Convert suitable text into bulleted lists.
+2.  **Iterate through all sections** in the JSON object and perform the following steps:
+    *   Convert suitable text into markdown with bulleted lists.
     *   Rewrite sentences to be more impactful and persuasive.
-    *   Maintain the original structure and flow.
     *   Add a blank line between heading and the body text.
     *   Add a blank line between before and after a bullet list.
+    *   You are encouraged to move sentences around to improve the flow of the text.
 
 3.  **Restrictions:**
     *   Use ONLY the provided text. Do not add external information (website addresses, contact details, dates, etc.)
     *   Do not remove any sections or section text unless it is irrelevant.
+    *   The reformatted pitch must cover the same topics as the original JSON object.
 
-4.  **Output:** Combine the transformed sections into a single Markdown string.
+4.  **Page tags:**
+    *   Find the most suitable keywords for the page content. Don't use hashtags or special characters.
 
-# Example of markdown formatting
+# Example of markdown formatting of a section
 
 ```markdown
-# I'm a h1 title
-
-## I'm a h2 section name
-
 Paragraph with text. Use bullet points for lists.
 
-- a bullet point
-- another bullet point
-- a third bullet point
+- I'm a bullet point
+- Another bullet point
+- Yet another bullet point
 
-## I'm another h2 section name
-
-More text with and bullet points.
 ```
 """
 
@@ -97,7 +98,7 @@ class CleanupPitch:
         
         logger.debug(f"User Prompt:\n{user_prompt}")
 
-        sllm = llm.as_structured_llm(PrettyProjectPitch)
+        sllm = llm.as_structured_llm(OutputDocument)
 
         logger.debug("Starting LLM chat interaction.")
         start_time = time.perf_counter()
@@ -167,4 +168,4 @@ if __name__ == "__main__":
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print(json.dumps(json_response, indent=2))
 
-    print(f"\n\nMarkdown:\n{result.response['page_content_markdown']}")
+    print(f"\n\nMarkdown:\n{result.response['final_markdown']}")
