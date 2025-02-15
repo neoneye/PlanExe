@@ -19,12 +19,6 @@ from src.format_json_for_use_in_query import format_json_for_use_in_query
 logger = logging.getLogger(__name__)
 
 class OutputDocument(BaseModel):
-    tags: list[str] = Field(
-        description="What kind of content is in the document."
-    )
-    title: str = Field(
-        description="No formatting."
-    )
     draft_markdown: str = Field(
         description="Markdown format."
     )
@@ -44,7 +38,7 @@ You are a content formatter. Transform a JSON object containing project pitch se
     - Rewrite sentences to be more impactful and persuasive.
     - You are encouraged to move sentences around to improve the flow of the text.
 
-3.  **Restrictions:**
+3.  **Draft Markdown Restrictions:**
     - Use ONLY the provided text. Do not add external information (website addresses, contact details, dates, etc.)
     - Do not remove any sections or section text unless it is irrelevant.
     - The reformatted pitch must cover the same topics as the original JSON object.
@@ -57,12 +51,12 @@ You are a content formatter. Transform a JSON object containing project pitch se
 5.  **Final Markdown:**
     - Take the draft markdown and refine it further.
     - Bold important keywords or phrases, like **very important words**.
-    - Don't bold headings or subheadings, since they are already formatted.
     - Repair invalid markdown syntax.
     - Ensure the final markdown is well-structured.
 
-6.  **Page tags:**
-    - Find the most suitable keywords for the page content. Don't use hashtags or special characters.
+6.  **Final Markdown Restrictions:**
+    - Markdown headings: Use `# Top Level` for the document title. Use `## Second Level` for section titles. Do NOT use more than two levels of headings.
+    - Don't bold headings or subheadings, since they are already formatted.
 
 # Example of markdown formatting
 
