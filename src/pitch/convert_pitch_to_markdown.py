@@ -105,11 +105,6 @@ class ConvertPitchToMarkdown:
             markdown_content = response_content  # Use the entire content if delimiters are missing
             logger.warning("Output delimiters not found in LLM response.")
 
-        # remove ```markdown from the beginning
-        markdown_content = markdown_content.replace("```markdown", "")
-        # remove ``` from the end
-        markdown_content = markdown_content.replace("```", "")
-
         json_response = {}
         json_response['response_content'] = response_content
         json_response['markdown'] = markdown_content
