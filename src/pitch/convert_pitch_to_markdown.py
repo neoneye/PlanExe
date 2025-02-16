@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from llama_index.core.llms.llm import LLM
 from llama_index.core.llms import ChatMessage, MessageRole
 from src.format_json_for_use_in_query import format_json_for_use_in_query
+from src.markdown_util.fix_bullet_lists import fix_bullet_lists
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +106,11 @@ class ConvertPitchToMarkdown:
         else:
             markdown_content = response_content  # Use the entire content if delimiters are missing
             logger.warning("Output delimiters not found in LLM response.")
+
+        # The bullet lists are supposed to be preceeded by 2 newlines. 
+        # However often there is just 1 newline. 
+        # This fix makes sure there are 2 newlines before bullet lists.
+        markdown_content = fix_bullet_lists(markdown_content)
 
         json_response = {}
         json_response['response_content'] = response_content
