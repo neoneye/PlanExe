@@ -19,7 +19,7 @@ class FilenameEnum(str, Enum):
     WBS_LEVEL2_RAW = "010-1-wbs_level2_raw.json"
     WBS_LEVEL2 = "010-2-wbs_level2.json"
     WBS_PROJECT_LEVEL1_AND_LEVEL2 = "011-wbs_project_level1_and_level2.json"
-    PITCH = "012-pitch.json"
+    PITCH_RAW = "012-1-pitch_raw.json"
     TASK_DEPENDENCIES_RAW = "013-task_dependencies_raw.json"
     TASK_DURATIONS_RAW_TEMPLATE = "014-1-{}-task_durations_raw.json"
     TASK_DURATIONS = "014-2-task_durations.json"

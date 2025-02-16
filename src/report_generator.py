@@ -107,7 +107,7 @@ class PlanExeReport:
     def gather_data(self):
         """Gather data from all important files."""
         # Project Pitch
-        pitch_data = self.read_json_file(FilenameEnum.PITCH.value)
+        pitch_data = self.read_json_file(FilenameEnum.PITCH_RAW.value)
         if pitch_data:
             self.report_data['pitch'] = pitch_data
 

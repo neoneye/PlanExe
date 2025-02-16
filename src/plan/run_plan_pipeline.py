@@ -496,7 +496,7 @@ class CreatePitchTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
     
     def output(self):
-        return luigi.LocalTarget(str(self.file_path(FilenameEnum.PITCH)))
+        return luigi.LocalTarget(str(self.file_path(FilenameEnum.PITCH_RAW)))
     
     def requires(self):
         return {
