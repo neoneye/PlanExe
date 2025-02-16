@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Usage:
-PROMPT> python -m src.report_generator /path/to/PlanExe_20250216_dir
+PROMPT> python -m src.report.report_generator /path/to/PlanExe_20250216_dir
 """
 import json
 import os

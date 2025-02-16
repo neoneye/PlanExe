@@ -25,12 +25,12 @@ pip install -r requirements-report.txt
 
 ### Basic Usage
 ```bash
-python src/report_generator.py /path/to/planexe/output/directory
+python -m src.report.report_generator /path/to/planexe/output/directory
 ```
 
 ### Specify Custom Output File
 ```bash
-python src/report_generator.py /path/to/planexe/output/directory -o custom_report.html
+python -m src.report.report_generator /path/to/planexe/output/directory -o custom_report.html
 ```
 
 ## Report Contents
@@ -60,7 +60,7 @@ The generated report includes:
 
 If your PlanExe output is in `/home/user/my_project/planexe_output`, run:
 ```bash
-python src/report_generator.py /home/user/my_project/planexe_output
+python -m src.report.report_generator /home/user/my_project/planexe_output
 ```
 
 This will:
