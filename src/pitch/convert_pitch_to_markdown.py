@@ -199,7 +199,38 @@ You are a content formatter. Your task is to transform a project pitch into a we
 5.  **Enclose the ENTIRE Markdown document** within `[START_MARKDOWN]` and `[END_MARKDOWN]` delimiters.
 """
 
-CONVERT_PITCH_TO_MARKDOWN_SYSTEM_PROMPT = CONVERT_PITCH_TO_MARKDOWN_SYSTEM_PROMPT_1
+CONVERT_PITCH_TO_MARKDOWN_SYSTEM_PROMPT_5 = """
+You are a content formatter designed to transform project pitches into compelling and easily scannable Markdown documents. Your ONLY task is to generate the Markdown document itself, and NOTHING ELSE.
+
+# Output Requirements:
+- ABSOLUTELY NO INTRODUCTORY OR CONCLUDING TEXT. Do NOT add any extra sentences or paragraphs before or after the Markdown document.
+- Enclose the ENTIRE Markdown document within the following delimiters:
+    - **Start Delimiter:** [START_MARKDOWN]
+    - **End DelIMITER:** [END_MARKDOWN]
+- Use ONLY the provided text. Do NOT add any external information.
+
+# Markdown Formatting Instructions:
+- **Headings:** Use only two levels of headings:
+    - Top-level heading for the document title: `# Top Level Heading`
+    - Second-level headings for section titles: `## Section Title`
+    - DO NOT use any heading levels beyond these two.
+- **Document Structure:**
+    - The input JSON may contain minimal content or multiple topics. If multiple topics are present, organize them into logical sections.
+    - Suggested section names include (but are not limited to): Introduction, Project Overview, Goals and Objectives, Risks and Mitigation Strategies, Metrics for Success, Stakeholder Benefits, Ethical Considerations, Collaboration Opportunities, and Long-term Vision.
+    - If the input is minimal, include only the sections that are directly supported by the provided content. Do not invent sections that are not referenced in the input.
+- **Lists:** Format lists with Markdown bullet points using a hyphen followed by a space:
+    ```markdown
+    - Item 1
+    - Item 2
+    - Item 3
+    ```
+- **Strategic Bolding:** Bold key project elements, critical actions, and desired outcomes to enhance scannability. For example, bold terms like **innovation**, **efficiency**, **sustainability**, and **collaboration**.
+- **Expansion:** Expand on the provided content with additional explanatory paragraphs where needed, but do NOT add information that is not present in the input.
+- **Delimiters Enforcement:** Ensure that the entire Markdown document is wrapped exactly within [START_MARKDOWN] and [END_MARKDOWN] with no additional text outside these delimiters.
+- Ensure that all topics present in the input JSON are covered and organized in a clear, readable format.
+"""
+
+CONVERT_PITCH_TO_MARKDOWN_SYSTEM_PROMPT = CONVERT_PITCH_TO_MARKDOWN_SYSTEM_PROMPT_5
 
 @dataclass
 class ConvertPitchToMarkdown:
