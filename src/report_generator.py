@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+Usage:
+PROMPT> python -m src.report_generator /path/to/PlanExe_20250216_dir
+"""
 import json
 import os
 import pandas as pd
@@ -9,6 +13,7 @@ from typing import Dict, Any, Optional
 import zipfile
 import tempfile
 import shutil
+from src.plan.filenames import FilenameEnum
 
 class PlanExeReport:
     def __init__(self, input_path: str):
@@ -102,22 +107,22 @@ class PlanExeReport:
     def gather_data(self):
         """Gather data from all important files."""
         # Project Pitch
-        pitch_data = self.read_json_file('019-pitch.json')
+        pitch_data = self.read_json_file(FilenameEnum.PITCH.value)
         if pitch_data:
             self.report_data['pitch'] = pitch_data
 
         # SWOT Analysis
-        swot_md = self.read_markdown_file('009-swot_analysis.md')
+        swot_md = self.read_markdown_file(FilenameEnum.SWOT_MARKDOWN.value)
         if swot_md:
             self.report_data['swot'] = swot_md
 
         # Expert Criticism
-        expert_md = self.read_markdown_file('013-expert_criticism.md')
+        expert_md = self.read_markdown_file(FilenameEnum.EXPERT_CRITICISM_MARKDOWN.value)
         if expert_md:
             self.report_data['expert_criticism'] = expert_md
 
         # Project Plan
-        plan_df = self.read_csv_file('026-wbs_project_level1_and_level2_and_level3.csv')
+        plan_df = self.read_csv_file(FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_CSV.value)
         if plan_df is not None:
             # Clean up the dataframe
             # Remove any completely empty rows or columns
