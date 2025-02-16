@@ -51,7 +51,8 @@ You are a content formatter designed to transform project pitches into compellin
 class ConvertPitchToMarkdown:
     system_prompt: Optional[str]
     user_prompt: str
-    response: dict
+    response: str
+    markdown: str
     metadata: dict
 
     @classmethod
@@ -113,6 +114,7 @@ class ConvertPitchToMarkdown:
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
+            markdown=markdown_content,
             metadata=metadata,
         )
         logger.debug("CleanupPitch instance created successfully.")
@@ -120,6 +122,7 @@ class ConvertPitchToMarkdown:
 
     def to_dict(self, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
         d = self.response.copy()
+        d['markdown'] = self.markdown
         if include_metadata:
             d['metadata'] = self.metadata
         if include_system_prompt:
@@ -132,6 +135,10 @@ class ConvertPitchToMarkdown:
         with open(file_path, 'w') as f:
             f.write(json.dumps(self.to_dict(), indent=2))
 
+    def save_markdown(self, file_path: str) -> None:
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(self.markdown)
+    
 if __name__ == "__main__":
     from src.llm_factory import get_llm
 
@@ -158,4 +165,4 @@ if __name__ == "__main__":
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print(json.dumps(json_response, indent=2))
 
-    print(f"\n\nMarkdown:\n{result.response['markdown']}")
+    print(f"\n\nMarkdown:\n{result.markdown}")
