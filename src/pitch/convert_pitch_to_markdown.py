@@ -1,24 +1,22 @@
 """
-Clean up the raw json pitch.
+Convert the raw json pitch to a markdown document.
 
-PROMPT> python -m src.pitch.cleanup_pitch
+PROMPT> python -m src.pitch.convert_pitch_to_markdown
 """
 import os
 import json
 import time
 import logging
 from math import ceil
-from typing import List, Optional
-from uuid import uuid4
+from typing import Optional
 from dataclasses import dataclass
-from pydantic import BaseModel, Field
 from llama_index.core.llms.llm import LLM
 from llama_index.core.llms import ChatMessage, MessageRole
 from src.format_json_for_use_in_query import format_json_for_use_in_query
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """
+CONVERT_PITCH_TO_MARKDOWN_SYSTEM_PROMPT = """
 You are a content formatter designed to transform complex project pitches into compelling Markdown documents.
 Your task is to generate a detailed and well-structured document that covers all aspects of the pitch.
 
@@ -58,14 +56,14 @@ Lorem ipsum.
 """
 
 @dataclass
-class CleanupPitch:
+class ConvertPitchToMarkdown:
     system_prompt: Optional[str]
     user_prompt: str
     response: dict
     metadata: dict
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'CleanupPitch':
+    def execute(cls, llm: LLM, user_prompt: str) -> 'ConvertPitchToMarkdown':
         """
         Invoke LLM with a json document that is the raw pitch.
         """
@@ -74,7 +72,7 @@ class CleanupPitch:
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid query.")
 
-        system_prompt = SYSTEM_PROMPT.strip()
+        system_prompt = CONVERT_PITCH_TO_MARKDOWN_SYSTEM_PROMPT.strip()
         chat_message_list = [
             ChatMessage(
                 role=MessageRole.SYSTEM,
@@ -114,7 +112,7 @@ class CleanupPitch:
         json_response['raw_content'] = raw_content
         json_response['markdown'] = cleanedup_markdown
 
-        result = CleanupPitch(
+        result = ConvertPitchToMarkdown(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
@@ -157,7 +155,7 @@ if __name__ == "__main__":
 
     query = format_json_for_use_in_query(pitch_json)
     print(f"Query: {query}")
-    result = CleanupPitch.execute(llm, query)
+    result = ConvertPitchToMarkdown.execute(llm, query)
 
     print("\nResponse:")
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
