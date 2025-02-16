@@ -107,9 +107,9 @@ class PlanExeReport:
     def gather_data(self):
         """Gather data from all important files."""
         # Project Pitch
-        pitch_data = self.read_json_file(FilenameEnum.PITCH_RAW.value)
-        if pitch_data:
-            self.report_data['pitch'] = pitch_data
+        pitch_md = self.read_markdown_file(FilenameEnum.PITCH_MARKDOWN.value)
+        if pitch_md:
+            self.report_data['pitch'] = pitch_md
 
         # SWOT Analysis
         swot_md = self.read_markdown_file(FilenameEnum.SWOT_MARKDOWN.value)
@@ -221,11 +221,7 @@ class PlanExeReport:
             <div class="section">
                 <h2>Project Pitch</h2>
             """)
-            pitch = self.report_data['pitch']
-            if isinstance(pitch, dict):
-                for key, value in pitch.items():
-                    html_parts.append(f"<h3>{key.replace('_', ' ').title()}</h3>")
-                    html_parts.append(f"<p>{value}</p>")
+            html_parts.append(markdown.markdown(self.report_data['pitch']))
             html_parts.append("</div>")
 
         # SWOT Analysis
