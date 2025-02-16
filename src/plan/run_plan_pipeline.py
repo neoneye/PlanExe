@@ -1,5 +1,10 @@
 """
 PROMPT> python -m src.plan.run_plan_pipeline
+
+In order to resume an unfinished run.
+Insert the run_id of the thing you want to resume.
+If it's an already finished run, then remove the "999-pipeline_complete.txt" file.
+PROMPT> RUN_ID=PlanExe_20250216_150332 python -m src.plan.run_plan_pipeline
 """
 from datetime import datetime
 import logging
@@ -23,6 +28,7 @@ from src.plan.create_wbs_level1 import CreateWBSLevel1
 from src.plan.create_wbs_level2 import CreateWBSLevel2
 from src.plan.create_wbs_level3 import CreateWBSLevel3
 from src.pitch.create_pitch import CreatePitch
+from src.pitch.convert_pitch_to_markdown import ConvertPitchToMarkdown
 from src.plan.identify_wbs_task_dependencies import IdentifyWBSTaskDependencies
 from src.plan.estimate_wbs_task_durations import EstimateWBSTaskDurations
 from src.wbs.wbs_task import WBSTask, WBSProject
@@ -536,6 +542,50 @@ class CreatePitchTask(PlanTask):
         
         logger.info("Pitch created and written to %s", self.output().path)
 
+class ConvertPitchToMarkdownTask(PlanTask):
+    """
+    Human readable version of the pitch.
+    
+    This task depends on:
+      - CreatePitchTask: Creates the pitch JSON.
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+    
+    def output(self):
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.PITCH_CONVERT_TO_MARKDOWN_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.PITCH_MARKDOWN)))
+        }
+    
+    def requires(self):
+        return {
+            'pitch': CreatePitchTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+        }
+    
+    def run(self):
+        logger.info("Converting raw pitch to markdown...")
+        
+        # Read the project plan JSON.
+        with self.input()['pitch'].open("r") as f:
+            pitch_json = json.load(f)
+        
+        # Build the query
+        query = format_json_for_use_in_query(pitch_json)
+        
+        # Get the LLM instance.
+        llm = get_llm(self.llm_model)
+        
+        # Execute the convertion.
+        converted = ConvertPitchToMarkdown.execute(llm, query)
+
+        # Save the results.
+        json_path = self.output()['raw'].path
+        converted.save_raw(json_path)
+        markdown_path = self.output()['markdown'].path
+        converted.save_markdown(markdown_path)
+
+        logger.info("Converted raw pitch to markdown.")
+
 class IdentifyTaskDependenciesTask(PlanTask):
     """
     This task identifies the dependencies between WBS tasks.
@@ -834,7 +884,8 @@ class FullPlanPipeline(PlanTask):
             'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level2': CreateWBSLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project12': WBSProjectLevel1AndLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'pitch': CreatePitchTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'pitch_raw': CreatePitchTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'dependencies': IdentifyTaskDependenciesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'durations': EstimateTaskDurationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level3': CreateWBSLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
