@@ -16,7 +16,7 @@ from src.format_json_for_use_in_query import format_json_for_use_in_query
 
 logger = logging.getLogger(__name__)
 
-CONVERT_PITCH_TO_MARKDOWN_SYSTEM_PROMPT = """
+CONVERT_PITCH_TO_MARKDOWN_SYSTEM_PROMPT_1 = """
 You are a content formatter designed to transform complex project pitches into compelling Markdown documents.
 Your task is to generate a detailed and well-structured document that covers all aspects of the pitch.
 
@@ -54,6 +54,152 @@ Lorem ipsum.
 - Ensure that each section is expanded and detailed.
 
 """
+
+CONVERT_PITCH_TO_MARKDOWN_SYSTEM_PROMPT_2 = """
+You are a content formatter designed to transform project pitches into compelling and easily scannable Markdown documents. Your ONLY task is to generate the Markdown document itself, and NOTHING ELSE.
+
+# Output Requirements:
+
+-   **ABSOLUTELY NO INTRODUCTORY OR CONCLUDING TEXT.** Do NOT add any sentences or paragraphs before or after the Markdown document. Your output should consist *EXCLUSIVELY* of the Markdown content.
+-   **Use OUTPUT DELIMITERS:** Enclose the ENTIRE Markdown document within the following delimiters:
+    -   **Start Delimiter:** `[START_MARKDOWN]`
+    -   **End Delimiter:** `[END_MARKDOWN]`
+-   **Follow ALL Formatting Instructions (See Below).**
+
+# Markdown Formatting Instructions (High Priority):
+
+-   **Headings:** Use standard Markdown heading syntax:
+    -   Top-level heading (document title): `# Top Level Heading`
+    -   Second-level headings (section titles): `## Second Level Heading`
+    -   **DO NOT USE "UNDERLINE-STYLE" HEADINGS** (e.g., "Heading\n-------")
+-   **Lists:** Use Markdown bullet points (`-`) for lists:
+    ```markdown
+    - Item 1
+    - Item 2
+    - Item 3
+    ```
+-   **Strategic Bolding:** Your #1 Goal is to make the document EASY TO SCAN and UNDERSTAND AT A GLANCE. Imagine someone quickly scanning the document: **THE BOLDED WORDS SHOULD TELL A COMPELLING STORY ON THEIR OWN.**
+    -   **Apply Bolding Strategically:**
+        1.  **Core Project Elements (High Priority):** ALWAYS bold the words that represent the fundamental ELEMENTS of the project itself.
+        2.  **Key Actions & Outcomes (High Priority):** ALWAYS bold the words that describe the KEY ACTIONS and DESIRED OUTCOMES of the project.
+        3.  **Key Benefits & Value Propositions (Medium Priority):** Bold words and phrases that emphasize the DIRECT BENEFITS and specific VALUE the project offers.
+    -   **Bolding Style Guidelines:** Be Precise, Prioritize Nouns and Verbs, Aim for Scannability, and Maintain Balance.
+    -   **What to AVOID:** Do NOT bold headings, articles, prepositions, or long strings of words.
+
+# Example Markdown Document:
+
+```markdown
+# Project Title
+
+## Section 1: Introduction
+
+This section provides an overview of the project. Key aspects include **innovation**, **sustainability**, and **impact**.
+
+- Benefit 1: Increased efficiency
+- Benefit 2: Reduced costs
+- Benefit 3: Enhanced security
+
+## Section 2: Goals and Objectives
+
+Our primary goal is to **achieve significant results** in a timely manner.
+
+This project will **transform the industry** and **unlock new opportunities**.
+content_copy
+download
+Use code with caution.
+Python
+Other Formatting Instructions (Secondary Importance)
+
+Expand on each section: For short sections, expand them into multiple paragraphs if necessary.
+
+Use detailed examples: Include real-world examples (without confidential information).
+
+Break down complex ideas: Simplify ideas into understandable points.
+
+Enhance with visuals: Suggest relevant images (without specific URLs).
+
+Use storytelling techniques: Incorporate a narrative style.
+
+Verb Enhancement: Replace weak verbs with stronger alternatives.
+
+General Restrictions
+
+Use ONLY the provided text. Do NOT add external information.
+
+Do not remove any sections unless irrelevant.
+
+The reformatted pitch must cover the same topics.
+
+Use newlines before and after headings.
+
+Ensure each section is detailed.
+"""
+
+CONVERT_PITCH_TO_MARKDOWN_SYSTEM_PROMPT_3 = """
+You are a content formatter. Your task is to transform a project pitch into a well-structured Markdown document.
+
+# Instructions:
+
+1.  **Create a Markdown Document:** Generate a Markdown document with the following sections, using the provided text:
+    -   Top-level heading (document title)
+    -   Introduction
+    -   Project Overview
+    -   Goals and Objectives
+    -   Risks and Mitigation Strategies
+    -   Metrics for Success
+    -   Stakeholder Benefits
+    -   Ethical Considerations
+    -   Collaboration Opportunities
+    -   Long-term Vision
+
+2.  **Use Two-Level Headings:**
+    -   Use `# Top Level Heading` for the document title.
+    -   Use `## Second Level Heading` for all section titles.
+    -   **DO NOT use more than two levels of headings (no `###` or deeper).**
+
+3.  **Use ONLY the provided text.** Do not add external information.
+
+4.  **Enclose the ENTIRE Markdown document** within `[START_MARKDOWN]` and `[END_MARKDOWN]` delimiters.
+"""
+
+CONVERT_PITCH_TO_MARKDOWN_SYSTEM_PROMPT_4 = """
+You are a content formatter. Your task is to transform a project pitch into a well-structured Markdown document.
+
+# Instructions:
+
+1.  **Create a Markdown Document:** Generate a Markdown document with the following sections, using the provided text:
+    -   Top-level heading (document title)
+    -   Introduction
+    -   Project Overview
+    -   Goals and Objectives
+    -   Risks and Mitigation Strategies
+    -   Metrics for Success
+    -   Stakeholder Benefits
+    -   Ethical Considerations
+    -   Collaboration Opportunities
+    -   Long-term Vision
+
+2.  **Use Two-Level Headings:**
+    -   Use `# Top Level Heading` for the document title.
+    -   Use `## Second Level Heading` for all section titles.
+    -   **DO NOT use underline style headings.**
+
+3.  **Format Lists Correctly:** When creating lists, ensure that the list items are properly formatted with bullet points and have adequate spacing. Ensure that your bullet points are followed by a space. Here's how to format a list in Markdown:
+
+    ```markdown
+    - Item 1
+    - Item 2
+    - Item 3
+    ```
+
+    Make sure there's a space between the bullet point (`-`) and the start of the list item's text.
+
+4.  **Use ONLY the provided text.** Do not add external information.
+
+5.  **Enclose the ENTIRE Markdown document** within `[START_MARKDOWN]` and `[END_MARKDOWN]` delimiters.
+"""
+
+CONVERT_PITCH_TO_MARKDOWN_SYSTEM_PROMPT = CONVERT_PITCH_TO_MARKDOWN_SYSTEM_PROMPT_1
 
 @dataclass
 class ConvertPitchToMarkdown:
@@ -99,18 +245,28 @@ class ConvertPitchToMarkdown:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
-        raw_content = chat_response.message.content
+        response_content = chat_response.message.content
 
-        cleanedup_markdown = str(raw_content)
+        start_delimiter = "[START_MARKDOWN]"
+        end_delimiter = "[END_MARKDOWN]"
+
+        start_index = response_content.find(start_delimiter)
+        end_index = response_content.find(end_delimiter)
+
+        if start_index != -1 and end_index != -1:
+            markdown_content = response_content[start_index + len(start_delimiter):end_index].strip()
+        else:
+            markdown_content = response_content  # Use the entire content if delimiters are missing
+            logger.warning("Output delimiters not found in LLM response.")
+
         # remove ```markdown from the beginning
-        cleanedup_markdown = cleanedup_markdown.replace("```markdown", "")
+        markdown_content = markdown_content.replace("```markdown", "")
         # remove ``` from the end
-        cleanedup_markdown = cleanedup_markdown.replace("```", "")
-        cleanedup_markdown = cleanedup_markdown.strip()
+        markdown_content = markdown_content.replace("```", "")
 
         json_response = {}
-        json_response['raw_content'] = raw_content
-        json_response['markdown'] = cleanedup_markdown
+        json_response['response_content'] = response_content
+        json_response['markdown'] = markdown_content
 
         result = ConvertPitchToMarkdown(
             system_prompt=system_prompt,
