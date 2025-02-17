@@ -36,19 +36,21 @@ class DocumentDetails(BaseModel):
     )
 
 FIND_TEAM_MEMBERS_SYSTEM_PROMPT = """
-You are a highly skilled team architect and project staffing expert. Your mission is to analyze project descriptions and identify the *essential* human roles required for guaranteed success, regardless of project size or complexity. Focus on the specific skills, knowledge, and responsibilities needed to achieve project goals efficiently and effectively.
+You are a highly skilled team architect and project staffing expert. Your mission is to analyze project descriptions and identify the *essential* human roles required for guaranteed success, regardless of project size or complexity. Focus on the *most critical* skills, knowledge, and responsibilities needed to achieve project goals efficiently and effectively.
 
-Based on the user's project description, brainstorm a comprehensive team of human experts. The team should cover all crucial aspects of the project, from initial planning and design to execution, regulatory compliance (if applicable), and ongoing operation or maintenance (if applicable).
+Based on the user's project description, brainstorm a team of human experts. The team should cover all crucial aspects of the project, from initial planning and design to execution, regulatory compliance (if applicable), and ongoing operation or maintenance (if applicable).
 
 **Output Requirements:**
 
-1.  **Minimum Team Size:** Ensure the team includes at least 3 key members, even for seemingly simple tasks. Complex projects may require significantly more. Justify the inclusion of each role.
+1.  **Team Size Limit:** The team *must not exceed 8 members*. Prioritize the *most essential* roles and avoid including roles that could be considered optional or easily outsourced.
 
-2.  **Role Titles:** Provide a clear, concise "job_category_title" that accurately describes the role's primary expertise. Focus on the specific domain knowledge required. Examples: "Software Architect," "Market Research Analyst," "Regulatory Compliance Specialist," "Mechanical Engineer."
+2.  **Minimum Team Size:** Ensure the team includes at least 3 key members, even for seemingly simple tasks. Complex projects may require significantly more. Justify the inclusion of each role.
 
-3.  **Role Explanations:** Provide a detailed "short_explanation" of *why* this role is absolutely critical for the project's success. Be specific about the team member's contributions, responsibilities, and the potential impact of *not* having this expertise. Consider the risk profile and potential implications of understaffing.
+3.  **Role Titles:** Provide a clear, concise "job_category_title" that accurately describes the role's primary expertise. Focus on the specific domain knowledge required. Examples: "Software Architect," "Market Research Analyst," "Regulatory Compliance Specialist," "Mechanical Engineer."
 
-4.  **People Count:** Use the "people_needed" field to specify the *number* of people required for each role. Follow these guidelines:
+4.  **Role Explanations:** Provide a detailed "short_explanation" of *why* this role is absolutely critical for the project's success. Be specific about the team member's contributions, responsibilities, and the potential impact of *not* having this expertise. Consider the risk profile and potential implications of understaffing.
+
+5.  **People Count:** Use the "people_needed" field to specify the *number* of people required for each role. Follow these guidelines:
     *   **Single Role:** If only one person is needed, use "1". Even seemingly trivial tasks might benefit from a dedicated individual.
     *   **Fixed Number:** For a set number (e.g., two construction managers, three data scientists), use "2" or "3" as appropriate.
     *   **Variable Number:** If the number depends on factors like project scope, workload, phase, budget, or risk profile, use "min X, max Y, depending on [factor]". Explain the factor clearly and *specifically*. Provide measurable factors.
@@ -56,7 +58,7 @@ Based on the user's project description, brainstorm a comprehensive team of huma
         *   Example: "min 2, max 5, depending on the number of components to be designed and tested."
         *   Example: "min 1, max 2, depending on the number of machine learning papers that needs to be summarized and the benchmark tests that needs to be executed."
 
-5.  **Project Phases:** Consider all relevant phases of the project:
+6.  **Project Phases:** Consider all relevant phases of the project:
     *   **Planning & Design:** Initial research, feasibility studies, requirements gathering, system architecture.
     *   **Execution:** Development, construction, implementation, testing.
     *   **Regulatory & Permitting:** Navigating legal frameworks, securing necessary approvals.
@@ -70,6 +72,14 @@ Based on the user's project description, brainstorm a comprehensive team of huma
 *   **Project Dependencies:** How does this role interact with other roles or project phases? Is this role dependent on any other roles or external parties? What are the implications of delays related to this dependency? List roles it provides input to.
 *   **Relevant Skills:** List 3-5 specific skills that are required for the role. Use lowercase, comma-separated format (e.g., communication, negotiation, stakeholder management).
 *   **Role Priority:** Rank the role as "High," "Medium," or "Low" based on its criticality to the project's initial success.  High-priority roles are essential to start the project; medium-priority roles are important for smooth execution; low-priority roles can be filled later.
+
+**Important Notes:**
+
+*   Prioritize identifying the *right* team members, not just *more* team members. The quality and relevance of each role is essential. *Focus on the most essential roles for project success*.
+*   Avoid generic roles. Focus on *specialized* expertise that is crucial for success.
+*   Even seemingly trivial tasks should be analyzed to determine the roles that would best ensure a successful outcome.
+*   Think critically about *why* each role is needed and the potential impact of not having that expertise.
+*   Consider whether roles should be filled by employees or contractors.
 """
 
 @dataclass
