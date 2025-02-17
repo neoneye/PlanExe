@@ -36,6 +36,7 @@ from src.wbs.wbs_populate import WBSPopulate
 from src.llm_factory import get_llm
 from src.format_json_for_use_in_query import format_json_for_use_in_query
 from src.utils.get_env_as_string import get_env_as_string
+from src.report.report_generator import ReportGenerator
 
 logger = logging.getLogger(__name__)
 DEFAULT_LLM_MODEL = "ollama-llama3.1"
@@ -870,6 +871,37 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
         with self.output()['csv'].open("w") as f:
             f.write(csv_representation)
 
+class ReportTask(PlanTask):
+    """
+    Generate a report html document.
+    
+    It depends on:
+      - SWOTAnalysisTask: provides the SWOT analysis as Markdown.
+      - ConvertPitchToMarkdownTask: provides the pitch as Markdown.
+      - WBSProjectLevel1AndLevel2AndLevel3Task: provides the table csv file.
+      - ExpertReviewTask: provides the expert criticism as Markdown.
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def output(self):
+        return luigi.LocalTarget(str(self.file_path(FilenameEnum.REPORT)))
+    
+    def requires(self):
+        return {
+            'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+    
+    def run(self):
+        rg = ReportGenerator()
+        rg.append_pitch_markdown(self.input()['pitch_markdown']['markdown'].path)
+        rg.append_swot_analysis_markdown(self.input()['swot_analysis']['markdown'].path)
+        rg.append_project_plan_csv(self.input()['wbs_project123']['csv'].path)
+        rg.append_expert_criticism_markdown(self.input()['expert_review'].path)
+        rg.save_report(self.output().path)
+
 class FullPlanPipeline(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
@@ -890,6 +922,7 @@ class FullPlanPipeline(PlanTask):
             'durations': EstimateTaskDurationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level3': CreateWBSLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'report': ReportTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
 
     def output(self):

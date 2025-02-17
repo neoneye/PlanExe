@@ -1,74 +1,47 @@
-#!/usr/bin/env python3
 """
-Usage:
+This generates the report and afterwards opens it in the browser.
 PROMPT> python -m src.report.report_generator /path/to/PlanExe_20250216_dir
+
+This generates the report without opening the browser.
+PROMPT> python -m src.report.report_generator /path/to/PlanExe_20250216_dir --no-browser
 """
 import json
-import os
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
 import markdown
 from typing import Dict, Any, Optional
-import zipfile
-import tempfile
-import shutil
-from src.plan.filenames import FilenameEnum
 
-class PlanExeReport:
-    def __init__(self, input_path: str):
-        """Initialize the report generator with either a zip file or directory path."""
-        self.input_path = Path(input_path)
+class ReportGenerator:
+    def __init__(self):
         self.report_data = {}
-        self.temp_dir = None
-        self.working_dir = None
         
-    def __enter__(self):
-        """Set up the working directory, extracting zip if necessary."""
-        if self.input_path.is_file() and self.input_path.suffix == '.zip':
-            # Create a temporary directory
-            self.temp_dir = tempfile.mkdtemp()
-            # Extract the zip file
-            with zipfile.ZipFile(self.input_path, 'r') as zip_ref:
-                zip_ref.extractall(self.temp_dir)
-            # Find the actual directory containing the files
-            contents = list(Path(self.temp_dir).iterdir())
-            self.working_dir = contents[0] if len(contents) == 1 and contents[0].is_dir() else Path(self.temp_dir)
-        else:
-            self.working_dir = self.input_path
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Clean up temporary directory if it exists."""
-        if self.temp_dir:
-            shutil.rmtree(self.temp_dir)
-
-    def read_json_file(self, filename: str) -> Optional[Dict[str, Any]]:
+    def read_json_file(self, file_path: Path) -> Optional[Dict[str, Any]]:
         """Read a JSON file and return its contents."""
         try:
-            with open(self.working_dir / filename, 'r') as f:
+            with open(file_path, 'r') as f:
                 return json.load(f)
         except FileNotFoundError:
-            print(f"Warning: {filename} not found")
+            print(f"Warning: {file_path} not found")
             return None
         except json.JSONDecodeError:
-            print(f"Warning: {filename} contains invalid JSON")
+            print(f"Warning: {file_path} contains invalid JSON")
             return None
 
-    def read_markdown_file(self, filename: str) -> Optional[str]:
+    def read_markdown_file(self, file_path: Path) -> Optional[str]:
         """Read a markdown file and return its contents."""
         try:
-            with open(self.working_dir / filename, 'r') as f:
+            with open(file_path, 'r') as f:
                 return f.read()
         except FileNotFoundError:
-            print(f"Warning: {filename} not found")
+            print(f"Warning: {file_path} not found")
             return None
 
-    def read_csv_file(self, filename: str) -> Optional[pd.DataFrame]:
+    def read_csv_file(self, file_path: Path) -> Optional[pd.DataFrame]:
         """Read a CSV file and return its contents as a pandas DataFrame."""
         try:
             # First try to detect the delimiter by reading the first few lines
-            with open(self.working_dir / filename, 'r') as f:
+            with open(file_path, 'r') as f:
                 first_line = f.readline().strip()
                 
             # Count potential delimiters
@@ -84,45 +57,47 @@ class PlanExeReport:
             
             # Try reading with the detected delimiter
             try:
-                df = pd.read_csv(self.working_dir / filename, delimiter=delimiter)
+                df = pd.read_csv(file_path, delimiter=delimiter)
                 return df
             except:
                 # If that fails, try with more options
                 try:
-                    df = pd.read_csv(self.working_dir / filename, delimiter=delimiter, 
+                    df = pd.read_csv(file_path, delimiter=delimiter, 
                                    on_bad_lines='skip', engine='python')
-                    print(f"Warning: Some lines in {filename} were skipped due to parsing errors")
+                    print(f"Warning: Some lines in {file_path} were skipped due to parsing errors")
                     return df
                 except Exception as e:
-                    print(f"Error reading CSV file {filename}: {str(e)}")
+                    print(f"Error reading CSV file {file_path}: {str(e)}")
                     return None
                 
         except FileNotFoundError:
-            print(f"Warning: {filename} not found")
+            print(f"Warning: {file_path} not found")
             return None
         except Exception as e:
-            print(f"Error reading CSV file {filename}: {str(e)}")
+            print(f"Error reading CSV file {file_path}: {str(e)}")
             return None
 
-    def gather_data(self):
-        """Gather data from all important files."""
-        # Project Pitch
-        pitch_md = self.read_markdown_file(FilenameEnum.PITCH_MARKDOWN.value)
+    def append_pitch_markdown(self, file_path: Path):
+        """Append the pitch markdown to the report."""
+        pitch_md = self.read_markdown_file(file_path)
         if pitch_md:
             self.report_data['pitch'] = pitch_md
-
-        # SWOT Analysis
-        swot_md = self.read_markdown_file(FilenameEnum.SWOT_MARKDOWN.value)
+    
+    def append_swot_analysis_markdown(self, file_path: Path):
+        """Append the SWOT markdown to the report."""
+        swot_md = self.read_markdown_file(file_path)
         if swot_md:
             self.report_data['swot'] = swot_md
-
-        # Expert Criticism
-        expert_md = self.read_markdown_file(FilenameEnum.EXPERT_CRITICISM_MARKDOWN.value)
+    
+    def append_expert_criticism_markdown(self, file_path: Path):
+        """Append the expert criticism markdown to the report."""
+        expert_md = self.read_markdown_file(file_path)
         if expert_md:
             self.report_data['expert_criticism'] = expert_md
-
-        # Project Plan
-        plan_df = self.read_csv_file(FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_CSV.value)
+    
+    def append_project_plan_csv(self, file_path: Path):
+        """Append the project plan CSV to the report."""
+        plan_df = self.read_csv_file(file_path)
         if plan_df is not None:
             # Clean up the dataframe
             # Remove any completely empty rows or columns
@@ -212,7 +187,6 @@ class PlanExeReport:
         html_parts.append(f"""
         <h1>PlanExe Project Report</h1>
         <p class="timestamp">Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-        <p class="source-info">Source: {self.input_path.name}</p>
         """)
 
         # Project Pitch
@@ -260,34 +234,20 @@ class PlanExeReport:
 
         return '\n'.join(html_parts)
 
-    def save_report(self, output_path: Optional[str] = None) -> Path:
+    def save_report(self, output_path: Path) -> None:
         """Generate and save the report."""
-        self.gather_data()
         html_report = self.generate_html_report()
-        
-        if output_path:
-            output_path = Path(output_path).resolve()  # Convert to absolute path
-        else:
-            # Generate output filename based on input filename
-            stem = self.input_path.stem
-            if self.input_path.suffix == '.zip':
-                stem = stem.split('_')[0]  # Remove timestamp from filename if present
-            output_path = self.input_path.parent.resolve() / f"{stem}_report.html"  # Use absolute path
-        
-        # Create parent directories if they don't exist
-        output_path.parent.mkdir(parents=True, exist_ok=True)
         
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_report)
         
         print(f"Report generated successfully: {output_path}")
-        return output_path
 
 def main():
+    from src.plan.filenames import FilenameEnum
     import argparse
     parser = argparse.ArgumentParser(description='Generate a report from PlanExe output (zip file or directory)')
     parser.add_argument('input_path', help='Path to PlanExe output zip file or directory')
-    parser.add_argument('--output', '-o', help='Output filename (optional)')
     parser.add_argument('--no-browser', action='store_true', help='Do not open browser automatically')
     
     args = parser.parse_args()
@@ -299,23 +259,29 @@ def main():
         print(f"Error: Input path does not exist: {input_path}")
         return
     
-    with PlanExeReport(input_path) as report_generator:
-        report_path = report_generator.save_report(args.output)
+    output_path = input_path / FilenameEnum.REPORT.value
+    
+    report_generator = ReportGenerator()
+    report_generator.append_pitch_markdown(input_path / FilenameEnum.PITCH_MARKDOWN.value)
+    report_generator.append_swot_analysis_markdown(input_path / FilenameEnum.SWOT_MARKDOWN.value)
+    report_generator.append_expert_criticism_markdown(input_path / FilenameEnum.EXPERT_CRITICISM_MARKDOWN.value)
+    report_generator.append_project_plan_csv(input_path / FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_CSV.value)
+    report_generator.save_report(output_path)
         
-        if not args.no_browser:
-            # Try to open the report in the default browser
-            try:
-                import webbrowser
-                url = f'file://{report_path.absolute()}'
-                print(f"Opening report in browser: {url}")
-                if not webbrowser.open(url):
-                    print(f"Could not open browser automatically.")
-                    print(f"Please open this file in your web browser:")
-                    print(f"  {report_path}")
-            except Exception as e:
-                print(f"Error opening browser: {e}")
+    if not args.no_browser:
+        # Try to open the report in the default browser
+        try:
+            import webbrowser
+            url = f'file://{output_path.absolute()}'
+            print(f"Opening report in browser: {url}")
+            if not webbrowser.open(url):
+                print(f"Could not open browser automatically.")
                 print(f"Please open this file in your web browser:")
-                print(f"  {report_path}")
+                print(f"  {output_path}")
+        except Exception as e:
+            print(f"Error opening browser: {e}")
+            print(f"Please open this file in your web browser:")
+            print(f"  {output_path}")
 
 if __name__ == "__main__":
-    main() 
+    main()
