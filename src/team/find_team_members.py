@@ -33,22 +33,39 @@ class DocumentDetails(BaseModel):
     )
 
 FIND_TEAM_MEMBERS_SYSTEM_PROMPT = """
-Pick a good team of humans for solving the task.
+You are a highly skilled team architect and project staffing expert. Your mission is to analyze project descriptions and identify the *essential* human roles required for guaranteed success, regardless of project size or complexity. Focus on the specific skills, knowledge, and responsibilities needed to achieve project goals efficiently and effectively.
 
-Ensure that the team consists of at least 5 members.
+Based on the user's project description, brainstorm a comprehensive team of human experts. The team should cover all crucial aspects of the project, from initial planning and design to execution, regulatory compliance (if applicable), and ongoing operation or maintenance (if applicable).
 
-The "job_category_title" field must be a brief the title that captures what the role is about.
-Such as area of expertise, group, subject, topic or domain.
+**Output Requirements:**
 
-Estimate how many people are needed for each role.
-What is the minimum of people needed for the role.
-What is the maximum of people needed for the role.
-Use the people_needed field to specify the number of people needed for each role: 
-- if only one person is needed, use "1".
-- if two people are needed, use "2".
-- When it can vary, use "min 5,max 10,depending on capacity".
+1.  **Minimum Team Size:** Ensure the team includes at least 3 key members, even for seemingly simple tasks. Complex projects may require significantly more. Justify the inclusion of each role.
 
-Provide a short explanation of why that team member is relevant for the project.
+2.  **Role Titles:** Provide a clear, concise "job_category_title" that accurately describes the role's primary expertise. Focus on the specific domain knowledge required. Examples: "Software Architect," "Market Research Analyst," "Regulatory Compliance Specialist," "Mechanical Engineer."
+
+3.  **Role Explanations:** Provide a detailed "short_explanation" of *why* this role is absolutely critical for the project's success. Be specific about the team member's contributions, responsibilities, and the potential impact of *not* having this expertise. Consider the risk profile and potential implications of understaffing.
+
+4.  **People Count:** Use the "people_needed" field to specify the *number* of people required for each role. Follow these guidelines:
+    *   **Single Role:** If only one person is needed, use "1". Even seemingly trivial tasks might benefit from a dedicated individual.
+    *   **Fixed Number:** For a set number (e.g., two construction managers, three data scientists), use "2" or "3" as appropriate.
+    *   **Variable Number:** If the number depends on factors like project scope, workload, phase, budget, or risk profile, use "min X, max Y, depending on [factor]". Explain the factor clearly and *specifically*. Provide measurable factors.
+        *   Example: "min 1, max 3, depending on the number of permits required and the level of community opposition to the project. Measure community opposition as 'number of letters to the editor'"
+        *   Example: "min 2, max 5, depending on the number of components to be designed and tested."
+        *   Example: "min 1, max 2, depending on the number of machine learning papers that needs to be summarized and the benchmark tests that needs to be executed."
+
+5.  **Project Phases:** Consider all relevant phases of the project:
+    *   **Planning & Design:** Initial research, feasibility studies, requirements gathering, system architecture.
+    *   **Execution:** Development, construction, implementation, testing.
+    *   **Regulatory & Permitting:** Navigating legal frameworks, securing necessary approvals.
+    *   **Operation & Maintenance:** Ongoing monitoring, support, optimization, upgrades.
+
+**Essential Considerations for EVERY Role:**
+
+*   **Specific Expertise:** What specialized knowledge, technical skills, or certifications does this role require? Be as precise as possible.
+*   **Key Responsibilities:** What are the primary tasks and duties this role will perform to directly contribute to project goals?
+*   **Direct Impact:** How will this role directly contribute to achieving project goals and overcoming potential challenges? What are the consequences of understaffing or lacking this expertise?
+*   **Project Dependencies:** How does this role interact with other roles or project phases? Is this role dependent on any other roles or external parties? What are the implications of delays related to this dependency? List roles it provides input to.
+*   **Relevant Skills** Name 3-5 specific skills that are required for the role. Example: "Communication, negotiation, stakeholder management"
 """
 
 @dataclass
