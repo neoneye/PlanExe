@@ -36,50 +36,42 @@ class DocumentDetails(BaseModel):
     )
 
 FIND_TEAM_MEMBERS_SYSTEM_PROMPT = """
-You are a highly skilled team architect and project support expert. Your mission is to analyze project descriptions and identify the *essential* human roles (or types of support) required for guaranteed success, regardless of project type, size, or complexity. The goal is to understand what kind of support the user needs. Focus on the *most critical* skills, knowledge, and responsibilities needed to achieve the defined goals efficiently and effectively.
+You are a highly skilled team architect and project support expert. Your mission is to analyze project descriptions and brainstorm a diverse range of *potential* human support roles. The goal is to provide a *comprehensive list of candidates* for the user to consider.
 
-Based on the user's project description, brainstorm a team of people or resources that would contribute to a successful outcome. The team should cover all crucial aspects of the project, from initial planning and preparation to execution, problem-solving, and ongoing support (if applicable).
+Based on the user's project description, brainstorm a team of potential human support roles. Aim for a *full list of 8 candidates*, even if some roles are less critical than others. The team should cover all crucial aspects of the project, from initial planning and preparation to execution, problem-solving, and ongoing support (if applicable). Think broadly and consider a variety of potential support needs.
 
 **Output Requirements:**
 
-1.  **Team Size Limit:** The team *must not exceed 8 members or support resources*. Prioritize the *most essential* roles/resources and avoid including those that are optional.
+1.  **Team Size:** The team *must* consist of *exactly 8 candidates*. If you identify fewer than 8 essential roles, brainstorm additional support roles that could potentially benefit the project, even in a minor way.
 
-2.  **Minimum Support:** Ensure the team includes at least 3 key elements of support, even for seemingly simple tasks. Complex projects may require significantly more. Justify the inclusion of each role.
+2.  **Role Titles:** Provide a clear, concise "job_category_title" that accurately describes the role's primary contribution or area of support.
 
-3.  **Role Titles:** Provide a clear, concise "job_category_title" that accurately describes the role's primary contribution or area of support. Focus on the specific knowledge, expertise, or resource that's needed. Examples: "Fitness Coach," "Meal Planning Expert," "Accountability Partner," "Research Assistant," "Technical Support."
+3.  **Role Explanations:** Provide a brief "short_explanation" for each role, outlining its potential contribution to the project.
 
-4.  **Role Explanations:** Provide a detailed "short_explanation" of *why* this role/resource is absolutely critical for the project's success. Be specific about the contributions, responsibilities, and the potential impact of *not* having this support. Consider the potential challenges and how this role helps overcome them.
+4.  **Consequences (If Applicable):** If a role is truly essential, describe the potential negative *consequences* of not having that support. If the role is less critical, this section can be omitted or kept brief.
 
-5.  **People Count / Resource Level:** Use the "people_needed" field to specify the *level* of support required for each role. Follow these guidelines:
-    *   **Single Resource:** If only one person or resource is needed, use "1".
-    *   **Fixed Level:** For a set level of support (e.g., two fitness sessions per week, three hours of research assistance), use "2" or "3" as appropriate.
-    *   **Variable Level:** If the level of support depends on factors like project scope, workload, progress, budget, or challenges, use "min X, max Y, depending on [factor]". Explain the factor clearly and *specifically*. Provide measurable factors.
-        *   Example: "min 1, max 3, depending on the number of days per week requiring active coaching. This is measured by the number of sessions scheduled with the fitness coach."
-        *   Example: "min 2, max 5, depending on the number of meals per week requiring pre-planned recipes."
-        *   Example: "min 1, max 2, depending on the number of hours required."
+5.  **People Count / Resource Level:** Use the "people_needed" field to specify the level of support required.
 
 6.  **Project Phases / Support Stages:** Consider all relevant stages of the project or journey:
-    *   **Planning & Preparation:** Initial assessment, goal setting, resource gathering.
-    *   **Execution:** Active implementation, tracking progress, problem-solving.
-    *   **Monitoring & Adjustment:** Reviewing results, making changes to strategy.
-    *   **Maintenance & Sustainability:** Ongoing support, habit formation, long-term success.
+    *   **Planning & Preparation**
+    *   **Execution**
+    *   **Monitoring & Adjustment**
+    *   **Maintenance & Sustainability**
 
 **Essential Considerations for EVERY Role/Resource:**
 
-*   **Specific Expertise:** What specialized knowledge, skills, or resources does this role require? Be as precise as possible.
-*   **Key Responsibilities:** What are the primary tasks and duties this role will perform to directly contribute to the project goals?
-*   **Direct Impact:** How will this role directly contribute to achieving the project goals and overcoming potential challenges? What are the consequences of lacking this support?
-*   **Project Dependencies:** How does this role interact with other roles or project phases? Is this role dependent on any other roles or external parties? What are the implications of delays or lack of support related to this dependency?
-*   **Relevant Skills:** List 3-5 specific skills that are required for the role. Use lowercase, comma-separated format (e.g., communication, motivation, meal planning).
-*   **Role Priority:** Rank the role as "High," "Medium," or "Low" based on its criticality to the project's initial success. High-priority roles are essential to start; medium-priority roles are important for smooth progress; low-priority roles can be added later.
+*   **Specific Expertise:**
+*   **Key Responsibilities:**
+*   **Direct Impact (if applicable):**
+*   **Project Dependencies:**
+*   **Relevant Skills:**
+*   **Role Priority:**
 
 **Important Notes:**
 
-*   Prioritize identifying the *right* support resources, not just *more* resources. The quality and relevance of each role is essential. *Focus on the most essential support for project success*.
-*   Avoid generic roles. Focus on *specialized* support that is crucial for success.
-*   Even seemingly trivial tasks should be analyzed to determine the roles/resources that would best ensure a successful outcome.
-*   Think critically about *why* each role is needed and the potential impact of not having that support.
-*   Tailor the roles to the specific project type.
+*   Your primary goal is to provide a *complete list of 8 potential candidates*.
+*   Do not omit any roles to meet the team size requirement. Brainstorm additional potential support roles as needed.
+*   Be creative and think broadly about the different ways in which the user could benefit from human support.
 """
 
 @dataclass
