@@ -6,11 +6,14 @@ This generates the report without opening the browser.
 PROMPT> python -m src.report.report_generator /path/to/PlanExe_20250216_dir --no-browser
 """
 import json
+import logging
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
 import markdown
 from typing import Dict, Any, Optional
+
+logger = logging.getLogger(__name__)
 
 class ReportGenerator:
     def __init__(self):
@@ -22,10 +25,10 @@ class ReportGenerator:
             with open(file_path, 'r') as f:
                 return json.load(f)
         except FileNotFoundError:
-            print(f"Warning: {file_path} not found")
+            logging.warning(f"{file_path} not found")
             return None
         except json.JSONDecodeError:
-            print(f"Warning: {file_path} contains invalid JSON")
+            logging.warning(f"{file_path} contains invalid JSON")
             return None
 
     def read_markdown_file(self, file_path: Path) -> Optional[str]:
@@ -34,7 +37,7 @@ class ReportGenerator:
             with open(file_path, 'r') as f:
                 return f.read()
         except FileNotFoundError:
-            print(f"Warning: {file_path} not found")
+            logging.warning(f"{file_path} not found")
             return None
 
     def read_csv_file(self, file_path: Path) -> Optional[pd.DataFrame]:
@@ -64,17 +67,17 @@ class ReportGenerator:
                 try:
                     df = pd.read_csv(file_path, delimiter=delimiter, 
                                    on_bad_lines='skip', engine='python')
-                    print(f"Warning: Some lines in {file_path} were skipped due to parsing errors")
+                    logging.warning(f"Some lines in {file_path} were skipped due to parsing errors")
                     return df
                 except Exception as e:
-                    print(f"Error reading CSV file {file_path}: {str(e)}")
+                    logging.error(f"Error reading CSV file {file_path}: {str(e)}")
                     return None
                 
         except FileNotFoundError:
-            print(f"Warning: {file_path} not found")
+            logging.error(f"{file_path} not found")
             return None
         except Exception as e:
-            print(f"Error reading CSV file {file_path}: {str(e)}")
+            logging.error(f"Error reading CSV file {file_path}: {str(e)}")
             return None
 
     def append_pitch_markdown(self, file_path: Path):
@@ -241,7 +244,7 @@ class ReportGenerator:
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_report)
         
-        print(f"Report generated successfully: {output_path}")
+        logger.info(f"Report generated successfully: {output_path}")
 
 def main():
     from src.plan.filenames import FilenameEnum
@@ -251,6 +254,15 @@ def main():
     parser.add_argument('--no-browser', action='store_true', help='Do not open browser automatically')
     
     args = parser.parse_args()
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler()
+        ]
+    )
+
     
     # Convert input path to absolute path
     input_path = Path(args.input_path).resolve()
