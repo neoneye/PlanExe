@@ -6,7 +6,7 @@ import os
 import json
 from src.team.find_team_members import FindTeamMembers
 from src.team.enrich_team_members import EnrichTeamMembers
-from src.team.enrich_team_members_with_environment_info import ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_SYSTEM_PROMPT, enrich_team_members_with_environment_info, cleanup_enriched_team_members_with_environment_info_and_merge_with_team_members
+from src.team.enrich_team_members_with_environment_info import EnrichTeamMembersWithEnvironmentInfo
 from src.team.create_markdown_document import create_markdown_document
 from src.plan.find_plan_prompt import find_plan_prompt
 from src.llm_factory import get_llm
@@ -59,12 +59,13 @@ with open(enrich_team_members_list_file, 'w') as f:
 print("Step A: Done enriching team members.")
 
 print("Step B: Enriching team members with environment info...")
-enrich_team_members_with_environment_info_raw_dict = enrich_team_members_with_environment_info(llm, plan_prompt, enrich_team_members_list, ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_SYSTEM_PROMPT)
+enrich_team_members_with_environment_info = EnrichTeamMembersWithEnvironmentInfo.execute(llm, plan_prompt, enrich_team_members_list)
+enrich_team_members_with_environment_info_raw_dict = enrich_team_members_with_environment_info.to_dict()
 enrich_team_members_with_environment_info_raw_file = f'{run_dir}/006-enrich_team_members_with_environment_info_raw.json'
 with open(enrich_team_members_with_environment_info_raw_file, 'w') as f:
     f.write(json.dumps(enrich_team_members_with_environment_info_raw_dict, indent=2))
 
-enrich_team_members_with_environment_info_list = cleanup_enriched_team_members_with_environment_info_and_merge_with_team_members(enrich_team_members_with_environment_info_raw_dict, enrich_team_members_list)
+enrich_team_members_with_environment_info_list = enrich_team_members_with_environment_info.team_member_list
 enrich_team_members_with_environment_info_list_file = f'{run_dir}/007-enriched_team_members_with_environment_info_list.json'
 with open(enrich_team_members_with_environment_info_list_file, 'w') as f:
     f.write(json.dumps(enrich_team_members_with_environment_info_list, indent=2))

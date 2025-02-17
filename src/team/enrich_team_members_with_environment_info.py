@@ -1,14 +1,20 @@
 """
 Enrich the team members with what kind of equipment and facilities they need for the task.
+
+PROMPT> python -m src.team.enrich_team_members_with_environment_info
 """
 import os
 import json
 import time
+import logging
 from math import ceil
+from dataclasses import dataclass
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
+
+logger = logging.getLogger(__name__)
 
 class TeamMember(BaseModel):
     """A human with domain knowledge."""
@@ -31,57 +37,107 @@ ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_SYSTEM_PROMPT = """
 Identify what kind of equipment and facilities are needed for the daily job of each team member.
 """
 
-def enrich_team_members_with_environment_info(llm: LLM, job_description: str, team_member_list: list, system_prompt: Optional[str]) -> dict:
-    compact_json = json.dumps(team_member_list, separators=(',', ':'))
+@dataclass
+class EnrichTeamMembersWithEnvironmentInfo:
+    """
+    Enrich each team member with more info.
+    """
+    system_prompt: str
+    user_prompt: str
+    response: dict
+    metadata: dict
+    team_member_list: list[dict]
 
-    user_prompt = f"""Project description:
-{job_description}
+    @classmethod
+    def execute(cls, llm: LLM, job_description: str, team_member_list: list[dict]) -> 'EnrichTeamMembersWithEnvironmentInfo':
+        """
+        Invoke LLM with each team member.
+        """
+        if not isinstance(llm, LLM):
+            raise ValueError("Invalid LLM instance.")
+        if not isinstance(job_description, str):
+            raise ValueError("Invalid job_description.")
+        if not isinstance(team_member_list, list):
+            raise ValueError("Invalid team_member_list.")
 
-Here is the list of team members that needs to be enriched:
-{compact_json}
-"""
-    chat_message_list = []
-    if system_prompt:
-        chat_message_list.append(
+        compact_json = json.dumps(team_member_list, separators=(',', ':'))
+
+        user_prompt = (
+            f"Project description:\n{job_description}\n\n"
+            f"Here is the list of team members that needs to be enriched:\n{compact_json}"
+        )
+
+        logger.debug(f"User Prompt:\n{user_prompt}")
+
+        system_prompt = ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_SYSTEM_PROMPT.strip()
+
+        chat_message_list = [
             ChatMessage(
                 role=MessageRole.SYSTEM,
                 content=system_prompt,
+            ),
+            ChatMessage(
+                role=MessageRole.USER,
+                content=user_prompt,
             )
+        ]
+
+        sllm = llm.as_structured_llm(DocumentDetails)
+        start_time = time.perf_counter()
+        try:
+            chat_response = sllm.chat(chat_message_list)
+        except Exception as e:
+            logger.debug(f"LLM chat interaction failed: {e}")
+            logger.error("LLM chat interaction failed.", exc_info=True)
+            raise ValueError("LLM chat interaction failed.") from e
+
+        end_time = time.perf_counter()
+        duration = int(ceil(end_time - start_time))
+        response_byte_count = len(chat_response.message.content.encode('utf-8'))
+        logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
+
+        json_response = chat_response.raw.model_dump()
+
+        team_member_list_enriched = cls.cleanup_enriched_team_members_with_environment_info_and_merge_with_team_members(chat_response.raw, team_member_list)
+
+        metadata = dict(llm.metadata)
+        metadata["llm_classname"] = llm.class_name()
+        metadata["duration"] = duration
+        metadata["response_byte_count"] = response_byte_count
+
+        result = EnrichTeamMembersWithEnvironmentInfo(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            response=json_response,
+            metadata=metadata,
+            team_member_list=team_member_list_enriched,
         )
+        return result
     
-    chat_message_user = ChatMessage(
-        role=MessageRole.USER,
-        content=user_prompt,
-    )
-    chat_message_list.append(chat_message_user)
+    def to_dict(self, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
+        d = self.response.copy()
+        if include_metadata:
+            d['metadata'] = self.metadata
+        if include_system_prompt:
+            d['system_prompt'] = self.system_prompt
+        if include_user_prompt:
+            d['user_prompt'] = self.user_prompt
+        return d
 
-    sllm = llm.as_structured_llm(DocumentDetails)
-
-    start_time = time.perf_counter()
-    chat_response = sllm.chat(chat_message_list)
-    end_time = time.perf_counter()
-
-    json_response = json.loads(chat_response.message.content)
-
-    duration = int(ceil(end_time - start_time))
-
-    metadata = {
-        "duration": duration,
-    }
-    json_response['metadata'] = metadata
-    return json_response
-
-def cleanup_enriched_team_members_with_environment_info_and_merge_with_team_members(raw_enriched_team_member_dict: dict, team_member_list: list) -> list:
-    result_team_member_list = team_member_list.copy()
-    enriched_team_member_list = raw_enriched_team_member_dict['team_members']
-    id_to_enriched_team_member = {item['id']: item for item in enriched_team_member_list}
-    for team_member in result_team_member_list:
-        id = team_member['id']
-        enriched_team_member = id_to_enriched_team_member.get(id)
-        if enriched_team_member:
-            team_member['equipment_needs'] = enriched_team_member['equipment_needs']
-            team_member['facility_needs'] = enriched_team_member['facility_needs']
-    return result_team_member_list
+    def cleanup_enriched_team_members_with_environment_info_and_merge_with_team_members(document_details: DocumentDetails, team_member_list: list[dict]) -> list:
+        result_team_member_list = team_member_list.copy()
+        enriched_team_member_list = document_details.team_members
+        id_to_enriched_team_member = {item.id: item for item in enriched_team_member_list}
+        for team_member_index, team_member in enumerate(result_team_member_list):
+            if not 'id' in team_member:
+                logger.warning(f"Team member #{team_member_index} does not have an id")
+                continue
+            id = team_member['id']
+            enriched_team_member = id_to_enriched_team_member.get(id)
+            if enriched_team_member:
+                team_member['equipment_needs'] = enriched_team_member.equipment_needs
+                team_member['facility_needs'] = enriched_team_member.facility_needs
+        return result_team_member_list
 
 if __name__ == "__main__":
     from src.llm_factory import get_llm
@@ -114,5 +170,10 @@ if __name__ == "__main__":
         }
     ]
 
-    json_response = enrich_team_members_with_environment_info(llm, job_description, team_member_list, ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_SYSTEM_PROMPT)
+    enrich_team_members_with_environment_info = EnrichTeamMembersWithEnvironmentInfo.execute(llm, job_description, team_member_list)
+    json_response = enrich_team_members_with_environment_info.to_dict(include_system_prompt=False, include_user_prompt=False)
     print(json.dumps(json_response, indent=2))
+
+    print("\n\nTeam members:")
+    json_team = enrich_team_members_with_environment_info.team_member_list
+    print(json.dumps(json_team, indent=2))
