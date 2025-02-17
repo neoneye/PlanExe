@@ -4,7 +4,7 @@ PROMPT> python -m src.team.run_hire_team
 from datetime import datetime
 import os
 import json
-from src.team.find_team_members import FIND_TEAM_MEMBERS_SYSTEM_PROMPT, find_team_members, cleanup_team_members_and_assign_id
+from src.team.find_team_members import FindTeamMembers
 from src.team.enrich_team_members import ENRICH_TEAM_MEMBERS_SYSTEM_PROMPT, enrich_team_members, cleanup_enriched_team_members_and_merge_with_team_members
 from src.team.enrich_team_members_with_environment_info import ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_SYSTEM_PROMPT, enrich_team_members_with_environment_info, cleanup_enriched_team_members_with_environment_info_and_merge_with_team_members
 from src.team.create_markdown_document import create_markdown_document
@@ -31,12 +31,12 @@ with open(plan_prompt_file, 'w') as f:
     f.write(plan_prompt)
 
 print("Finding team members for this task...")
-team_members_raw_dict = find_team_members(llm, plan_prompt, FIND_TEAM_MEMBERS_SYSTEM_PROMPT)
+find_team_members = FindTeamMembers.execute(llm, plan_prompt)
 team_members_raw_file = f'{run_dir}/002-team_members_raw.json'
 with open(team_members_raw_file, 'w') as f:
-    f.write(json.dumps(team_members_raw_dict, indent=2))
+    f.write(json.dumps(find_team_members.to_dict(), indent=2))
 
-team_members_list = cleanup_team_members_and_assign_id(team_members_raw_dict)
+team_members_list = find_team_members.team_member_list
 team_members_list_file = f'{run_dir}/003-team_members_list.json'
 with open(team_members_list_file, 'w') as f:
     f.write(json.dumps(team_members_list, indent=2))

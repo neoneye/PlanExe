@@ -6,11 +6,15 @@ PROMPT> python -m src.team.find_team_members
 import os
 import json
 import time
+import logging
 from math import ceil
+from dataclasses import dataclass
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
+
+logger = logging.getLogger(__name__)
 
 class TeamMember(BaseModel):
     job_category_title: str = Field(
@@ -47,50 +51,97 @@ Use the people_needed field to specify the number of people needed for each role
 Provide a short explanation of why that team member is relevant for the project.
 """
 
-def find_team_members(llm: LLM, query: str, system_prompt: Optional[str]) -> dict:
-    chat_message_list = []
-    if system_prompt:
-        chat_message_list.append(
+@dataclass
+class FindTeamMembers:
+    """
+    From a project description, find a team for solving the job.
+    """
+    system_prompt: str
+    user_prompt: str
+    response: dict
+    metadata: dict
+    team_member_list: list[dict]
+
+    @classmethod
+    def execute(cls, llm: LLM, user_prompt: str) -> 'FindTeamMembers':
+        """
+        Invoke LLM to find a team.
+        """
+        if not isinstance(llm, LLM):
+            raise ValueError("Invalid LLM instance.")
+        if not isinstance(user_prompt, str):
+            raise ValueError("Invalid user_prompt.")
+
+        logger.debug(f"User Prompt:\n{user_prompt}")
+
+        system_prompt = FIND_TEAM_MEMBERS_SYSTEM_PROMPT.strip()
+
+        chat_message_list = [
             ChatMessage(
                 role=MessageRole.SYSTEM,
                 content=system_prompt,
+            ),
+            ChatMessage(
+                role=MessageRole.USER,
+                content=user_prompt,
             )
+        ]
+
+        sllm = llm.as_structured_llm(DocumentDetails)
+        start_time = time.perf_counter()
+        try:
+            chat_response = sllm.chat(chat_message_list)
+        except Exception as e:
+            logger.debug(f"LLM chat interaction failed: {e}")
+            logger.error("LLM chat interaction failed.", exc_info=True)
+            raise ValueError("LLM chat interaction failed.") from e
+
+        end_time = time.perf_counter()
+        duration = int(ceil(end_time - start_time))
+        response_byte_count = len(chat_response.message.content.encode('utf-8'))
+        logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
+
+        json_response = chat_response.raw.model_dump()
+
+        team_member_list = cls.cleanup_team_members_and_assign_id(chat_response.raw)
+
+        metadata = dict(llm.metadata)
+        metadata["llm_classname"] = llm.class_name()
+        metadata["duration"] = duration
+        metadata["response_byte_count"] = response_byte_count
+
+        result = FindTeamMembers(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            response=json_response,
+            metadata=metadata,
+            team_member_list=team_member_list,
         )
+        return result
     
-    chat_message_user = ChatMessage(
-        role=MessageRole.USER,
-        content=query,
-    )
-    chat_message_list.append(chat_message_user)
+    def to_dict(self, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
+        d = self.response.copy()
+        if include_metadata:
+            d['metadata'] = self.metadata
+        if include_system_prompt:
+            d['system_prompt'] = self.system_prompt
+        if include_user_prompt:
+            d['user_prompt'] = self.user_prompt
+        return d
 
-    sllm = llm.as_structured_llm(DocumentDetails)
-
-    start_time = time.perf_counter()
-    chat_response = sllm.chat(chat_message_list)
-    end_time = time.perf_counter()
-    duration = int(ceil(end_time - start_time))
-
-    json_response = json.loads(chat_response.message.content)
-
-    metadata = {
-        "duration": duration,
-    }
-    json_response['metadata'] = metadata
-    return json_response
-
-def cleanup_team_members_and_assign_id(team_member_dict: dict) -> list:
-    result_list = []
-    team_members = team_member_dict['brainstorm_of_needed_team_members']
-    for i, team_member in enumerate(team_members, start=1):
-        item = {
-            "id": i,
-            "category": team_member['job_category_title'],
-            "explanation": team_member['short_explanation'],
-            "count": team_member['people_needed'],
-        }
-        result_list.append(item)
-    return result_list
-
+    def cleanup_team_members_and_assign_id(document_details: DocumentDetails) -> list:
+        result_list = []
+        team_members = document_details.brainstorm_of_needed_team_members
+        for i, team_member in enumerate(team_members, start=1):
+            item = {
+                "id": i,
+                "category": team_member.job_category_title,
+                "explanation": team_member.short_explanation,
+                "count": team_member.people_needed,
+            }
+            result_list.append(item)
+        return result_list
+    
 if __name__ == "__main__":
     from src.llm_factory import get_llm
     from src.plan.find_plan_prompt import find_plan_prompt
@@ -99,5 +150,10 @@ if __name__ == "__main__":
     plan_prompt = find_plan_prompt("4dc34d55-0d0d-4e9d-92f4-23765f49dd29")
 
     print(f"Query:\n{plan_prompt}\n\n")
-    json_response = find_team_members(llm, plan_prompt, FIND_TEAM_MEMBERS_SYSTEM_PROMPT)
+    result = FindTeamMembers.execute(llm, plan_prompt)
+    json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print(json.dumps(json_response, indent=2))
+
+    print("\n\nTeam members:")
+    json_team = result.team_member_list
+    print(json.dumps(json_team, indent=2))
