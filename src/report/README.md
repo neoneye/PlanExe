@@ -14,23 +14,16 @@ A tool to generate a beautiful HTML report from PlanExe output files.
 - Responsive design for easy reading
 - Clean, professional formatting
 
-## Installation
-
-1. Install the required dependencies:
-```bash
-pip install -r requirements-report.txt
-```
-
 ## Usage
 
-### Basic Usage
+### Generate report and open in browser
 ```bash
 python -m src.report.report_generator /path/to/planexe/output/directory
 ```
 
-### Specify Custom Output File
+### Generate report without opening it in the browser
 ```bash
-python -m src.report.report_generator /path/to/planexe/output/directory -o custom_report.html
+python -m src.report.report_generator /path/to/planexe/output/directory --no-browser
 ```
 
 ## Report Contents
@@ -58,13 +51,13 @@ The generated report includes:
 
 ## Example
 
-If your PlanExe output is in `/home/user/my_project/planexe_output`, run:
+If your PlanExe output is in `/home/user/my_project/planexe_dir`, run:
 ```bash
-python -m src.report.report_generator /home/user/my_project/planexe_output
+python -m src.report.report_generator /home/user/my_project/planexe_dir
 ```
 
 This will:
-1. Generate a report named `planexe_report.html` in the output directory
+1. Generate a report named `report.html` in the specified directory
 2. Automatically open the report in your default web browser
 
 ## Troubleshooting
