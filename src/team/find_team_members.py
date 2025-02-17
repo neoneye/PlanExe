@@ -26,6 +26,9 @@ class TeamMember(BaseModel):
     people_needed: str = Field(
         description="Number of people needed."
     )
+    consequences_of_not_having_this_role: str = Field(
+        description="Consequences of not having this role."
+    )
 
 class DocumentDetails(BaseModel):
     brainstorm_of_needed_team_members: list[TeamMember] = Field(
@@ -49,7 +52,7 @@ Based on the user's project description, brainstorm a comprehensive team of huma
     *   **Single Role:** If only one person is needed, use "1". Even seemingly trivial tasks might benefit from a dedicated individual.
     *   **Fixed Number:** For a set number (e.g., two construction managers, three data scientists), use "2" or "3" as appropriate.
     *   **Variable Number:** If the number depends on factors like project scope, workload, phase, budget, or risk profile, use "min X, max Y, depending on [factor]". Explain the factor clearly and *specifically*. Provide measurable factors.
-        *   Example: "min 1, max 3, depending on the number of permits required and the level of community opposition to the project. Measure community opposition as 'number of letters to the editor'"
+        *   Example: "min 1, max 3, depending on the number of permits required and the level of community opposition to the project. Measure community opposition as 'number of formal complaints filed with the local municipality'"
         *   Example: "min 2, max 5, depending on the number of components to be designed and tested."
         *   Example: "min 1, max 2, depending on the number of machine learning papers that needs to be summarized and the benchmark tests that needs to be executed."
 
@@ -65,7 +68,8 @@ Based on the user's project description, brainstorm a comprehensive team of huma
 *   **Key Responsibilities:** What are the primary tasks and duties this role will perform to directly contribute to project goals?
 *   **Direct Impact:** How will this role directly contribute to achieving project goals and overcoming potential challenges? What are the consequences of understaffing or lacking this expertise?
 *   **Project Dependencies:** How does this role interact with other roles or project phases? Is this role dependent on any other roles or external parties? What are the implications of delays related to this dependency? List roles it provides input to.
-*   **Relevant Skills** Name 3-5 specific skills that are required for the role. Example: "Communication, negotiation, stakeholder management"
+*   **Relevant Skills:** List 3-5 specific skills that are required for the role. Use lowercase, comma-separated format (e.g., communication, negotiation, stakeholder management).
+*   **Role Priority:** Rank the role as "High," "Medium," or "Low" based on its criticality to the project's initial success.  High-priority roles are essential to start the project; medium-priority roles are important for smooth execution; low-priority roles can be filled later.
 """
 
 @dataclass
@@ -154,6 +158,7 @@ class FindTeamMembers:
                 "id": i,
                 "category": team_member.job_category_title,
                 "explanation": team_member.short_explanation,
+                "consequences": team_member.consequences_of_not_having_this_role,
                 "count": team_member.people_needed,
             }
             result_list.append(item)
