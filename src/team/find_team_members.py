@@ -52,11 +52,12 @@ Based on the user's project description, brainstorm a team of potential human su
 
 4. **Consequences (If Applicable):** Note potential risks of omitting each role.
 
-5. **People Count / Resource Level:** Use the `people_needed` field to specify the support level required. Follow these guidelines:
-    - **Single Resource:** If one person is needed, use "1".
-    - **Fixed Level:** Use numbers like "2" or "3" for set levels.
-    - **Variable Level:** If the level of support varies, specify it as "min X, max Y, depending on [factor]" and describe the factor clearly with measurable details.
-
+5. **People Count / Resource Level:** 
+   Use the `people_needed` field to indicate the number of people required for each role. **Do not simply default to "1" for every role.** Instead, evaluate the complexity and workload of the role relative to the project's scale:
+   - **Single Resource:** If one person is clearly sufficient, use "1".
+   - **Fixed Level:** If the role consistently requires a specific number of people (e.g., "2" or "3"), use that fixed number.
+   - **Variable Level:** If the required support may vary based on factors like project scale, workload, or budget, specify a range. For example, instead of "1", you might write "min 1, max 3, depending on project scale and workload." Be sure to justify why the role may require more than one person.
+   
 6. **Project Phases / Support Stages:** Ensure roles address the following stages:
     - **Planning & Preparation**
     - **Execution**
