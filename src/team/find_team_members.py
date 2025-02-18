@@ -72,7 +72,9 @@ Based on the user's project description, brainstorm a team of potential human su
 - **Relevant Skills**
 - **Role Priority**
 
-**Important:** Do not provide any code or implementation details—even if the prompt is programming-related. Focus solely on planning, decomposing the work, and identifying the essential human roles.
+**Important:** 
+- Do not provide any code or implementation details—even if the prompt is programming-related. Focus solely on planning, decomposing the work, and identifying the essential human roles.
+- **For personal, trivial, or non-commercial projects, avoid suggesting overly formal or business-oriented roles (e.g., Marketing Specialist, Legal Advisor, Technical Support Specialist) unless they are absolutely necessary.** In such cases, prefer roles that can be integrated or scaled down to suit the project's nature.
 """
 
 @dataclass
