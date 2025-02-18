@@ -29,39 +29,39 @@ class ReviewItem(BaseModel):
     )
 
 class DocumentDetails(BaseModel):
-    ommisions: list[ReviewItem] = Field(
+    omissions: list[ReviewItem] = Field(
         description="The most significant omissions."
     )
-    recommendations: list[ReviewItem] = Field(
+    potential_improvements: list[ReviewItem] = Field(
         description="Suggestions and recommendations."
     )
 
-ENRICH_TEAM_MEMBERS_CONTRACT_TYPE_SYSTEM_PROMPT = """
-You are an expert in project team composition and critical analysis. Your task is to analyze a team document for a project (e.g., establishing a solar farm) and identify key issues with the team structure. In your analysis, please:
+REVIEW_TEAM_SYSTEM_PROMPT = """
+You are an expert in project team composition and critical analysis. Your task is to analyze a team document for a project and identify key issues with the team structure. In your analysis, please:
 
 1. Identify the most significant omissions in the document (e.g., missing roles or functions).
-2. Suggest potential improvements to enhance the team's effectiveness.
-3. Provide recommendations on any changes or additions needed.
+2. Identify potential improvements that would enhance the team’s effectiveness.
+3. Provide actionable recommendations on how to address each identified issue.
 
-Your output must be structured using JSON with two main sections: "Omissions" and "Potential Improvements". Each section should include a list of items, where each item contains the following keys:
-- **Issue**: A brief title or name for the omission/improvement.
-- **Explanation**: A concise description of why this issue is important.
-- **Recommendation**: Specific suggestions on how to address the issue.
+Your output must be structured using JSON with two main sections: "omissions" and "potential_improvements". Each section should be a list of items, where each item contains the following keys:
+- "issue": A brief title or name for the omission/improvement.
+- "explanation": A concise description of why this issue is important.
+- "recommendation": Specific suggestions on how to address the issue.
 
 Example Output:
 {
-  "Omissions": [
+  "omissions": [
     {
-      "Issue": "Missing Operations & Maintenance Manager",
-      "Explanation": "Post-construction, a dedicated role is needed to ensure ongoing maintenance and performance optimization of the solar farm.",
-      "Recommendation": "Add a dedicated Operations & Maintenance Manager to oversee long-term performance and upkeep."
+      "issue": "Missing Operations & Maintenance Manager",
+      "explanation": "After project completion, a dedicated role is needed to ensure ongoing maintenance and performance optimization.",
+      "recommendation": "Add a dedicated Operations & Maintenance Manager to oversee long-term performance and upkeep."
     }
   ],
-  "Potential Improvements": [
+  "potential_improvements": [
     {
-      "Issue": "Lack of Stakeholder Engagement Role",
-      "Explanation": "Managing local community and regulatory relationships is critical to avoid future conflicts and delays.",
-      "Recommendation": "Consider adding a Stakeholder or Community Engagement Specialist."
+      "issue": "Lack of Stakeholder Engagement Role",
+      "explanation": "Managing relationships with local communities and regulatory bodies is critical to avoid conflicts and delays.",
+      "recommendation": "Consider adding a Stakeholder or Community Engagement Specialist."
     }
   ]
 }
@@ -96,7 +96,7 @@ class ReviewTeam:
 
         logger.debug(f"User Prompt:\n{user_prompt}")
 
-        system_prompt = ENRICH_TEAM_MEMBERS_CONTRACT_TYPE_SYSTEM_PROMPT.strip()
+        system_prompt = REVIEW_TEAM_SYSTEM_PROMPT.strip()
 
         chat_message_list = [
             ChatMessage(
@@ -154,6 +154,7 @@ if __name__ == "__main__":
     llm = get_llm("ollama-llama3.1")
     # llm = get_llm("deepseek-chat")
 
+    # TODO: Eliminate hardcoded paths
     path = "/Users/neoneye/Desktop/010-team.md"
     with open(path, 'r') as f:
         team_document_markdown = f.read()
