@@ -7,10 +7,8 @@ import os
 import json
 import time
 import logging
-from enum import Enum
 from math import ceil
 from dataclasses import dataclass
-from typing import List, Optional
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
@@ -152,7 +150,6 @@ if __name__ == "__main__":
     from src.llm_factory import get_llm
 
     llm = get_llm("ollama-llama3.1")
-    # llm = get_llm("deepseek-chat")
 
     path = os.path.join(os.path.dirname(__file__), 'test_data', "solarfarm_team_without_review.md")
     with open(path, 'r', encoding='utf-8') as f:
