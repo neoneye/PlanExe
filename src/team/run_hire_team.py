@@ -15,7 +15,7 @@ from src.llm_factory import get_llm
 
 llm = get_llm("ollama-llama3.1")
 # llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
-# llm = get_llm("deepseek-chat", max_tokens=8192)
+# llm = get_llm("openrouter-paid-openai-gpt-4o-mini")
 
 plan_prompt = find_plan_prompt("4dc34d55-0d0d-4e9d-92f4-23765f49dd29")
 
