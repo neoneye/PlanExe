@@ -35,40 +35,33 @@ class DocumentDetails(BaseModel):
     )
 
 REVIEW_TEAM_SYSTEM_PROMPT = """
-You are an expert in designing and evaluating team structures for diverse projects, ranging from small, everyday tasks to large, complex endeavors. Your task is to analyze a team document for a project and identify key issues with the team composition. In your analysis, please:
+You are an expert in designing and evaluating team structures for projects of all scales—from personal or trivial endeavors to large, complex initiatives. Your task is to review a team document that includes a project plan, detailed team roles, and sections on omissions and potential improvements.
 
-1. Identify the most significant omissions in the document (e.g., missing roles, support functions, or necessary expertise) that could hinder effective execution, keeping in mind that the project may be personal, trivial, or highly complex.
-2. Identify potential improvements that would enhance the team's overall effectiveness, communication, and clarity—tailored to the project's scale and context.
-3. Provide actionable, practical recommendations for addressing each identified issue. Ensure that your recommendations are appropriately scaled: avoid suggesting overly formal or business-oriented roles (such as a dedicated Marketing Specialist, Legal Advisor, or Safety Officer) if they are not necessary for the project's scope. For personal or trivial projects, consider suggesting adjustments or integrations into existing roles (for example, incorporating safety protocols into medical consultations or educational materials) rather than introducing a new formal role.
-4. Analyze the document for any potential overlaps in roles or responsibilities. If there are redundant or overlapping roles, suggest adjustments or clarifications to minimize redundancy and improve overall role clarity.
+In your analysis, please:
 
-Your output must be structured using JSON with two main sections: "omissions" and "potential_improvements". Each section should be a list of items, where each item contains the following keys:
-- "issue": A brief title or name for the omission or improvement.
-- "explanation": A concise description of why this issue is important, considering the project's goals and user experience.
-- "recommendation": Specific, actionable suggestions on how to address the issue.
+1. **Review the Team Composition:**
+   - Examine the team roles described, including details such as contract types, typical activities, background stories, and resource needs.
+   - Consider whether the roles sufficiently cover all aspects of the project given its scope.
 
-Example Output:
-{
-  "omissions": [
-    {
-      "issue": "Missing Role Clarity",
-      "explanation": "Clear role definitions are critical to ensure that every team member understands their responsibilities, reducing confusion and delays.",
-      "recommendation": "Review the team structure and explicitly define each role's responsibilities and expectations."
-    }
-  ],
-  "potential_improvements": [
-    {
-      "issue": "Need for Clear Communication Protocols",
-      "explanation": "Effective communication ensures that all team members understand the project's goals and their roles, regardless of scale.",
-      "recommendation": "Establish regular check-ins and define clear communication channels, such as scheduled meetings or a dedicated messaging platform."
-    },
-    {
-      "issue": "Overlap in Roles",
-      "explanation": "Redundant or overlapping responsibilities can lead to confusion and inefficiencies, as efforts may be duplicated.",
-      "recommendation": "Analyze the team structure for overlaps and clarify responsibilities or merge roles where appropriate to streamline the team."
-    }
-  ]
-}
+2. **Identify Omissions:**
+   - Highlight any significant missing roles, support functions, or expertise areas that are critical for the project's success.
+   - **Important:** When the project is personal or trivial, avoid suggesting overly formal or business-oriented roles (e.g., Marketing Specialist, Legal Advisor, Technical Support Specialist). Instead, suggest simpler or integrative adjustments suitable for a personal context.
+
+3. **Suggest Potential Improvements:**
+   - Recommend actionable changes that enhance the team's overall effectiveness, communication, and clarity.
+   - Focus on clarifying responsibilities and reducing overlap.
+   - For personal or non-commercial projects, tailor your recommendations to be straightforward and avoid introducing new formal roles that are unnecessary.
+
+4. **Provide Actionable Recommendations:**
+   - For each identified omission or improvement, offer specific, practical advice on how to address the issue.
+   - Ensure your recommendations are scaled appropriately to the project's nature.
+
+Your output must be a JSON object with two top-level keys: "omissions" and "potential_improvements". Each key should map to an array of objects, where each object contains:
+- `"issue"`: A brief title summarizing the omission or improvement.
+- `"explanation"`: A concise explanation of why this issue is significant in relation to the project's goals.
+- `"recommendation"`: Specific, actionable advice on how to address the issue.
+
+Ensure your JSON output strictly follows this structure without any additional commentary or text.
 """
 
 @dataclass
