@@ -4,6 +4,7 @@ Create a Markdown document containing details about the team.
 PROMPT> python -m src.team.team_markdown_document
 """
 import json
+from typing import Optional
 
 class TeamMarkdownDocumentBuilder:
     """
@@ -41,22 +42,33 @@ class TeamMarkdownDocumentBuilder:
         if 'facility_needs' in entry:
             self.rows.append(f"\n**Facility Needs**:\n{entry['facility_needs']}")
     
-    def append_roles(self, roles_data: list[dict]):
-        for entry_index, entry in enumerate(roles_data, start=1):
+    def append_roles(self, roles_list: list[dict], title: Optional[str] = "Roles"):
+        if isinstance(title, str):
+            self.rows.append(f"# {title}")
+        for entry_index, entry in enumerate(roles_list, start=1):
             self.append_role(entry, entry_index)
 
     def append_review_item(self, review_item: dict, review_index: int):
-        issue = review_item.get('issue', "Review Item")
+        issue = review_item.get('issue', "Missing Review Issue")
         self.rows.append(f"\n## {review_index}. {issue}")
         if 'explanation' in review_item:
             self.rows.append(f"\n{review_item['explanation']}")
         if 'recommendation' in review_item:
             self.rows.append(f"\n**Recommendation**:\n{review_item['recommendation']}")
     
-    def append_review_items(self, review_items: list[dict]):
+    def append_review_items(self, review_items: list[dict], title: Optional[str] = "Review Items"):
+        if isinstance(title, str):
+            self.rows.append(f"# {title}")
         for review_index, review_item in enumerate(review_items, start=1):
             self.append_review_item(review_item, review_index)
-    
+
+    def append_full_review(self, review: dict):
+        review_omissions = review.get('omissions', [])
+        self.append_review_items(review_omissions, title="Omissions")
+        self.append_separator()
+        review_potential_improvements = review.get('potential_improvements', [])
+        self.append_review_items(review_potential_improvements, title="Potential Improvements")
+
     def to_string(self) -> str:
         return "\n".join(self.rows)
 
@@ -81,15 +93,8 @@ if __name__ == "__main__":
     builder2 = TeamMarkdownDocumentBuilder()
     builder2.append_plan_prompt(plan_prompt)
     builder2.append_separator()
-    builder2.rows.append(f"# Roles")
     builder2.append_roles(roles_list)
     builder2.append_separator()
-    review_omissions = team_review.get('omissions', [])
-    builder2.rows.append(f"# Omissions")
-    builder2.append_review_items(review_omissions)
-    builder2.append_separator()
-    review_potential_improvements = team_review.get('potential_improvements', [])
-    builder2.rows.append(f"# Potential Improvements")
-    builder2.append_review_items(review_potential_improvements)
+    builder2.append_full_review(team_review)
 
     print(builder2.to_string())
