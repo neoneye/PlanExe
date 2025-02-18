@@ -8,7 +8,8 @@ from src.team.find_team_members import FindTeamMembers
 from src.team.enrich_team_members import EnrichTeamMembers
 from src.team.enrich_team_members_with_contract_type import EnrichTeamMembersWithContractType
 from src.team.enrich_team_members_with_environment_info import EnrichTeamMembersWithEnvironmentInfo
-from src.team.team_markdown_document import create_markdown_document
+from src.team.team_markdown_document import create_markdown_document, TeamMarkdownDocumentBuilder
+from src.team.review_team import ReviewTeam
 from src.plan.find_plan_prompt import find_plan_prompt
 from src.llm_factory import get_llm
 
@@ -85,7 +86,17 @@ with open(enrich_team_members_with_environment_info_list_file, 'w') as f:
     f.write(json.dumps(enrich_team_members_with_environment_info_list, indent=2))
 print("Step C: Done enriching team members.")
 
+print("Step D: Reviewing team...")
+builder1 = TeamMarkdownDocumentBuilder()
+builder1.append_roles(enrich_team_members_with_environment_info_list)
+review_team = ReviewTeam.execute(llm, plan_prompt, builder1.to_string())
+review_team_raw_dict = review_team.to_dict()
+review_team_raw_file = f'{run_dir}/010-review_team_raw.json'
+with open(review_team_raw_file, 'w') as f:
+    f.write(json.dumps(review_team_raw_dict, indent=2))
+print("Step D: Reviewing team.")
+
 print("Creating Markdown document...")
-output_file = f'{run_dir}/010-team.md'
+output_file = f'{run_dir}/011-team.md'
 create_markdown_document(plan_prompt, enrich_team_members_with_environment_info_list_file, output_file)
 print("Done creating Markdown document.")
