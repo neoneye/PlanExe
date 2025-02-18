@@ -8,6 +8,8 @@ class FilenameEnum(str, Enum):
     PRE_PROJECT_ASSESSMENT_RAW = "004-1-pre_project_assessment_raw.json"
     PRE_PROJECT_ASSESSMENT = "004-2-pre_project_assessment.json"
     PROJECT_PLAN = "005-project_plan.json"
+    FIND_TEAM_MEMBERS_RAW = "006-1-find_team_members_raw.json"
+    FIND_TEAM_MEMBERS_CLEAN = "006-2-find_team_members.json"
     SWOT_RAW = "006-1-swot_analysis_raw.json"
     SWOT_MARKDOWN = "006-2-swot_analysis.md"
     EXPERTS_RAW = "007-1-experts_raw.json"
