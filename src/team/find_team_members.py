@@ -44,21 +44,28 @@ Based on the user's project description, brainstorm a team of potential human su
 
 **Output Requirements:**
 
-1. **Team Size:** The team **must** consist of **exactly 8 candidates**. If you identify more than 8 roles initially, carefully evaluate and combine roles to meet the requirement. Focus on roles that are most essential and actively involved throughout the project.
+1. **Team Size:**  
+   Your output **must include exactly 8 candidate roles**.  
+   - If your initial analysis identifies fewer than 8 distinct roles, create additional meaningful roles to reach exactly 8.  
+   - If your analysis results in more than 8 roles, consolidate or combine roles so that the final output contains exactly 8 candidates.
 
-2. **Role Titles:** Provide a clear, concise `job_category_title` that accurately describes the role's primary contribution.
+2. **Role Titles:**  
+   Provide a clear and concise `job_category_title` that accurately describes the role's primary contribution.
 
-3. **Role Explanations:** Briefly explain each role’s purpose and active involvement.
+3. **Role Explanations:**  
+   Briefly explain each role’s purpose, key responsibilities, and how it contributes actively throughout the project.
 
-4. **Consequences (If Applicable):** Note potential risks of omitting each role.
+4. **Consequences:**  
+   For each role, note potential risks or consequences of omitting that role.
 
 5. **People Count / Resource Level:** 
    Use the `people_needed` field to indicate the number of people required for each role. **Do not simply default to "1" for every role.** Instead, evaluate the complexity and workload of the role relative to the project's scale:
    - **Single Resource:** If one person is clearly sufficient, use "1".
    - **Fixed Level:** If the role consistently requires a specific number of people (e.g., "2" or "3"), use that fixed number.
    - **Variable Level:** If the required support may vary based on factors like project scale, workload, or budget, specify a range. For example, instead of "1", you might write "min 1, max 3, depending on project scale and workload." Be sure to justify why the role may require more than one person.
-   
-6. **Project Phases / Support Stages:** Ensure roles address the following stages:
+
+6. **Project Phases / Support Stages:**  
+   Ensure the roles collectively address the following phases:
     - **Planning & Preparation**
     - **Execution**
     - **Monitoring & Adjustment**
