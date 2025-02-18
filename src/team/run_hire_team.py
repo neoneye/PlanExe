@@ -97,6 +97,17 @@ with open(review_team_raw_file, 'w') as f:
 print("Step D: Reviewing team.")
 
 print("Creating Markdown document...")
+builder2 = TeamMarkdownDocumentBuilder()
+builder2.append_plan_prompt(plan_prompt)
+builder2.append_roles(enrich_team_members_with_environment_info_list)
+review_omissions = review_team.response.get('omissions', [])
+builder2.rows.append(f"## Review Omissions")
+for item in review_omissions:
+    builder2.append_review_item(item)
+review_potential_improvements = review_team.response.get('potential_improvements', [])
+builder2.rows.append(f"## Review Potential Improvements")
+for item in review_potential_improvements:
+    builder2.append_review_item(item)
 output_file = f'{run_dir}/011-team.md'
-create_markdown_document(plan_prompt, enrich_team_members_with_environment_info_list_file, output_file)
+builder2.write_to_file(output_file)
 print("Done creating Markdown document.")

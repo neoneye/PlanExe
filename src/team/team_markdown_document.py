@@ -35,6 +35,16 @@ class TeamMarkdownDocumentBuilder:
     def append_roles(self, roles_data: list[dict]):
         for entry in roles_data:
             self.append_role(entry)
+
+    def append_review_item(self, review_item: dict):
+        self.rows.append(f"## Review Item")
+        if 'issue' in review_item:
+            self.rows.append(f"\n**Issue**:\n{review_item['issue']}")
+        if 'explanation' in review_item:
+            self.rows.append(f"\n**Explanation**:\n{review_item['explanation']}")
+        if 'recommendation' in review_item:
+            self.rows.append(f"\n**Recommendation**:\n{review_item['recommendation']}")
+        self.rows.append("\n---\n")
     
     def to_string(self) -> str:
         return "\n".join(self.rows)
