@@ -1,6 +1,14 @@
+"""
+Create a Markdown document containing details about the team.
+
+PROMPT> python -m src.team.team_markdown_document
+"""
 import json
 
 class TeamMarkdownDocumentBuilder:
+    """
+    A class to build a Markdown document containing details about the team.
+    """
     def __init__(self):
         self.rows = []
 
@@ -57,38 +65,31 @@ class TeamMarkdownDocumentBuilder:
         with open(output_file_path, 'w', encoding='utf-8') as out_f:
             out_f.write(markdown_representation)
 
-def create_markdown_document(plan_prompt: str, team_member_list_json_file_path: str, output_file_path: str):
-    """
-    Reads text content and JSON data, then writes a Markdown document.
-    
-    :param text_content: str, the main topic text to include in the Markdown
-    :param json_file_path: str, path to the JSON file
-    :param output_file_path: str, path to output the generated Markdown file
-    """
-    # Load JSON data
-    with open(team_member_list_json_file_path, 'r', encoding='utf-8') as f:
-        roles_data = json.load(f)
-    
-    builder = TeamMarkdownDocumentBuilder()
-
-    builder.append_plan_prompt(plan_prompt)
-    builder.append_roles(roles_data)
-
-    builder.write_to_file(output_file_path)
-    
-    print(f"Markdown document has been created at: {output_file_path}")
-
-
 if __name__ == "__main__":
-    # Your text snippet
-    plan_prompt = "Deep cave exploration to find new lifeforms in extreme conditions."
-    
-    # Path to your JSON file
-    # TODO: Eliminate hardcoded paths
-    json_path = "/Users/neoneye/Desktop/planexe_data/005-enriched_team_members_list.json"
-    
-    # Output Markdown file path
-    output_path = "output.md"
-    
-    # Create the markdown document
-    create_markdown_document(plan_prompt, json_path, output_path)
+    import os
+
+    plan_prompt = "Establish a solar farm in Denmark."
+
+    path1 = os.path.join(os.path.dirname(__file__), 'test_data', "solarfarm_roles_list.json")
+    with open(path1, 'r', encoding='utf-8') as f:
+        roles_list = json.load(f)
+
+    path2 = os.path.join(os.path.dirname(__file__), 'test_data', "solarfarm_team_review.json")
+    with open(path2, 'r', encoding='utf-8') as f:
+        team_review = json.load(f)
+
+    builder2 = TeamMarkdownDocumentBuilder()
+    builder2.append_plan_prompt(plan_prompt)
+    builder2.append_separator()
+    builder2.rows.append(f"# Roles")
+    builder2.append_roles(roles_list)
+    builder2.append_separator()
+    review_omissions = team_review.get('omissions', [])
+    builder2.rows.append(f"# Omissions")
+    builder2.append_review_items(review_omissions)
+    builder2.append_separator()
+    review_potential_improvements = team_review.get('potential_improvements', [])
+    builder2.rows.append(f"# Potential Improvements")
+    builder2.append_review_items(review_potential_improvements)
+
+    print(builder2.to_string())
