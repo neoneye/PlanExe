@@ -8,7 +8,7 @@ from src.team.find_team_members import FindTeamMembers
 from src.team.enrich_team_members import EnrichTeamMembers
 from src.team.enrich_team_members_with_contract_type import EnrichTeamMembersWithContractType
 from src.team.enrich_team_members_with_environment_info import EnrichTeamMembersWithEnvironmentInfo
-from src.team.create_markdown_document import create_markdown_document
+from src.team.team_markdown_document import create_markdown_document
 from src.plan.find_plan_prompt import find_plan_prompt
 from src.llm_factory import get_llm
 
