@@ -154,11 +154,9 @@ if __name__ == "__main__":
     llm = get_llm("ollama-llama3.1")
     # llm = get_llm("deepseek-chat")
 
-    # TODO: Eliminate hardcoded paths
-    path = "/Users/neoneye/Desktop/010-team.md"
-    with open(path, 'r') as f:
+    path = os.path.join(os.path.dirname(__file__), 'test_data', "solarfarm_team_without_review.md")
+    with open(path, 'r', encoding='utf-8') as f:
         team_document_markdown = f.read()
-
     job_description = "Establish a solar farm in Denmark."
 
     review_team = ReviewTeam.execute(llm, job_description, team_document_markdown)
