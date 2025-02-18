@@ -1,7 +1,7 @@
 """
 Enrich each team member with a fictional background story and typical job activities.
 
-PROMPT> python -m src.team.enrich_team_members
+PROMPT> python -m src.team.enrich_team_members_with_background_story
 """
 import json
 import time
@@ -46,7 +46,7 @@ The typical_job_activities describes relevant skills needed for this project.
 """
 
 @dataclass
-class EnrichTeamMembers:
+class EnrichTeamMembersWithBackgroundStory:
     """
     Enrich each team member with a fictional background story and typical job activities.
     """
@@ -57,7 +57,7 @@ class EnrichTeamMembers:
     team_member_list: list[dict]
 
     @classmethod
-    def execute(cls, llm: LLM, job_description: str, team_member_list: list[dict]) -> 'EnrichTeamMembers':
+    def execute(cls, llm: LLM, job_description: str, team_member_list: list[dict]) -> 'EnrichTeamMembersWithBackgroundStory':
         """
         Invoke LLM with each team member.
         """
@@ -113,7 +113,7 @@ class EnrichTeamMembers:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
-        result = EnrichTeamMembers(
+        result = EnrichTeamMembersWithBackgroundStory(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
@@ -178,10 +178,10 @@ if __name__ == "__main__":
         }
     ]
 
-    enrich_team_members = EnrichTeamMembers.execute(llm, job_description, team_member_list)
-    json_response = enrich_team_members.to_dict(include_system_prompt=False, include_user_prompt=False)
+    enrich_team_members_with_background_story = EnrichTeamMembersWithBackgroundStory.execute(llm, job_description, team_member_list)
+    json_response = enrich_team_members_with_background_story.to_dict(include_system_prompt=False, include_user_prompt=False)
     print(json.dumps(json_response, indent=2))
 
     print("\n\nTeam members with extra details:")
-    enriched_json = enrich_team_members.team_member_list
+    enriched_json = enrich_team_members_with_background_story.team_member_list
     print(json.dumps(enriched_json, indent=2))
