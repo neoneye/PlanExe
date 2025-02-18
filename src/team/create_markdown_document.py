@@ -30,6 +30,9 @@ def create_markdown_document(plan_prompt: str, team_member_list_json_file_path: 
         if 'explanation' in entry:
             rows.append("")
             rows.append(f"**Explanation**:\n{entry['explanation']}")
+        if 'consequences' in entry:
+            rows.append("")
+            rows.append(f"**Consequences**:\n{entry['consequences']}")
         if 'count' in entry:
             rows.append("")
             rows.append(f"**People Count**:\n{entry['count']}")
