@@ -4,14 +4,16 @@ class TeamMarkdownDocumentBuilder:
     def __init__(self):
         self.rows = []
 
+    def append_separator(self):
+        self.rows.append("\n---\n")
+    
     def append_plan_prompt(self, plan_prompt: str):
         """The main topic text to include in the Markdown"""
         self.rows.append("# The plan\n")
         self.rows.append(plan_prompt.strip())
-        self.rows.append("\n---\n")
 
-    def append_role(self, entry: dict):
-        self.rows.append(f"## Role {entry['id']} - {entry['category']}")
+    def append_role(self, entry: dict, role_index: int):
+        self.rows.append(f"\n## {role_index}. {entry['category']}")
         if 'contract_type' in entry:
             self.rows.append(f"\n**Contract Type**: `{entry['contract_type']}`")
         if 'contract_type_justification' in entry:
@@ -30,21 +32,22 @@ class TeamMarkdownDocumentBuilder:
             self.rows.append(f"\n**Equipment Needs**:\n{entry['equipment_needs']}")
         if 'facility_needs' in entry:
             self.rows.append(f"\n**Facility Needs**:\n{entry['facility_needs']}")
-        self.rows.append("\n---\n")
     
     def append_roles(self, roles_data: list[dict]):
-        for entry in roles_data:
-            self.append_role(entry)
+        for entry_index, entry in enumerate(roles_data, start=1):
+            self.append_role(entry, entry_index)
 
-    def append_review_item(self, review_item: dict):
-        self.rows.append(f"## Review Item")
-        if 'issue' in review_item:
-            self.rows.append(f"\n**Issue**:\n{review_item['issue']}")
+    def append_review_item(self, review_item: dict, review_index: int):
+        issue = review_item.get('issue', "Review Item")
+        self.rows.append(f"\n## {review_index}. {issue}")
         if 'explanation' in review_item:
-            self.rows.append(f"\n**Explanation**:\n{review_item['explanation']}")
+            self.rows.append(f"\n{review_item['explanation']}")
         if 'recommendation' in review_item:
             self.rows.append(f"\n**Recommendation**:\n{review_item['recommendation']}")
-        self.rows.append("\n---\n")
+    
+    def append_review_items(self, review_items: list[dict]):
+        for review_index, review_item in enumerate(review_items, start=1):
+            self.append_review_item(review_item, review_index)
     
     def to_string(self) -> str:
         return "\n".join(self.rows)
