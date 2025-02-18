@@ -27,6 +27,12 @@ def create_markdown_document(plan_prompt: str, team_member_list_json_file_path: 
     for entry in roles_data:
         # Each entry will be displayed under a subsection
         rows.append(f"## Role {entry['id']} - {entry['category']}")
+        if 'contract_type' in entry:
+            rows.append("")
+            rows.append(f"**Contract Type**: `{entry['contract_type']}`")
+        if 'contract_type_justification' in entry:
+            rows.append("")
+            rows.append(f"**Contract Type Justification**: {entry['contract_type_justification']}")
         if 'explanation' in entry:
             rows.append("")
             rows.append(f"**Explanation**:\n{entry['explanation']}")
