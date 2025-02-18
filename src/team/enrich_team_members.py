@@ -33,6 +33,8 @@ class TeamDetails(BaseModel):
     )
 
 ENRICH_TEAM_MEMBERS_SYSTEM_PROMPT = """
+For each team member provided, enrich them with a fictional background story and typical job activities.
+
 Write a fictional background story about the person. It must be one paragraph that covers: 
 - First name and last name.
 - Location.
