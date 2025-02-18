@@ -63,12 +63,12 @@ print("Step A: Done enriching team members.")
 print("Step B: Enriching team members...")
 enrich_team_members = EnrichTeamMembers.execute(llm, plan_prompt, enrich_team_members_with_contract_type_list)
 enrich_team_members_raw_dict = enrich_team_members.to_dict()
-enrich_team_members_raw_file = f'{run_dir}/004-enrich_team_members_raw.json'
+enrich_team_members_raw_file = f'{run_dir}/006-enrich_team_members_raw.json'
 with open(enrich_team_members_raw_file, 'w') as f:
     f.write(json.dumps(enrich_team_members_raw_dict, indent=2))
 
 enrich_team_members_list = enrich_team_members.team_member_list
-enrich_team_members_list_file = f'{run_dir}/005-enriched_team_members_list.json'
+enrich_team_members_list_file = f'{run_dir}/007-enriched_team_members_list.json'
 with open(enrich_team_members_list_file, 'w') as f:
     f.write(json.dumps(enrich_team_members_list, indent=2))
 print("Step B: Done enriching team members.")
