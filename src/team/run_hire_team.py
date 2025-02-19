@@ -5,8 +5,8 @@ from datetime import datetime
 import os
 import json
 from src.team.find_team_members import FindTeamMembers
-from src.team.enrich_team_members_with_background_story import EnrichTeamMembersWithBackgroundStory
 from src.team.enrich_team_members_with_contract_type import EnrichTeamMembersWithContractType
+from src.team.enrich_team_members_with_background_story import EnrichTeamMembersWithBackgroundStory
 from src.team.enrich_team_members_with_environment_info import EnrichTeamMembersWithEnvironmentInfo
 from src.team.team_markdown_document import TeamMarkdownDocumentBuilder
 from src.team.review_team import ReviewTeam
@@ -62,7 +62,8 @@ with open(enrich_team_members_with_contract_type_list_file, 'w') as f:
 print("Step A: Done enriching team members.")
 
 print("Step B: Enriching team members with background story...")
-enrich_team_members_with_background_story = EnrichTeamMembersWithBackgroundStory.execute(llm, plan_prompt, enrich_team_members_with_contract_type_list)
+enrich_team_members_with_background_story_query = EnrichTeamMembersWithBackgroundStory.format_query(plan_prompt, enrich_team_members_with_contract_type_list)
+enrich_team_members_with_background_story = EnrichTeamMembersWithBackgroundStory.execute(llm, enrich_team_members_with_background_story_query, enrich_team_members_with_contract_type_list)
 enrich_team_members_with_background_story_raw_dict = enrich_team_members_with_background_story.to_dict()
 enrich_team_members_with_background_story_raw_file = f'{run_dir}/006-enriched_team_members_with_background_story_raw.json'
 with open(enrich_team_members_with_background_story_raw_file, 'w') as f:
