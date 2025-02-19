@@ -249,7 +249,7 @@ class FindTeamMembersTask(PlanTask):
 
         logger.info("FindTeamMembers. All files are now ready. Brainstorming a team...")
 
-        # Build the query for FindTeamMembers.
+        # Build the query.
         query = (
             f"Initial plan: {plan_prompt}\n\n"
             f"Assumptions:\n{format_json_for_use_in_query(assumption_list)}\n\n"
@@ -257,10 +257,10 @@ class FindTeamMembersTask(PlanTask):
             f"Project plan:\n{format_json_for_use_in_query(project_plan_dict)}"
         )
 
-        # Create LLM instances for SWOT analysis.
+        # Create LLM instance.
         llm = get_llm(self.llm_model)
 
-        # Execute the SWOT analysis.
+        # Execute.
         try:
             find_team_members = FindTeamMembers.execute(llm, query)
         except Exception as e:
