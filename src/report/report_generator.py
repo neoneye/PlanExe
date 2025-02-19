@@ -92,6 +92,12 @@ class ReportGenerator:
         if swot_md:
             self.report_data['swot'] = swot_md
     
+    def append_team_markdown(self, file_path: Path):
+        """Append the team markdown to the report."""
+        swot_md = self.read_markdown_file(file_path)
+        if swot_md:
+            self.report_data['team'] = swot_md
+    
     def append_expert_criticism_markdown(self, file_path: Path):
         """Append the expert criticism markdown to the report."""
         expert_md = self.read_markdown_file(file_path)
@@ -210,6 +216,15 @@ class ReportGenerator:
             html_parts.append(markdown.markdown(self.report_data['swot']))
             html_parts.append("</div>")
 
+        # Team
+        if 'team' in self.report_data:
+            html_parts.append("""
+            <div class="section">
+                <h2>Team</h2>
+            """)
+            html_parts.append(markdown.markdown(self.report_data['team']))
+            html_parts.append("</div>")
+
         # Expert Criticism
         if 'expert_criticism' in self.report_data:
             html_parts.append("""
@@ -276,6 +291,7 @@ def main():
     report_generator = ReportGenerator()
     report_generator.append_pitch_markdown(input_path / FilenameEnum.PITCH_MARKDOWN.value)
     report_generator.append_swot_analysis_markdown(input_path / FilenameEnum.SWOT_MARKDOWN.value)
+    report_generator.append_team_markdown(input_path / FilenameEnum.TEAM_MARKDOWN.value)
     report_generator.append_expert_criticism_markdown(input_path / FilenameEnum.EXPERT_CRITICISM_MARKDOWN.value)
     report_generator.append_project_plan_csv(input_path / FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_CSV.value)
     report_generator.save_report(output_path)
