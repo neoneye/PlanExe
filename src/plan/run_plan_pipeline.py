@@ -337,18 +337,18 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
 
         # Execute.
         try:
-            enrich_team_members_with_contracttype = EnrichTeamMembersWithContractType.execute(llm, query, team_member_list)
+            enrich_team_members_with_contract_type = EnrichTeamMembersWithContractType.execute(llm, query, team_member_list)
         except Exception as e:
             logger.error("EnrichTeamMembersWithContractType failed: %s", e)
             raise
 
         # Save the raw output.
-        raw_dict = enrich_team_members_with_contracttype.to_dict()
+        raw_dict = enrich_team_members_with_contract_type.to_dict()
         with self.output()['raw'].open("w") as f:
             json.dump(raw_dict, f, indent=2)
 
         # Save the cleaned up result.
-        team_member_list = enrich_team_members_with_contracttype.team_member_list
+        team_member_list = enrich_team_members_with_contract_type.team_member_list
         with self.output()['clean'].open("w") as f:
             json.dump(team_member_list, f, indent=2)
 
@@ -1056,7 +1056,7 @@ class FullPlanPipeline(PlanTask):
             'pre_project_assessment': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'enrich_team_members_with_contracttype': EnrichTeamMembersWithContractTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'enrich_team_members_with_contract_type': EnrichTeamMembersWithContractTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
