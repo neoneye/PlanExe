@@ -92,7 +92,8 @@ print("Step C: Done enriching team members.")
 print("Step D: Reviewing team...")
 builder1 = TeamMarkdownDocumentBuilder()
 builder1.append_roles(enrich_team_members_with_environment_info_list, title=None)
-review_team = ReviewTeam.execute(llm, plan_prompt, builder1.to_string())
+review_team_query = ReviewTeam.format_query(plan_prompt, builder1.to_string())
+review_team = ReviewTeam.execute(llm, review_team_query)
 review_team_raw_dict = review_team.to_dict()
 review_team_raw_file = f'{run_dir}/010-review_team_raw.json'
 with open(review_team_raw_file, 'w') as f:

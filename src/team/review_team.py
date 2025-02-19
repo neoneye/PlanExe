@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
+from src.format_json_for_use_in_query import format_json_for_use_in_query
 
 logger = logging.getLogger(__name__)
 
@@ -75,21 +76,27 @@ class ReviewTeam:
     metadata: dict
 
     @classmethod
-    def execute(cls, llm: LLM, job_description: str, team_document_markdown: str) -> 'ReviewTeam':
-        """
-        Invoke LLM with the project description and team document to be reviewed.
-        """
-        if not isinstance(llm, LLM):
-            raise ValueError("Invalid LLM instance.")
+    def format_query(cls, job_description: str, team_document_markdown: str) -> str:
         if not isinstance(job_description, str):
             raise ValueError("Invalid job_description.")
         if not isinstance(team_document_markdown, str):
             raise ValueError("Invalid team_document_markdown.")
 
-        user_prompt = (
+        query = (
             f"Project description:\n{job_description}\n\n"
             f"Document with team members:\n{team_document_markdown}"
         )
+        return query
+
+    @classmethod
+    def execute(cls, llm: LLM, user_prompt: str) -> 'ReviewTeam':
+        """
+        Invoke LLM with the project description and team document to be reviewed.
+        """
+        if not isinstance(llm, LLM):
+            raise ValueError("Invalid LLM instance.")
+        if not isinstance(user_prompt, str):
+            raise ValueError("Invalid user_prompt.")
 
         logger.debug(f"User Prompt:\n{user_prompt}")
 
@@ -155,6 +162,9 @@ if __name__ == "__main__":
         team_document_markdown = f.read()
     job_description = "Establish a solar farm in Denmark."
 
-    review_team = ReviewTeam.execute(llm, job_description, team_document_markdown)
+    query = ReviewTeam.format_query(job_description, team_document_markdown)
+    print(f"Query:\n{query}\n\n")
+
+    review_team = ReviewTeam.execute(llm, query)
     json_response = review_team.to_dict(include_system_prompt=False, include_user_prompt=False)
     print(json.dumps(json_response, indent=2))
