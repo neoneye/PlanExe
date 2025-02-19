@@ -506,6 +506,77 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
 
         logger.info("EnrichTeamMembersWithEnvironmentInfoTask complete.")
 
+class ReviewTeamTask(PlanTask):
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def requires(self):
+        return {
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'assumptions': AssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'enrich_team_members_with_environment_info': EnrichTeamMembersWithEnvironmentInfoTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+
+    def output(self):
+        return luigi.LocalTarget(str(self.file_path(FilenameEnum.REVIEW_TEAM_RAW)))
+
+    def run(self):
+        logger.info("ReviewTeamTask. Loading files...")
+
+        # 1. Read the plan prompt from SetupTask.
+        with self.input()['setup'].open("r") as f:
+            plan_prompt = f.read()
+
+        # 2. Read the distilled assumptions from AssumptionsTask.
+        with self.input()['assumptions'].open("r") as f:
+            assumption_list = json.load(f)
+
+        # 3. Read the pre-project assessment from PreProjectAssessmentTask.
+        with self.input()['preproject']['clean'].open("r") as f:
+            pre_project_assessment_dict = json.load(f)
+
+        # 4. Read the project plan from ProjectPlanTask.
+        with self.input()['project_plan'].open("r") as f:
+            project_plan_dict = json.load(f)
+
+        # 5. Read the team_member_list from EnrichTeamMembersWithEnvironmentInfoTask.
+        with self.input()['enrich_team_members_with_environment_info']['clean'].open("r") as f:
+            team_member_list = json.load(f)
+
+        logger.info("ReviewTeamTask. All files are now ready. Processing...")
+
+        # Convert the team members to a Markdown document.
+        builder = TeamMarkdownDocumentBuilder()
+        builder.append_roles(team_member_list, title=None)
+        team_document_markdown = builder.to_string()
+
+        # Build the query.
+        query = (
+            f"Initial plan: {plan_prompt}\n\n"
+            f"Assumptions:\n{format_json_for_use_in_query(assumption_list)}\n\n"
+            f"Pre-project assessment:\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
+            f"Project plan:\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"Document with team members:\n{team_document_markdown}"
+        )
+
+        # Create LLM instance.
+        llm = get_llm(self.llm_model)
+
+        # Execute.
+        try:
+            review_team = ReviewTeam.execute(llm, query)
+        except Exception as e:
+            logger.error("ReviewTeam failed: %s", e)
+            raise
+
+        # Save the raw output.
+        raw_dict = review_team.to_dict()
+        with self.output().open("w") as f:
+            json.dump(raw_dict, f, indent=2)
+
+        logger.info("ReviewTeamTask complete.")
+
 class SWOTAnalysisTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
@@ -1211,6 +1282,7 @@ class FullPlanPipeline(PlanTask):
             'enrich_team_members_with_contract_type': EnrichTeamMembersWithContractTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_background_story': EnrichTeamMembersWithBackgroundStoryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_environment_info': EnrichTeamMembersWithEnvironmentInfoTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'review_team': ReviewTeamTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
