@@ -32,6 +32,7 @@ from src.pitch.convert_pitch_to_markdown import ConvertPitchToMarkdown
 from src.plan.identify_wbs_task_dependencies import IdentifyWBSTaskDependencies
 from src.plan.estimate_wbs_task_durations import EstimateWBSTaskDurations
 from src.team.find_team_members import FindTeamMembers
+from src.team.enrich_team_members_with_contract_type import EnrichTeamMembersWithContractType
 from src.wbs.wbs_task import WBSTask, WBSProject
 from src.wbs.wbs_populate import WBSPopulate
 from src.llm_factory import get_llm
@@ -278,6 +279,80 @@ class FindTeamMembersTask(PlanTask):
             json.dump(team_member_list, f, indent=2)
 
         logger.info("FindTeamMembers complete.")
+
+class EnrichTeamMembersWithContractTypeTask(PlanTask):
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def requires(self):
+        return {
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'assumptions': AssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+
+    def output(self):
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.ENRICH_TEAM_MEMBERS_CONTRACT_TYPE_RAW))),
+            'clean': luigi.LocalTarget(str(self.file_path(FilenameEnum.ENRICH_TEAM_MEMBERS_CONTRACT_TYPE_CLEAN)))
+        }
+
+    def run(self):
+        logger.info("EnrichTeamMembersWithContractType. Loading files...")
+
+        # 1. Read the plan prompt from SetupTask.
+        with self.input()['setup'].open("r") as f:
+            plan_prompt = f.read()
+
+        # 2. Read the distilled assumptions from AssumptionsTask.
+        with self.input()['assumptions'].open("r") as f:
+            assumption_list = json.load(f)
+
+        # 3. Read the pre-project assessment from PreProjectAssessmentTask.
+        with self.input()['preproject']['clean'].open("r") as f:
+            pre_project_assessment_dict = json.load(f)
+
+        # 4. Read the project plan from ProjectPlanTask.
+        with self.input()['project_plan'].open("r") as f:
+            project_plan_dict = json.load(f)
+
+        # 5. Read the team_member_list from FindTeamMembersTask.
+        with self.input()['find_team_members']['clean'].open("r") as f:
+            team_member_list = json.load(f)
+
+        logger.info("EnrichTeamMembersWithContractType. All files are now ready. Processing...")
+
+        # Build the query.
+        query = (
+            f"Initial plan: {plan_prompt}\n\n"
+            f"Assumptions:\n{format_json_for_use_in_query(assumption_list)}\n\n"
+            f"Pre-project assessment:\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
+            f"Project plan:\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"Here is the list of team members that needs to be enriched:\n{format_json_for_use_in_query(team_member_list)}"
+        )
+
+        # Create LLM instance.
+        llm = get_llm(self.llm_model)
+
+        # Execute.
+        try:
+            enrich_team_members_with_contracttype = EnrichTeamMembersWithContractType.execute(llm, query, team_member_list)
+        except Exception as e:
+            logger.error("EnrichTeamMembersWithContractType failed: %s", e)
+            raise
+
+        # Save the raw output.
+        raw_dict = enrich_team_members_with_contracttype.to_dict()
+        with self.output()['raw'].open("w") as f:
+            json.dump(raw_dict, f, indent=2)
+
+        # Save the cleaned up result.
+        team_member_list = enrich_team_members_with_contracttype.team_member_list
+        with self.output()['clean'].open("w") as f:
+            json.dump(team_member_list, f, indent=2)
+
+        logger.info("EnrichTeamMembersWithContractType complete.")
 
 class SWOTAnalysisTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
@@ -981,6 +1056,7 @@ class FullPlanPipeline(PlanTask):
             'pre_project_assessment': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'enrich_team_members_with_contracttype': EnrichTeamMembersWithContractTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),

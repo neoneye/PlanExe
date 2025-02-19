@@ -10,6 +10,8 @@ class FilenameEnum(str, Enum):
     PROJECT_PLAN = "005-project_plan.json"
     FIND_TEAM_MEMBERS_RAW = "006-1-find_team_members_raw.json"
     FIND_TEAM_MEMBERS_CLEAN = "006-2-find_team_members.json"
+    ENRICH_TEAM_MEMBERS_CONTRACT_TYPE_RAW = "007-1-enrich_team_members_contract_type_raw.json"
+    ENRICH_TEAM_MEMBERS_CONTRACT_TYPE_CLEAN = "007-2-enrich_team_members_contract_type.json"
     SWOT_RAW = "006-1-swot_analysis_raw.json"
     SWOT_MARKDOWN = "006-2-swot_analysis.md"
     EXPERTS_RAW = "007-1-experts_raw.json"
