@@ -577,6 +577,40 @@ class ReviewTeamTask(PlanTask):
 
         logger.info("ReviewTeamTask complete.")
 
+class TeamMarkdownTask(PlanTask):
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def requires(self):
+        return {
+            'enrich_team_members_with_environment_info': EnrichTeamMembersWithEnvironmentInfoTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'review_team': ReviewTeamTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+
+    def output(self):
+        return luigi.LocalTarget(str(self.file_path(FilenameEnum.TEAM_MARKDOWN)))
+
+    def run(self):
+        logger.info("TeamMarkdownTask. Loading files...")
+
+        # 1. Read the team_member_list from EnrichTeamMembersWithEnvironmentInfoTask.
+        with self.input()['enrich_team_members_with_environment_info']['clean'].open("r") as f:
+            team_member_list = json.load(f)
+
+        # 2. Read the json from ReviewTeamTask.
+        with self.input()['review_team'].open("r") as f:
+            review_team_json = json.load(f)
+
+        logger.info("TeamMarkdownTask. All files are now ready. Processing...")
+
+        # Combine the team members and the review into a Markdown document.
+        builder = TeamMarkdownDocumentBuilder()
+        builder.append_roles(team_member_list)
+        builder.append_separator()
+        builder.append_full_review(review_team_json)
+        builder.write_to_file(self.output().path)
+
+        logger.info("TeamMarkdownTask complete.")
+
 class SWOTAnalysisTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
@@ -1283,6 +1317,7 @@ class FullPlanPipeline(PlanTask):
             'enrich_team_members_with_background_story': EnrichTeamMembersWithBackgroundStoryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_environment_info': EnrichTeamMembersWithEnvironmentInfoTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'review_team': ReviewTeamTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
