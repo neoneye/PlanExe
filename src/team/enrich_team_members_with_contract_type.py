@@ -14,6 +14,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
+from src.format_json_for_use_in_query import format_json_for_use_in_query
 
 logger = logging.getLogger(__name__)
 
@@ -74,23 +75,29 @@ class EnrichTeamMembersWithContractType:
     team_member_list: list[dict]
 
     @classmethod
-    def execute(cls, llm: LLM, job_description: str, team_member_list: list[dict]) -> 'EnrichTeamMembersWithContractType':
-        """
-        Invoke LLM with each team member.
-        """
-        if not isinstance(llm, LLM):
-            raise ValueError("Invalid LLM instance.")
+    def format_query(cls, job_description: str, team_member_list: list[dict]) -> str:
         if not isinstance(job_description, str):
             raise ValueError("Invalid job_description.")
         if not isinstance(team_member_list, list):
             raise ValueError("Invalid team_member_list.")
 
-        compact_json = json.dumps(team_member_list, separators=(',', ':'))
-
-        user_prompt = (
+        query = (
             f"Project description:\n{job_description}\n\n"
-            f"Here is the list of team members that needs to be enriched:\n{compact_json}"
+            f"Here is the list of team members that needs to be enriched:\n{format_json_for_use_in_query(team_member_list)}"
         )
+        return query
+
+    @classmethod
+    def execute(cls, llm: LLM, user_prompt: str, team_member_list: list[dict]) -> 'EnrichTeamMembersWithContractType':
+        """
+        Invoke LLM with each team member.
+        """
+        if not isinstance(llm, LLM):
+            raise ValueError("Invalid LLM instance.")
+        if not isinstance(user_prompt, str):
+            raise ValueError("Invalid user_prompt.")
+        if not isinstance(team_member_list, list):
+            raise ValueError("Invalid team_member_list.")
 
         logger.debug(f"User Prompt:\n{user_prompt}")
 
@@ -195,7 +202,10 @@ if __name__ == "__main__":
         }
     ]
 
-    enrich_team_members_with_environment_info = EnrichTeamMembersWithContractType.execute(llm, job_description, team_member_list)
+    query = EnrichTeamMembersWithContractType.format_query(job_description, team_member_list)
+    print(f"Query:\n{query}\n\n")
+
+    enrich_team_members_with_environment_info = EnrichTeamMembersWithContractType.execute(llm, query, team_member_list)
     json_response = enrich_team_members_with_environment_info.to_dict(include_system_prompt=False, include_user_prompt=False)
     print(json.dumps(json_response, indent=2))
 

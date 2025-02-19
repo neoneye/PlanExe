@@ -48,7 +48,8 @@ team_member_category_list = [item['category'] for item in team_members_list]
 print(f"Team member categories: {team_member_category_list}")
 
 print("Step A: Enriching team members with contract type...")
-enrich_team_members_with_contract_type = EnrichTeamMembersWithContractType.execute(llm, plan_prompt, team_members_list)
+enrich_team_members_with_contract_type_query = EnrichTeamMembersWithContractType.format_query(plan_prompt, team_members_list)
+enrich_team_members_with_contract_type = EnrichTeamMembersWithContractType.execute(llm, enrich_team_members_with_contract_type_query, team_members_list)
 enrich_team_members_with_contract_type_raw_dict = enrich_team_members_with_contract_type.to_dict()
 enrich_team_members_with_contract_type_raw_file = f'{run_dir}/004-enrich_team_members_with_contract_type_raw.json'
 with open(enrich_team_members_with_contract_type_raw_file, 'w') as f:
