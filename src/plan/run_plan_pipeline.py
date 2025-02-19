@@ -432,6 +432,80 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
 
         logger.info("EnrichTeamMembersWithBackgroundStoryTask complete.")
 
+class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def requires(self):
+        return {
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'assumptions': AssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'enrich_team_members_with_background_story': EnrichTeamMembersWithBackgroundStoryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+
+    def output(self):
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_RAW))),
+            'clean': luigi.LocalTarget(str(self.file_path(FilenameEnum.ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_CLEAN)))
+        }
+
+    def run(self):
+        logger.info("EnrichTeamMembersWithEnvironmentInfoTask. Loading files...")
+
+        # 1. Read the plan prompt from SetupTask.
+        with self.input()['setup'].open("r") as f:
+            plan_prompt = f.read()
+
+        # 2. Read the distilled assumptions from AssumptionsTask.
+        with self.input()['assumptions'].open("r") as f:
+            assumption_list = json.load(f)
+
+        # 3. Read the pre-project assessment from PreProjectAssessmentTask.
+        with self.input()['preproject']['clean'].open("r") as f:
+            pre_project_assessment_dict = json.load(f)
+
+        # 4. Read the project plan from ProjectPlanTask.
+        with self.input()['project_plan'].open("r") as f:
+            project_plan_dict = json.load(f)
+
+        # 5. Read the team_member_list from EnrichTeamMembersWithBackgroundStoryTask.
+        with self.input()['enrich_team_members_with_background_story']['clean'].open("r") as f:
+            team_member_list = json.load(f)
+
+        logger.info("EnrichTeamMembersWithEnvironmentInfoTask. All files are now ready. Processing...")
+
+        # Build the query.
+        query = (
+            f"Initial plan: {plan_prompt}\n\n"
+            f"Assumptions:\n{format_json_for_use_in_query(assumption_list)}\n\n"
+            f"Pre-project assessment:\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
+            f"Project plan:\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"Here is the list of team members that needs to be enriched:\n{format_json_for_use_in_query(team_member_list)}"
+        )
+
+        # Create LLM instance.
+        llm = get_llm(self.llm_model)
+
+        # Execute.
+        try:
+            enrich_team_members_with_background_story = EnrichTeamMembersWithEnvironmentInfo.execute(llm, query, team_member_list)
+        except Exception as e:
+            logger.error("EnrichTeamMembersWithEnvironmentInfo failed: %s", e)
+            raise
+
+        # Save the raw output.
+        raw_dict = enrich_team_members_with_background_story.to_dict()
+        with self.output()['raw'].open("w") as f:
+            json.dump(raw_dict, f, indent=2)
+
+        # Save the cleaned up result.
+        team_member_list = enrich_team_members_with_background_story.team_member_list
+        with self.output()['clean'].open("w") as f:
+            json.dump(team_member_list, f, indent=2)
+
+        logger.info("EnrichTeamMembersWithEnvironmentInfoTask complete.")
+
 class SWOTAnalysisTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
@@ -1136,6 +1210,7 @@ class FullPlanPipeline(PlanTask):
             'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_contract_type': EnrichTeamMembersWithContractTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_background_story': EnrichTeamMembersWithBackgroundStoryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'enrich_team_members_with_environment_info': EnrichTeamMembersWithEnvironmentInfoTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),

@@ -14,6 +14,8 @@ class FilenameEnum(str, Enum):
     ENRICH_TEAM_MEMBERS_CONTRACT_TYPE_CLEAN = "007-2-enrich_team_members_contract_type.json"
     ENRICH_TEAM_MEMBERS_BACKGROUND_STORY_RAW = "008-1-enrich_team_members_background_story_raw.json"
     ENRICH_TEAM_MEMBERS_BACKGROUND_STORY_CLEAN = "008-2-enrich_team_members_background_story.json"
+    ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_RAW = "009-1-enrich_team_members_environment_info_raw.json"
+    ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_CLEAN = "009-2-enrich_team_members_environment_info.json"
     SWOT_RAW = "006-1-swot_analysis_raw.json"
     SWOT_MARKDOWN = "006-2-swot_analysis.md"
     EXPERTS_RAW = "007-1-experts_raw.json"
