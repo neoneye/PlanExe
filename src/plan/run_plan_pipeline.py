@@ -1289,6 +1289,7 @@ class ReportTask(PlanTask):
     
     def requires(self):
         return {
+            'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1299,6 +1300,7 @@ class ReportTask(PlanTask):
         rg = ReportGenerator()
         rg.append_pitch_markdown(self.input()['pitch_markdown']['markdown'].path)
         rg.append_swot_analysis_markdown(self.input()['swot_analysis']['markdown'].path)
+        rg.append_team_markdown(self.input()['team_markdown'].path)
         rg.append_project_plan_csv(self.input()['wbs_project123']['csv'].path)
         rg.append_expert_criticism_markdown(self.input()['expert_review'].path)
         rg.save_report(self.output().path)
