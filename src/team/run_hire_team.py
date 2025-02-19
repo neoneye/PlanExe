@@ -76,7 +76,8 @@ with open(enrich_team_members_with_background_story_list_file, 'w') as f:
 print("Step B: Done enriching team members.")
 
 print("Step C: Enriching team members with environment info...")
-enrich_team_members_with_environment_info = EnrichTeamMembersWithEnvironmentInfo.execute(llm, plan_prompt, enrich_team_members_with_background_story_list)
+enrich_team_members_with_environment_info_query = EnrichTeamMembersWithEnvironmentInfo.format_query(plan_prompt, enrich_team_members_with_background_story_list)
+enrich_team_members_with_environment_info = EnrichTeamMembersWithEnvironmentInfo.execute(llm, enrich_team_members_with_environment_info_query, enrich_team_members_with_background_story_list)
 enrich_team_members_with_environment_info_raw_dict = enrich_team_members_with_environment_info.to_dict()
 enrich_team_members_with_environment_info_raw_file = f'{run_dir}/008-enrich_team_members_with_environment_info_raw.json'
 with open(enrich_team_members_with_environment_info_raw_file, 'w') as f:
