@@ -1,6 +1,6 @@
 {
     "ollama-microsoft-phi4": {
-        "comment": "This is runs on your own computer. It's free. It's slower than llama3.1",
+        "comment": "This runs on your own computer. It's free. It's slower than llama3.1",
         "class": "Ollama",
         "arguments": {
             "model": "phi4:latest",

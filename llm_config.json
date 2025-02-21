@@ -28,7 +28,7 @@
         }
     },
     "ollama-llama3.1": {
-        "comment": "This is runs on your own computer. It's free. Requires Ollama to be installed.",
+        "comment": "This runs on your own computer. It's free. Requires Ollama to be installed.",
         "class": "Ollama",
         "arguments": {
             "model": "llama3.1:latest",
@@ -38,7 +38,7 @@
         }
     },
     "ollama-qwen2.5-coder": {
-        "comment": "This is runs on your own computer. It's free. Requires Ollama to be installed.",
+        "comment": "This runs on your own computer. It's free. Requires Ollama to be installed.",
         "class": "Ollama",
         "arguments": {
             "model": "qwen2.5-coder:latest",
@@ -48,7 +48,7 @@
         }
     },
     "lmstudio-qwen2.5-7b-instruct-1m": {
-        "comment": "This is runs on your own computer. It's free. Requires LM Studio to be installed. Great for inspecting the request/response.",
+        "comment": "This runs on your own computer. It's free. Requires LM Studio to be installed. Great for inspecting the request/response.",
         "class": "LMStudio",
         "arguments": {
             "model_name": "qwen2.5-7b-instruct-1m",
