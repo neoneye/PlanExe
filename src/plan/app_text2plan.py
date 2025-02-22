@@ -51,7 +51,7 @@ CONFIG_LOCAL = Config(
     allow_only_openrouter_models=False,
     run_planner_check_api_key_is_provided=False,
     enable_purge_old_runs=False,
-    browser_state_secret=None, # Not used in local mode
+    browser_state_secret="insert-your-secret-here",
 )
 CONFIG_HUGGINGFACE_SPACES = Config(
     use_uuid_as_run_id=True,
