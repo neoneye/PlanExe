@@ -11,6 +11,7 @@ from llama_index.llms.together import TogetherLLM
 from llama_index.llms.groq import Groq
 from llama_index.llms.lmstudio import LMStudio
 from llama_index.llms.openrouter import OpenRouter
+from src.llm_util.ollama_info import OllamaInfo
 
 # You can disable this if you don't want to send app info to OpenRouter.
 SEND_APP_INFO_TO_OPENROUTER = True
@@ -70,6 +71,20 @@ def get_available_llms() -> list[str]:
     """
     Returns a list of available LLM names.
     """
+    ollama_info = OllamaInfo.obtain_info()
+    if ollama_info.is_running == False:
+        print(f"Ollama is not running. Please start the Ollama service, in order to use the models via Ollama.")
+    elif ollama_info.error_message:
+        print(f"Error message: {ollama_info.error_message}")
+
+    for config in _llm_configs.values():
+        if config.get("class") != "Ollama":
+            continue
+        arguments = config.get("arguments", {})
+        model = arguments.get("model", None)
+        if ollama_info.is_model_available(model) == False:
+            print(f"Model '{model}' is not available in Ollama.")
+
     return list(_llm_configs.keys())
 
 def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
