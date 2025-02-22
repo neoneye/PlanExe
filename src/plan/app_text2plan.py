@@ -15,7 +15,7 @@ import logging
 import json
 from dataclasses import dataclass
 from math import ceil
-from src.llm_factory import get_available_llms
+from src.llm_factory import get_available_llms, LLMInfo
 from src.plan.generate_run_id import generate_run_id, RUN_ID_PREFIX
 from src.plan.create_zip_archive import create_zip_archive
 from src.plan.filenames import FilenameEnum
@@ -94,11 +94,20 @@ gradio_examples = []
 for prompt_item in all_prompts:
     gradio_examples.append([prompt_item.prompt])
 
-all_available_models = get_available_llms()
-if CONFIG.allow_only_openrouter_models:
-    available_model_names = [model for model in all_available_models if model.startswith("openrouter")]
-else:
-    available_model_names = all_available_models
+llm_info = get_available_llms()
+# all_available_models = [config_item.id for config_item in llm_info.llm_config_items]
+available_model_names = []
+default_model_value = None
+for config_index, config_item in enumerate(llm_info.llm_config_items):
+    if config_index == 0:
+        default_model_value = config_item.id
+    tuple_item = (config_item.label, config_item.id)
+    available_model_names.append(tuple_item)
+
+# if CONFIG.allow_only_openrouter_models:
+#     available_model_names = [model for model in all_available_models if model.startswith("openrouter")]
+# else:
+#     available_model_names = all_available_models
 
 def has_pipeline_complete_file(path_dir: str):
     """
@@ -147,7 +156,7 @@ class SessionState:
         # Settings: the user's OpenRouter API key.
         self.openrouter_api_key = "" # Initialize to empty string
         # Settings: The model that the user has picked.
-        self.llm_model = available_model_names[0]
+        self.llm_model = default_model_value
         # Settings: The speedvsdetail that the user has picked.
         self.speedvsdetail = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW
         # Holds the subprocess.Popen object for the currently running pipeline process.
@@ -173,7 +182,7 @@ def initialize_browser_settings(browser_state, session_state: SessionState):
     except Exception:
         settings = {}
     openrouter_api_key = settings.get("openrouter_api_key_text", "")
-    model = settings.get("model_radio", available_model_names[0])
+    model = settings.get("model_radio", default_model_value)
     speedvsdetail = settings.get("speedvsdetail_radio", SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW)
     session_state.openrouter_api_key = openrouter_api_key
     session_state.llm_model = model
@@ -444,7 +453,7 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
     with gr.Tab("Settings"):
         model_radio = gr.Radio(
             available_model_names,
-            value=available_model_names[0],
+            value=default_model_value,
             label="Model",
             interactive=True 
         )

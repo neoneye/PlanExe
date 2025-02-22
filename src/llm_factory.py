@@ -1,6 +1,7 @@
 import logging
 import os
 import json
+from dataclasses import dataclass
 from dotenv import dotenv_values
 from typing import Optional, Any, Dict
 from llama_index.core.llms.llm import LLM
@@ -18,7 +19,7 @@ SEND_APP_INFO_TO_OPENROUTER = True
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["get_llm", "get_available_llms"]
+__all__ = ["get_llm", "get_available_llms", "LLMInfo"]
 
 # Load .env values and merge with system environment variables.
 # This one-liner makes sure any secret injected by Hugging Face, like OPENROUTER_API_KEY
@@ -67,7 +68,16 @@ def substitute_env_vars(config: Dict[str, Any], env_vars: Dict[str, str]) -> Dic
 
     return process_item(config)
 
-def get_available_llms() -> list[str]:
+@dataclass
+class LLMConfigItem:
+    id: str
+    label: str
+
+@dataclass
+class LLMInfo:
+    llm_config_items: list[LLMConfigItem]
+
+def get_available_llms() -> LLMInfo:
     """
     Returns a list of available LLM names.
     """
@@ -77,15 +87,25 @@ def get_available_llms() -> list[str]:
     elif ollama_info.error_message:
         print(f"Error message: {ollama_info.error_message}")
 
-    for config in _llm_configs.values():
+    llm_config_items = []
+
+    for config_id, config in _llm_configs.items():
         if config.get("class") != "Ollama":
+            item = LLMConfigItem(id=config_id, label=config_id)
+            llm_config_items.append(item)
             continue
         arguments = config.get("arguments", {})
         model = arguments.get("model", None)
-        if ollama_info.is_model_available(model) == False:
-            print(f"Model '{model}' is not available in Ollama.")
 
-    return list(_llm_configs.keys())
+        if ollama_info.is_model_available(model):
+            id_with_optional_message = config_id
+        else:
+            id_with_optional_message = f"{config_id} ❌ unavailable"
+
+        item = LLMConfigItem(id=config_id, label=id_with_optional_message)
+        llm_config_items.append(item)
+
+    return LLMInfo(llm_config_items=llm_config_items)
 
 def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
     """
