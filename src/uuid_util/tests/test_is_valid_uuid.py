@@ -3,7 +3,12 @@ import uuid
 from src.uuid_util.is_valid_uuid import is_valid_uuid
 
 class TestIsValidUUID(unittest.TestCase):
-    def test_valid_uuid(self):
+    def test_valid_uuid_hardcoded(self):
+        """Test that a proper UUID (version 4) returns True."""
+        valid_uuid = "1382d4a1-5eb0-42f3-b93a-74c066ae1c97"
+        self.assertTrue(is_valid_uuid(valid_uuid))
+        
+    def test_valid_uuid_generated(self):
         """Test that a proper UUID (version 4) returns True."""
         valid_uuid = str(uuid.uuid4())
         self.assertTrue(is_valid_uuid(valid_uuid))
