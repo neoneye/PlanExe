@@ -15,7 +15,7 @@ import logging
 import json
 from dataclasses import dataclass
 from math import ceil
-from src.llm_factory import get_available_llms, LLMInfo
+from src.llm_factory import LLMInfo
 from src.plan.generate_run_id import generate_run_id, RUN_ID_PREFIX
 from src.plan.create_zip_archive import create_zip_archive
 from src.plan.filenames import FilenameEnum
@@ -94,8 +94,7 @@ gradio_examples = []
 for prompt_item in all_prompts:
     gradio_examples.append([prompt_item.prompt])
 
-llm_info = get_available_llms()
-# all_available_models = [config_item.id for config_item in llm_info.llm_config_items]
+llm_info = LLMInfo.obtain_info()
 available_model_names = []
 default_model_value = None
 for config_index, config_item in enumerate(llm_info.llm_config_items):

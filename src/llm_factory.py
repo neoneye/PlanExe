@@ -19,7 +19,7 @@ SEND_APP_INFO_TO_OPENROUTER = True
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["get_llm", "get_available_llms", "LLMInfo"]
+__all__ = ["get_llm", "LLMInfo"]
 
 # Load .env values and merge with system environment variables.
 # This one-liner makes sure any secret injected by Hugging Face, like OPENROUTER_API_KEY
@@ -77,35 +77,36 @@ class LLMConfigItem:
 class LLMInfo:
     llm_config_items: list[LLMConfigItem]
 
-def get_available_llms() -> LLMInfo:
-    """
-    Returns a list of available LLM names.
-    """
-    ollama_info = OllamaInfo.obtain_info()
-    if ollama_info.is_running == False:
-        print(f"Ollama is not running. Please start the Ollama service, in order to use the models via Ollama.")
-    elif ollama_info.error_message:
-        print(f"Error message: {ollama_info.error_message}")
+    @classmethod
+    def obtain_info(cls) -> 'LLMInfo':
+        """
+        Returns a list of available LLM names.
+        """
+        ollama_info = OllamaInfo.obtain_info()
+        if ollama_info.is_running == False:
+            print(f"Ollama is not running. Please start the Ollama service, in order to use the models via Ollama.")
+        elif ollama_info.error_message:
+            print(f"Error message: {ollama_info.error_message}")
 
-    llm_config_items = []
+        llm_config_items = []
 
-    for config_id, config in _llm_configs.items():
-        if config.get("class") != "Ollama":
-            item = LLMConfigItem(id=config_id, label=config_id)
+        for config_id, config in _llm_configs.items():
+            if config.get("class") != "Ollama":
+                item = LLMConfigItem(id=config_id, label=config_id)
+                llm_config_items.append(item)
+                continue
+            arguments = config.get("arguments", {})
+            model = arguments.get("model", None)
+
+            if ollama_info.is_model_available(model):
+                label = config_id
+            else:
+                label = f"{config_id} ❌ unavailable"
+
+            item = LLMConfigItem(id=config_id, label=label)
             llm_config_items.append(item)
-            continue
-        arguments = config.get("arguments", {})
-        model = arguments.get("model", None)
 
-        if ollama_info.is_model_available(model):
-            id_with_optional_message = config_id
-        else:
-            id_with_optional_message = f"{config_id} ❌ unavailable"
-
-        item = LLMConfigItem(id=config_id, label=id_with_optional_message)
-        llm_config_items.append(item)
-
-    return LLMInfo(llm_config_items=llm_config_items)
+        return LLMInfo(llm_config_items=llm_config_items)
 
 def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
     """
