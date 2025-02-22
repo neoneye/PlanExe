@@ -52,7 +52,7 @@ class PromptCatalog:
                     continue
 
                 if not is_valid_uuid(pid):
-                    logger.error(f"Invalid UUID in {filepath} at line {line_num}: {pid}. Skipping row.")
+                    logger.error(f"Invalid UUID in {filepath} at line {line_num}: '{pid}'. Skipping row.")
                     continue
 
                 tags = data.get('tags', [])
