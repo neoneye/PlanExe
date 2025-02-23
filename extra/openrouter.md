@@ -4,7 +4,7 @@
 
 Unfortunately there is no `free` model that works reliable with PlanExe.
 
-In my experience, the `paid` models are the most reliable. Models like `"google/gemini-2.0-flash-001"` and `"openai/gpt-4o-mini"` are cheap and faster than running models on my own computer and without risk of it overheating.
+In my experience, the `paid` models are the most reliable. Models like [google/gemini-2.0-flash-001](https://openrouter.ai/google/gemini-2.0-flash-001) and [openai/gpt-4o-mini](https://openrouter.ai/openai/gpt-4o-mini) are cheap and faster than running models on my own computer and without risk of it overheating.
 
 I haven't been able to find a `free` model on OpenRouter that works well with PlanExe.
 
