@@ -77,17 +77,20 @@ class LLMConfigItem:
 class LLMInfo:
     llm_config_items: list[LLMConfigItem]
     is_ollama_running: bool
+    error_message_list: list[str]
 
     @classmethod
     def obtain_info(cls) -> 'LLMInfo':
         """
         Returns a list of available LLM names.
         """
+        error_message_list = []
         ollama_info = OllamaInfo.obtain_info()
         if ollama_info.is_running == False:
             print(f"Ollama is not running. Please start the Ollama service, in order to use the models via Ollama.")
         elif ollama_info.error_message:
             print(f"Error message: {ollama_info.error_message}")
+            error_message_list.append(ollama_info.error_message)
 
         llm_config_items = []
 
@@ -99,18 +102,23 @@ class LLMInfo:
             arguments = config.get("arguments", {})
             model = arguments.get("model", None)
 
-            is_available = ollama_info.is_model_available(model)
-            if is_available:
+            is_model_available = ollama_info.is_model_available(model)
+            if is_model_available:
                 label = config_id
             else:
                 label = f"{config_id} ❌ unavailable"
+            
+            if ollama_info.is_running and not is_model_available:
+                error_message = f"Problem with config `\"{config_id}\"`: The model `\"{model}\"` is not available in Ollama. Compare model names in `llm_config.json` with the names available in Ollama."
+                error_message_list.append(error_message)
             
             item = LLMConfigItem(id=config_id, label=label)
             llm_config_items.append(item)
 
         return LLMInfo(
             llm_config_items=llm_config_items, 
-            is_ollama_running=ollama_info.is_running
+            is_ollama_running=ollama_info.is_running,
+            error_message_list=error_message_list,
         )
 
 def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:

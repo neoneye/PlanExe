@@ -105,6 +105,7 @@ for prompt_item in all_prompts:
 
 llm_info = LLMInfo.obtain_info()
 logger.info(f"LLMInfo.is_ollama_running: {llm_info.is_ollama_running}")
+logger.info(f"LLMInfo.error_message_list: {llm_info.error_message_list}")
 
 available_model_names = []
 default_model_value = None
@@ -463,6 +464,11 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
     with gr.Tab("Settings"):
         if llm_info.is_ollama_running == False:
             gr.Markdown("**Ollama is not running**, so Ollama models are unavailable. Please start Ollama to use them.")
+
+        if len(llm_info.error_message_list) > 0:
+            gr.Markdown("**Error messages:**")
+            for error_message in llm_info.error_message_list:
+                gr.Markdown(f"- {error_message}")
 
         model_radio = gr.Radio(
             available_model_names,
