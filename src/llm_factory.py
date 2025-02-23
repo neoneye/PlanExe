@@ -76,6 +76,7 @@ class LLMConfigItem:
 @dataclass
 class LLMInfo:
     llm_config_items: list[LLMConfigItem]
+    is_ollama_running: bool
 
     @classmethod
     def obtain_info(cls) -> 'LLMInfo':
@@ -98,15 +99,19 @@ class LLMInfo:
             arguments = config.get("arguments", {})
             model = arguments.get("model", None)
 
-            if ollama_info.is_model_available(model):
+            is_available = ollama_info.is_model_available(model)
+            if is_available:
                 label = config_id
             else:
                 label = f"{config_id} ❌ unavailable"
-
+            
             item = LLMConfigItem(id=config_id, label=label)
             llm_config_items.append(item)
 
-        return LLMInfo(llm_config_items=llm_config_items)
+        return LLMInfo(
+            llm_config_items=llm_config_items, 
+            is_ollama_running=ollama_info.is_running
+        )
 
 def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
     """

@@ -104,6 +104,8 @@ for prompt_item in all_prompts:
     gradio_examples.append([prompt_item.prompt])
 
 llm_info = LLMInfo.obtain_info()
+logger.info(f"LLMInfo.is_ollama_running: {llm_info.is_ollama_running}")
+
 available_model_names = []
 default_model_value = None
 for config_index, config_item in enumerate(llm_info.llm_config_items):
@@ -459,6 +461,9 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
                 )
 
     with gr.Tab("Settings"):
+        if llm_info.is_ollama_running == False:
+            gr.Markdown("**Ollama is not running**, so Ollama models are unavailable. Please start Ollama to use them.")
+
         model_radio = gr.Radio(
             available_model_names,
             value=default_model_value,
