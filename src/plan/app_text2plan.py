@@ -46,6 +46,7 @@ class Config:
     use_uuid_as_run_id: bool
     visible_top_header: bool
     visible_open_output_dir_button: bool
+    visible_llm_info: bool
     visible_openrouter_api_key_textbox: bool
     allow_only_openrouter_models: bool
     run_planner_check_api_key_is_provided: bool
@@ -57,6 +58,7 @@ CONFIG_LOCAL = Config(
     visible_top_header=True,
     visible_open_output_dir_button=True,
     visible_openrouter_api_key_textbox=False,
+    visible_llm_info=True,
     allow_only_openrouter_models=False,
     run_planner_check_api_key_is_provided=False,
     enable_purge_old_runs=False,
@@ -67,6 +69,7 @@ CONFIG_HUGGINGFACE_SPACES = Config(
     visible_top_header=False,
     visible_open_output_dir_button=False,
     visible_openrouter_api_key_textbox=True,
+    visible_llm_info=False,
     allow_only_openrouter_models=True,
     run_planner_check_api_key_is_provided=True,
     enable_purge_old_runs=True,
@@ -107,6 +110,16 @@ llm_info = LLMInfo.obtain_info()
 logger.info(f"LLMInfo.is_ollama_running: {llm_info.is_ollama_running}")
 logger.info(f"LLMInfo.error_message_list: {llm_info.error_message_list}")
 
+trimmed_llm_config_items = []
+if CONFIG.allow_only_openrouter_models:
+    # On Hugging Face Spaces, show only openrouter models.
+    # Since it's not possible to run Ollama nor LM Studio.
+    trimmed_llm_config_items = [item for item in llm_info.llm_config_items if item.id.startswith("openrouter")]
+else:
+    trimmed_llm_config_items = llm_info.llm_config_items
+
+
+# Create tupples for the Gradio Radio buttons.
 available_model_names = []
 default_model_value = None
 for config_index, config_item in enumerate(llm_info.llm_config_items):
@@ -114,11 +127,6 @@ for config_index, config_item in enumerate(llm_info.llm_config_items):
         default_model_value = config_item.id
     tuple_item = (config_item.label, config_item.id)
     available_model_names.append(tuple_item)
-
-# if CONFIG.allow_only_openrouter_models:
-#     available_model_names = [model for model in all_available_models if model.startswith("openrouter")]
-# else:
-#     available_model_names = all_available_models
 
 def has_pipeline_complete_file(path_dir: str):
     """
@@ -462,13 +470,14 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
                 )
 
     with gr.Tab("Settings"):
-        if llm_info.is_ollama_running == False:
-            gr.Markdown("**Ollama is not running**, so Ollama models are unavailable. Please start Ollama to use them.")
+        if CONFIG.visible_llm_info:
+            if llm_info.is_ollama_running == False:
+                gr.Markdown("**Ollama is not running**, so Ollama models are unavailable. Please start Ollama to use them.")
 
-        if len(llm_info.error_message_list) > 0:
-            gr.Markdown("**Error messages:**")
-            for error_message in llm_info.error_message_list:
-                gr.Markdown(f"- {error_message}")
+            if len(llm_info.error_message_list) > 0:
+                gr.Markdown("**Error messages:**")
+                for error_message in llm_info.error_message_list:
+                    gr.Markdown(f"- {error_message}")
 
         model_radio = gr.Radio(
             available_model_names,
