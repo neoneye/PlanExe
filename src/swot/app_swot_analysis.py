@@ -4,22 +4,25 @@ PROMPT> python -m src.swot.app_swot_analysis
 import gradio as gr
 import os
 import json
+import logging
 from typing import List, Optional
 from src.swot.swot_analysis import SWOTAnalysis
-from src.llm_factory import get_llm, get_available_llms
+from src.llm_factory import LLMInfo, get_llm
 from src.prompt.prompt_catalog import PromptCatalog
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
 
 DEFAULT_PROMPT_UUID = "427e5163-cefa-46e8-b1d0-eb12be270e19"
 
 prompt_catalog = PromptCatalog()
 prompt_catalog.load(os.path.join(os.path.dirname(__file__), 'data', 'example_swot_prompt.jsonl'))
-
-# Prefill the input box with the default prompt
-default_prompt_item = prompt_catalog.find(DEFAULT_PROMPT_UUID)
-if default_prompt_item:
-    gradio_default_example = default_prompt_item.prompt
-else:
-    raise ValueError("DEFAULT_PROMPT_UUID prompt not found.")
 
 # Show all prompts in the catalog as examples
 all_prompts = prompt_catalog.all()
@@ -27,8 +30,25 @@ gradio_examples = []
 for prompt_item in all_prompts:
     gradio_examples.append([prompt_item.prompt])
 
-available_models = get_available_llms()
-available_model_names = [model for model in available_models]
+llm_info = LLMInfo.obtain_info()
+logger.info(f"LLMInfo.is_ollama_running: {llm_info.is_ollama_running}")
+logger.info(f"LLMInfo.error_message_list: {llm_info.error_message_list}")
+
+# Create tupples for the Gradio Radio buttons.
+available_model_names = []
+default_model_value = None
+for config_index, config_item in enumerate(llm_info.llm_config_items):
+    if config_index == 0:
+        default_model_value = config_item.id
+    tuple_item = (config_item.label, config_item.id)
+    available_model_names.append(tuple_item)
+
+# Prefill the input box with the default prompt
+default_prompt_item = prompt_catalog.find(DEFAULT_PROMPT_UUID)
+if default_prompt_item:
+    gradio_default_example = default_prompt_item.prompt
+else:
+    raise ValueError("DEFAULT_PROMPT_UUID prompt not found.")
 
 def make_swot(prompt_description, model_id, model_temperature):
     temperature_float = float(model_temperature) / 100.0
@@ -72,7 +92,7 @@ with gr.Blocks(title="SWOT") as demo:
     with gr.Tab("Settings"):
         model_radio = gr.Radio(
             available_model_names,
-            value=available_model_names[0],
+            value=default_model_value,
             label="Model",
             interactive=True 
         )
