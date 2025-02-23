@@ -1,6 +1,6 @@
 # Using PlanExe with OpenRouter
 
-[OpenRouter](https://openrouter.ai/) provides access to a large number of AI models, that runs in the cloud.
+[OpenRouter](https://openrouter.ai/) provides access to a large number of LLM models, that runs in the cloud.
 
 Unfortunately there is no `free` model that works reliable with PlanExe.
 
