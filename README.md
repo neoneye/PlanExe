@@ -20,14 +20,11 @@ source venv/bin/activate
 
 # Configuration
 
-Getting PlanExe working with OpenRouter. (PlanExe can use other AI providers, such as Ollama, LM Studio).
+**Config A:** Run a model in the cloud using a paid provider. Follow the instructions in [OpenRouter](extra/openrouter.md).
 
-1. Go to [OpenRouter](https://openrouter.ai/), create an account, purchase 5 USD in credits (plenty for making a several plans), and generate an API key.
+**Config B:** Run models locally on a high-end computer. Follow the instructions for either [Ollama](extra/ollama.md) or [LM Studio](extra/lm_studio.md).
 
-2. Copy `.env.example` to a new file called `.env`
-
-3. Open the `.env` file in a text editor and insert your OpenRouter API key.
-```OPENROUTER_API_KEY='INSERT YOUR KEY HERE'```
+Recommendation: I recommend **Config A** as it offers the most straightforward path to getting PlanExe working reliably.
 
 # Usage
 
