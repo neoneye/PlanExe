@@ -40,5 +40,5 @@ For a model to work with PlanExe, it must meet the following criteria:
 Steps to add a model:
 
 1. Copy the model id from the openrouter website.
-2. paste it into the `llm_config.json`. Restart PlanExe.
+2. Paste the model id into the `llm_config.json`.
 3. Restart PlanExe to apply the changes.
