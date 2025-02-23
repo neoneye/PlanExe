@@ -28,6 +28,15 @@ from src.huggingface_spaces.is_huggingface_spaces import is_huggingface_spaces
 from src.huggingface_spaces.huggingface_spaces_browserstate_secret import huggingface_spaces_browserstate_secret
 from src.utils.time_since_last_modification import time_since_last_modification
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+
 # Slightly different behavior when running inside Hugging Face Spaces, where it's not possible to open a file explorer.
 # And it's multi-user, so we need to keep track of the state for each user.
 IS_HUGGINGFACE_SPACES = is_huggingface_spaces()
@@ -564,14 +573,6 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
     )
 
 def run_app_text2plan():
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler()
-        ]
-    )
-
     if CONFIG.enable_purge_old_runs:
         start_purge_scheduler(run_dir=os.path.abspath(RUN_DIR), purge_interval_seconds=60*60, prefix=RUN_ID_PREFIX)
 
