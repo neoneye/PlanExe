@@ -122,7 +122,7 @@ else:
 # Create tupples for the Gradio Radio buttons.
 available_model_names = []
 default_model_value = None
-for config_index, config_item in enumerate(llm_info.llm_config_items):
+for config_index, config_item in enumerate(trimmed_llm_config_items):
     if config_index == 0:
         default_model_value = config_item.id
     tuple_item = (config_item.label, config_item.id)
