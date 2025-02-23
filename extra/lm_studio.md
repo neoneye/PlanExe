@@ -4,6 +4,8 @@
 
 PlanExe processes more text than regular chat. You will need expensive hardware to run a LLM at a reasonable speed.
 
+## Configuration
+
 In the `llm_config.json` find a config that starts with `lmstudio-` such as `"lmstudio-qwen2.5-7b-instruct-1m"`.
 
 Inside LM Studio, find the model with that exact id and download it. Here is the qwen model on
