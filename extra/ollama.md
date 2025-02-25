@@ -1,6 +1,6 @@
 # Using PlanExe with Ollama
 
-[Ollama](https://ollama.com/) is an open source app for macOS/Windows/Linux for running LLMs on your own computer.
+[Ollama](https://ollama.com/) is an open source app for macOS/Windows/Linux for running LLMs on your own computer (or on a remote computer).
 
 PlanExe processes more text than regular chat. You will need expensive hardware to run a LLM at a reasonable speed.
 
