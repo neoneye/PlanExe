@@ -1,10 +1,14 @@
-# PlanExe
+# PlanExe: Transform your ideas into actionable plans
+
+![Video of PlanExe](/extra/planexe-humanoid-factory.gif?raw=true "Video of PlanExe")
+
+## What is PlanExe?
 
 PlanExe is a planning AI. You input a vague description of what you want and PlanExe outputs a plan.
 
-![Screenshot of PlanExe](/extra/planexe-humanoid-factory.jpg?raw=true "Screenshot of PlanExe")
-
 [YouTube video: Using PlanExe to plan a lunar base](https://www.youtube.com/watch?v=7AM2F1C4CGI)
+
+![Screenshot of PlanExe](/extra/planexe-humanoid-factory.jpg?raw=true "Screenshot of PlanExe")
 
 # Installation
 
