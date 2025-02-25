@@ -203,6 +203,13 @@ def initialize_browser_settings(browser_state, session_state: SessionState):
     openrouter_api_key = settings.get("openrouter_api_key_text", "")
     model = settings.get("model_radio", default_model_value)
     speedvsdetail = settings.get("speedvsdetail_radio", SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW)
+
+    # When making changes to the llm_config.json, it may happen that the selected model is no longer among the available_model_names.
+    # In that case, set the model to the default_model_value.
+    if model not in [item[1] for item in available_model_names]:
+        logger.info(f"initialize_browser_settings: model '{model}' is not in available_model_names. Setting to default_model_value: {default_model_value}")
+        model = default_model_value
+
     session_state.openrouter_api_key = openrouter_api_key
     session_state.llm_model = model
     session_state.speedvsdetail = speedvsdetail
