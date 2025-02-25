@@ -4,7 +4,7 @@
 
 ## What is PlanExe?
 
-PlanExe is a planning AI. You input a vague description of what you want and PlanExe outputs a plan.
+PlanExe is a planning AI. You input a vague description of what you want and PlanExe outputs a plan. [See generated plans here](https://neoneye.github.io/PlanExe-web/use-cases/).
 
 [YouTube video: Using PlanExe to plan a lunar base](https://www.youtube.com/watch?v=7AM2F1C4CGI)
 
