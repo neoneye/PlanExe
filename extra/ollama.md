@@ -50,7 +50,7 @@ Steps to add a model:
 
 ## Run Ollama on a remote computer
 
-In `llm_config.json`, replace `base_url` with the url to run on.
+In `llm_config.json`, insert `base_url` with the url to run on.
 
 ```json
 "ollama-llama3.1": {
