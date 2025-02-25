@@ -30,9 +30,9 @@ Report your issue on [Discord](https://neoneye.github.io/PlanExe-web/discord). P
 
 ## How to add a new Ollama model to `llm_config.json`
 
-Browse models here, with instructions how to install the models.
-- Website: [Ollama](https://ollama.com/search) page shows an overview of the most popular models.
-- Website: [Hugging Face](https://huggingface.co/docs/hub/ollama). There is an astonishing number of GGUF models.
+You can find models and installation instructions here:
+- [Ollama](https://ollama.com/search) – Overview of popular models, curated by the Ollama team.
+- [Hugging Face](https://huggingface.co/docs/hub/ollama) – A vast collection of GGUF models.
 
 For a model to work with PlanExe, it must meet the following criteria:
 
@@ -50,7 +50,7 @@ Steps to add a model:
 
 ## Run Ollama on a remote computer
 
-Replace `base_url` with the url to run on.
+In `llm_config.json`, replace `base_url` with the url to run on.
 
 ```json
 "ollama-llama3.1": {
