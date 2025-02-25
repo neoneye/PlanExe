@@ -2,6 +2,7 @@
 PROMPT> python -m src.llm_util.ollama_info
 """
 from dataclasses import dataclass
+from typing import Optional
 
 @dataclass
 class OllamaInfo:
@@ -11,7 +12,7 @@ class OllamaInfo:
     """
     model_names: list[str]
     is_running: bool
-    error_message: str = None
+    error_message: Optional[str] = None
 
     @classmethod
     def obtain_info(cls) -> 'OllamaInfo':
@@ -34,7 +35,23 @@ class OllamaInfo:
         return OllamaInfo(model_names=model_names, is_running=True, error_message=None)
     
     def is_model_available(self, find_model: str) -> bool:
-        """Checks if a specific model is available in the list of model names."""
+        """
+        Checks if a specific model is available.
+        
+        Args:
+            find_model: Name of the model to check. Can be either a local Ollama model
+                       or a HuggingFace GGUF model (prefixed with 'hf.co/').
+
+        Returns:
+            bool: True if the model is available or is a valid GGUF model path.
+        """
+        if not find_model:
+            return False
+            
+        # Support direct use of GGUF models from HuggingFace
+        if find_model.startswith("hf.co/"):
+            return True
+            
         return find_model in self.model_names
 
 if __name__ == '__main__':
