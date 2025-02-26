@@ -17,11 +17,11 @@ Use the command line to compare Ollama's list of installed models with the confi
 
 ```bash
 PROMPT> ollama list
-NAME                                                                 ID              SIZE      MODIFIED      
-hf.co/mlabonne/Meta-Llama-3.1-8B-Instruct-abliterated-GGUF:latest    496b97a125c9    3.2 GB    16 hours ago     
-phi4:latest                                                          ac896e5b8b34    9.1 GB    6 weeks ago      
-qwen2.5-coder:latest                                                 2b0496514337    4.7 GB    2 months ago     
-llama3.1:latest                                                      42182419e950    4.7 GB    5 months ago     
+NAME                                             ID              SIZE      MODIFIED       
+hf.co/unsloth/Llama-3.1-Tulu-3-8B-GGUF:Q4_K_M    08fe35cc5878    4.9 GB    19 minutes ago    
+phi4:latest                                      ac896e5b8b34    9.1 GB    6 weeks ago       
+qwen2.5-coder:latest                             2b0496514337    4.7 GB    2 months ago      
+llama3.1:latest                                  42182419e950    4.7 GB    5 months ago      
 ```
 
 Inside PlanExe, when clicking `Submit`, a new `Output Dir` should be created containing a `log.txt`. Open that file and scroll to the bottom, see if there are any error messages about what is wrong.
