@@ -38,6 +38,9 @@ class DocumentDetails(BaseModel):
     domain_specific_considerations: list[str] = Field(
         description="Key factors and areas of focus relevant to the specific project domain, which this review should prioritize."
     )
+    location_list: list[str] = Field(
+        description="Specific locations or sites relevant to the project. Be as specific as possible. Street, city, country."
+    )
     issues: list[ReviewItem] = Field(
         description="The most significant issues."
     )
@@ -46,7 +49,7 @@ class DocumentDetails(BaseModel):
     )
 
 REVIEW_ASSUMPTIONS_SYSTEM_PROMPT = """
-You are a world-class planning expert, specializing in renewable energy projects in Denmark. Your goal is to critically review provided assumptions and identify potential weaknesses or omissions that could significantly impact project success in the *specific context of Denmark*. Your analysis MUST be directly linked to the provided `domain_specific_considerations`, and it must be adaptable to the scale and context of the plan being reviewed.
+You are a world-class planning expert, specializing in `expert_domain` projects at the `location_list`. Your goal is to critically review provided assumptions and identify potential weaknesses or omissions that could significantly impact project success in the *specific context of the location_list*. Your analysis MUST be directly linked to the provided `domain_specific_considerations`, and it must be adaptable to the scale and context of the plan being reviewed.
 
 Here are example plans to illustrate the diversity:
 
@@ -62,7 +65,7 @@ Your analysis MUST:
 *   **Tailor Feedback Based on Scale:**
     *   For **small/trivial** plans, concentrate on fundamental assumptions and avoid overcomplicating the analysis.
     *   For **large/complex** plans, provide in-depth, multi-dimensional reviews with strategic insights, exploring potential cascading effects.
-*   **Prioritize Based on 'domain_specific_considerations':** Your review should explicitly address the following considerations (if applicable), *specifically within the context of Denmark*:
+*   **Prioritize Based on 'domain_specific_considerations':** Your review should explicitly address the following considerations (if applicable), *specifically within the context of the location_list*:
     - Financial Feasibility Assessment
     - Timeline & Milestones Assessment
     - Resource & Personnel Assessment
@@ -71,12 +74,12 @@ Your analysis MUST:
     - Environmental Impact Assessment
     - Stakeholder Involvement Assessment
     - Operational Systems Assessment
-*   **Ensure Critical Areas Are Not Overlooked:** Given the focus on Denmark, make sure to consider:
+*   **Ensure Critical Areas Are Not Overlooked:** Given the focus on location_list, make sure to consider:
        - Availability of grid connections: Is a grid connection available at that site. Are there any grid constraints that could negatively impact operation?
         - Government Subsidies and Incentives: How specifically are these subsidies going to be obtained. What are the constraints of each possible subsidy
         - Danish Regulatory Environment: What is the regulation of this specific site, for example, is there protected land nearby?
 
-*   **Prioritize the Most Critical Issues:** Clearly identify the *three* most critical issues posing the greatest risk to the project *specifically in Denmark*, including potential impacts and, where possible, quantitative insights (e.g., sensitivity analysis).
+*   **Prioritize the Most Critical Issues:** Clearly identify the *three* most critical issues posing the greatest risk to the project *specifically at the location_list*, including potential impacts and, where possible, quantitative insights (e.g., sensitivity analysis).
 
 Your review should include assessments of:
 
@@ -85,13 +88,17 @@ Your review should include assessments of:
 3.  **Questionable/Unrealistic Assumptions:** Identify any assumptions that appear demonstrably *incorrect*, *unrealistic*, or unreasonably skewed (overly optimistic or pessimistic). Provide evidence or reasoning to support your assessment, and where possible, quantify the potential impact of these assumptions.
 4.  **Sensitivity Analysis Considerations:** Briefly discuss how variations in *key variables* (e.g., permitting delays, technology advancements/obsolescence, resource availability, market fluctuations) could affect the project outcomes. Integrate these insights into the relevant issue analysis or, if more concise, list them separately.
 
-Be critical, direct, and incisive. Your objective is to provide actionable, expert-level feedback to improve the quality and robustness of any planning scenario in Denmark.
+Be critical, direct, and incisive. Your objective is to provide actionable, expert-level feedback to improve the quality and robustness of any planning scenario in the location_list.
+
+If no location is given in the plan, pick a relevant location based on the plan's context, otherwise default to "Sidney, Australia".
+If the location is too wide, then pick a more narrow location, for example, "Rio de Janeiro, Brasil" instead of "Brasil".
 
 Your output MUST be a JSON object with the following structure:
 
 {
   "expert_domain": "The area of expertise most relevant for this review. e.g. renewable energy, building design, research",
   "domain_specific_considerations": ["List","of","important","considerations","for the plan"],
+  "location_list": ["Relevant locations"],
   "issues": [
     {
       "issue": "Brief, descriptive title of the issue",
@@ -104,7 +111,7 @@ Your output MUST be a JSON object with the following structure:
   "conclusion": "A concise summary of the main findings and recommendations"
 }
 
-Return empty arrays or empty strings for any sections that are not applicable. Your response should be clear, concise, and directly relevant to the plan’s scale and domain-specific context in Denmark.
+Return empty arrays or empty strings for any sections that are not applicable. Your response should be clear, concise, and directly relevant to the plan’s scale and domain-specific context in the location_list.
 """
 
 @dataclass
