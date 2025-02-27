@@ -26,30 +26,59 @@ class ReviewItem(BaseModel):
     recommendation: str = Field(
         description="Specific suggestions on how to address the issue."
     )
+    sensitivity: str = Field(
+        default="",
+        description="Optional: Provide any sensitivity analysis insights related to this issue."
+    )
 
 class DocumentDetails(BaseModel):
-    missing_assumption_list: list[str] = Field(description="List of missing assumptions")
-    underexplored_assumption_list: list[str] = Field(description="List of underexplored assumptions")
+    missing_assumption_list: list[str] = Field(
+        description="List of missing assumptions"
+    )
+    underexplored_assumption_list: list[str] = Field(
+        description="List of underexplored assumptions"
+    )
     issues: list[ReviewItem] = Field(
         description="The most significant issues."
+    )
+    sensitivity_analysis: list[str] = Field(
+        default_factory=list,
+        description="Optional: Key insights from sensitivity analysis for high-impact assumptions."
     )
     conclusion: str = Field(
         description="Summary of the most important issues."
     )
 
 REVIEW_ASSUMPTIONS_SYSTEM_PROMPT = """
-You are a highly experienced planning expert with a proven track record of identifying potential problems and optimizing project plans. Your expertise is invaluable in ensuring a robust and successful project. You will be penalized for repitition.
+You are a highly experienced planning expert with a proven track record in identifying critical assumptions and optimizing project plans across a wide range of domains, including business, personal, technology, and historical projects. Your task is to review the provided assumptions data that will form the basis of a plan. Flawed assumptions lead to a flawed plan, so your analysis must be incisive, thorough, and succinct. Please limit your output to no more than 400 words to ensure timely generation (under 120 seconds).
 
-Analyze the provided assumptions data, which will be used to create a plan. Flaws in the assumptions will inevitably lead to a flawed plan. Your analysis must be incisive and thorough, catching the most critical issues that could significantly impact the project's success.
+Your analysis must address the following:
 
-Your analysis should cover:
+- **Critical Missing Assumptions:** Identify essential assumptions that are absent. Explain why their absence poses significant risks and suggest specific assumptions that should be included.
+- **Underexplored Assumptions:** Identify assumptions that exist but lack sufficient detail. Explain what additional data or analysis is needed to make these assumptions reliable.
+- **Questionable or Overly Optimistic/Pessimistic Assumptions:** Identify any assumptions that appear unrealistic or imbalanced. Explain the potential consequences and recommend adjustments.
+- **Sensitivity Analysis Considerations:** For key variables, briefly discuss how variations in these factors could impact project outcomes. You may list these as a separate array or incorporate them within relevant issues.
 
-- **Critical Missing Assumptions:** Identify assumptions that are absolutely essential but completely absent from the data. Explain why their absence poses a significant risk to the project. Provide specific assumptions to rectify the missing assumptions.
-- **Underexplored Assumptions:** Highlight assumptions that are present but lack sufficient detail or analysis. Explain what additional information or analysis is needed to make these assumptions reliable. Provide specific details to rectify the under explored assumptions.
-- **Questionable Assumptions:** Identify assumptions that are potentially incorrect or unrealistic based on your expert knowledge of the industry and relevant regulations. Explain why these assumptions are questionable and what the potential consequences could be.
-- **Assumptions That Are Too Optimistic or Pessimistic:** Point out assumptions that are significantly over- or under-estimated. Provide evidence or reasoning to support your assessment and quantify the potential impact of these misestimates.
+Your output must be a JSON object with the following structure:
 
-Don't shy away from expressing strong opinions where necessary. Your goal is to provide the most valuable and actionable feedback possible, even if it means being critical of certain assumptions. Your goal is to act like a planning expert.
+{
+  "missing_assumption_list": [ list of missing assumptions ],
+  "underexplored_assumption_list": [ list of underexplored assumptions ],
+  "issues": [
+    {
+      "issue": "Brief title of the issue",
+      "explanation": "Concise explanation of why the issue is important",
+      "recommendation": "Specific suggestions to address the issue",
+      "sensitivity": "Optional: Any sensitivity analysis insights related to this issue"
+    },
+    ...
+  ],
+  "sensitivity_analysis": [ list of key variables impacting the project ],
+  "conclusion": "A concise summary of the main findings and recommendations",
+  "metadata": { include generation metadata if applicable }
+}
+
+If a section is not applicable, return it as an empty list (or an empty string for text fields). Avoid unnecessary repetition. Your response should be actionable and demonstrate expert-level insights applicable to any planning scenario.
 """
 
 @dataclass
