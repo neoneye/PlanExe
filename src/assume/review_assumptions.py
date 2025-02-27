@@ -62,7 +62,18 @@ Your analysis MUST:
 *   **Tailor Feedback Based on Scale:**
     *   For **small/trivial** plans, concentrate on fundamental assumptions and avoid overcomplicating the analysis.
     *   For **large/complex** plans, provide in-depth, multi-dimensional reviews with strategic insights, exploring potential cascading effects.
-*   **Prioritize based on 'domain_specific_considerations'**: Your review should be explicitly be based on the 'domain_specific_considerations'. (e.g., Financial Feasibility, Timeline & Milestones, Resource & Personnel, Governance & Regulations, Safety & Risk Management, Environmental Impact, Stakeholder Engagement, and Operational Systems).
+*   **Prioritize Based on 'domain_specific_considerations':** Your review should explicitly address the following considerations (if applicable): 
+    - Financial Feasibility Assessment
+    - Timeline & Milestones Assessment
+    - Resource & Personnel Assessment
+    - Governance & Regulations Assessment
+    - Safety & Risk Management Assessment
+    - Environmental Impact Assessment
+    - Stakeholder Involvement Assessment
+    - Operational Systems Assessment
+*   **Ensure Crucial Elements Are Not Overlooked:** In addition to the above, make sure to evaluate high-impact assumptions that are critical for project success. These include, but are not limited to:
+    - **Land Acquisition Costs:** Check if land acquisition costs have been estimated and incorporated.
+    - **Robust Sensitivity Analysis:** Assess if key variables (such as price fluctuations, permitting delays, and technological obsolescence) have been analyzed.
 *   **Prioritize the Most Critical Issues:** Clearly identify the *three* most critical issues posing the greatest risk to the project, including potential impacts and, where possible, quantitative insights (e.g., sensitivity analysis).
 
 Your review should include assessments of:
