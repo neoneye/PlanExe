@@ -49,28 +49,31 @@ class DocumentDetails(BaseModel):
     )
 
 REVIEW_ASSUMPTIONS_SYSTEM_PROMPT = """
-You are a world-class planning expert specializing in `expert_domain` projects located at `location_list`. Your task is to critically review the provided assumptions and identify potential weaknesses or omissions that could significantly impact project success. Your analysis should be directly linked to the domain-specific considerations outlined below and be tailored to the project’s scale and context.
+You are a world-class planning expert specializing in `expert_domain` projects located at `location_list`. Your task is to critically review the provided assumptions and identify potential weaknesses, omissions, or unrealistic elements that could significantly impact project success. Your analysis should be directly linked to the domain-specific considerations outlined below and be tailored to the project’s scale and context.
 
-**Important:** Instead of using a fixed list, dynamically derive the key domain-specific considerations from the project details provided. Consider aspects such as:
-- Financial Viability & ROI,
-- Timeline & Milestone Realism,
-- Resource & Personnel Availability,
-- Regulatory Compliance (e.g., local or regional laws),
-- Infrastructure Feasibility & Environmental Impact,
-- Government Subsidies & Incentive Strategies,
-- Safety Protocols & Risk Management,
-- Stakeholder Engagement & Community Outreach,
-- Technological Infrastructure & Operational Sustainability.
+**Important:** Instead of using a fixed list, dynamically derive the key domain-specific considerations from the project details provided. Prioritize aspects such as:
+- Financial Viability & ROI: Initial costs, operating expenses, revenue projections, funding sources, return on investment, financing risks.
+- Timeline & Milestone Realism: Project duration, key milestones, dependencies between tasks, potential delays (permitting, construction, supply chain).
+- Resource & Personnel Availability: Availability of skilled labor, specialized equipment, and necessary materials.
+- Regulatory Compliance: Adherence to local, regional, and national laws, environmental regulations, permitting requirements, zoning ordinances.
+- Infrastructure Feasibility: Grid connection capacity, transportation infrastructure, utility availability.
+- Environmental Impact: Potential environmental effects (habitat disruption, emissions, waste generation), mitigation strategies.
+- Stakeholder Engagement: Community acceptance, support from government agencies, and collaboration with industry partners.
+- Technological Infrastructure & Operational Sustainability: Technology selection, system monitoring, energy storage, grid integration, and long-term maintenance.
+- Land Availability & Suitability:  Availability for purchase/lease, sunlight exposure, topography, existing land use restrictions, soil conditions.
 
-Additionally, if the project involves a specific sector (e.g., renewable energy), consider sector-specific factors such as grid connection feasibility, subsidy acquisition, and environmental constraints. Your analysis should clearly articulate the three most critical issues, including quantitative sensitivity where possible.
+Additionally, if the project involves a specific sector (e.g., renewable energy), consider sector-specific factors such as grid connection feasibility, subsidy acquisition, technology selection (e.g., solar panel type), and environmental constraints. Your analysis should clearly articulate the three most critical issues, including quantitative sensitivity where possible.
+
+**Critical Task: Identify Missing Assumptions.** Actively look for assumptions *not* explicitly stated in the input. Use your expert knowledge to infer what crucial assumptions are missing based on the type of project.  For a renewable energy project, consider land availability, grid connection feasibility, solar panel technology choice, currency fluctuations, and insurance needs as crucial missing assumptions to look for.
 
 Please limit your output to no more than 800 words.
 
 Your analysis MUST:
-1. Identify Critical Missing Assumptions.
-2. Highlight Under-Explored Assumptions.
-3. Challenge Questionable or Unrealistic Assumptions.
-4. Discuss Sensitivity Analysis for key variables.
+1. Identify Critical Missing Assumptions: Explicitly state any crucial assumptions that are missing from the provided input.
+2. Highlight Under-Explored Assumptions: Point out areas where the existing assumptions lack sufficient detail or supporting evidence.
+3. Challenge Questionable or Unrealistic Assumptions: Identify any assumptions that seem unrealistic or based on flawed logic.
+4. Discuss Sensitivity Analysis for key variables: Quantify the potential impact of changes in key variables (e.g., a delay in permitting, a change in energy prices) on the project's overall success.
+5. Prioritize Issues: Rank the issues by severity and likelihood of occurrence to focus attention on the most critical areas.
 
 If no location is provided, default to "Sidney, Australia". If the location is too broad, choose a more specific region.
 
@@ -83,8 +86,8 @@ Return your response as a JSON object with the following structure:
     {
       "issue": "Title of the issue",
       "explanation": "Explanation of why this issue is important",
-      "recommendation": "Actionable suggestions to address the issue",
-      "sensitivity": "Optional sensitivity analysis details"
+      "recommendation": "Actionable suggestions to address the issue.  Be specific.",
+      "sensitivity": "Quantitative sensitivity analysis details, if applicable"
     },
     ...
   ],
