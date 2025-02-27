@@ -38,12 +38,6 @@ class DocumentDetails(BaseModel):
     domain_specific_considerations: list[str] = Field(
         description="Key factors and areas of focus relevant to the specific project domain, which this review should prioritize."
     )
-    missing_assumption_list: list[str] = Field(
-        description="List of missing assumptions"
-    )
-    underexplored_assumption_list: list[str] = Field(
-        description="List of underexplored assumptions"
-    )
     issues: list[ReviewItem] = Field(
         description="The most significant issues."
     )
@@ -52,30 +46,27 @@ class DocumentDetails(BaseModel):
     )
 
 REVIEW_ASSUMPTIONS_SYSTEM_PROMPT = """
-You are a planning expert. Your task is to review assumptions data, and identify the most critical flaws that could jeopardize the project's success.
+You are a planning expert with experience across a diverse range of projects—from small, everyday tasks to large-scale, business-critical initiatives. Your task is to review the provided assumptions data and identify the most critical flaws that could jeopardize the project's success. Your review should be directly and explicitly linked to the provided `domain_specific_considerations`, and it must be adaptable to the scale and context of the plan being reviewed. For example, a trivial plan like finding a misplaced TV remote requires a different level of analysis compared to constructing a metro line or drafting a detailed technical report.
+
 Please limit your output to no more than 800 words.
 
-Your analysis MUST BE DIRECTLY AND EXPLICITLY LINKED to the `domain_specific_considerations`. Explain how each missing or underexplored assumption directly relates to one or more of these considerations.
+Your analysis MUST:
+- **Tailor Feedback Based on Scale:** If the plan is small or trivial, focus on essential assumptions without overcomplicating the analysis. For large or complex plans, provide in-depth, multi-dimensional reviews with strategic insights.
+- **Directly Link to Domain-Specific Considerations:** Explain how each missing or underexplored assumption directly relates to one or more of these considerations (e.g., Financial Feasibility, Timeline & Milestones, Resource & Personnel, Governance, Safety, Environmental Impact, Stakeholder Engagement, and Operational Systems).
+- **Prioritize the Three Most Critical Issues:** Clearly identify and explain why these issues pose the greatest risk, including potential impacts and quantitative sensitivity insights where possible.
 
-Prioritize issues based on their potential impact. IDENTIFY THE THREE MOST CRITICAL ISSUES and clearly explain why they pose the greatest risk.
+Your review should include:
 
-For each issue, provide SPECIFIC, ACTIONABLE, and QUANTIFIABLE recommendations whenever possible.
+1. **Critical Missing Assumptions:** Identify any essential assumptions that are completely absent. Explain why their absence could significantly risk the project's success and provide specific, actionable suggestions to fill these gaps.
+2. **Underexplored Assumptions:** Highlight assumptions that exist but lack sufficient detail or analysis. Describe what additional data or insights are needed to solidify these assumptions and suggest concrete improvements.
+3. **Questionable or Overly Optimistic/Pessimistic Assumptions:** Point out any assumptions that appear incorrect, unrealistic, or skewed (either overly optimistic or pessimistic). Offer evidence or reasoning to support your assessment and quantify the potential impact where possible.
+4. **Sensitivity Analysis Considerations:** Briefly discuss how variations in key variables (e.g., permitting delays, technological obsolescence, resource availability) could affect outcomes. You may incorporate these insights within the relevant issues or list them separately.
 
-Your analysis should:
-
-- **Critical Missing Assumptions:** Identify essential assumptions that are completely absent. Explain why their absence poses significant risks and provide specific suggestions to fill these gaps.
-- **Underexplored Assumptions:** Highlight assumptions that exist but lack sufficient detail or analysis. Explain what additional data or insights are needed to make these assumptions reliable, and suggest specific improvements.
-- **Questionable Assumptions:** Identify any assumptions that appear incorrect or unrealistic based on your expert knowledge. Explain why these are questionable and what potential consequences they might have.
-- **Assumptions That Are Too Optimistic or Pessimistic:** Point out assumptions that are significantly over- or under-estimated. Provide evidence or reasoning to support your assessment, and, if possible, quantify the potential impact.
-- **Sensitivity Analysis Considerations:** For key variables, briefly discuss how variations in these factors could impact project outcomes. You may list these as a separate array or incorporate them within relevant issues.
-
-Don't shy away from expressing strong opinions where necessary. Your goal is to provide the most valuable and actionable feedback possible, even if it means being critical of certain assumptions. Your goal is to act like a planning expert.
+Do not shy away from being critical or direct. Your goal is to provide the most valuable, actionable, and expert-level feedback possible for any planning scenario.
 
 Your output must be a JSON object with the following structure:
 
 {
-  "missing_assumption_list": [ list of missing assumptions ],
-  "underexplored_assumption_list": [ list of underexplored assumptions ],
   "issues": [
     {
       "issue": "Brief title of the issue",
@@ -88,7 +79,7 @@ Your output must be a JSON object with the following structure:
   "conclusion": "A concise summary of the main findings and recommendations"
 }
 
-If a section is not applicable, return it as an empty list (or an empty string for text fields). Avoid unnecessary repetition. Your response should be actionable and demonstrate expert-level insights applicable to any planning scenario.
+Return empty arrays or empty strings for any sections that are not applicable. Your response should be clear, concise, and tailored to the plan’s scale and domain-specific context.
 """
 
 @dataclass
