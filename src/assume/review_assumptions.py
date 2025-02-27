@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class ReviewItem(BaseModel):
     issue: str = Field(
-        description="A brief title or name for the omission/improvement."
+        description="A brief title or name."
     )
     explanation: str = Field(
         description="A concise description of why this issue is important."
@@ -28,41 +28,28 @@ class ReviewItem(BaseModel):
     )
 
 class DocumentDetails(BaseModel):
-    omissions: list[ReviewItem] = Field(
-        description="The most significant omissions."
+    missing_assumption_list: list[str] = Field(description="List of missing assumptions")
+    underexplored_assumption_list: list[str] = Field(description="List of underexplored assumptions")
+    issues: list[ReviewItem] = Field(
+        description="The most significant issues."
     )
-    potential_improvements: list[ReviewItem] = Field(
-        description="Suggestions and recommendations."
+    conclusion: str = Field(
+        description="Summary of the most important issues."
     )
 
 REVIEW_ASSUMPTIONS_SYSTEM_PROMPT = """
-You are an expert in designing and evaluating team structures for projects of all scales—from personal or trivial endeavors to large, complex initiatives. Your task is to review a team document that includes a project plan, detailed team roles, and sections on omissions and potential improvements.
+You are a highly experienced planning expert with a proven track record of identifying potential problems and optimizing project plans. Your expertise is invaluable in ensuring a robust and successful project. You will be penalized for repitition.
 
-In your analysis, please:
+Analyze the provided assumptions data, which will be used to create a plan. Flaws in the assumptions will inevitably lead to a flawed plan. Your analysis must be incisive and thorough, catching the most critical issues that could significantly impact the project's success.
 
-1. **Review the Team Composition:**
-   - Examine the team roles described, including details such as contract types, typical activities, background stories, and resource needs.
-   - Consider whether the roles sufficiently cover all aspects of the project given its scope.
+Your analysis should cover:
 
-2. **Identify Omissions:**
-   - Highlight any significant missing roles, support functions, or expertise areas that are critical for the project's success.
-   - **Important:** When the project is personal or trivial, avoid suggesting overly formal or business-oriented roles (e.g., Marketing Specialist, Legal Advisor, Technical Support Specialist). Instead, suggest simpler or integrative adjustments suitable for a personal context.
+- **Critical Missing Assumptions:** Identify assumptions that are absolutely essential but completely absent from the data. Explain why their absence poses a significant risk to the project. Provide specific assumptions to rectify the missing assumptions.
+- **Underexplored Assumptions:** Highlight assumptions that are present but lack sufficient detail or analysis. Explain what additional information or analysis is needed to make these assumptions reliable. Provide specific details to rectify the under explored assumptions.
+- **Questionable Assumptions:** Identify assumptions that are potentially incorrect or unrealistic based on your expert knowledge of the industry and relevant regulations. Explain why these assumptions are questionable and what the potential consequences could be.
+- **Assumptions That Are Too Optimistic or Pessimistic:** Point out assumptions that are significantly over- or under-estimated. Provide evidence or reasoning to support your assessment and quantify the potential impact of these misestimates.
 
-3. **Suggest Potential Improvements:**
-   - Recommend actionable changes that enhance the team's overall effectiveness, communication, and clarity.
-   - Focus on clarifying responsibilities and reducing overlap.
-   - For personal or non-commercial projects, tailor your recommendations to be straightforward and avoid introducing new formal roles that are unnecessary.
-
-4. **Provide Actionable Recommendations:**
-   - For each identified omission or improvement, offer specific, practical advice on how to address the issue.
-   - Ensure your recommendations are scaled appropriately to the project's nature.
-
-Your output must be a JSON object with two top-level keys: "omissions" and "potential_improvements". Each key should map to an array of objects, where each object contains:
-- `"issue"`: A brief title summarizing the omission or improvement.
-- `"explanation"`: A concise explanation of why this issue is significant in relation to the project's goals.
-- `"recommendation"`: Specific, actionable advice on how to address the issue.
-
-Ensure your JSON output strictly follows this structure without any additional commentary or text.
+Don't shy away from expressing strong opinions where necessary. Your goal is to provide the most valuable and actionable feedback possible, even if it means being critical of certain assumptions. Your goal is to act like a planning expert.
 """
 
 @dataclass
@@ -164,4 +151,5 @@ if __name__ == "__main__":
 
     review_assumptions = ReviewAssumptions.execute(llm, all_documents_string)
     json_response = review_assumptions.to_dict(include_system_prompt=False, include_user_prompt=False)
+    print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
