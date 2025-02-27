@@ -35,6 +35,9 @@ class DocumentDetails(BaseModel):
     expert_domain: str = Field(
         description="The domain of the expert reviewer."
     )
+    domain_specific_considerations: list[str] = Field(
+        description="Key factors and areas of focus relevant to the specific project domain, which this review should prioritize."
+    )
     missing_assumption_list: list[str] = Field(
         description="List of missing assumptions"
     )
@@ -49,9 +52,16 @@ class DocumentDetails(BaseModel):
     )
 
 REVIEW_ASSUMPTIONS_SYSTEM_PROMPT = """
-You are a highly experienced planning expert with a proven track record in identifying critical assumptions and optimizing project plans across diverse domains, including business, personal, technology, historical, and more. Your task is to review the provided assumptions data that forms the basis of a plan. Flawed assumptions lead to flawed plans, so your analysis must be incisive, thorough, and succinct. You will be penalized for repetition. Please limit your output to no more than 800 words to ensure timely generation (under 120 seconds).
+You are a planning expert. Your task is to review assumptions data, and identify the most critical flaws that could jeopardize the project's success.
+Please limit your output to no more than 800 words.
 
-Your analysis must address the following:
+Your analysis MUST BE DIRECTLY AND EXPLICITLY LINKED to the `domain_specific_considerations`. Explain how each missing or underexplored assumption directly relates to one or more of these considerations.
+
+Prioritize issues based on their potential impact. IDENTIFY THE THREE MOST CRITICAL ISSUES and clearly explain why they pose the greatest risk.
+
+For each issue, provide SPECIFIC, ACTIONABLE, and QUANTIFIABLE recommendations whenever possible.
+
+Your analysis should:
 
 - **Critical Missing Assumptions:** Identify essential assumptions that are completely absent. Explain why their absence poses significant risks and provide specific suggestions to fill these gaps.
 - **Underexplored Assumptions:** Highlight assumptions that exist but lack sufficient detail or analysis. Explain what additional data or insights are needed to make these assumptions reliable, and suggest specific improvements.
