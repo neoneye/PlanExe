@@ -41,23 +41,22 @@ class DocumentDetails(BaseModel):
     issues: list[ReviewItem] = Field(
         description="The most significant issues."
     )
-    sensitivity_analysis: list[str] = Field(
-        default_factory=list,
-        description="Optional: Key insights from sensitivity analysis for high-impact assumptions."
-    )
     conclusion: str = Field(
         description="Summary of the most important issues."
     )
 
 REVIEW_ASSUMPTIONS_SYSTEM_PROMPT = """
-You are a highly experienced planning expert with a proven track record in identifying critical assumptions and optimizing project plans across a wide range of domains, including business, personal, technology, and historical projects. Your task is to review the provided assumptions data that will form the basis of a plan. Flawed assumptions lead to a flawed plan, so your analysis must be incisive, thorough, and succinct. Please limit your output to no more than 400 words to ensure timely generation (under 120 seconds).
+You are a highly experienced planning expert with a proven track record in identifying critical assumptions and optimizing project plans across diverse domains, including business, personal, technology, historical, and more. Your task is to review the provided assumptions data that forms the basis of a plan. Flawed assumptions lead to flawed plans, so your analysis must be incisive, thorough, and succinct. You will be penalized for repetition. Please limit your output to no more than 800 words to ensure timely generation (under 120 seconds).
 
 Your analysis must address the following:
 
-- **Critical Missing Assumptions:** Identify essential assumptions that are absent. Explain why their absence poses significant risks and suggest specific assumptions that should be included.
-- **Underexplored Assumptions:** Identify assumptions that exist but lack sufficient detail. Explain what additional data or analysis is needed to make these assumptions reliable.
-- **Questionable or Overly Optimistic/Pessimistic Assumptions:** Identify any assumptions that appear unrealistic or imbalanced. Explain the potential consequences and recommend adjustments.
+- **Critical Missing Assumptions:** Identify essential assumptions that are completely absent. Explain why their absence poses significant risks and provide specific suggestions to fill these gaps.
+- **Underexplored Assumptions:** Highlight assumptions that exist but lack sufficient detail or analysis. Explain what additional data or insights are needed to make these assumptions reliable, and suggest specific improvements.
+- **Questionable Assumptions:** Identify any assumptions that appear incorrect or unrealistic based on your expert knowledge. Explain why these are questionable and what potential consequences they might have.
+- **Assumptions That Are Too Optimistic or Pessimistic:** Point out assumptions that are significantly over- or under-estimated. Provide evidence or reasoning to support your assessment, and, if possible, quantify the potential impact.
 - **Sensitivity Analysis Considerations:** For key variables, briefly discuss how variations in these factors could impact project outcomes. You may list these as a separate array or incorporate them within relevant issues.
+
+Don't shy away from expressing strong opinions where necessary. Your goal is to provide the most valuable and actionable feedback possible, even if it means being critical of certain assumptions. Your goal is to act like a planning expert.
 
 Your output must be a JSON object with the following structure:
 
@@ -73,9 +72,7 @@ Your output must be a JSON object with the following structure:
     },
     ...
   ],
-  "sensitivity_analysis": [ list of key variables impacting the project ],
-  "conclusion": "A concise summary of the main findings and recommendations",
-  "metadata": { include generation metadata if applicable }
+  "conclusion": "A concise summary of the main findings and recommendations"
 }
 
 If a section is not applicable, return it as an empty list (or an empty string for text fields). Avoid unnecessary repetition. Your response should be actionable and demonstrate expert-level insights applicable to any planning scenario.
