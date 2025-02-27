@@ -32,6 +32,9 @@ class ReviewItem(BaseModel):
     )
 
 class DocumentDetails(BaseModel):
+    expert_domain: str = Field(
+        description="The domain of the expert reviewer."
+    )
     missing_assumption_list: list[str] = Field(
         description="List of missing assumptions"
     )
