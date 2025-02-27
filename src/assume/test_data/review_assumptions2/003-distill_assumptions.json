@@ -1,0 +1,12 @@
+{
+  "assumption_list": [
+    "The initial phase budget is $10,000 for personnel, cloud computing, and storage.",
+    "Initial dataset release is targeted for 2025-May-10, including key milestones.",
+    "The project requires one part-time ML researcher and access to a data curator.",
+    "Objectivity is ensured via a template, peer review, and pre-defined criteria.",
+    "Accuracy is ensured through cross-validation, verification, and clear documentation.",
+    "The project will minimize environmental impact by using efficient cloud resources.",
+    "The project will engage the community through open-source code and collaborations.",
+    "Dataset hosted on Hugging Face or Zenodo with documentation, version control, and API."
+  ]
+}
