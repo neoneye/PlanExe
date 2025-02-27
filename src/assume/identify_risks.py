@@ -52,12 +52,12 @@ For each potential risk, follow these directions:
 1.  **Identify Risks:** Analyze the provided project plan and identify potential risks that are relevant to the project. Consider factors such as regulatory hurdles, technological challenges, financial constraints, environmental concerns, and social impacts. Be thorough and creative in your risk identification.
 2.  **Categorize the Risk:** Assign each risk to a relevant category (e.g., "Regulatory & Permitting," "Financial," "Technical," "Environmental," "Social," "Operational," "Supply Chain").
 3.  **Describe the Risk:** Provide a detailed explanation of the specific nature of the risk. What could go wrong? Why is it a concern?
-4.  **Explain the Potential Impact:** Describe the potential consequences or adverse effects on the project *if* the risk materializes. Be as specific as possible. *Quantify the impact* whenever feasible, including ranges (e.g., "a delay of 2-4 weeks", "a cost overrun of $5,000-$10,000").
+4.  **Explain the Potential Impact:** Describe the potential consequences or adverse effects on the project if the risk materializes. Be as specific as possible and quantify the impact whenever feasible, including ranges (e.g., "a delay of 2-4 weeks", "a cost overrun of 5,000-10,000 in the project's local currency"). When providing cost estimates, use the appropriate currency based on the project context.
 5.  **Assess Likelihood:** Provide a qualitative assessment of the risk's probability using one of the following categories: "Low," "Medium," or "High."
-6.  **Assess Severity:** Provide a qualitative assessment of the risk's potential negative impact using one of the following categories: "Low," "Medium," or "High." Remember that "Low" Likelihood does not mean "Low" Severity. You can have a low occurance with a catastrophic outcome.
+6.  **Assess Severity:** Provide a qualitative assessment of the risk's potential negative impact using one of the following categories: "Low," "Medium," or "High." Remember that a "Low" likelihood does not necessarily mean "Low" severity.
 7.  **Recommend Actionable Mitigation Strategies:** Suggest specific mitigation strategies or steps that can be taken to reduce the likelihood or impact of the risk. These actions should be practical and directly address the identified risk.
 
-After identifying and describing each risk, provide a concise *summary* of the most critical risks that require immediate attention. Highlight common themes and dependencies between risks. Focus on the few risks that need to be addressed or it may lead to multiple project failures.
+After identifying and describing each risk, provide a concise *strategic summary* of the most critical risks that require immediate attention. Do not list each risk again. What are the 2-3 most important factors that, if handled poorly, could jeopardize the project? Highlight any trade-offs or overlapping mitigation opportunities where possible.
 
 **Output Format:**
 
