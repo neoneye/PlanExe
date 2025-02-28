@@ -3,6 +3,9 @@ Pick a suitable currency for the project plan. If the description already includ
 If the currency is not mentioned, then the expert should suggest suitable locations based on the project requirements.
 The project may go across national borders, so picking a currency that is widely accepted is important.
 
+Currency codes
+https://en.wikipedia.org/wiki/ISO_4217
+
 PROMPT> python -m src.assume.pick_currency
 """
 import os
@@ -17,8 +20,16 @@ from llama_index.core.llms.llm import LLM
 
 logger = logging.getLogger(__name__)
 
+class CurrencyItem(BaseModel):
+    currency: str = Field(
+        description="ISO 4217 alphabetic code."
+    )
+    consideration: str = Field(
+        description="Why use this currency."
+    )
+
 class DocumentDetails(BaseModel):
-    currency_code_list: list[str] = Field(
+    currency_list: list[CurrencyItem] = Field(
         description="List of currencies that are relevant for this project."
     )
 
