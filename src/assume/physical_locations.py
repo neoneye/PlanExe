@@ -42,7 +42,7 @@ class DocumentDetails(BaseModel):
     physical_location_required: bool = Field(
         description="Is one or more physical locations required for in the plan, or can the plan be executed without a location."
     )
-    missing_location_in_plan: bool = Field(
+    has_location_in_plan: bool = Field(
         description="Is the location unspecified in the plan."
     )
     requirements_for_the_locations: list[str] = Field(
@@ -64,9 +64,9 @@ Your output must be a JSON object conforming to the `DocumentDetails` and `Locat
 - **physical_location_required** (bool): 
   - true if a real-world site is necessary (e.g., a construction project, physical facility, manufacturing plant), 
   - false if the user’s plan explicitly indicates no physical location is needed (e.g., they already have a location or the plan doesn’t require a site at all).
-- **missing_location_in_plan** (bool): 
-  - true if the user’s prompt does not specify any location and is asking for suggestions,
-  - false if the user’s prompt already includes a location or if no additional location is needed.
+- **has_location_in_plan** (bool):
+  - true if the user’s prompt already includes a location,
+  - false if the user’s prompt does not specify any location.
 - **requirements_for_the_locations** (list of strings): 
   - A list of important criteria the user has provided or implied for selecting a suitable place (e.g., “cheap labor,” “proximity to highways,” “environmental regulations”).
 - **locations** (list of LocationItem): 
