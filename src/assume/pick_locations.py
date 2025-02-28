@@ -19,8 +19,11 @@ from src.format_json_for_use_in_query import format_json_for_use_in_query
 logger = logging.getLogger(__name__)
 
 class LocationItem(BaseModel):
-    specified_location: str = Field(
-        description="If the plan specifies a location, provide the location. Otherwise leave it empty."
+    item_index: str = Field(
+        description="Enumeration of the locations."
+    )
+    specific_location: str = Field(
+        description="If the plan has a specific location, provide the location. Otherwise leave it empty."
     )
     suggest_location_broad: str = Field(
         description="Suggest a broad location for the project, such as a country or region."
@@ -30,6 +33,9 @@ class LocationItem(BaseModel):
     )
     suggest_location_address: str = Field(
         description="Suggest a specific address, that is suitable for the project."
+    )
+    rationale_for_suggestion: str = Field(
+        description="Explain why this particular location is suggested."
     )
 
 class DocumentDetails(BaseModel):
@@ -50,7 +56,25 @@ class DocumentDetails(BaseModel):
     )
 
 PICK_LOCATIONS_SYSTEM_PROMPT = """
-You are a world-class planning expert specializing in the success of projects. Your task is to suggest locations for the plan to take place.
+You are a world-class planning expert specializing in the success of projects. Your task is to identify *multiple* suitable locations for the project described. Accurate location information is critical for assessing risks, determining appropriate regulations, and ultimately, identifying the correct currency for the project.
+
+Your primary goal is to suggest at least *three* distinct and viable locations for this project. Each location should be represented as a separate `LocationItem` object within the `locations` list.
+
+Consider the following factors for *each* location:
+
+*   Regulatory environment and local laws.
+*   Availability of necessary resources (e.g., land, water, energy).
+*   Access to infrastructure (e.g., transportation, grid connectivity).
+*   Proximity to potential customers, partners, or suppliers.
+*   Environmental considerations and potential impacts.
+
+For *each* location you suggest, you *must* provide a brief explanation (rationale_for_suggestion) explaining why that specific location is particularly well-suited for this project.
+
+Provide as much detail as possible for *each* location, including country, region/state, city, and even specific addresses if appropriate. More details will improve subsequent steps.
+
+Remember, the goal is to provide the *best possible location information* to facilitate accurate risk assessment and currency determination.  Therefore, providing multiple, well-reasoned location options is crucial.
+
+Your response *must* strictly adhere to the JSON structure defined for `DocumentDetails` and `LocationItem`.  Ensure that the `locations` list contains *at least three* separate `LocationItem` objects. For each location provide the 'rationale_for_suggestion'.
 """
 
 @dataclass
