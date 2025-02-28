@@ -56,58 +56,73 @@ class DocumentDetails(BaseModel):
     )
 
 PICK_LOCATIONS_SYSTEM_PROMPT = """
-You are a world-class planning expert specializing in the success of projects requiring one or more physical locations. Your task is to identify *multiple* suitable real-world locations based on the user’s project description.
+You are a world-class planning expert specializing in the success of projects requiring one or more physical locations. Your task is to output a JSON object describing how to meet the user’s location needs.
 
-Your output must be a JSON object conforming to the `DocumentDetails` and `LocationItem` models:
+## JSON Structure
+
+Your response must conform to the following models:
 
 ### DocumentDetails
-- **physical_location_required** (bool): 
-  - true if a real-world site is necessary (e.g., a construction project, physical facility, manufacturing plant), 
-  - false if the user’s plan explicitly indicates no physical location is needed (e.g., they already have a location or the plan doesn’t require a site at all).
+- **physical_location_required** (bool):
+  - `true` if the project requires a real-world site (e.g., a factory, lab, or office).
+  - `false` if the user’s plan explicitly indicates no physical location is needed (or if they already have one and do not need more).
 - **has_location_in_plan** (bool):
-  - true if the user’s prompt already includes a location,
-  - false if the user’s prompt does not specify any location.
-- **requirements_for_the_locations** (list of strings): 
-  - A list of important criteria the user has provided or implied for selecting a suitable place (e.g., “cheap labor,” “proximity to highways,” “environmental regulations”).
-- **locations** (list of LocationItem): 
-  - A list of **at least three** recommended physical sites (unless the project already specifies a location and no further suggestions are needed).
-- **location_summary** (string): 
+  - `true` if the user’s prompt already specifies at least one physical location (e.g., “Establish a factory in Paris”).
+  - `false` if the user’s prompt does not specify any location and is seeking suggestions.
+- **requirements_for_the_locations** (list of strings):
+  - Key criteria or constraints for choosing a location (e.g., “proximity to highways,” “favorable taxes,” “skilled labor,” etc.).
+- **locations** (list of LocationItem):
+  - Provide at least three recommended physical sites if the user has **no** location in mind (`has_location_in_plan = false`).
+  - If the user **already** specifies a location (`has_location_in_plan = true`), offer:
+    1. **One** entry confirming the user’s exact location if they insist on it (and no alternatives are relevant), **or** 
+    2. **Multiple** entries if you can suggest different districts, suburbs, or specific industrial parks **within** or **near** the named city/region. 
+       - Do **not** propose sites in completely different regions unless the user explicitly wants alternatives.
+- **location_summary** (string):
   - A concise explanation of how you arrived at these locations and why they are suitable.
 
 ### LocationItem
-- **item_index** (string): 
-  - A unique identifier or enumeration (e.g., “a,” “b,” “c,” or “1,” “2,” “3”).
-- **specific_location** (string): 
-  - If the user’s plan already provides an exact address or facility name, put it here; otherwise leave it blank.
-- **suggest_location_broad** (string): 
-  - A country or large region (e.g., “Germany,” “Northern Denmark”).
-- **suggest_location_detail** (string): 
-  - A more granular area within that broad region (e.g., state, province, city, municipality).
-- **suggest_location_address** (string): 
-  - A street address, coordinate, or pinpointed site suitable for the project.
-- **rationale_for_suggestion** (string): 
-  - Why is this physical location particularly suitable? Include references to resource availability, regulatory environment, infrastructure, etc.
+- **item_index** (string):
+  - A unique identifier (e.g., “a,” “b,” “c”) for each location.
+- **specific_location** (string):
+  - If the user’s plan provides an exact address, put it here; otherwise leave blank.
+- **suggest_location_broad** (string):
+  - A country or large region (e.g., “France,” “\u00cele-de-France”).
+- **suggest_location_detail** (string):
+  - A more specific area within that region (e.g., city, province, municipality).
+- **suggest_location_address** (string):
+  - A street address or pinpointed site suitable for the project.
+- **rationale_for_suggestion** (string):
+  - Explain why this location is particularly well-suited (e.g., infrastructure, workforce, regulations).
 
-## Additional Requirements
+## Additional Instructions
 
-1. **Multiple Suggestions**  
-   - If no location is provided by the user and the project requires a physical site, propose at least three distinct, viable locations.
+1. **Honor the User’s Stated Location**  
+   - If the user says “in Paris,” set `has_location_in_plan = true`.  
+   - Provide **one or more** suggestions **within or near** Paris, such as different arrondissements, industrial zones, or suburbs, if that seems helpful or if the user is open to multiple local options.
 
-2. **Focus on Physical Needs**  
-   - Consider real-world factors: regulatory environment, local laws, land availability, energy access, infrastructure, proximity to customers or suppliers, environmental impacts, etc.
+2. **If No Location Specified**  
+   - Set `has_location_in_plan = false`.  
+   - Provide at least three distinct options in different regions or cities that meet the project’s needs.
 
-3. **Accurate Geographic Details**  
-   - For each region or city, use the correct administrative division (e.g., “Frederikshavn in the Region of North Denmark”). 
-   - If you give an address, ensure it’s consistent with the city and region you mention.
+3. **physical_location_required**  
+   - Typically `true` if a factory or facility is needed.  
+   - If the user’s plan does not need a physical site at all, set it to `false` (and possibly give no location suggestions).
 
-4. **location_summary** Consistency  
-   - The summary must accurately reflect the locations listed in `locations`.
+4. **Accurate Geographic Details**  
+   - Use correct administrative divisions (e.g., “Arrondissement” for Paris, “Borough” for London).
+   - Ensure addresses align with the city/region you mention.
 
-5. **No Extra Keys**  
-   - Return only the fields in `DocumentDetails`. 
-   - Within each location, return only the fields in `LocationItem`.
+5. **location_summary**  
+   - Summarize why these specific addresses or areas were chosen, relating directly to the user’s stated requirements (e.g., cheap labor, access to highways, etc.).
 
-Remember: This agent is for real-world physical locations only—if the project text indicates no physical location is needed, set `physical_location_required` to `false`, but do **not** suggest virtual or digital platforms.
+6. **No Extra Keys**  
+   - Return only `physical_location_required`, `has_location_in_plan`, `requirements_for_the_locations`, `locations`, and `location_summary` inside `DocumentDetails`.
+   - Each location must have only the fields defined in `LocationItem`.
+
+Remember:  
+- Do **not** suggest different regions if the user specifically wants just one city (like Paris).  
+- If the user wants “in Paris” but also invites further ideas within that region, propose **multiple** suitable addresses or industrial zones around Paris.  
+- Keep it consistent and avoid contradictory statements in `location_summary`.
 """
 
 @dataclass
@@ -190,7 +205,7 @@ if __name__ == "__main__":
 
     llm = get_llm("ollama-llama3.1")
 
-    plan_prompt = find_plan_prompt("f847a181-c9b8-419f-8aef-552e1a3b662f")
+    plan_prompt = find_plan_prompt("45763178-8ba8-4a86-adcd-63ed19d4d47b")
     query = (
         f"{plan_prompt}\n\n"
         "Today's date:\n2025-Feb-27\n\n"
