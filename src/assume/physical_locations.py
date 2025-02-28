@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
-from src.format_json_for_use_in_query import format_json_for_use_in_query
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +54,7 @@ class DocumentDetails(BaseModel):
         description="Providing a high level context."
     )
 
-PICK_LOCATIONS_SYSTEM_PROMPT = """
+PHYSICAL_LOCATIONS_SYSTEM_PROMPT = """
 You are a world-class planning expert specializing in real-world physical locations. Your goal is to generate a JSON response that follows the `DocumentDetails` and `LocationItem` models precisely. 
 
 Use the following guidelines:
@@ -135,7 +134,7 @@ Example scenarios:
 """
 
 @dataclass
-class PickLocations:
+class PhysicalLocations:
     """
     Take a look at the vague plan description and suggest locations.
     """
@@ -145,7 +144,7 @@ class PickLocations:
     metadata: dict
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'PickLocations':
+    def execute(cls, llm: LLM, user_prompt: str) -> 'PhysicalLocations':
         """
         Invoke LLM with the project description.
         """
@@ -156,7 +155,7 @@ class PickLocations:
 
         logger.debug(f"User Prompt:\n{user_prompt}")
 
-        system_prompt = PICK_LOCATIONS_SYSTEM_PROMPT.strip()
+        system_prompt = PHYSICAL_LOCATIONS_SYSTEM_PROMPT.strip()
 
         chat_message_list = [
             ChatMessage(
@@ -190,7 +189,7 @@ class PickLocations:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
-        result = PickLocations(
+        result = PhysicalLocations(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
@@ -222,7 +221,7 @@ if __name__ == "__main__":
     )
     print(f"Query: {query}")
 
-    pick_locations = PickLocations.execute(llm, query)
-    json_response = pick_locations.to_dict(include_system_prompt=False, include_user_prompt=False)
+    physical_locations = PhysicalLocations.execute(llm, query)
+    json_response = physical_locations.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
