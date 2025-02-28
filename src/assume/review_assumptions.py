@@ -184,25 +184,13 @@ class ReviewAssumptions:
 
 if __name__ == "__main__":
     from src.llm_factory import get_llm
+    from src.utils.concat_files_into_string import concat_files_into_string
 
     llm = get_llm("ollama-llama3.1")
 
     base_path = os.path.join(os.path.dirname(__file__), 'test_data', 'review_assumptions1')
 
-    # Obtain files
-    files = os.listdir(base_path)
-    files = [f for f in files if not f.startswith('.')]
-    files.sort()
-    # print(files)
-
-    # Read the files, and concat their data into a single string
-    documents = []
-    for file in files:
-        s = f"File: '{file}'\n"
-        with open(os.path.join(base_path, file), 'r', encoding='utf-8') as f:
-            s += f.read()
-        documents.append(s)
-    all_documents_string = "\n\n".join(documents)
+    all_documents_string = concat_files_into_string(base_path)
     print(all_documents_string)
 
     review_assumptions = ReviewAssumptions.execute(llm, all_documents_string)
