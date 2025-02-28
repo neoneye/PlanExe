@@ -19,8 +19,8 @@ from src.format_json_for_use_in_query import format_json_for_use_in_query
 logger = logging.getLogger(__name__)
 
 class LocationItem(BaseModel):
-    item_index: str = Field(
-        description="Enumeration of the locations."
+    item_index: int = Field(
+        description="Enumeration of the locations, starting from 1."
     )
     specific_location: str = Field(
         description="If the plan has a specific location, provide the location. Otherwise leave it empty."
@@ -82,7 +82,7 @@ Your response must conform to the following models:
 
 ### LocationItem
 - **item_index** (string):
-  - A unique identifier (e.g., “a,” “b,” “c”) for each location.
+  - A unique integer (e.g., 1, 2, 3) for each location.
 - **specific_location** (string):
   - If the user’s plan provides an exact address, put it here; otherwise leave blank.
 - **suggest_location_broad** (string):
