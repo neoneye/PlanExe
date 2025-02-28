@@ -3,7 +3,7 @@ Pick suitable locations for the project plan. If the description already include
 If the location is not mentioned, then the expert should suggest suitable locations based on the project requirements.
 There may be multiple locations, in case a bridge is to be built between two countries.
 
-PROMPT> python -m src.assume.pick_locations
+PROMPT> python -m src.assume.physical_locations
 """
 import os
 import json
@@ -39,10 +39,10 @@ class LocationItem(BaseModel):
     )
 
 class DocumentDetails(BaseModel):
-    location_required_for_plan: str = Field(
-        description="Is the location required for in the plan, or can the plan be executed without a location."
+    physical_location_required: bool = Field(
+        description="Is one or more physical locations required for in the plan, or can the plan be executed without a location."
     )
-    missing_location_in_plan: str = Field(
+    missing_location_in_plan: bool = Field(
         description="Is the location unspecified in the plan."
     )
     requirements_for_the_locations: list[str] = Field(
@@ -188,7 +188,7 @@ if __name__ == "__main__":
 
     llm = get_llm("ollama-llama3.1")
 
-    plan_prompt = find_plan_prompt("4dc34d55-0d0d-4e9d-92f4-23765f49dd29")
+    plan_prompt = find_plan_prompt("f847a181-c9b8-419f-8aef-552e1a3b662f")
     query = (
         f"{plan_prompt}\n\n"
         "Today's date:\n2025-Feb-27\n\n"
