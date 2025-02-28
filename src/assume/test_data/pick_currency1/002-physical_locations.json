@@ -1,0 +1,43 @@
+{
+  "physical_location_required": true,
+  "has_location_in_plan": false,
+  "requirements_for_the_locations": [
+    "connects the two countries",
+    "crosses waterways"
+  ],
+  "locations": [
+    {
+      "item_index": 1,
+      "specific_location": "",
+      "suggest_location_broad": "Denmark",
+      "suggest_location_detail": "Region of North Denmark",
+      "suggest_location_address": "between Frederikshavn, Denmark and Esbjerg, Denmark",
+      "rationale_for_suggestion": "nearest Danish point to England"
+    },
+    {
+      "item_index": 2,
+      "specific_location": "",
+      "suggest_location_broad": "England",
+      "suggest_location_detail": "East of England region (Norfolk)",
+      "suggest_location_address": "between Great Yarmouth, Norfolk and King's Lynn, Norfolk",
+      "rationale_for_suggestion": "nearest English point to Denmark"
+    },
+    {
+      "item_index": 3,
+      "specific_location": "",
+      "suggest_location_broad": "Denmark",
+      "suggest_location_detail": "Capital Region of Denmark (Zealand)",
+      "suggest_location_address": "between Copenhagen and Frederikssund, Zealand",
+      "rationale_for_suggestion": "high population density in the area"
+    },
+    {
+      "item_index": 4,
+      "specific_location": "",
+      "suggest_location_broad": "England",
+      "suggest_location_detail": "East of England region (Suffolk)",
+      "suggest_location_address": "between Lowestoft and Southwold, Suffolk",
+      "rationale_for_suggestion": "strategic location near sea routes"
+    }
+  ],
+  "location_summary": "Four potential locations have been suggested for the train bridge connecting Denmark and England: 1) Region of North Denmark (near Frederikshavn), 2) East of England region (Norfolk), 3) Capital Region of Denmark (Zealand, near Copenhagen), and 4) East of England region (Suffolk). These locations are chosen for their proximity to the two countries' borders."
+}
