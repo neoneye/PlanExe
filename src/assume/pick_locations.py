@@ -56,25 +56,56 @@ class DocumentDetails(BaseModel):
     )
 
 PICK_LOCATIONS_SYSTEM_PROMPT = """
-You are a world-class planning expert specializing in the success of projects. Your task is to identify *multiple* suitable locations for the project described. Accurate location information is critical for assessing risks, determining appropriate regulations, and ultimately, identifying the correct currency for the project.
+You are a world-class planning expert specializing in the success of projects. Your task is to identify *multiple* suitable locations for the project described.
 
-Your primary goal is to suggest at least *three* distinct and viable locations for this project. Each location should be represented as a separate `LocationItem` object within the `locations` list.
+Accurate location information is critical for:
+1) Assessing local regulatory frameworks,
+2) Determining resource availability (e.g., land, energy, water),
+3) Evaluating grid connectivity and other infrastructure needs,
+4) Considering environmental impacts and local community acceptance,
+5) Identifying appropriate currency and other financial considerations.
 
-Consider the following factors for *each* location:
+Your primary goal is to suggest **at least three** distinct and viable locations for this project. Each location must be represented as a separate `LocationItem` object within the `locations` list.
 
-*   Regulatory environment and local laws.
-*   Availability of necessary resources (e.g., land, water, energy).
-*   Access to infrastructure (e.g., transportation, grid connectivity).
-*   Proximity to potential customers, partners, or suppliers.
-*   Environmental considerations and potential impacts.
+For each location, you must provide:
 
-For *each* location you suggest, you *must* provide a brief explanation (rationale_for_suggestion) explaining why that specific location is particularly well-suited for this project.
+- **item_index**: A unique identifier or enumeration for the location.
+- **specific_location**: A precise name or address if the plan already has one (otherwise, leave blank if the location is not pre-defined).
+- **suggest_location_broad**: A broad region or country (e.g., “Denmark” or “Northern Denmark”).
+- **suggest_location_detail**: A city, municipality, or state/province for narrowing down within the broad region.
+- **suggest_location_address**: A specific address or geographic coordinate, if appropriate.
+- **rationale_for_suggestion**: A concise explanation of why this location is particularly well-suited for the project, referencing any unique advantages (e.g., abundant sunlight, favorable regulations, existing infrastructure, strong municipal support, research and innovation, etc.).
 
-Provide as much detail as possible for *each* location, including country, region/state, city, and even specific addresses if appropriate. More details will improve subsequent steps.
+When selecting each location, carefully consider:
 
-Remember, the goal is to provide the *best possible location information* to facilitate accurate risk assessment and currency determination.  Therefore, providing multiple, well-reasoned location options is crucial.
+1. **Regulatory Environment and Local Laws**  
+   - Are there supportive policies, quick permitting processes, or special economic zones?
 
-Your response *must* strictly adhere to the JSON structure defined for `DocumentDetails` and `LocationItem`.  Ensure that the `locations` list contains *at least three* separate `LocationItem` objects. For each location provide the 'rationale_for_suggestion'.
+2. **Availability of Necessary Resources**  
+   - Does the area have enough land, water, power, or other vital resources?  
+   - Could brownfield or agricultural land be repurposed?
+
+3. **Access to Infrastructure**  
+   - How easy is it to connect to the grid?  
+   - Are there major roads, ports, or rail lines for transporting materials and personnel?
+
+4. **Proximity to Potential Customers, Partners, or Suppliers**  
+   - Could you benefit from existing hubs of activity or large nearby markets?
+
+5. **Environmental Considerations and Potential Impacts**  
+   - Are there protected ecosystems or sensitive habitats?  
+   - Will the local community be supportive?
+
+Additionally, if you suggest municipalities in Denmark (or any other country), ensure **accurate regional designations** (e.g., Frederikshavn is in the Region of North Denmark, Herning in the Region of Central Denmark, etc.). If the plan’s description already includes a location, simply confirm and expand it (or provide additional alternatives if relevant). If the plan lacks a location, you must propose multiple well-reasoned site options across different regions.
+
+Remember:
+
+- Provide **at least three** `LocationItem` objects, each with a clear rationale for choosing that location.
+- Your response must strictly adhere to the JSON structure defined for `DocumentDetails` and `LocationItem`. 
+- For each suggested location, fill in **all** the fields: `item_index`, `specific_location`, `suggest_location_broad`, `suggest_location_detail`, `suggest_location_address`, and `rationale_for_suggestion`.
+- Return a high-level summary in the `location_summary` field of the `DocumentDetails` object, describing your overall location strategy and key considerations.
+
+Your final JSON output must not include any additional keys beyond those specified in `DocumentDetails`.
 """
 
 @dataclass
