@@ -17,6 +17,7 @@ from src.plan.speedvsdetail import SpeedVsDetailEnum
 from src.plan.plan_file import PlanFile
 from src.plan.find_plan_prompt import find_plan_prompt
 from src.assume.physical_locations import PhysicalLocations
+from src.assume.currency_strategy import CurrencyStrategy
 from src.assume.make_assumptions import MakeAssumptions
 from src.assume.distill_assumptions import DistillAssumptions
 from src.expert.pre_project_assessment import PreProjectAssessment
@@ -105,6 +106,49 @@ class PhysicalLocationsTask(PlanTask):
         # Write the physical locations to disk.
         raw_path = self.output().path
         physical_locations.save_raw(str(raw_path))
+
+
+class CurrencyStrategyTask(PlanTask):
+    """
+    Identify/suggest what currency to use for the plan, depending on the physical locations.
+    Depends on:
+      - SetupTask (for the initial plan)
+      - PhysicalLocationsTask (for the physical locations)
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def requires(self):
+        return {
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+
+    def output(self):
+        return luigi.LocalTarget(str(self.file_path(FilenameEnum.CURRENCY_STRATEGY_RAW)))
+
+    def run(self):
+        logger.info("Currency strategy for the plan...")
+
+        # Read inputs from required tasks.
+        with self.input()['setup'].open("r") as f:
+            plan_prompt = f.read()
+
+        physical_locations_target = self.input()['physical_locations']
+        with physical_locations_target.open("r") as f:
+            physical_locations_data = json.load(f)
+
+        query = (
+            f"File 'plan.txt':\n{plan_prompt}\n\n"
+            f"File 'physical_locations.json':\n{format_json_for_use_in_query(physical_locations_data)}"
+        )
+
+        llm = get_llm(self.llm_model)
+
+        currency_strategy = CurrencyStrategy.execute(llm, query)
+
+        # Write the physical locations to disk.
+        raw_path = self.output().path
+        currency_strategy.save_raw(str(raw_path))
 
 
 class MakeAssumptionsTask(PlanTask):
@@ -1375,6 +1419,7 @@ class FullPlanPipeline(PlanTask):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
             'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'currency_strategy': CurrencyStrategyTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'make_assumptions': MakeAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pre_project_assessment': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
