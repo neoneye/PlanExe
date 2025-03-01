@@ -17,7 +17,7 @@ from src.plan.speedvsdetail import SpeedVsDetailEnum
 from src.plan.plan_file import PlanFile
 from src.plan.find_plan_prompt import find_plan_prompt
 from src.assume.make_assumptions import MakeAssumptions
-from src.assume.assumption_orchestrator import AssumptionOrchestrator
+from src.assume.distill_assumptions import DistillAssumptions
 from src.expert.pre_project_assessment import PreProjectAssessment
 from src.plan.create_project_plan import CreateProjectPlan
 from src.swot.swot_analysis import SWOTAnalysis
@@ -76,7 +76,7 @@ class SetupTask(PlanTask):
         plan_file = PlanFile.create(plan_prompt)
         plan_file.save(self.output().path)
 
-class AssumptionsTask(PlanTask):
+class MakeAssumptionsTask(PlanTask):
     """
     Make assumptions about the plan.
     Depends on:
@@ -88,7 +88,10 @@ class AssumptionsTask(PlanTask):
         return SetupTask(run_id=self.run_id)
 
     def output(self):
-        return luigi.LocalTarget(str(self.file_path(FilenameEnum.DISTILL_ASSUMPTIONS_RAW)))
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.MAKE_ASSUMPTIONS_RAW))),
+            'clean': luigi.LocalTarget(str(self.file_path(FilenameEnum.MAKE_ASSUMPTIONS)))
+        }
 
     def run(self):
         logger.info("Making assumptions about the plan...")
@@ -97,31 +100,60 @@ class AssumptionsTask(PlanTask):
         with self.input().open("r") as f:
             plan_prompt = f.read()
 
-        # I'm currently debugging the speedvsdetail parameter. When I'm done I can remove it.
-        # Verifying that the speedvsdetail parameter is set correctly.
-        logger.info(f"AssumptionsTask.speedvsdetail: {self.speedvsdetail}")
-        if self.speedvsdetail == SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS:
-            logger.info("AssumptionsTask: We are in FAST_BUT_SKIP_DETAILS mode.")
-        else:
-            logger.info("AssumptionsTask: We are in another mode")
+        llm = get_llm(self.llm_model)
+
+        make_assumptions = MakeAssumptions.execute(llm, plan_prompt)
+
+        # Write the assumptions to disk.
+        raw_path = self.output()['raw'].path
+        clean_path = self.output()['clean'].path
+        make_assumptions.save_raw(str(raw_path))
+        make_assumptions.save_assumptions(str(clean_path))
+
+
+class DistillAssumptionsTask(PlanTask):
+    """
+    Distill raw assumption data.
+    Depends on:
+      - SetupTask (for the initial plan)
+      - MakeAssumptionsTask (for the draft assumptions)
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def requires(self):
+        return {
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'make_assumptions': MakeAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+
+    def output(self):
+        return luigi.LocalTarget(str(self.file_path(FilenameEnum.DISTILL_ASSUMPTIONS_RAW)))
+
+    def run(self):
+        logger.info("Distilling assumptions...")
+
+        # Read the plan prompt from SetupTask's output.
+        setup_target = self.input()['setup']
+        with setup_target.open("r") as f:
+            plan_prompt = f.read()
+
+        # Read the assumptions from MakeAssumptionsTask's output.
+        make_assumptions_target = self.input()['make_assumptions']['clean']
+        with make_assumptions_target.open("r") as f:
+            assumptions_raw_data = json.load(f)
 
         llm = get_llm(self.llm_model)
 
-        # Define callback functions.
-        def phase1_post_callback(make_assumptions: MakeAssumptions) -> None:
-            raw_path = self.run_dir / FilenameEnum.MAKE_ASSUMPTIONS_RAW.value
-            cleaned_path = self.run_dir / FilenameEnum.MAKE_ASSUMPTIONS.value
-            make_assumptions.save_raw(str(raw_path))
-            make_assumptions.save_assumptions(str(cleaned_path))
+        query = (
+            f"{plan_prompt}\n\n"
+            f"assumption.json:\n{assumptions_raw_data}"
+        )
 
-        # Execute
-        orchestrator = AssumptionOrchestrator()
-        orchestrator.phase1_post_callback = phase1_post_callback
-        orchestrator.execute(llm, plan_prompt)
+        distill_assumptions = DistillAssumptions.execute(llm, query)
 
-        # Write the assumptions to the output file.
-        file_path = self.run_dir / FilenameEnum.DISTILL_ASSUMPTIONS_RAW.value
-        orchestrator.distill_assumptions.save_raw(str(file_path))
+        # Save the raw output.
+        file_path = self.output().path
+        distill_assumptions.save_raw(str(file_path))
 
 
 class PreProjectAssessmentTask(PlanTask):
@@ -173,7 +205,7 @@ class ProjectPlanTask(PlanTask):
         """
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
-            'assumptions': AssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
@@ -222,7 +254,7 @@ class FindTeamMembersTask(PlanTask):
     def requires(self):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
-            'assumptions': AssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
@@ -290,7 +322,7 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
     def requires(self):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
-            'assumptions': AssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
@@ -364,7 +396,7 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
     def requires(self):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
-            'assumptions': AssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_contract_type': EnrichTeamMembersWithContractTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
@@ -438,7 +470,7 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
     def requires(self):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
-            'assumptions': AssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_background_story': EnrichTeamMembersWithBackgroundStoryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
@@ -512,7 +544,7 @@ class ReviewTeamTask(PlanTask):
     def requires(self):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
-            'assumptions': AssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_environment_info': EnrichTeamMembersWithEnvironmentInfoTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
@@ -617,7 +649,7 @@ class SWOTAnalysisTask(PlanTask):
     def requires(self):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
-            'assumptions': AssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
@@ -1311,7 +1343,8 @@ class FullPlanPipeline(PlanTask):
     def requires(self):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
-            'assumptions': AssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'make_assumptions': MakeAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pre_project_assessment': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
