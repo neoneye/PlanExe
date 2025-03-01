@@ -14,6 +14,7 @@ import time
 import logging
 from math import ceil
 from dataclasses import dataclass
+from typing import Optional
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
@@ -29,10 +30,13 @@ class CurrencyItem(BaseModel):
     )
 
 class DocumentDetails(BaseModel):
+    money_involved: bool = Field(
+        description="Does the plan involve money? Buy things, pay people, financial consequences."
+    )
     currency_list: list[CurrencyItem] = Field(
         description="List of currencies that are relevant for this project."
     )
-    primary_currency: str = Field(
+    primary_currency: Optional[str] = Field(
         description="The main currency for budgeting and reporting (ISO 4217 alphabetic code).",
         default=None
     )
@@ -44,7 +48,17 @@ class DocumentDetails(BaseModel):
 PICK_CURRENCY_SYSTEM_PROMPT = """
 You are a world-class planning expert specializing in picking the best-suited currency for large, international projects. Currency decisions significantly impact project costs, reporting, and financial risk.
 
-ere are a few examples of the desired output format:
+When determining if a plan involves money:
+
+*   `money_involved` should be set to `True` if the plan requires any financial transactions, such as:
+    *   Buying goods or services.
+    *   Paying people (employees, contractors, etc.).
+    *   Managing a budget.
+    *   Dealing with financial risk or currency exchange.
+
+*   `money_involved` should be set to `False` only if the plan is purely non-financial in nature and has no impact on any financial resources.
+
+Here are a few examples of the desired output format:
 
 **Example 1:**
 Project: Constructing a solar power plant in Nevada, USA

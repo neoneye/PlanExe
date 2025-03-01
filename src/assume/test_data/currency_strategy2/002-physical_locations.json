@@ -1,0 +1,7 @@
+{
+  "physical_location_required": false,
+  "has_location_in_plan": true,
+  "requirements_for_the_locations": [],
+  "locations": [],
+  "location_summary": "The task involves using existing locations (kitchen, outdoor dumpsters) at the user's residence; no new physical site is required."
+}
