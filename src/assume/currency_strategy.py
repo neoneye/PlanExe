@@ -6,7 +6,7 @@ The project may go across national borders, so picking a currency that is widely
 Currency codes
 https://en.wikipedia.org/wiki/ISO_4217
 
-PROMPT> python -m src.assume.pick_currency
+PROMPT> python -m src.assume.currency_strategy
 """
 import os
 import json
@@ -84,9 +84,9 @@ Be precise with your reasoning, and avoid making inaccurate statements about whi
 """
 
 @dataclass
-class PickCurrency:
+class CurrencyStrategy:
     """
-    Take a look at the vague plan description and suggest a currency.
+    Take a look at the vague plan description, the physical locations and suggest a currency.
     """
     system_prompt: str
     user_prompt: str
@@ -94,7 +94,7 @@ class PickCurrency:
     metadata: dict
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'PickCurrency':
+    def execute(cls, llm: LLM, user_prompt: str) -> 'CurrencyStrategy':
         """
         Invoke LLM with the project description.
         """
@@ -139,7 +139,7 @@ class PickCurrency:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
-        result = PickCurrency(
+        result = CurrencyStrategy(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
@@ -168,7 +168,7 @@ if __name__ == "__main__":
 
     llm = get_llm("ollama-llama3.1")
 
-    pick_currency = PickCurrency.execute(llm, all_documents_string)
-    json_response = pick_currency.to_dict(include_system_prompt=False, include_user_prompt=False)
+    currency_strategy = CurrencyStrategy.execute(llm, all_documents_string)
+    json_response = currency_strategy.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
