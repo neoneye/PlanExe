@@ -1,0 +1,35 @@
+{
+  "physical_location_required": true,
+  "has_location_in_plan": false,
+  "requirements_for_the_locations": [
+    "global",
+    "language center"
+  ],
+  "locations": [
+    {
+      "item_index": 1,
+      "specific_location": "",
+      "suggest_location_broad": "Global",
+      "suggest_location_detail": "",
+      "suggest_location_address": "",
+      "rationale_for_suggestion": ""
+    },
+    {
+      "item_index": 2,
+      "specific_location": "",
+      "suggest_location_broad": "Global Headquarters of a major Language Institution",
+      "suggest_location_detail": "e.g., UNESCO, British Council",
+      "suggest_location_address": "",
+      "rationale_for_suggestion": ""
+    },
+    {
+      "item_index": 3,
+      "specific_location": "",
+      "suggest_location_broad": "A hub city with strong linguistic diversity and cultural significance",
+      "suggest_location_detail": "e.g., Paris, Tokyo, New York",
+      "suggest_location_address": "",
+      "rationale_for_suggestion": ""
+    }
+  ],
+  "location_summary": "This project requires a global approach to develop a unified language. The suggested locations are hubs for linguistic diversity and cultural significance."
+}

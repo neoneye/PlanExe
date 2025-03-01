@@ -1,0 +1,7 @@
+Plan:
+Distill Arxiv papers into an objective, hype-free summary that indicates whether improvements are truly significant or just noise. Compare claims with benchmarks, flag inflated gains, and foster a clear, evidence-based understanding of machine learning progress without marketing language. To make the distilled data available with minimal upkeep and maximum longevity, publish these summaries as an open-access dataset on a well-established repository.
+
+Today's date:
+2025-Mar-01
+
+Project start ASAP

@@ -1,0 +1,10 @@
+{
+  "physical_location_required": false,
+  "has_location_in_plan": false,
+  "requirements_for_the_locations": [
+    "research institution",
+    "data repository"
+  ],
+  "locations": [],
+  "location_summary": "This project will be conducted in a digital environment, leveraging existing research institutions and data repositories to minimize physical site requirements."
+}
