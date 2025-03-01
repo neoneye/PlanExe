@@ -1,0 +1,19 @@
+{
+  "physical_location_required": true,
+  "has_location_in_plan": false,
+  "requirements_for_the_locations": [
+    "cheap labor",
+    "government incentives for robotics industry"
+  ],
+  "locations": [
+    {
+      "item_index": 1,
+      "specific_location": "",
+      "suggest_location_broad": "Venezuela",
+      "suggest_location_detail": "Caracas",
+      "suggest_location_address": "",
+      "rationale_for_suggestion": "Existing infrastructure and access to cheap labor in Caracas make it an ideal location for a humanoid robot factory."
+    }
+  ],
+  "location_summary": "A humanoid robot factory should be set up in Caracas, Venezuela, due to the availability of cheap labor and government incentives for the robotics industry. This will allow us to keep costs low and take advantage of local resources."
+}
