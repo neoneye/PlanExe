@@ -165,7 +165,7 @@ if __name__ == "__main__":
     from src.llm_factory import get_llm
     from src.utils.concat_files_into_string import concat_files_into_string
 
-    base_path = os.path.join(os.path.dirname(__file__), 'test_data', 'pick_currency1')
+    base_path = os.path.join(os.path.dirname(__file__), 'test_data', 'currency_strategy1')
 
     all_documents_string = concat_files_into_string(base_path)
     print(all_documents_string)
