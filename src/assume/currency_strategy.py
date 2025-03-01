@@ -50,16 +50,25 @@ You are a world-class planning expert specializing in picking the best-suited cu
 
 When determining if a plan involves money:
 
-*   `money_involved` should be set to `True` if the plan *potentially* requires any financial transactions, such as:
-    *   Buying goods or services (e.g., tickets for public transportation, fuel for a car, a new bike).
-    *   Paying for services (e.g., taxi or ride-sharing).
-    *   Paying for temporary solutions (e.g., renting a bike).
-    *   Buying food or drinks (if the alternative takes significantly longer than usual).
-    *   Paying people (employees, contractors, etc.).
+*   `money_involved` should be set to `True` if the plan *potentially* requires any financial transactions, *direct or indirect*, such as:
+    *   Buying goods or services (e.g., software licenses, data sets, cloud storage).
+    *   Paying for services (e.g., web hosting, data scraping services, software development, design).
+    *   Paying for temporary solutions (e.g., short term database access, buying data).
+    *   Paying people (employees, contractors, etc.) for their time and expertise.
     *   Managing a budget.
     *   Dealing with financial risk or currency exchange.
+    *   Acquiring data.
+    *   Maintaining system.
 
-*   `money_involved` should be set to `False` only if the plan is purely non-financial in nature and has absolutely no potential impact on any financial resources, even indirectly.
+*   `money_involved` should be set to `False` only if the plan is purely non-financial in nature and has absolutely no potential impact on any financial resources, even indirectly. Examples are purely thought experiments, plans that relies solely on volunteer efforts and *existing* free resources.
+
+If the project is global in nature, and you are unable to determine a single currency, suggest USD and EUR for all international expenses.
+
+If a specific currency cannot be determined based on the project description and location information, provide a *best guess* based on the following factors:
+
+*  If the project is global in nature, suggest USD, EUR, JPY, GBP, or a basket of currencies.
+*  Explain why you are suggesting this currency
+*  If none of the above applies, then select null.
 
 Here are a few examples of the desired output format:
 
@@ -76,7 +85,7 @@ Project: Building a wind farm in the North Sea (offshore UK and Netherlands)
 money_involved: True
 Currency List:
 - EUR: For equipment and services sourced from the Eurozone.
-- GBP: For UK-based operations and services.
+- GBP: For equipment and services sourced from the Eurozone.
 - DKK: For Danish-based operations and services.
 Primary Currency: EUR
 Currency Strategy: EUR will be the primary currency.  Maintain accounts in GBP and DKK for local expenses.  Hedge against significant currency fluctuations.
@@ -95,6 +104,14 @@ Currency List:
 - EUR: For transportation and potential expenses in the Netherlands.
 Primary Currency: EUR
 Currency Strategy: Use EUR for all commute-related expenses.
+
+**Example 5:**
+Project: Distill Arxiv papers into an objective, hype-free summary and publish as an open-access dataset.
+money_involved: True # Needs development, hosting, data scraping permission
+Currency List:
+- USD: For potential web hosting and software maintainence
+Primary Currency: USD
+Currency Strategy: Use USD for all web hosting and software maintainence.
 
 Consider the following factors when selecting currencies:
 
