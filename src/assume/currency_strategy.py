@@ -53,23 +53,25 @@ Here's your decision-making process:
 1.  **Determine if money is potentially involved:**
 
     *   Set `money_involved` to `True` if the plan *potentially* requires any financial transactions, *direct or indirect*, such as:
-        *   Buying goods or services (e.g., software licenses, data sets, cloud storage).
-        *   Paying for services (e.g., web hosting, data scraping services, software development, design).
-        *   Paying people (employees, contractors, etc.) for their time and expertise.
-        *   Acquiring data.
+        *   Buying goods or services (e.g., lab equipment, scientific instruments, sampling containers, software licenses, data sets).
+        *   Paying for services (e.g., laboratory analysis, research assistance, data analysis, travel expenses, shipping samples, transcription services, professional editing, publication fees).
+        *   Paying people (researchers, technicians, consultants, divers, boat crews, etc.) for their time and expertise.
+        *   Renting equipment or facilities (e.g., lab space, boats, diving gear).
+        *   Acquiring data (e.g., purchasing existing datasets, paying for access to databases).
+        *   Travel.
         *   Maintaining systems.
 
     *   Set `money_involved` to `False` only if the plan is purely non-financial and has absolutely no potential impact on financial resources.
 
 2.  **Select a primary currency:**
 
-    *   **If a specific currency *can* be determined** based on the project description and location information (e.g., the project is clearly in the USA):
+    *   **If a specific currency *can* be determined** based on the project description and location information (e.g., the project is clearly based in the USA):
         *   Select that currency (ISO 4217 code).
         *   Explain your reasoning (e.g., "USD is appropriate because the project is based in the USA").
 
     *   **If a specific currency *cannot* be determined** (e.g., the project is global, theoretical, or lacks clear financial details):
-        *   Suggest USD for all international expenses, such as web hosting and software development.
-        *   Explain your reasoning (e.g., "USD is a widely accepted currency and suitable for international expenses.").
+        *   Suggest USD for all international expenses, such as travel, sample analysis, web hosting, and publication fees.
+        *   Explain your reasoning (e.g., "USD is a widely accepted currency and suitable for international research expenses.").
 
 3.  **Identify additional currencies (if any):**
 
@@ -78,7 +80,7 @@ Here's your decision-making process:
 
 4.  **Develop a currency management strategy:**
 
-    *   Provide a brief summary of how to manage currency exchange and risk (e.g., "Use forward contracts to hedge against currency fluctuations.").
+    *   Provide a brief summary of how to manage currency exchange and risk (e.g., "Use forward contracts to hedge against currency fluctuations, especially for travel expenses.").
 
 Here are a few examples of the desired output format:
 
@@ -119,13 +121,21 @@ Currency Strategy: Use EUR for all commute-related expenses.
 Project: Distill Arxiv papers into an objective, hype-free summary and publish as an open-access dataset.
 money_involved: True # Needs development, hosting, data scraping permission
 Currency List:
-- USD: For potential web hosting and software maintenance
+- USD: For potential web hosting and software maintainence
 Primary Currency: USD
-Currency Strategy: Use USD for all web hosting and software maintenance.
+Currency Strategy: Use USD for all web hosting and software maintainence.
 
 **Example 6:**
 Project: I'm envisioning a streamlined global language...
 money_involved: True
+Currency List:
+- USD: Best guess for international expenses
+Primary Currency: USD
+Currency Strategy: Use USD for international expenses
+
+**Example 7:**
+Project: Create a detailed report examining microplastics within the world's oceans.
+money_involved: True # Travel, lab tests, analysis
 Currency List:
 - USD: Best guess for international expenses
 Primary Currency: USD
@@ -233,7 +243,7 @@ if __name__ == "__main__":
     from src.llm_factory import get_llm
     from src.utils.concat_files_into_string import concat_files_into_string
 
-    base_path = os.path.join(os.path.dirname(__file__), 'test_data', 'currency_strategy5')
+    base_path = os.path.join(os.path.dirname(__file__), 'test_data', 'currency_strategy6')
 
     all_documents_string = concat_files_into_string(base_path)
     print(all_documents_string)

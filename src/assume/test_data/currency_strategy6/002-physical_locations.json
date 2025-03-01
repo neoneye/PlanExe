@@ -1,0 +1,27 @@
+{
+  "physical_location_required": true,
+  "has_location_in_plan": false,
+  "requirements_for_the_locations": [
+    "near research institutions",
+    "with access to oceanic sampling equipment"
+  ],
+  "locations": [
+    {
+      "item_index": 1,
+      "specific_location": "",
+      "suggest_location_broad": "Global Oceans",
+      "suggest_location_detail": "Various marine ecosystems",
+      "suggest_location_address": "",
+      "rationale_for_suggestion": "To gather diverse ocean samples and collaborate with local researchers"
+    },
+    {
+      "item_index": 2,
+      "specific_location": "",
+      "suggest_location_broad": "Major coastal cities",
+      "suggest_location_detail": "Port locations",
+      "suggest_location_address": "",
+      "rationale_for_suggestion": "For easy access to sampling equipment and research institutions"
+    }
+  ],
+  "location_summary": "The study requires accessing various oceanic ecosystems globally for diverse sampling. Suggested sites are near major coastal cities with access to relevant research facilities."
+}
