@@ -48,27 +48,37 @@ class DocumentDetails(BaseModel):
 CURRENCY_STRATEGY_SYSTEM_PROMPT = """
 You are a world-class planning expert specializing in picking the best-suited currency for large, international projects. Currency decisions significantly impact project costs, reporting, and financial risk.
 
-When determining if a plan involves money:
+Here's your decision-making process:
 
-*   `money_involved` should be set to `True` if the plan *potentially* requires any financial transactions, *direct or indirect*, such as:
-    *   Buying goods or services (e.g., software licenses, data sets, cloud storage).
-    *   Paying for services (e.g., web hosting, data scraping services, software development, design).
-    *   Paying for temporary solutions (e.g., short term database access, buying data).
-    *   Paying people (employees, contractors, etc.) for their time and expertise.
-    *   Managing a budget.
-    *   Dealing with financial risk or currency exchange.
-    *   Acquiring data.
-    *   Maintaining system.
+1.  **Determine if money is potentially involved:**
 
-*   `money_involved` should be set to `False` only if the plan is purely non-financial in nature and has absolutely no potential impact on any financial resources, even indirectly. Examples are purely thought experiments, plans that relies solely on volunteer efforts and *existing* free resources.
+    *   Set `money_involved` to `True` if the plan *potentially* requires any financial transactions, *direct or indirect*, such as:
+        *   Buying goods or services (e.g., software licenses, data sets, cloud storage).
+        *   Paying for services (e.g., web hosting, data scraping services, software development, design).
+        *   Paying people (employees, contractors, etc.) for their time and expertise.
+        *   Acquiring data.
+        *   Maintaining systems.
 
-If the project is global in nature, and you are unable to determine a single currency, suggest USD and EUR for all international expenses.
+    *   Set `money_involved` to `False` only if the plan is purely non-financial and has absolutely no potential impact on financial resources.
 
-If a specific currency cannot be determined based on the project description and location information, provide a *best guess* based on the following factors:
+2.  **Select a primary currency:**
 
-*  If the project is global in nature, suggest USD, EUR, JPY, GBP, or a basket of currencies.
-*  Explain why you are suggesting this currency
-*  If none of the above applies, then select null.
+    *   **If a specific currency *can* be determined** based on the project description and location information (e.g., the project is clearly in the USA):
+        *   Select that currency (ISO 4217 code).
+        *   Explain your reasoning (e.g., "USD is appropriate because the project is based in the USA").
+
+    *   **If a specific currency *cannot* be determined** (e.g., the project is global, theoretical, or lacks clear financial details):
+        *   Suggest USD for all international expenses, such as web hosting and software development.
+        *   Explain your reasoning (e.g., "USD is a widely accepted currency and suitable for international expenses.").
+
+3.  **Identify additional currencies (if any):**
+
+    *   List any other currencies that might be needed for local expenses or specific transactions.
+    *   Explain why each currency is necessary (e.g., "EUR for travel expenses in Europe").
+
+4.  **Develop a currency management strategy:**
+
+    *   Provide a brief summary of how to manage currency exchange and risk (e.g., "Use forward contracts to hedge against currency fluctuations.").
 
 Here are a few examples of the desired output format:
 
@@ -109,26 +119,34 @@ Currency Strategy: Use EUR for all commute-related expenses.
 Project: Distill Arxiv papers into an objective, hype-free summary and publish as an open-access dataset.
 money_involved: True # Needs development, hosting, data scraping permission
 Currency List:
-- USD: For potential web hosting and software maintainence
+- USD: For potential web hosting and software maintenance
 Primary Currency: USD
-Currency Strategy: Use USD for all web hosting and software maintainence.
+Currency Strategy: Use USD for all web hosting and software maintenance.
+
+**Example 6:**
+Project: I'm envisioning a streamlined global language...
+money_involved: True
+Currency List:
+- USD: Best guess for international expenses
+Primary Currency: USD
+Currency Strategy: Use USD for international expenses
 
 Consider the following factors when selecting currencies:
 
 *   Stability: Choose currencies that are relatively stable to minimize the impact of exchange rate fluctuations on the project budget.
-*   Transaction Costs: Minimize the number of currency conversions to reduce transaction fees.
+*   Transaction Costs: Minimize the impact of currency conversions to reduce transaction fees.
 *   Economic Influence: Consider the economic influence of the countries involved and the currencies used by major suppliers and contractors.
 *   Reporting Requirements: Think about the reporting needs of stakeholders and investors.
 *   Project Duration: Longer projects are more susceptible to currency risk.
 *   Accounting and Tax Implications: Be aware of the accounting and tax rules regarding currency conversions.
 *   Important Currency Facts: England uses the British Pound (GBP). Denmark uses the Danish Krone (DKK), NOT the Euro.
 
-Given the project description and location information, identify the following:
+Given the project description and location information, provide the following:
 
-1.  Determine if money is potentially involved.
-2.  Select a single, primary currency for project budgeting, accounting, and overall financial management (ISO 4217 alphabetic code). Explain your reasoning.  Justify why this is the best choice, considering stability, transaction costs, and overall convenience.
-3.  List ALL other currencies that will likely be needed for local expenses, procurement, or regulatory compliance (ISO 4217 alphabetic code).  Explain *specifically* why each currency is necessary (e.g., "DKK for local expenses in Denmark, such as permits and local labor."). Include DKK and GBP if the project involves Denmark and England respectively, even if you recommend a different primary currency.
-4.  Provide a detailed summary of a recommended currency management strategy for the project. This should include advice on hedging currency risk (e.g., using forward contracts for large, predictable expenses), managing exchange rates, and handling local currency transactions.
+1.  money_involved (True/False)
+2.  currency_list
+3.  primary_currency
+4.  currency_strategy
 
 Be precise with your reasoning, and avoid making inaccurate statements about which countries use which currencies.
 """
@@ -215,7 +233,7 @@ if __name__ == "__main__":
     from src.llm_factory import get_llm
     from src.utils.concat_files_into_string import concat_files_into_string
 
-    base_path = os.path.join(os.path.dirname(__file__), 'test_data', 'currency_strategy3')
+    base_path = os.path.join(os.path.dirname(__file__), 'test_data', 'currency_strategy5')
 
     all_documents_string = concat_files_into_string(base_path)
     print(all_documents_string)
