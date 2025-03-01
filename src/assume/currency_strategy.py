@@ -31,7 +31,7 @@ class CurrencyItem(BaseModel):
 
 class DocumentDetails(BaseModel):
     money_involved: bool = Field(
-        description="Does the plan involve money? Buy things, pay people, financial consequences."
+        description="True if the project likely involves any financial transactions (e.g., purchasing equipment, paying for services, travel, lab tests), otherwise False."
     )
     currency_list: list[CurrencyItem] = Field(
         description="List of currencies that are relevant for this project."
@@ -45,7 +45,7 @@ class DocumentDetails(BaseModel):
         default=""
     )
 
-CURRENCY_STRATEGY_SYSTEM_PROMPT = """
+CURRENCY_STRATEGY_SYSTEM_PROMPT_1 = """
 You are a world-class planning expert specializing in picking the best-suited currency for large, international projects. Currency decisions significantly impact project costs, reporting, and financial risk.
 
 Here's your decision-making process:
@@ -160,6 +160,56 @@ Given the project description and location information, provide the following:
 
 Be precise with your reasoning, and avoid making inaccurate statements about which countries use which currencies.
 """
+
+CURRENCY_STRATEGY_SYSTEM_PROMPT_2 = """
+You are an expert planning assistant focused on selecting the best currency for projects of varying scales, from trivial personal tasks to large, international endeavors. Given a project description and any location details, produce a JSON output with the following structure:
+
+{
+  "money_involved": <Boolean>,
+  "currency_list": [
+      {
+         "currency": "<ISO 4217 Code>",
+         "consideration": "<Brief explanation>"
+      },
+      ...
+  ],
+  "primary_currency": "<ISO 4217 Code>",
+  "currency_strategy": "<Brief explanation of currency management strategy>"
+}
+
+Guidelines:
+
+1. money_involved:
+   - Set to True if the project likely involves financial transactions such as purchasing equipment, paying for services, travel, repairs, lab tests, or any significant expenses requiring budgeting.
+   - Set to False for trivial or personal tasks with minimal or no financial transactions.
+   - Note: Even for personal tasks, if the issue implies potential expenses (e.g., a broken bike requiring repairs or alternative transportation costs), mark money_involved as True.
+
+2. currency_list:
+   - Provide a list of relevant currencies as objects. Each object should include:
+     - currency: the ISO 4217 code.
+     - consideration: a brief explanation of why this currency is included.
+   - For projects that are clearly local (confined to one country), list only the local currency.
+   - For projects spanning multiple countries, list the local currencies for the countries involved if relevant.
+   - However, for projects that connect multiple European countries, the primary currency should generally be EUR due to its wide acceptance in European projects.
+
+3. primary_currency:
+   - If the project description explicitly mentions a specific currency, use that.
+   - For projects that are clearly local, use that country's official currency.
+   - For international projects that are not specific to one region, default to "USD".
+   - For projects spanning multiple European countries (e.g., connecting Denmark and England), select "EUR" as the primary currency to streamline budgeting and reporting.
+
+4. currency_strategy:
+   - For local projects, simply state that the local currency will be used for all transactions with no additional international risk management needed.
+   - For international projects, provide a brief explanation of how to manage currency risks (e.g., hedging against exchange fluctuations or using cards with no foreign transaction fees).
+   - For projects spanning multiple European countries with "EUR" as the primary currency, note that EUR is used for consolidated budgeting while local currencies may still be used for local transactions.
+
+Key Instructions:
+- Evaluate the project's scale and context using the provided project description and location details.
+- Ensure that no field is left empty when significant expenses are expected.
+- Apply the appropriate currency guidelines based on the project's geographic scope.
+"""
+
+CURRENCY_STRATEGY_SYSTEM_PROMPT = CURRENCY_STRATEGY_SYSTEM_PROMPT_2
 
 @dataclass
 class CurrencyStrategy:
