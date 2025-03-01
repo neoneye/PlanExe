@@ -45,23 +45,27 @@ class DocumentDetails(BaseModel):
         default=""
     )
 
-PICK_CURRENCY_SYSTEM_PROMPT = """
+CURRENCY_STRATEGY_SYSTEM_PROMPT = """
 You are a world-class planning expert specializing in picking the best-suited currency for large, international projects. Currency decisions significantly impact project costs, reporting, and financial risk.
 
 When determining if a plan involves money:
 
-*   `money_involved` should be set to `True` if the plan requires any financial transactions, such as:
-    *   Buying goods or services.
+*   `money_involved` should be set to `True` if the plan *potentially* requires any financial transactions, such as:
+    *   Buying goods or services (e.g., tickets for public transportation, fuel for a car, a new bike).
+    *   Paying for services (e.g., taxi or ride-sharing).
+    *   Paying for temporary solutions (e.g., renting a bike).
+    *   Buying food or drinks (if the alternative takes significantly longer than usual).
     *   Paying people (employees, contractors, etc.).
     *   Managing a budget.
     *   Dealing with financial risk or currency exchange.
 
-*   `money_involved` should be set to `False` only if the plan is purely non-financial in nature and has no impact on any financial resources.
+*   `money_involved` should be set to `False` only if the plan is purely non-financial in nature and has absolutely no potential impact on any financial resources, even indirectly.
 
 Here are a few examples of the desired output format:
 
 **Example 1:**
 Project: Constructing a solar power plant in Nevada, USA
+money_involved: True
 Currency List:
 - USD: For all project-related expenses in the USA.
 Primary Currency: USD
@@ -69,12 +73,28 @@ Currency Strategy: Use USD for all budgeting and accounting.
 
 **Example 2:**
 Project: Building a wind farm in the North Sea (offshore UK and Netherlands)
+money_involved: True
 Currency List:
 - EUR: For equipment and services sourced from the Eurozone.
 - GBP: For UK-based operations and services.
 - DKK: For Danish-based operations and services.
 Primary Currency: EUR
 Currency Strategy: EUR will be the primary currency.  Maintain accounts in GBP and DKK for local expenses.  Hedge against significant currency fluctuations.
+
+**Example 3:**
+Project: Take out the trash
+money_involved: False
+Currency List:
+Primary Currency:
+Currency Strategy:
+
+**Example 4:**
+Project: My daily commute is broken, need an alternative in Amsterdam.
+money_involved: True  # Potential for public transport, taxis, food, etc.
+Currency List:
+- EUR: For transportation and potential expenses in the Netherlands.
+Primary Currency: EUR
+Currency Strategy: Use EUR for all commute-related expenses.
 
 Consider the following factors when selecting currencies:
 
@@ -88,11 +108,10 @@ Consider the following factors when selecting currencies:
 
 Given the project description and location information, identify the following:
 
-1.  Primary Currency: Select a single, primary currency for project budgeting, accounting, and overall financial management (ISO 4217 alphabetic code). Explain your reasoning.  Justify why this is the best choice, considering stability, transaction costs, and overall convenience.
-2.  Additional Currencies: List ALL other currencies that will likely be needed for local expenses, procurement, or regulatory compliance (ISO 4217 alphabetic code).  Explain *specifically* why each currency is necessary (e.g., "DKK for local expenses in Denmark, such as permits and local labor."). Include DKK and GBP if the project involves Denmark and England respectively, even if you recommend a different primary currency.
-3.  Currency Strategy: Provide a detailed summary of a recommended currency management strategy for the project. This should include advice on hedging currency risk (e.g., using forward contracts for large, predictable expenses), managing exchange rates, and handling local currency transactions.
-
-If the currency is not explicitly mentioned in the project description, suggest suitable currencies based on the project's requirements, locations, and the factors listed above.
+1.  Determine if money is potentially involved.
+2.  Select a single, primary currency for project budgeting, accounting, and overall financial management (ISO 4217 alphabetic code). Explain your reasoning.  Justify why this is the best choice, considering stability, transaction costs, and overall convenience.
+3.  List ALL other currencies that will likely be needed for local expenses, procurement, or regulatory compliance (ISO 4217 alphabetic code).  Explain *specifically* why each currency is necessary (e.g., "DKK for local expenses in Denmark, such as permits and local labor."). Include DKK and GBP if the project involves Denmark and England respectively, even if you recommend a different primary currency.
+4.  Provide a detailed summary of a recommended currency management strategy for the project. This should include advice on hedging currency risk (e.g., using forward contracts for large, predictable expenses), managing exchange rates, and handling local currency transactions.
 
 Be precise with your reasoning, and avoid making inaccurate statements about which countries use which currencies.
 """
@@ -119,7 +138,7 @@ class CurrencyStrategy:
 
         logger.debug(f"User Prompt:\n{user_prompt}")
 
-        system_prompt = PICK_CURRENCY_SYSTEM_PROMPT.strip()
+        system_prompt = CURRENCY_STRATEGY_SYSTEM_PROMPT.strip()
 
         chat_message_list = [
             ChatMessage(
@@ -179,7 +198,7 @@ if __name__ == "__main__":
     from src.llm_factory import get_llm
     from src.utils.concat_files_into_string import concat_files_into_string
 
-    base_path = os.path.join(os.path.dirname(__file__), 'test_data', 'currency_strategy1')
+    base_path = os.path.join(os.path.dirname(__file__), 'test_data', 'currency_strategy3')
 
     all_documents_string = concat_files_into_string(base_path)
     print(all_documents_string)

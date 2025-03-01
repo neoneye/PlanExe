@@ -1,0 +1,35 @@
+{
+  "physical_location_required": true,
+  "has_location_in_plan": true,
+  "requirements_for_the_locations": [
+    "near work",
+    "alternative commute"
+  ],
+  "locations": [
+    {
+      "item_index": 1,
+      "specific_location": "",
+      "suggest_location_broad": "Netherlands",
+      "suggest_location_detail": "Amsterdam",
+      "suggest_location_address": "",
+      "rationale_for_suggestion": "Existing home and work location in Amsterdam"
+    },
+    {
+      "item_index": 2,
+      "specific_location": "",
+      "suggest_location_broad": "Netherlands",
+      "suggest_location_detail": "Utrecht",
+      "suggest_location_address": "",
+      "rationale_for_suggestion": "Alternative city with good public transportation, relatively close to Amsterdam"
+    },
+    {
+      "item_index": 3,
+      "specific_location": "",
+      "suggest_location_broad": "Netherlands",
+      "suggest_location_detail": "Haarlem",
+      "suggest_location_address": "",
+      "rationale_for_suggestion": "Neighboring city with good public transportation, close to Amsterdam"
+    }
+  ],
+  "location_summary": "Alternative commute options from home to work in Amsterdam and nearby cities."
+}
