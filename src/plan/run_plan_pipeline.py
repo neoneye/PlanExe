@@ -16,6 +16,7 @@ from src.plan.filenames import FilenameEnum
 from src.plan.speedvsdetail import SpeedVsDetailEnum
 from src.plan.plan_file import PlanFile
 from src.plan.find_plan_prompt import find_plan_prompt
+from src.assume.physical_locations import PhysicalLocations
 from src.assume.make_assumptions import MakeAssumptions
 from src.assume.distill_assumptions import DistillAssumptions
 from src.expert.pre_project_assessment import PreProjectAssessment
@@ -75,6 +76,36 @@ class SetupTask(PlanTask):
         plan_prompt = find_plan_prompt("4dc34d55-0d0d-4e9d-92f4-23765f49dd29")
         plan_file = PlanFile.create(plan_prompt)
         plan_file.save(self.output().path)
+
+class PhysicalLocationsTask(PlanTask):
+    """
+    Identify/suggest physical locations for the plan.
+    Depends on:
+      - SetupTask (for the initial plan)
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def requires(self):
+        return SetupTask(run_id=self.run_id)
+
+    def output(self):
+        return luigi.LocalTarget(str(self.file_path(FilenameEnum.PHYSICAL_LOCATIONS_RAW)))
+
+    def run(self):
+        logger.info("Identify/suggest physical locations for the plan...")
+
+        # Read inputs from required tasks.
+        with self.input().open("r") as f:
+            plan_prompt = f.read()
+
+        llm = get_llm(self.llm_model)
+
+        physical_locations = PhysicalLocations.execute(llm, plan_prompt)
+
+        # Write the physical locations to disk.
+        raw_path = self.output().path
+        physical_locations.save_raw(str(raw_path))
+
 
 class MakeAssumptionsTask(PlanTask):
     """
@@ -1343,6 +1374,7 @@ class FullPlanPipeline(PlanTask):
     def requires(self):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'make_assumptions': MakeAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pre_project_assessment': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
