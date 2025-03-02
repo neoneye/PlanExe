@@ -63,8 +63,8 @@ Use the following guidelines:
 
 ### DocumentDetails
 - **physical_location_required** (bool):
-  - `true` if the user’s plan requires acquiring or using a new physical site (e.g., construction, large event, daily commute between addresses).
-  - `false` if no physical site is involved or no new location needs to be set up (e.g., a digital task, or the user already has a location that does not need further elaboration).
+  - `true` if the user’s plan requires acquiring or using a new physical site (e.g., construction, large event, daily commute between addresses) or using an existing location (e.g. repair bike in garage).
+  - `false` if no physical site is involved (e.g., a digital task).
 
 - **has_location_in_plan** (bool):
   - `true` if the user’s prompt *explicitly mentions or strongly implies* a physical location. This includes named locations (e.g., "Paris," "my office"), specific landmarks (e.g., "Eiffel Tower," "Grand Canyon"), or clear activities that inherently tie the plan to a location (e.g., "build a house," "open a restaurant"). **If the user's plan can *only* occur in a specific geographic area, consider it to have a location in the plan.**
@@ -86,7 +86,7 @@ Use the following guidelines:
 - **item_index** (string):
   - A unique integer (e.g., 1, 2, 3) for each location.
 - **specific_location** (string):
-  - If the user’s plan includes an exact address or site name, place it here. Otherwise leave blank.
+  - If the user’s plan includes an exact address or site name or vague description of a physical location, place it here. Otherwise leave blank.
 - **suggest_location_broad** (string):
   - A country or wide region (e.g., “USA,” “Region of North Denmark”).
 - **suggest_location_detail** (string):
