@@ -44,8 +44,8 @@ class DocumentDetails(BaseModel):
     has_location_in_plan: bool = Field(
         description="Is the location specified in the plan."
     )
-    requirements_for_the_locations: list[str] = Field(
-        description="List of requirements for well suited locations."
+    requirements_for_the_physical_locations: list[str] = Field(
+        description="List of requirements/constraints for well suited locations."
     )
     physical_locations: list[LocationItem] = Field(
         description="A list of physical locations."
@@ -67,11 +67,11 @@ Use the following guidelines:
   - `false` if the user’s plan requires acquiring or using a new physical site (e.g., construction, large event, daily commute between addresses) or using an existing location (e.g. repair bike in garage).
 
 - **has_location_in_plan** (bool):
-  - `true` if the user’s prompt *explicitly mentions or strongly implies* a physical location. This includes named locations (e.g., "Paris," "my office"), specific landmarks (e.g., "Eiffel Tower," "Grand Canyon"), or clear activities that inherently tie the plan to a location (e.g., "build a house," "open a restaurant"). **If the user's plan can *only* occur in a specific geographic area, consider it to have a location in the plan.**
+  - `true` if the user’s prompt *explicitly mentions or strongly implies* a physical location. This includes named locations (e.g., "Paris", "my office"), specific landmarks (e.g., "Eiffel Tower," "Grand Canyon"), or clear activities that inherently tie the plan to a location (e.g., "build a house", "open a restaurant"). **If the user's plan can *only* occur in a specific geographic area, consider it to have a location in the plan.**
   - `false` if the user’s prompt does not specify any location.
 
-- **requirements_for_the_locations** (list of strings):
-  - Key criteria or constraints relevant to location selection (e.g., “cheap labor,” “near highways,” “environmentally protected area”).
+- **requirements_for_the_physical_locations** (list of strings):
+  - Key criteria or constraints relevant to location selection (e.g., "cheap labor", "near highways", "near harbor", "environmentally protected area").
 
 - **physical_locations** (list of LocationItem):
   - A list of recommended or confirmed physical sites. 
@@ -88,13 +88,13 @@ Use the following guidelines:
 - **specific_location** (string):
   - If the user’s plan includes an exact address or site name or vague description of a physical location, place it here. Otherwise leave blank.
 - **suggest_location_broad** (string):
-  - A country or wide region (e.g., “USA,” “Region of North Denmark”).
+  - A country or wide region (e.g., "USA", "Region of North Denmark").
 - **suggest_location_detail** (string):
   - A more specific subdivision (city, district).
 - **suggest_location_address** (string):
   - A precise address or coordinate, if relevant.
 - **rationale_for_suggestion** (string):
-  - Why this location suits the plan (e.g., “near raw materials,” “close to highways,” “existing infrastructure”).
+  - Why this location suits the plan (e.g., "near raw materials", "close to highways", "existing infrastructure").
 
 ## Additional Instructions
 
@@ -103,7 +103,7 @@ Use the following guidelines:
    - Instead, set `"physical_locations": []` and add a short note in `location_summary` explaining that this is a purely digital task.
 
 2. **When the User Already Has a Location**  
-   - If `has_location_in_plan = true` and the user explicitly provided a place (e.g., “my home,” “my shop”), you can either:
+   - If `has_location_in_plan = true` and the user explicitly provided a place (e.g., "my home", "my shop"), you can either:
      - Use a single `LocationItem` to confirm or refine that address, **or**  
      - Provide multiple location items if the user is open to alternatives or further detail within the same area.  
 
@@ -125,7 +125,7 @@ Example scenarios:
   {
     "is_purely_digital": false,
     "has_location_in_plan": true,
-    "location_constraints": [],
+    "requirements_for_the_physical_locations": [],
     "physical_locations": [
       {
         "item_index": 1,
@@ -143,7 +143,7 @@ Example scenarios:
   {
     "is_purely_digital": true,
     "has_location_in_plan": false,
-    "requirements_for_the_locations": [],
+    "requirements_for_the_physical_locations": [],
     "physical_locations": [],
     "location_summary": "No physical site is required for this project, so no location suggestions are needed."
   }
