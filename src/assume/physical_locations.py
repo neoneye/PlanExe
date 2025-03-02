@@ -67,8 +67,8 @@ Use the following guidelines:
   - `false` if no physical site is involved or no new location needs to be set up (e.g., a digital task, or the user already has a location that does not need further elaboration).
 
 - **has_location_in_plan** (bool):
-  - `true` if the user’s prompt already provides or implies a physical location (e.g., “my home,” “my office,” “in Paris”).
-  - `false` if the user’s prompt does not specify any location, and you need to suggest one or more.
+  - `true` if the user’s prompt *explicitly mentions or strongly implies* a physical location. This includes named locations (e.g., "Paris," "my office"), specific landmarks (e.g., "Eiffel Tower," "Grand Canyon"), or clear activities that inherently tie the plan to a location (e.g., "build a house," "open a restaurant"). **If the user's plan can *only* occur in a specific geographic area, consider it to have a location in the plan.**
+  - `false` if the user’s prompt does not specify any location.
 
 - **requirements_for_the_locations** (list of strings):
   - Key criteria or constraints relevant to location selection (e.g., “cheap labor,” “near highways,” “environmentally protected area”).
@@ -122,6 +122,26 @@ Use the following guidelines:
 ---
 
 Example scenarios:
+
+- **Implied Location - Eiffel Tower:**
+  Given "Visit the Eiffel Tower."
+  The correct output is:
+  {
+    "physical_location_required": true,
+    "has_location_in_plan": true,
+    "location_constraints": [],
+    "locations": [
+      {
+        "item_index": 1,
+        "specific_location": "Eiffel Tower",
+        "suggest_location_broad": "France",
+        "suggest_location_detail": "Paris",
+        "suggest_location_address": "Champ de Mars, 5 Avenue Anatole France, 75007 Paris, France",
+        "rationale_for_suggestion": "The plan is to visit the Eiffel Tower, which is located in Paris, France."
+      }
+    ],
+    "location_summary": "The plan is to visit the Eiffel Tower, which is located in Paris, France. No other locations are needed."
+  }
 
 - **Purely Digital / No Location**  
   {
@@ -217,7 +237,7 @@ if __name__ == "__main__":
 
     llm = get_llm("ollama-llama3.1")
 
-    plan_prompt = find_plan_prompt("d3e10877-446f-4eb0-8027-864e923973b0")
+    plan_prompt = find_plan_prompt("de626417-4871-4acc-899d-2c41fd148807")
     query = (
         f"{plan_prompt}\n\n"
         "Today's date:\n2025-Feb-27\n\n"
