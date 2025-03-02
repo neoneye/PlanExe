@@ -71,13 +71,14 @@ Use the following guidelines:
   - `false` if the user’s prompt does not specify any location.
 
 - **requirements_for_the_physical_locations** (list of strings):
-  - Key criteria or constraints relevant to location selection (e.g., "cheap labor", "near highways", "near harbor", "environmentally protected area").
+  - Key criteria or constraints relevant to location selection (e.g., "cheap labor", "near highways", "near harbor", "space for 10-20 people").
 
 - **physical_locations** (list of LocationItem):
   - A list of recommended or confirmed physical sites. 
   - If the user’s prompt does not require any new location, this list can be **empty** (i.e., `[]`). 
-  - If the user does require a new site (and has no location in mind), provide **at least three** well-reasoned suggestions, each as a `LocationItem`. 
-  - If the user’s prompt already includes a specific location but does not need other suggestions, you may list just that location or clarify it in one `LocationItem`.
+  - If the user does require a new site (and has no location in mind), you **MUST** provide **three** well-reasoned suggestions, each as a `LocationItem`. 
+  - If the user’s prompt already includes a specific location but does not need other suggestions, you may list just that location, or clarify it in one `LocationItem` in addition to providing the other **three** well-reasoned suggestions.
+  - When suggesting locations, consider a variety of factors, such as accessibility, cost, zoning regulations, and proximity to relevant resources or amenities.
 
 - **location_summary** (string):
   - A concise explanation of why the listed sites (if any) are relevant, or—if no location is provided—why no location is necessary (e.g., “All tasks can be done with the user’s current setup; no new site required.”).
@@ -104,11 +105,11 @@ Use the following guidelines:
 
 2. **When the User Already Has a Location**  
    - If `has_location_in_plan = true` and the user explicitly provided a place (e.g., "my home", "my shop"), you can either:
-     - Use a single `LocationItem` to confirm or refine that address, **or**  
-     - Provide multiple location items if the user is open to alternatives or further detail within the same area.  
+     - Use a single `LocationItem` to confirm or refine that address in addition to the other **three** well-reasoned suggestions, **or**  
+     - Provide **three** location items of suggestions if the user is open to alternatives or further detail within the same area.  
 
 3. **When the User Needs Suggestions**  
-   - If `is_purely_digital = false` and `has_location_in_plan = false`, propose **at least three** distinct sites that satisfy the user’s requirements (unless the user’s plan logically needs only one or two, such as bridging two countries).
+   - If `is_purely_digital = false` and `has_location_in_plan = false`, you **MUST** propose **three** distinct sites that satisfy the user’s requirements.
 
 4. **location_summary** Consistency  
    - Always provide a summary that matches the `physical_locations` array. 
@@ -134,9 +135,25 @@ Example scenarios:
         "suggest_location_detail": "Paris",
         "suggest_location_address": "Champ de Mars, 5 Avenue Anatole France, 75007 Paris, France",
         "rationale_for_suggestion": "The plan is to visit the Eiffel Tower, which is located in Paris, France."
+      },
+      {
+        "item_index": 2,
+        "specific_location": "",
+        "suggest_location_broad": "France",
+        "suggest_location_detail": "Near Eiffel Tower, Paris",
+        "suggest_location_address": "5 Avenue Anatole France, 75007 Paris, France",
+        "rationale_for_suggestion": "A location near the Eiffel Tower would provide convenient access for individuals who also plan to visit the landmark."
+      },
+      {
+        "item_index": 3,
+        "specific_location": "",
+        "suggest_location_broad": "France",
+        "suggest_location_detail": "Central Paris",
+        "suggest_location_address": "Various locations in Central Paris",
+        "rationale_for_suggestion": "Central Paris offers a vibrant and accessible environment with numerous transportation options."
       }
     ],
-    "location_summary": "The plan is to visit the Eiffel Tower, which is located in Paris, France. No other physical_locations are needed."
+    "location_summary": "The plan is to visit the Eiffel Tower, which is located in Paris, France, in addition to a location near the Eiffel Tower and Central Paris."
   }
 
 - **Purely Digital / No Physical Location**
