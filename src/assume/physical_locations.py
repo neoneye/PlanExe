@@ -119,7 +119,7 @@ Use the following guidelines:
 
 Example scenarios:
 
-- **Implied Location - Eiffel Tower:**
+- **Implied Physical Location - Eiffel Tower:**
   Given "Visit the Eiffel Tower."
   The correct output is:
   {
@@ -139,13 +139,26 @@ Example scenarios:
     "location_summary": "The plan is to visit the Eiffel Tower, which is located in Paris, France. No other physical_locations are needed."
   }
 
-- **Purely Digital / No Location**  
+- **Purely Digital / No Physical Location**
+  Given "Print hello world in Python."
+  The correct output is:
   {
     "is_purely_digital": true,
     "has_location_in_plan": false,
     "requirements_for_the_physical_locations": [],
     "physical_locations": [],
-    "location_summary": "No physical site is required for this project, so no location suggestions are needed."
+    "location_summary": "This task is purely digital and needs no physical space."
+  }
+
+- **Purely Digital / Location - Paris**
+  Given "Write a blog post about Paris, listing the top attractions."
+  The correct output is:
+  {
+    "is_purely_digital": true,
+    "has_location_in_plan": false,
+    "requirements_for_the_physical_locations": [],
+    "physical_locations": [],
+    "location_summary": "This task is purely digital and needs no physical space. Even though Paris is the subject of the blog post, the plan itself doesn't require the writer to be in Paris."
   }
 """
 
