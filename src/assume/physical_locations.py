@@ -21,17 +21,14 @@ class LocationItem(BaseModel):
     item_index: int = Field(
         description="Enumeration of the locations, starting from 1."
     )
-    specific_location: str = Field(
-        description="If the plan has a specific location, provide the location. Otherwise leave it empty."
+    location_broad: str = Field(
+        description="A broad location for the project, such as a country or region. Use 'Global' if applicable."
     )
-    suggest_location_broad: str = Field(
-        description="Suggest a broad location for the project, such as a country or region."
-    )
-    suggest_location_detail: str = Field(
+    location_detailed: str = Field(
         description="Narrow down the location even more, such as a city name."
     )
-    suggest_location_address: str = Field(
-        description="Suggest a specific address, that is suitable for the project."
+    location_specific: str = Field(
+        description="Narrow down the location even more, such as a city name, region, or type of location (e.g., 'Oceanographic Research Centers')."
     )
     rationale_for_suggestion: str = Field(
         description="Explain why this particular location is suggested."
@@ -48,7 +45,7 @@ class DocumentDetails(BaseModel):
         description="List of requirements/constraints for well suited locations."
     )
     physical_locations: list[LocationItem] = Field(
-        description="A list of physical locations."
+        description="List of physical locations."
     )
     location_summary: str = Field(
         description="Providing a high level context."
@@ -75,7 +72,7 @@ Use the following guidelines:
 
 - **physical_locations** (list of LocationItem):
   - A list of recommended or confirmed physical sites. 
-  - If the user’s prompt does not require any new location, this list can be **empty** (i.e., `[]`). 
+  - If the user’s prompt does not require any location, this list can be **empty** (i.e., `[]`). 
   - If the user does require a new site (and has no location in mind), you **MUST** provide **three** well-reasoned suggestions, each as a `LocationItem`. 
   - If the user’s prompt already includes a specific location but does not need other suggestions, you may list just that location, or clarify it in one `LocationItem` in addition to providing the other **three** well-reasoned suggestions.
   - When suggesting locations, consider a variety of factors, such as accessibility, cost, zoning regulations, and proximity to relevant resources or amenities.
@@ -86,14 +83,12 @@ Use the following guidelines:
 ### LocationItem
 - **item_index** (string):
   - A unique integer (e.g., 1, 2, 3) for each location.
-- **specific_location** (string):
-  - If the user’s plan includes an exact address or site name or vague description of a physical location, place it here. Otherwise leave blank.
-- **suggest_location_broad** (string):
+- **location_broad** (string):
   - A country or wide region (e.g., "USA", "Region of North Denmark").
-- **suggest_location_detail** (string):
+- **location_detailed** (string):
   - A more specific subdivision (city, district).
-- **suggest_location_address** (string):
-  - A precise address or coordinate, if relevant.
+- **location_specific** (string):
+  - A precise address, if relevant.
 - **rationale_for_suggestion** (string):
   - Why this location suits the plan (e.g., "near raw materials", "close to highways", "existing infrastructure").
 
@@ -130,26 +125,23 @@ Example scenarios:
     "physical_locations": [
       {
         "item_index": 1,
-        "specific_location": "Eiffel Tower",
-        "suggest_location_broad": "France",
-        "suggest_location_detail": "Paris",
-        "suggest_location_address": "Champ de Mars, 5 Avenue Anatole France, 75007 Paris, France",
+        "location_broad": "France",
+        "location_detailed": "Eiffel Tower, Paris",
+        "location_address": "Champ de Mars, 5 Avenue Anatole France, 75007 Paris, France",
         "rationale_for_suggestion": "The plan is to visit the Eiffel Tower, which is located in Paris, France."
       },
       {
         "item_index": 2,
-        "specific_location": "",
-        "suggest_location_broad": "France",
-        "suggest_location_detail": "Near Eiffel Tower, Paris",
-        "suggest_location_address": "5 Avenue Anatole France, 75007 Paris, France",
+        "location_broad": "France",
+        "location_detailed": "Near Eiffel Tower, Paris",
+        "location_address": "5 Avenue Anatole France, 75007 Paris, France",
         "rationale_for_suggestion": "A location near the Eiffel Tower would provide convenient access for individuals who also plan to visit the landmark."
       },
       {
         "item_index": 3,
-        "specific_location": "",
-        "suggest_location_broad": "France",
-        "suggest_location_detail": "Central Paris",
-        "suggest_location_address": "Various locations in Central Paris",
+        "location_broad": "France",
+        "location_detailed": "Central Paris",
+        "location_address": "Various locations in Central Paris",
         "rationale_for_suggestion": "Central Paris offers a vibrant and accessible environment with numerous transportation options."
       }
     ],
