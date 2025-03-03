@@ -8,6 +8,7 @@ import json
 import time
 import logging
 from math import ceil
+from enum import Enum
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
@@ -15,6 +16,11 @@ from llama_index.core.llms.llm import LLM
 from src.format_json_for_use_in_query import format_json_for_use_in_query
 
 logger = logging.getLogger(__name__)
+
+class LowMediumHigh(str, Enum):
+    low = 'low'
+    medium = 'medium'
+    high = 'high'
 
 class RiskItem(BaseModel):
     risk_area: str = Field(
@@ -26,11 +32,11 @@ class RiskItem(BaseModel):
     potential_impact: str = Field(
         description="Possible consequences or adverse effects on the project if the risk materializes."
     )
-    likelihood: str = Field(
-        description="A qualitative measure (e.g., Low, Medium, High) indicating the probability that the risk will occur."
+    likelihood: LowMediumHigh = Field(
+        description="A qualitative measure (e.g., low, medium, high) indicating the probability that the risk will occur."
     )
-    severity: str = Field(
-        description="A qualitative measure (e.g., Low, Medium, High) describing the extent of the potential negative impact if the risk occurs."
+    severity: LowMediumHigh = Field(
+        description="A qualitative measure (e.g., low, medium, high) describing the extent of the potential negative impact if the risk occurs."
     )
     action: str = Field(
         description="Recommended mitigation strategies or steps to reduce the likelihood or impact of the risk."
@@ -76,8 +82,8 @@ Output your findings as a JSON object with the following structure:
       "risk_area": "The category or domain of the risk (e.g., Regulatory & Permitting)",
       "risk_description": "A detailed explanation outlining the specific nature of the risk.",
       "potential_impact": "Possible consequences or adverse effects on the project if the risk materializes, with quantifiable details where feasible.",
-      "likelihood": "A qualitative measure (Low, Medium, or High) indicating the probability that the risk will occur.",
-      "severity": "A qualitative measure (Low, Medium, or High) describing the potential negative impact if the risk occurs.",
+      "likelihood": "A qualitative measure (low, medium or high) indicating the probability that the risk will occur.",
+      "severity": "A qualitative measure (low, medium or high) describing the potential negative impact if the risk occurs.",
       "action": "Recommended mitigation strategies or steps to reduce the likelihood or impact of the risk."
     },
     ...
