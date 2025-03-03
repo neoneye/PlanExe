@@ -2,10 +2,11 @@ from enum import Enum
 
 class FilenameEnum(str, Enum):
     INITIAL_PLAN = "001-plan.txt"
-    PHYSICAL_LOCATIONS_RAW = "002-1-physical_locations_raw.json"
-    CURRENCY_STRATEGY_RAW = "002-2-currency_strategy_raw.json"
-    MAKE_ASSUMPTIONS_RAW = "002-3-make_assumptions_raw.json"
-    MAKE_ASSUMPTIONS = "002-4-make_assumptions.json"
+    PLAN_TYPE_RAW = "002-1-plan_type_raw.json"
+    PHYSICAL_LOCATIONS_RAW = "002-2-physical_locations_raw.json"
+    CURRENCY_STRATEGY_RAW = "002-3-currency_strategy_raw.json"
+    MAKE_ASSUMPTIONS_RAW = "002-4-make_assumptions_raw.json"
+    MAKE_ASSUMPTIONS = "002-5-make_assumptions.json"
     DISTILL_ASSUMPTIONS_RAW = "003-distill_assumptions.json"
     PRE_PROJECT_ASSESSMENT_RAW = "004-1-pre_project_assessment_raw.json"
     PRE_PROJECT_ASSESSMENT = "004-2-pre_project_assessment.json"

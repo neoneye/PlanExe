@@ -16,6 +16,7 @@ from src.plan.filenames import FilenameEnum
 from src.plan.speedvsdetail import SpeedVsDetailEnum
 from src.plan.plan_file import PlanFile
 from src.plan.find_plan_prompt import find_plan_prompt
+from src.assume.identify_plan_type import IdentifyPlanType
 from src.assume.physical_locations import PhysicalLocations
 from src.assume.currency_strategy import CurrencyStrategy
 from src.assume.make_assumptions import MakeAssumptions
@@ -78,9 +79,9 @@ class SetupTask(PlanTask):
         plan_file = PlanFile.create(plan_prompt)
         plan_file.save(self.output().path)
 
-class PhysicalLocationsTask(PlanTask):
+class PlanTypeTask(PlanTask):
     """
-    Identify/suggest physical locations for the plan.
+    Determine if the plan is purely digital or requires physical locations.
     Depends on:
       - SetupTask (for the initial plan)
     """
@@ -90,10 +91,10 @@ class PhysicalLocationsTask(PlanTask):
         return SetupTask(run_id=self.run_id)
 
     def output(self):
-        return luigi.LocalTarget(str(self.file_path(FilenameEnum.PHYSICAL_LOCATIONS_RAW)))
+        return luigi.LocalTarget(str(self.file_path(FilenameEnum.PLAN_TYPE_RAW)))
 
     def run(self):
-        logger.info("Identify/suggest physical locations for the plan...")
+        logger.info("Identifying PlanType of the plan...")
 
         # Read inputs from required tasks.
         with self.input().open("r") as f:
@@ -101,12 +102,57 @@ class PhysicalLocationsTask(PlanTask):
 
         llm = get_llm(self.llm_model)
 
-        physical_locations = PhysicalLocations.execute(llm, plan_prompt)
+        identify_plan_type = IdentifyPlanType.execute(llm, plan_prompt)
 
-        # Write the physical locations to disk.
+        # Write the result to disk.
         raw_path = self.output().path
-        physical_locations.save_raw(str(raw_path))
+        identify_plan_type.save_raw(str(raw_path))
 
+
+class PhysicalLocationsTask(PlanTask):
+    """
+    Identify/suggest physical locations for the plan.
+    Depends on:
+      - SetupTask (for the initial plan)
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def requires(self):
+        return {
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+
+    def output(self):
+        return luigi.LocalTarget(str(self.file_path(FilenameEnum.PHYSICAL_LOCATIONS_RAW)))
+
+    def run(self):
+        logger.info("Identify/suggest physical locations for the plan...")
+
+        # Read inputs from required tasks.
+        with self.input()['setup'].open("r") as f:
+            plan_prompt = f.read()
+
+        with self.input()['plan_type'].open("r") as f:
+            plan_type_dict = json.load(f)
+
+        output_path = self.output().path
+
+        llm = get_llm(self.llm_model)
+
+        plan_type = plan_type_dict.get("plan_type")
+        if plan_type == "physical":
+            physical_locations = PhysicalLocations.execute(llm, plan_prompt)
+
+            # Write the physical locations to disk.
+            physical_locations.save_raw(str(output_path))
+        else:
+            # Write an empty file to indicate that there are no physical locations.
+            data = {
+                "comment": "The plan is purely digital, without any physical locations."
+            }
+            with open(output_path, "w") as f:
+                json.dump(data, f, indent=2)
 
 class CurrencyStrategyTask(PlanTask):
     """
@@ -1418,6 +1464,7 @@ class FullPlanPipeline(PlanTask):
     def requires(self):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'currency_strategy': CurrencyStrategyTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'make_assumptions': MakeAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
