@@ -17,21 +17,21 @@ from llama_index.core.llms.llm import LLM
 
 logger = logging.getLogger(__name__)
 
-class LocationItem(BaseModel):
+class PhysicalLocationItem(BaseModel):
     item_index: int = Field(
         description="Enumeration of the locations, starting from 1."
     )
-    location_broad: str = Field(
+    physical_location_broad: str = Field(
         description="A broad location for the project, such as a country or region. Use 'Global' if applicable."
     )
-    location_detailed: str = Field(
-        description="Narrow down the location even more, such as a city name."
+    physical_location_detailed: str = Field(
+        description="Narrow down the physical location even more, such as a city name."
     )
-    location_specific: str = Field(
-        description="Narrow down the location even more, such as a city name, region, or type of location (e.g., 'Oceanographic Research Centers')."
+    physical_location_specific: str = Field(
+        description="Narrow down the physical location even more, such as a city name, region, or type of location (e.g., 'Oceanographic Research Centers')."
     )
     rationale_for_suggestion: str = Field(
-        description="Explain why this particular location is suggested."
+        description="Explain why this particular physical location is suggested."
     )
 
 class DocumentDetails(BaseModel):
@@ -44,7 +44,7 @@ class DocumentDetails(BaseModel):
     requirements_for_the_physical_locations: list[str] = Field(
         description="List of requirements/constraints for well suited locations."
     )
-    physical_locations: list[LocationItem] = Field(
+    physical_locations: list[PhysicalLocationItem] = Field(
         description="List of physical locations."
     )
     location_summary: str = Field(
@@ -52,7 +52,7 @@ class DocumentDetails(BaseModel):
     )
 
 PHYSICAL_LOCATIONS_SYSTEM_PROMPT = """
-You are a world-class planning expert specializing in real-world physical locations. Your goal is to generate a JSON response that follows the `DocumentDetails` and `LocationItem` models precisely. 
+You are a world-class planning expert specializing in real-world physical locations. Your goal is to generate a JSON response that follows the `DocumentDetails` and `PhysicalLocationItem` models precisely. 
 
 Use the following guidelines:
 
@@ -70,24 +70,24 @@ Use the following guidelines:
 - **requirements_for_the_physical_locations** (list of strings):
   - Key criteria or constraints relevant to location selection (e.g., "cheap labor", "near highways", "near harbor", "space for 10-20 people").
 
-- **physical_locations** (list of LocationItem):
+- **physical_locations** (list of PhysicalLocationItem):
   - A list of recommended or confirmed physical sites. 
   - If the user’s prompt does not require any location, this list can be **empty** (i.e., `[]`). 
-  - If the user does require a new site (and has no location in mind), you **MUST** provide **three** well-reasoned suggestions, each as a `LocationItem`. 
-  - If the user’s prompt already includes a specific location but does not need other suggestions, you may list just that location, or clarify it in one `LocationItem` in addition to providing the other **three** well-reasoned suggestions.
+  - If the user does require a new site (and has no location in mind), you **MUST** provide **three** well-reasoned suggestions, each as a `PhysicalLocationItem`. 
+  - If the user’s prompt already includes a specific location but does not need other suggestions, you may list just that location, or clarify it in one `PhysicalLocationItem` in addition to providing the other **three** well-reasoned suggestions.
   - When suggesting locations, consider a variety of factors, such as accessibility, cost, zoning regulations, and proximity to relevant resources or amenities.
 
 - **location_summary** (string):
   - A concise explanation of why the listed sites (if any) are relevant, or—if no location is provided—why no location is necessary (e.g., “All tasks can be done with the user’s current setup; no new site required.”).
 
-### LocationItem
+### PhysicalLocationItem
 - **item_index** (string):
   - A unique integer (e.g., 1, 2, 3) for each location.
-- **location_broad** (string):
+- **physical_location_broad** (string):
   - A country or wide region (e.g., "USA", "Region of North Denmark").
-- **location_detailed** (string):
+- **physical_location_detailed** (string):
   - A more specific subdivision (city, district).
-- **location_specific** (string):
+- **physical_location_specific** (string):
   - A precise address, if relevant.
 - **rationale_for_suggestion** (string):
   - Why this location suits the plan (e.g., "near raw materials", "close to highways", "existing infrastructure").
@@ -100,7 +100,7 @@ Use the following guidelines:
 
 2. **When the User Already Has a Location**  
    - If `has_location_in_plan = true` and the user explicitly provided a place (e.g., "my home", "my shop"), you can either:
-     - Use a single `LocationItem` to confirm or refine that address in addition to the other **three** well-reasoned suggestions, **or**  
+     - Use a single `PhysicalLocationItem` to confirm or refine that address in addition to the other **three** well-reasoned suggestions, **or**  
      - Provide **three** location items of suggestions if the user is open to alternatives or further detail within the same area.  
 
 3. **When the User Needs Suggestions**  
@@ -125,23 +125,23 @@ Example scenarios:
     "physical_locations": [
       {
         "item_index": 1,
-        "location_broad": "France",
-        "location_detailed": "Eiffel Tower, Paris",
-        "location_address": "Champ de Mars, 5 Avenue Anatole France, 75007 Paris, France",
+        "physical_location_broad": "France",
+        "physical_location_detailed": "Eiffel Tower, Paris",
+        "physical_location_specific": "Champ de Mars, 5 Avenue Anatole France, 75007 Paris, France",
         "rationale_for_suggestion": "The plan is to visit the Eiffel Tower, which is located in Paris, France."
       },
       {
         "item_index": 2,
-        "location_broad": "France",
-        "location_detailed": "Near Eiffel Tower, Paris",
-        "location_address": "5 Avenue Anatole France, 75007 Paris, France",
+        "physical_location_broad": "France",
+        "physical_location_detailed": "Near Eiffel Tower, Paris",
+        "physical_location_specific": "5 Avenue Anatole France, 75007 Paris, France",
         "rationale_for_suggestion": "A location near the Eiffel Tower would provide convenient access for individuals who also plan to visit the landmark."
       },
       {
         "item_index": 3,
-        "location_broad": "France",
-        "location_detailed": "Central Paris",
-        "location_address": "Various locations in Central Paris",
+        "physical_location_broad": "France",
+        "physical_location_detailed": "Central Paris",
+        "physical_location_specific": "Various locations in Central Paris",
         "rationale_for_suggestion": "Central Paris offers a vibrant and accessible environment with numerous transportation options."
       }
     ],
