@@ -114,6 +114,7 @@ class PhysicalLocationsTask(PlanTask):
     Identify/suggest physical locations for the plan.
     Depends on:
       - SetupTask (for the initial plan)
+      - PlanTypeTask (for the plan type)
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
@@ -164,6 +165,7 @@ class CurrencyStrategyTask(PlanTask):
     Identify/suggest what currency to use for the plan, depending on the physical locations.
     Depends on:
       - SetupTask (for the initial plan)
+      - PlanTypeTask (for the plan type)
       - PhysicalLocationsTask (for the physical locations)
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
@@ -171,6 +173,7 @@ class CurrencyStrategyTask(PlanTask):
     def requires(self):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
@@ -184,12 +187,16 @@ class CurrencyStrategyTask(PlanTask):
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
 
+        with self.input()['plan_type'].open("r") as f:
+            plan_type_dict = json.load(f)
+
         physical_locations_target = self.input()['physical_locations']
         with physical_locations_target.open("r") as f:
             physical_locations_data = json.load(f)
 
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
+            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
             f"File 'physical_locations.json':\n{format_json_for_use_in_query(physical_locations_data)}"
         )
 
