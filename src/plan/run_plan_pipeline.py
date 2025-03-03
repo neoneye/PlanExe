@@ -142,7 +142,12 @@ class PhysicalLocationsTask(PlanTask):
 
         plan_type = plan_type_dict.get("plan_type")
         if plan_type == "physical":
-            physical_locations = PhysicalLocations.execute(llm, plan_prompt)
+            query = (
+                f"File 'plan.txt':\n{plan_prompt}\n\n"
+                f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}"
+            )
+
+            physical_locations = PhysicalLocations.execute(llm, query)
 
             # Write the physical locations to disk.
             physical_locations.save_raw(str(output_path))
