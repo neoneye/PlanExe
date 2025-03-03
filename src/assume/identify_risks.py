@@ -1,6 +1,11 @@
 """
 Identify risks in the project plan.
 
+As of 2025-03-03, the result is sensitive to what LLM is being used.
+- Good `openrouter-paid-gemini-2.0-flash-001`.
+- Medium `openrouter-paid-openai-gpt-4o-mini`.
+- Bad `ollama-llama3.1`.
+
 PROMPT> python -m src.assume.identify_risks
 """
 import os
