@@ -1,7 +1,9 @@
 """
-Pick suitable locations for the project plan. If the description already includes the location, then there is no need for this step.
-If the location is not mentioned, then the expert should suggest suitable locations based on the project requirements.
-There may be multiple locations, in case a bridge is to be built between two countries.
+Pick suitable physical locations for the project plan. 
+- If the plan is purely digital and can be executed without any physical location, then there is no need to run this step.
+- If the user prompt already includes the physical location, then include that location in the response.
+- If the user prompt does not mention any location, then the expert should suggest suitable locations based on the project requirements.
+- There may be multiple locations, in case a bridge is to be built between two countries.
 
 PROMPT> python -m src.assume.physical_locations
 """
@@ -35,9 +37,6 @@ class PhysicalLocationItem(BaseModel):
     )
 
 class DocumentDetails(BaseModel):
-    is_purely_digital: bool = Field(
-        description="Can this plan be executed without any physical location."
-    )
     has_location_in_plan: bool = Field(
         description="Is the location specified in the plan."
     )
@@ -59,10 +58,6 @@ Use the following guidelines:
 ## JSON Models
 
 ### DocumentDetails
-- **is_purely_digital** (bool):
-  - `true` if it's a digital task, that doesn't require any physical location (e.g., automated coding, automated writing).
-  - `false` if the user’s plan requires acquiring or using a new physical site (e.g., construction, large event, daily commute between addresses) or using an existing location (e.g. repair bike in garage).
-
 - **has_location_in_plan** (bool):
   - `true` if the user’s prompt *explicitly mentions or strongly implies* a physical location. This includes named locations (e.g., "Paris", "my office"), specific landmarks (e.g., "Eiffel Tower," "Grand Canyon"), or clear activities that inherently tie the plan to a location (e.g., "build a house", "open a restaurant"). **If the user's plan can *only* occur in a specific geographic area, consider it to have a location in the plan.**
   - `false` if the user’s prompt does not specify any location.
@@ -72,8 +67,8 @@ Use the following guidelines:
 
 - **physical_locations** (list of PhysicalLocationItem):
   - A list of recommended or confirmed physical sites. 
-  - If the user’s prompt does not require any location, this list can be **empty** (i.e., `[]`). 
-  - If the user does require a new site (and has no location in mind), you **MUST** provide **three** well-reasoned suggestions, each as a `PhysicalLocationItem`. 
+  - If the user’s prompt does not require any location, then you **MUST** suggest **three** well-reasoned suggestions.
+  - If the user does require a new site (and has no location in mind), you **MUST** provide **three** well-reasoned suggestions. 
   - If the user’s prompt already includes a specific location but does not need other suggestions, you may list just that location, or clarify it in one `PhysicalLocationItem` in addition to providing the other **three** well-reasoned suggestions.
   - When suggesting locations, consider a variety of factors, such as accessibility, cost, zoning regulations, and proximity to relevant resources or amenities.
 
@@ -94,21 +89,16 @@ Use the following guidelines:
 
 ## Additional Instructions
 
-1. **When No New Physical Site Is Needed**  
-   - If `is_purely_digital = true` and there is no need to suggest an address, **do not** create an empty placeholder in `physical_locations`.  
-   - Instead, set `"physical_locations": []` and add a short note in `location_summary` explaining that this is a purely digital task.
-
-2. **When the User Already Has a Location**  
+1. **When the User Already Has a Location**  
    - If `has_location_in_plan = true` and the user explicitly provided a place (e.g., "my home", "my shop"), you can either:
      - Use a single `PhysicalLocationItem` to confirm or refine that address in addition to the other **three** well-reasoned suggestions, **or**  
      - Provide **three** location items of suggestions if the user is open to alternatives or further detail within the same area.  
 
-3. **When the User Needs Suggestions**  
-   - If `is_purely_digital = false` and `has_location_in_plan = false`, you **MUST** propose **three** distinct sites that satisfy the user’s requirements.
+2. **When the User Needs Suggestions**  
+   - If `has_location_in_plan = false`, you **MUST** propose **three** distinct sites that satisfy the user’s requirements.
 
-4. **location_summary** Consistency  
+3. **location_summary** Consistency  
    - Always provide a summary that matches the `physical_locations` array. 
-   - If no location is included, explain **why** (e.g., “This task is purely online and needs no physical space.”). 
    - If multiple locations are provided, summarize how each meets the user’s needs.
 
 ---
@@ -119,7 +109,6 @@ Example scenarios:
   Given "Visit the Eiffel Tower."
   The correct output is:
   {
-    "is_purely_digital": false,
     "has_location_in_plan": true,
     "requirements_for_the_physical_locations": [],
     "physical_locations": [
@@ -146,28 +135,6 @@ Example scenarios:
       }
     ],
     "location_summary": "The plan is to visit the Eiffel Tower, which is located in Paris, France, in addition to a location near the Eiffel Tower and Central Paris."
-  }
-
-- **Purely Digital / No Physical Location**
-  Given "Print hello world in Python."
-  The correct output is:
-  {
-    "is_purely_digital": true,
-    "has_location_in_plan": false,
-    "requirements_for_the_physical_locations": [],
-    "physical_locations": [],
-    "location_summary": "This task is purely digital and needs no physical space."
-  }
-
-- **Purely Digital / Location - Paris**
-  Given "Write a blog post about Paris, listing the top attractions."
-  The correct output is:
-  {
-    "is_purely_digital": true,
-    "has_location_in_plan": false,
-    "requirements_for_the_physical_locations": [],
-    "physical_locations": [],
-    "location_summary": "This task is purely digital and needs no physical space. Even though Paris is the subject of the blog post, the plan itself doesn't require the writer to be in Paris."
   }
 """
 
