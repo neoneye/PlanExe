@@ -23,28 +23,56 @@ class PlanType(str, Enum):
     physical = 'physical'
 
 class DocumentDetails(BaseModel):
+    explanation: str = Field(
+        description="Providing a high level context."
+    )
     plan_type: PlanType = Field(
         description="Classify the type of plan."
     )
-    summary: str = Field(
-        description="Providing a high level context."
-    )
 
 PLAN_TYPE_SYSTEM_PROMPT = """
-You are a world-class planning expert specializing in real-world physical locations. Your goal is to generate a JSON response that follows the `DocumentDetails` model precisely. 
+You are a world-class planning expert specializing in real-world physical locations. Your *default assumption* should be that a plan *requires* a physical element. You are trying to identify plans that lead to actionable, real-world outcomes. Only classify a plan as "digital" if you are *absolutely certain* it can be executed entirely online *without any benefit* from a physical activity or location.
 
 Use the following guidelines:
 
 ## JSON Model
 
 ### DocumentDetails
-- **plan_type** (PlanType):
-  - `digital` if it's a digital task, that doesn't require any physical location (e.g., automated coding, automated writing).
-  - `physical` if the user’s plan requires acquiring or using a new physical site (e.g., construction, large event, daily commute between addresses) or using an existing location (e.g. repair bike in garage).
+- **explanation** (string):
+  - A *detailed* explanation of why the plan type was chosen. You must *justify* your choice, especially if you classify a plan as "digital".
+  - If `plan_type` is `digital`, you *must* clearly explain why the plan can be fully automated, has no physical requirements *whatsoever*, and *gains no benefit* from a physical presence.
 
-- **summary** (string):
-  - A concise explanation of why physical locations are relevant. 
-  - If no physical location is necessary, explain **why** (e.g., "A LLM can generate the python code", "This task is purely online and needs no physical space.").
+- **plan_type** (PlanType):
+  - `physical` if the user’s plan *might* involve a physical location, *could benefit* from a physical activity, or *requires* a physical resource. **If there's *any doubt*, classify the plan as `physical`. Examples include: shopping, travel, preparation, setup, construction, repair, in-person meetings, physical testing of products, etc.**
+  - `digital` only if the plan can *exclusively* be completed online with absolutely no benefit from a physical presence.
+
+---
+
+## Recognizing Implied Physical Requirements
+
+Even if a plan *seems* primarily digital or abstract, carefully consider its *implied physical requirements*. These are common, often overlooked actions needed to make the plan happen:
+
+- **Acquiring materials:** Does the plan require buying supplies at a store (e.g., groceries, hardware, art supplies, software)?
+- **Preparation:** Does the plan require physical preparation or setup (e.g., cooking, setting up equipment, cleaning a space, installing software)?
+- **Testing:** Does the plan involve testing a product or service in a real-world environment?
+- **Development:** Does the plan involve physical location for development or meetings?
+- **Transportation:** Does the plan involve traveling to a location, even if the main activity is digital (e.g., working from a coffee shop)?
+- **Location:** Do you want to work in a specific location?
+
+If a plan has *any* of these implied physical requirements, it should be classified as `physical`.
+
+---
+
+## Addressing "Software Development" Plans
+
+Creating software often *seems* purely digital, but it rarely is. Consider these physical elements:
+
+- **Development Environment:** Developers need a physical workspace (home office, co-working space, office).
+- **Physical Hardware:** Developers need a computer, keyboard, monitor, etc.
+- **Collaboration:** Software projects often involve in-person meetings and collaboration.
+- **Testing:** Software often needs to be tested on physical devices (phones, tablets, computers, etc.) in real-world conditions.
+
+**Therefore, plans involving software development should generally be classified as `physical` unless they are extremely simple and can be completed entirely in the cloud with no human interaction.**
 
 ---
 
@@ -54,24 +82,84 @@ Example scenarios:
   Given "Visit the Eiffel Tower."
   The correct output is:
   {
-    "plan_type": "physical",
-    "summary": "The plan is to visit the Eiffel Tower, which is located in Paris, France."
+    "explanation": "The plan *unequivocally requires* a physical presence in Paris, France.",
+    "plan_type": "physical"
   }
 
 - **Purely Digital / No Physical Location**
   Given "Print hello world in Python."
   The correct output is:
   {
-    "plan_type": "digital",
-    "summary": "This task is purely digital and needs no physical space. A LLM can generate the python code."
+    "explanation": "This task is *unquestionably* digital. A LLM can generate the python code; no human or physical task is involved.",
+    "plan_type": "digital"
   }
 
-- **Purely Digital / Location - Paris**
+- **Implied Physical Requirement - Developing a mobile app**
+  Given "The plan involves creating a mobile app."
+  The correct output is:
+  {
+    "explanation": "The plan involves creating a mobile app. This requires developers that requires location for the workspace, as well testing the app in real-world environments.",
+    "plan_type": "physical"
+  }
+
+- **Location - Paris / Requires On-site Research**
+  Given "Write a blog post about Paris, my travel journal with real photos."
+  The correct output is:
+  {
+    "explanation": "Taking high-quality photographs of Paris requires on-site research and physical travel to those locations. This has a *clear* physical element.",
+    "plan_type": "physical"
+  }
+
+- **Location - Paris / Requires No Physical Location**
   Given "Write a blog post about Paris, listing the top attractions."
   The correct output is:
   {
-    "plan_type": "digital",
-    "summary": "Even though Paris is the subject of the blog post, the plan itself doesn't require the writer to be in Paris. A LLM can generate the blog post."
+    "explanation": "While Paris is the subject, the plan *doesn't* require the writer to be in Paris. The content can be created online.",
+    "plan_type": "digital"
+  }
+
+- **Implied Physical Requirement - Grocery Shopping:**
+  Given "Make spaghetti for dinner."
+  The correct output is:
+  {
+    "explanation": "Making spaghetti *requires* grocery shopping, followed by physical cooking. This *inherently involves* physical components.",
+    "plan_type": "physical"
+  }
+
+- **Implied Physical Requirement - Home Repair:**
+  Given "Fix a leaky faucet."
+  The correct output is:
+  {
+    "explanation": "Fixing a leaky faucet *requires* physically inspecting it, acquiring tools, and performing the repair. This is *clearly* a physical task.",
+    "plan_type": "physical"
+  }
+
+- **INCORRECT - Digital (Grocery Shopping Wrongly Ignored):**
+  Given "Bake a cake for my friend's birthday."
+  The **incorrect** output is:
+  {
+    "explanation": "Baking is a creative activity that can be planned online.",
+    "plan_type": "digital"
+  }
+
+  The **correct** output is:
+  {
+    "explanation": "Baking a cake *unquestionably requires* shopping for ingredients and physical baking. This is *clearly* a physical task.",
+    "plan_type": "physical"
+  }
+
+- **INCORRECT - Digital (Implied Travel Wrongly Ignored):**
+  Given "Work on my presentation at a coffee shop."
+  The **incorrect** output is:
+  {
+    "explanation": "The primary task is working on a digital presentation.",
+    "plan_type": "digital"
+  }
+
+  The **correct** output is:
+  {
+    "explanation": "Working at a coffee shop *requires* traveling to the coffee shop. This *automatically* makes it a physical task.",
+    "plan_type": "physical"
   }
 """
 
