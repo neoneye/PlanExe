@@ -147,6 +147,7 @@ class PhysicalLocations:
     user_prompt: str
     response: dict
     metadata: dict
+    markdown: str
 
     @classmethod
     def execute(cls, llm: LLM, user_prompt: str) -> 'PhysicalLocations':
@@ -194,11 +195,14 @@ class PhysicalLocations:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
+        markdown = cls.convert_to_markdown(chat_response.raw)
+
         result = PhysicalLocations(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
             metadata=metadata,
+            markdown=markdown
         )
         return result
     
@@ -215,6 +219,43 @@ class PhysicalLocations:
     def save_raw(self, file_path: str) -> None:
         with open(file_path, 'w') as f:
             f.write(json.dumps(self.to_dict(), indent=2))
+
+    def convert_to_markdown(document_details: DocumentDetails) -> str:
+        """
+        Convert the raw document details to markdown.
+        """
+        rows = []
+
+        value = "Yes" if document_details.has_location_in_plan else "No"
+        rows.append(f"**Has Location in Plan**: {value}")
+
+        rows.append("\n## Requirements\n")
+        for requirement in document_details.requirements_for_the_physical_locations:
+            rows.append(f"- {requirement}")
+        if len(document_details.requirements_for_the_physical_locations) == 0:
+            rows.append("- No requirements specified.")
+        
+        rows.append("\n## Locations")
+        for location_index, location in enumerate(document_details.physical_locations, start=1):
+            if location_index == 1:
+                rows.append("")
+            rows.append(f"### Location {location_index}")
+            physical_location_broad = location.physical_location_broad.strip()
+            physical_location_detailed = location.physical_location_detailed.strip()
+            physical_location_specific = location.physical_location_specific.strip()
+            missing_location = (len(physical_location_broad) + len(physical_location_detailed) + len(physical_location_specific)) == 0
+            if len(physical_location_broad) > 0:
+                rows.append(f"{physical_location_broad}\n")
+            if len(physical_location_detailed) > 0:
+                rows.append(f"{physical_location_detailed}\n")
+            if len(physical_location_specific) > 0:
+                rows.append(f"{physical_location_specific}\n")
+            if missing_location:
+                rows.append("Missing location info.\n")
+            rows.append(f"**Rationale**: {location.rationale_for_suggestion}")
+        
+        rows.append(f"\n## Summary\n{document_details.location_summary}")
+        return "\n".join(rows)
 
 if __name__ == "__main__":
     from src.llm_factory import get_llm
@@ -234,3 +275,5 @@ if __name__ == "__main__":
     json_response = physical_locations.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
+
+    print(f"\n\nMarkdown:\n{physical_locations.markdown}")
