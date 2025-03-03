@@ -19,6 +19,7 @@ from src.plan.find_plan_prompt import find_plan_prompt
 from src.assume.identify_plan_type import IdentifyPlanType
 from src.assume.physical_locations import PhysicalLocations
 from src.assume.currency_strategy import CurrencyStrategy
+from src.assume.identify_risks import IdentifyRisks
 from src.assume.make_assumptions import MakeAssumptions
 from src.assume.distill_assumptions import DistillAssumptions
 from src.expert.pre_project_assessment import PreProjectAssessment
@@ -190,23 +191,76 @@ class CurrencyStrategyTask(PlanTask):
         with self.input()['plan_type'].open("r") as f:
             plan_type_dict = json.load(f)
 
-        physical_locations_target = self.input()['physical_locations']
-        with physical_locations_target.open("r") as f:
-            physical_locations_data = json.load(f)
+        with self.input()['physical_locations'].open("r") as f:
+            physical_locations_dict = json.load(f)
 
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
             f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
-            f"File 'physical_locations.json':\n{format_json_for_use_in_query(physical_locations_data)}"
+            f"File 'physical_locations.json':\n{format_json_for_use_in_query(physical_locations_dict)}"
         )
 
         llm = get_llm(self.llm_model)
 
         currency_strategy = CurrencyStrategy.execute(llm, query)
 
-        # Write the physical locations to disk.
+        # Write the result to disk.
         raw_path = self.output().path
         currency_strategy.save_raw(str(raw_path))
+
+
+class IdentifyRisksTask(PlanTask):
+    """
+    Identify risks for the plan, depending on the physical locations.
+    Depends on:
+      - SetupTask (for the initial plan)
+      - PlanTypeTask (for the plan type)
+      - PhysicalLocationsTask (for the physical locations)
+      - CurrencyStrategy (for the currency strategy)
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def requires(self):
+        return {
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'currency_strategy': CurrencyStrategyTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+
+    def output(self):
+        return luigi.LocalTarget(str(self.file_path(FilenameEnum.IDENTIFY_RISKS_RAW)))
+
+    def run(self):
+        logger.info("Identifying risks for the plan...")
+
+        # Read inputs from required tasks.
+        with self.input()['setup'].open("r") as f:
+            plan_prompt = f.read()
+
+        with self.input()['plan_type'].open("r") as f:
+            plan_type_dict = json.load(f)
+
+        with self.input()['physical_locations'].open("r") as f:
+            physical_locations_dict = json.load(f)
+
+        with self.input()['currency_strategy'].open("r") as f:
+            currency_strategy_dict = json.load(f)
+
+        query = (
+            f"File 'plan.txt':\n{plan_prompt}\n\n"
+            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
+            f"File 'physical_locations.json':\n{format_json_for_use_in_query(physical_locations_dict)}\n\n"
+            f"File 'currency_strategy.json':\n{format_json_for_use_in_query(currency_strategy_dict)}"
+        )
+
+        llm = get_llm(self.llm_model)
+
+        identify_risks = IdentifyRisks.execute(llm, query)
+
+        # Write the result to disk.
+        raw_path = self.output().path
+        identify_risks.save_raw(str(raw_path))
 
 
 class MakeAssumptionsTask(PlanTask):
@@ -1479,6 +1533,7 @@ class FullPlanPipeline(PlanTask):
             'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'currency_strategy': CurrencyStrategyTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'identify_risks': IdentifyRisksTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'make_assumptions': MakeAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pre_project_assessment': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),

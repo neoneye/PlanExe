@@ -153,6 +153,10 @@ class IdentifyRisks:
             d['user_prompt'] = self.user_prompt
         return d
 
+    def save_raw(self, file_path: str) -> None:
+        with open(file_path, 'w') as f:
+            f.write(json.dumps(self.to_dict(), indent=2))
+
 if __name__ == "__main__":
     from src.llm_factory import get_llm
     from src.plan.find_plan_prompt import find_plan_prompt
