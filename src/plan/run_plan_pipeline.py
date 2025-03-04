@@ -345,7 +345,7 @@ class MakeAssumptionsTask(PlanTask):
 
         make_assumptions = MakeAssumptions.execute(llm, query)
 
-        # Write the assumptions to disk.
+        # Write the result to disk.
         output_raw_path = self.output()['raw'].path
         make_assumptions.save_raw(str(output_raw_path))
         output_clean_path = self.output()['clean'].path
@@ -370,7 +370,10 @@ class DistillAssumptionsTask(PlanTask):
         }
 
     def output(self):
-        return luigi.LocalTarget(str(self.file_path(FilenameEnum.DISTILL_ASSUMPTIONS_RAW)))
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.DISTILL_ASSUMPTIONS_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.DISTILL_ASSUMPTIONS_MARKDOWN)))
+        }
 
     def run(self):
         logger.info("Distilling assumptions...")
@@ -394,9 +397,11 @@ class DistillAssumptionsTask(PlanTask):
 
         distill_assumptions = DistillAssumptions.execute(llm, query)
 
-        # Save the raw output.
-        file_path = self.output().path
-        distill_assumptions.save_raw(str(file_path))
+        # Write the result to disk.
+        output_raw_path = self.output()['raw'].path
+        distill_assumptions.save_raw(str(output_raw_path))
+        output_markdown_path = self.output()['markdown'].path
+        distill_assumptions.save_markdown(str(output_markdown_path))
 
 
 class PreProjectAssessmentTask(PlanTask):
@@ -464,7 +469,7 @@ class ProjectPlanTask(PlanTask):
             plan_prompt = f.read()
 
         # Read assumptions from the distilled assumptions output.
-        assumptions_file = self.input()['assumptions']
+        assumptions_file = self.input()['assumptions']['raw']
         with assumptions_file.open("r") as f:
             assumption_list = json.load(f)
 
@@ -516,7 +521,7 @@ class FindTeamMembersTask(PlanTask):
             plan_prompt = f.read()
 
         # 2. Read the distilled assumptions from AssumptionsTask.
-        with self.input()['assumptions'].open("r") as f:
+        with self.input()['assumptions']['raw'].open("r") as f:
             assumption_list = json.load(f)
 
         # 3. Read the pre-project assessment from PreProjectAssessmentTask.
@@ -585,7 +590,7 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
             plan_prompt = f.read()
 
         # 2. Read the distilled assumptions from AssumptionsTask.
-        with self.input()['assumptions'].open("r") as f:
+        with self.input()['assumptions']['raw'].open("r") as f:
             assumption_list = json.load(f)
 
         # 3. Read the pre-project assessment from PreProjectAssessmentTask.
@@ -659,7 +664,7 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
             plan_prompt = f.read()
 
         # 2. Read the distilled assumptions from AssumptionsTask.
-        with self.input()['assumptions'].open("r") as f:
+        with self.input()['assumptions']['raw'].open("r") as f:
             assumption_list = json.load(f)
 
         # 3. Read the pre-project assessment from PreProjectAssessmentTask.
@@ -733,7 +738,7 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
             plan_prompt = f.read()
 
         # 2. Read the distilled assumptions from AssumptionsTask.
-        with self.input()['assumptions'].open("r") as f:
+        with self.input()['assumptions']['raw'].open("r") as f:
             assumption_list = json.load(f)
 
         # 3. Read the pre-project assessment from PreProjectAssessmentTask.
@@ -804,7 +809,7 @@ class ReviewTeamTask(PlanTask):
             plan_prompt = f.read()
 
         # 2. Read the distilled assumptions from AssumptionsTask.
-        with self.input()['assumptions'].open("r") as f:
+        with self.input()['assumptions']['raw'].open("r") as f:
             assumption_list = json.load(f)
 
         # 3. Read the pre-project assessment from PreProjectAssessmentTask.
@@ -911,7 +916,7 @@ class SWOTAnalysisTask(PlanTask):
             plan_prompt = f.read()
 
         # 2. Read the distilled assumptions from AssumptionsTask.
-        with self.input()['assumptions'].open("r") as f:
+        with self.input()['assumptions']['raw'].open("r") as f:
             assumption_list = json.load(f)
 
         # 3. Read the pre-project assessment from PreProjectAssessmentTask.

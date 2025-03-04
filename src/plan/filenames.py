@@ -14,6 +14,7 @@ class FilenameEnum(str, Enum):
     MAKE_ASSUMPTIONS_CLEAN = "003-4-make_assumptions.json"
     MAKE_ASSUMPTIONS_MARKDOWN = "003-5-make_assumptions.md"
     DISTILL_ASSUMPTIONS_RAW = "003-6-distill_assumptions_raw.json"
+    DISTILL_ASSUMPTIONS_MARKDOWN = "003-7-distill_assumptions.md"
     PRE_PROJECT_ASSESSMENT_RAW = "004-1-pre_project_assessment_raw.json"
     PRE_PROJECT_ASSESSMENT = "004-2-pre_project_assessment.json"
     PROJECT_PLAN = "005-project_plan.json"
