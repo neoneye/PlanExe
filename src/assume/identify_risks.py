@@ -200,7 +200,7 @@ class IdentifyRisks:
         else:
             rows.append("No risks identified.")
 
-        rows.append(f"\n## Summary\n{document_details.risk_assessment_summary}")
+        rows.append(f"\n## Risk summary\n{document_details.risk_assessment_summary}")
         return "\n".join(rows)
 
     def save_markdown(self, output_file_path: str):

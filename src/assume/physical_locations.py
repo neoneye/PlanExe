@@ -233,7 +233,7 @@ class PhysicalLocations:
             rows.append("The plan **does not** imply any physical location.")
 
         if len(document_details.requirements_for_the_physical_locations) > 0:
-            rows.append("\n## Requirements\n")
+            rows.append("\n## Requirements for physical locations\n")
             for requirement in document_details.requirements_for_the_physical_locations:
                 rows.append(f"- {requirement}")
         else:
@@ -255,7 +255,7 @@ class PhysicalLocations:
                 rows.append("Missing location info.\n")
             rows.append(f"**Rationale**: {location.rationale_for_suggestion}")
         
-        rows.append(f"\n## Summary\n{document_details.location_summary}")
+        rows.append(f"\n## Location Summary\n{document_details.location_summary}")
         return "\n".join(rows)
 
     def save_markdown(self, output_file_path: str):

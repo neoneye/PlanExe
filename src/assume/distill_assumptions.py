@@ -235,7 +235,6 @@ class DistillAssumptions:
         rows = []
 
         if len(assumption_details.assumption_list) > 0:
-            rows.append("\n## Distilled assumptions\n")
             for assumption in assumption_details.assumption_list:
                 rows.append(f"- {assumption}")
         else:

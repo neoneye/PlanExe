@@ -431,27 +431,28 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
 
     def run(self):
         # Define the list of (name, path) tuples
-        name_path_list = [
-            ('plan_type', self.input()['plan_type']['markdown'].path),
-            ('physical_locations', self.input()['physical_locations']['markdown'].path),
-            ('currency_strategy', self.input()['currency_strategy']['markdown'].path),
-            ('identify_risks', self.input()['identify_risks']['markdown'].path),
-            ('make_assumptions', self.input()['make_assumptions']['markdown'].path),
-            ('distill_assumptions', self.input()['distill_assumptions']['markdown'].path)
+        title_path_list = [
+            ('Plan Type', self.input()['plan_type']['markdown'].path),
+            ('Physical Locations', self.input()['physical_locations']['markdown'].path),
+            ('Currency Strategy', self.input()['currency_strategy']['markdown'].path),
+            ('Identify Risks', self.input()['identify_risks']['markdown'].path),
+            ('Make Assumptions', self.input()['make_assumptions']['markdown'].path),
+            ('Distill Assumptions', self.input()['distill_assumptions']['markdown'].path)
         ]
 
         # Read the files and handle exceptions
         markdown_chunks = []
-        for name, path in name_path_list:
+        for title, path in title_path_list:
             try:
                 with open(path, 'r', encoding='utf-8') as f:
-                    markdown_chunks.append(f.read())
+                    markdown_chunk = f.read()
+                markdown_chunks.append(f"# {title}\n\n{markdown_chunk}")
             except FileNotFoundError:
-                logger.warning(f"Markdown file not found: {path} (from {name})")
-                markdown_chunks.append(f"## Problem with document '{name}'\n\nFile not found.")
+                logger.warning(f"Markdown file not found: {path} (from {title})")
+                markdown_chunks.append(f"**Problem with document:** '{title}'\n\nFile not found.")
             except Exception as e:
-                logger.error(f"Error reading markdown file {path} (from {name}): {e}")
-                markdown_chunks.append(f"## Problem with document '{name}'\n\nError reading markdown file.")
+                logger.error(f"Error reading markdown file {path} (from {title}): {e}")
+                markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError reading markdown file.")
 
         # Combine the markdown chunks
         full_markdown = "\n\n".join(markdown_chunks)
