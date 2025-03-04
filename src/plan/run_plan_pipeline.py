@@ -242,7 +242,10 @@ class IdentifyRisksTask(PlanTask):
         }
 
     def output(self):
-        return luigi.LocalTarget(str(self.file_path(FilenameEnum.IDENTIFY_RISKS_RAW)))
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.IDENTIFY_RISKS_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.IDENTIFY_RISKS_MARKDOWN)))
+        }
 
     def run(self):
         logger.info("Identifying risks for the plan...")
@@ -272,8 +275,10 @@ class IdentifyRisksTask(PlanTask):
         identify_risks = IdentifyRisks.execute(llm, query)
 
         # Write the result to disk.
-        raw_path = self.output().path
-        identify_risks.save_raw(str(raw_path))
+        output_raw_path = self.output()['raw'].path
+        identify_risks.save_raw(str(output_raw_path))
+        output_markdown_path = self.output()['markdown'].path
+        identify_risks.save_markdown(str(output_markdown_path))
 
 
 class MakeAssumptionsTask(PlanTask):
@@ -319,7 +324,7 @@ class MakeAssumptionsTask(PlanTask):
         with self.input()['currency_strategy']['raw'].open("r") as f:
             currency_strategy_dict = json.load(f)
 
-        with self.input()['identify_risks'].open("r") as f:
+        with self.input()['identify_risks']['raw'].open("r") as f:
             identify_risks_dict = json.load(f)
 
         query = (
