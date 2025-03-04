@@ -305,7 +305,8 @@ class MakeAssumptionsTask(PlanTask):
     def output(self):
         return {
             'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.MAKE_ASSUMPTIONS_RAW))),
-            'clean': luigi.LocalTarget(str(self.file_path(FilenameEnum.MAKE_ASSUMPTIONS)))
+            'clean': luigi.LocalTarget(str(self.file_path(FilenameEnum.MAKE_ASSUMPTIONS_CLEAN))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.MAKE_ASSUMPTIONS_MARKDOWN)))
         }
 
     def run(self):
@@ -340,10 +341,12 @@ class MakeAssumptionsTask(PlanTask):
         make_assumptions = MakeAssumptions.execute(llm, query)
 
         # Write the assumptions to disk.
-        raw_path = self.output()['raw'].path
-        clean_path = self.output()['clean'].path
-        make_assumptions.save_raw(str(raw_path))
-        make_assumptions.save_assumptions(str(clean_path))
+        output_raw_path = self.output()['raw'].path
+        make_assumptions.save_raw(str(output_raw_path))
+        output_clean_path = self.output()['clean'].path
+        make_assumptions.save_assumptions(str(output_clean_path))
+        output_markdown_path = self.output()['markdown'].path
+        make_assumptions.save_markdown(str(output_markdown_path))
 
 
 class DistillAssumptionsTask(PlanTask):
