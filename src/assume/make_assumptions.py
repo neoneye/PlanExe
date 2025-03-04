@@ -212,6 +212,7 @@ class MakeAssumptions:
     response: dict
     metadata: dict
     assumptions: list
+    markdown: str
 
     @classmethod
     def execute(cls, llm: LLM, user_prompt: str, **kwargs: Any) -> 'MakeAssumptions':
@@ -262,14 +263,14 @@ class MakeAssumptions:
         logger.debug("Starting LLM chat interaction.")
         start_time = time.perf_counter()
         try:
-            chat_response1 = sllm.chat(chat_message_list1)
+            chat_response = sllm.chat(chat_message_list1)
         except Exception as e:
             logger.debug(f"LLM chat interaction failed: {e}")
             logger.error("LLM chat interaction failed.", exc_info=True)
             raise ValueError("LLM chat interaction failed.") from e
         end_time = time.perf_counter()
         duration = int(ceil(end_time - start_time))
-        response_byte_count = len(chat_response1.message.content.encode('utf-8'))
+        response_byte_count = len(chat_response.message.content.encode('utf-8'))
         logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
 
         metadata = dict(llm.metadata)
@@ -278,7 +279,7 @@ class MakeAssumptions:
         metadata["response_byte_count"] = response_byte_count
 
         try:
-            json_response = json.loads(chat_response1.message.content)
+            json_response = json.loads(chat_response.message.content)
         except json.JSONDecodeError as e:
             logger.error("Failed to parse LLM response as JSON.", exc_info=True)
             raise ValueError("Invalid JSON response from LLM.") from e
@@ -297,12 +298,15 @@ class MakeAssumptions:
             }
             assumption_list.append(assumption_item)
 
+        markdown = cls.convert_to_markdown(chat_response.raw)
+
         result = MakeAssumptions(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
             metadata=metadata,
-            assumptions=assumption_list
+            assumptions=assumption_list,
+            markdown=markdown
         )
         logger.debug("MakeAssumptions instance created successfully.")
         return result    
@@ -324,6 +328,27 @@ class MakeAssumptions:
     def save_assumptions(self, file_path: str) -> None:
         with open(file_path, 'w') as f:
             f.write(json.dumps(self.assumptions, indent=2))
+
+    @staticmethod
+    def convert_to_markdown(expert_details: ExpertDetails) -> str:
+        """
+        Convert the raw document details to markdown.
+        """
+        rows = []
+
+        if len(expert_details.question_assumption_list) > 0:
+            for index, item in enumerate(expert_details.question_assumption_list, start=1):
+                rows.append(f"\n## Question {index} - {item.question}")
+                rows.append(f"\n**Assumptions:** {item.assumptions}")
+                rows.append(f"\n**Assessments:** {item.assessments}")
+        else:
+            rows.append("The 'question-assumption-list' is empty. Finding zero questions for a plan is unusual, this is likely a bug. Please report this issue to the developer of PlanExe.")
+
+        return "\n".join(rows)
+
+    def save_markdown(self, output_file_path: str):
+        with open(output_file_path, 'w', encoding='utf-8') as out_f:
+            out_f.write(self.markdown)
 
 if __name__ == "__main__":
     import logging
@@ -356,3 +381,5 @@ if __name__ == "__main__":
 
     print("\n\nAssumptions:")
     print(json.dumps(result.assumptions, indent=2))
+
+    print(f"\n\nMarkdown:\n{result.markdown}")
