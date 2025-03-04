@@ -92,7 +92,10 @@ class PlanTypeTask(PlanTask):
         return SetupTask(run_id=self.run_id)
 
     def output(self):
-        return luigi.LocalTarget(str(self.file_path(FilenameEnum.PLAN_TYPE_RAW)))
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.PLAN_TYPE_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.PLAN_TYPE_MARKDOWN)))
+        }
 
     def run(self):
         logger.info("Identifying PlanType of the plan...")
@@ -106,8 +109,10 @@ class PlanTypeTask(PlanTask):
         identify_plan_type = IdentifyPlanType.execute(llm, plan_prompt)
 
         # Write the result to disk.
-        raw_path = self.output().path
-        identify_plan_type.save_raw(str(raw_path))
+        output_raw_path = self.output()['raw'].path
+        identify_plan_type.save_raw(str(output_raw_path))
+        output_markdown_path = self.output()['markdown'].path
+        identify_plan_type.save_markdown(str(output_markdown_path))
 
 
 class PhysicalLocationsTask(PlanTask):
@@ -138,7 +143,7 @@ class PhysicalLocationsTask(PlanTask):
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
 
-        with self.input()['plan_type'].open("r") as f:
+        with self.input()['plan_type']['raw'].open("r") as f:
             plan_type_dict = json.load(f)
 
         output_raw_path = self.output()['raw'].path
@@ -199,7 +204,7 @@ class CurrencyStrategyTask(PlanTask):
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
 
-        with self.input()['plan_type'].open("r") as f:
+        with self.input()['plan_type']['raw'].open("r") as f:
             plan_type_dict = json.load(f)
 
         with self.input()['physical_locations']['raw'].open("r") as f:
@@ -254,7 +259,7 @@ class IdentifyRisksTask(PlanTask):
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
 
-        with self.input()['plan_type'].open("r") as f:
+        with self.input()['plan_type']['raw'].open("r") as f:
             plan_type_dict = json.load(f)
 
         with self.input()['physical_locations']['raw'].open("r") as f:
@@ -316,7 +321,7 @@ class MakeAssumptionsTask(PlanTask):
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
 
-        with self.input()['plan_type'].open("r") as f:
+        with self.input()['plan_type']['raw'].open("r") as f:
             plan_type_dict = json.load(f)
 
         with self.input()['physical_locations']['raw'].open("r") as f:
