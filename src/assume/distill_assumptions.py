@@ -8,6 +8,8 @@ The llama3.1 has no problems with it.
 
 IDEA: Sometimes it recognizes that the project starts ASAP as an assumption. This is already part of the project description, this is not something new.
 How do I suppress this kind of information from the output?
+
+PROMPT> python -m src.assume.distill_assumptions
 """
 import json
 import time
@@ -126,6 +128,7 @@ class DistillAssumptions:
     user_prompt: str
     response: dict
     metadata: dict
+    markdown: str
 
     @classmethod
     def execute(cls, llm: LLM, user_prompt: str, **kwargs: Any) -> 'DistillAssumptions':
@@ -155,9 +158,9 @@ class DistillAssumptions:
         if system_prompt and not isinstance(system_prompt, str):
             raise ValueError("Invalid system prompt.")
 
-        chat_message_list1 = []
+        chat_message_list = []
         if system_prompt:
-            chat_message_list1.append(
+            chat_message_list.append(
                 ChatMessage(
                     role=MessageRole.SYSTEM,
                     content=system_prompt,
@@ -169,16 +172,16 @@ class DistillAssumptions:
             role=MessageRole.USER,
             content=user_prompt,
         )
-        chat_message_list1.append(chat_message_user)
+        chat_message_list.append(chat_message_user)
 
         sllm = llm.as_structured_llm(AssumptionDetails)
 
         logger.debug("Starting LLM chat interaction.")
         start_time = time.perf_counter()
-        chat_response1 = sllm.chat(chat_message_list1)
+        chat_response = sllm.chat(chat_message_list)
         end_time = time.perf_counter()
         duration = int(ceil(end_time - start_time))
-        response_byte_count = len(chat_response1.message.content.encode('utf-8'))
+        response_byte_count = len(chat_response.message.content.encode('utf-8'))
         logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
 
         metadata = dict(llm.metadata)
@@ -187,16 +190,19 @@ class DistillAssumptions:
         metadata["response_byte_count"] = response_byte_count
 
         try:
-            json_response = json.loads(chat_response1.message.content)
+            json_response = json.loads(chat_response.message.content)
         except json.JSONDecodeError as e:
             logger.error("Failed to parse LLM response as JSON.", exc_info=True)
             raise ValueError("Invalid JSON response from LLM.") from e
+
+        markdown = cls.convert_to_markdown(chat_response.raw)
 
         result = DistillAssumptions(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
             metadata=metadata,
+            markdown=markdown
         )
         logger.debug("DistillAssumptions instance created successfully.")
         return result    
@@ -214,6 +220,26 @@ class DistillAssumptions:
     def save_raw(self, file_path: str) -> None:
         with open(file_path, 'w') as f:
             f.write(json.dumps(self.to_dict(), indent=2))
+
+    @staticmethod
+    def convert_to_markdown(assumption_details: AssumptionDetails) -> str:
+        """
+        Convert the raw document details to markdown.
+        """
+        rows = []
+
+        if len(assumption_details.assumption_list) > 0:
+            rows.append("\n## Distilled assumptions\n")
+            for assumption in assumption_details.assumption_list:
+                rows.append(f"- {assumption}")
+        else:
+            rows.append("**No distilled assumptions:** It's unusual that a plan has no assumptions. Please check if the input data is contains assumptions. Please report to the developer of PlanExe.")
+
+        return "\n".join(rows)
+
+    def save_markdown(self, output_file_path: str):
+        with open(output_file_path, 'w', encoding='utf-8') as out_f:
+            out_f.write(self.markdown)
 
 if __name__ == "__main__":
     import os
@@ -248,3 +274,5 @@ if __name__ == "__main__":
 
     print("\n\nResponse:")
     print(json.dumps(result.to_dict(include_system_prompt=False, include_user_prompt=False), indent=2))
+
+    print(f"\n\nMarkdown:\n{result.markdown}")
