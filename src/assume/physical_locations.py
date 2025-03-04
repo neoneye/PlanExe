@@ -228,7 +228,7 @@ class PhysicalLocations:
         rows = []
 
         if document_details.has_location_in_plan:
-            rows.append("The plan implies a physical location.")
+            rows.append("The plan implies one or more physical locations.")
         else:
             rows.append("The plan **does not** imply any physical location.")
 
