@@ -255,9 +255,9 @@ class IdentifyPlanType:
         rows = []
 
         if document_details.plan_type == PlanType.digital:
-            rows.append("The plan is purely digital and can be automated. There is no need for any physical locations.")
+            rows.append("This plan is purely digital and can be automated. There is no need for any physical locations.")
         elif document_details.plan_type == PlanType.physical:
-            rows.append("The plan requires one or more physical locations. It cannot be executed digitally.")
+            rows.append("This plan requires one or more physical locations. It cannot be executed digitally.")
         else:
             rows.append(f"Invalid plan type. {document_details.plan_type}")
 

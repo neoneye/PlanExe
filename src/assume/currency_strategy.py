@@ -305,9 +305,9 @@ class CurrencyStrategy:
         rows = []
 
         if document_details.money_involved:
-            rows.append("The plan involves money.")
+            rows.append("This plan involves money.")
         else:
-            rows.append("The plan **does not** involve money.")
+            rows.append("This plan **does not** involve money.")
 
         if len(document_details.currency_list) > 0:
             rows.append("\n## Currencies\n")
