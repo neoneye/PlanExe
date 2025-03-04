@@ -515,13 +515,13 @@ class ProjectPlanTask(PlanTask):
     def requires(self):
         """
         This task depends on:
-          - SetupTask: produces the plan prompt (001-plan.txt)
-          - AssumptionsTask: produces the distilled assumptions (003-distill_assumptions.json)
+          - SetupTask: produces the plan prompt
+          - ConsolidateAssumptionsMarkdownTask: the assumptions and scope.
           - PreProjectAssessmentTask: produces the pre‑project assessment files
         """
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
-            'assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
@@ -536,10 +536,9 @@ class ProjectPlanTask(PlanTask):
         with setup_target.open("r") as f:
             plan_prompt = f.read()
 
-        # Read assumptions from the distilled assumptions output.
-        assumptions_file = self.input()['assumptions']['raw']
-        with assumptions_file.open("r") as f:
-            assumption_list = json.load(f)
+        # Load the consolidated assumptions.
+        with self.input()['consolidate_assumptions_markdown'].open("r") as f:
+            consolidate_assumptions_markdown = f.read()
 
         # Read the pre-project assessment from its file.
         pre_project_assessment_file = self.input()['preproject']['clean']
@@ -548,9 +547,9 @@ class ProjectPlanTask(PlanTask):
 
         # Build the query.
         query = (
-            f"Initial plan: {plan_prompt}\n\n"
-            f"Assumptions:\n{format_json_for_use_in_query(assumption_list)}\n\n"
-            f"Pre-project assessment:\n{format_json_for_use_in_query(pre_project_assessment_dict)}"
+            f"File 'plan.txt':\n{plan_prompt}\n\n"
+            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
+            f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}"
         )
 
         # Get an LLM instance.
