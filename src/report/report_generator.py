@@ -82,27 +82,27 @@ class ReportGenerator:
 
     def append_pitch_markdown(self, file_path: Path):
         """Append the pitch markdown to the report."""
-        pitch_md = self.read_markdown_file(file_path)
-        if pitch_md:
-            self.report_data['pitch'] = pitch_md
+        markdown = self.read_markdown_file(file_path)
+        if markdown:
+            self.report_data['pitch'] = markdown
     
     def append_swot_analysis_markdown(self, file_path: Path):
         """Append the SWOT markdown to the report."""
-        swot_md = self.read_markdown_file(file_path)
-        if swot_md:
-            self.report_data['swot'] = swot_md
+        markdown = self.read_markdown_file(file_path)
+        if markdown:
+            self.report_data['swot'] = markdown
     
     def append_team_markdown(self, file_path: Path):
         """Append the team markdown to the report."""
-        swot_md = self.read_markdown_file(file_path)
-        if swot_md:
-            self.report_data['team'] = swot_md
+        markdown = self.read_markdown_file(file_path)
+        if markdown:
+            self.report_data['team'] = markdown
     
     def append_expert_criticism_markdown(self, file_path: Path):
         """Append the expert criticism markdown to the report."""
-        expert_md = self.read_markdown_file(file_path)
-        if expert_md:
-            self.report_data['expert_criticism'] = expert_md
+        markdown = self.read_markdown_file(file_path)
+        if markdown:
+            self.report_data['expert_criticism'] = markdown
     
     def append_project_plan_csv(self, file_path: Path):
         """Append the project plan CSV to the report."""
