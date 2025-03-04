@@ -1,6 +1,8 @@
 """
 PROMPT> python -m src.expert.pre_project_assessment
 
+IDEA: markdown document, that goes into the final report.
+
 Two experts analyze a project plan and provide feedback.
 
 Analysis: Experts assess the plan.
