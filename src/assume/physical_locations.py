@@ -220,6 +220,7 @@ class PhysicalLocations:
         with open(file_path, 'w') as f:
             f.write(json.dumps(self.to_dict(), indent=2))
 
+    @staticmethod
     def convert_to_markdown(document_details: DocumentDetails) -> str:
         """
         Convert the raw document details to markdown.
