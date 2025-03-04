@@ -215,7 +215,7 @@ class MakeAssumptions:
     markdown: str
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str, **kwargs: Any) -> 'MakeAssumptions':
+    def execute(cls, llm: LLM, user_prompt: str) -> 'MakeAssumptions':
         """
         Invoke LLM and make assumptions based on the user prompt.
         """
@@ -232,38 +232,23 @@ class MakeAssumptions:
         system_prompt = SYSTEM_PROMPT.strip()
         system_prompt = system_prompt.replace("CURRENT_YEAR_PLACEHOLDER", current_year)
 
-        default_args = {
-            'system_prompt': system_prompt
-        }
-        default_args.update(kwargs)
-
-        system_prompt = default_args.get('system_prompt')
-        logger.debug(f"System Prompt:\n{system_prompt}")
-        if system_prompt and not isinstance(system_prompt, str):
-            raise ValueError("Invalid system prompt.")
-
-        chat_message_list1 = []
-        if system_prompt:
-            chat_message_list1.append(
-                ChatMessage(
-                    role=MessageRole.SYSTEM,
-                    content=system_prompt,
-                )
+        chat_message_list = [
+            ChatMessage(
+                role=MessageRole.SYSTEM,
+                content=system_prompt,
+            ),
+            ChatMessage(
+                role=MessageRole.USER,
+                content=user_prompt,
             )
-        
-        logger.debug(f"User Prompt:\n{user_prompt}")
-        chat_message_user = ChatMessage(
-            role=MessageRole.USER,
-            content=user_prompt,
-        )
-        chat_message_list1.append(chat_message_user)
+        ]
 
         sllm = llm.as_structured_llm(ExpertDetails)
 
         logger.debug("Starting LLM chat interaction.")
         start_time = time.perf_counter()
         try:
-            chat_response = sllm.chat(chat_message_list1)
+            chat_response = sllm.chat(chat_message_list)
         except Exception as e:
             logger.debug(f"LLM chat interaction failed: {e}")
             logger.error("LLM chat interaction failed.", exc_info=True)
