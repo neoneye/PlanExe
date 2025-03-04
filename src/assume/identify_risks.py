@@ -106,6 +106,7 @@ class IdentifyRisks:
     user_prompt: str
     response: dict
     metadata: dict
+    markdown: str
 
     @classmethod
     def execute(cls, llm: LLM, user_prompt: str) -> 'IdentifyRisks':
@@ -153,11 +154,14 @@ class IdentifyRisks:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
+        markdown = cls.convert_to_markdown(chat_response.raw)
+
         result = IdentifyRisks(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
             metadata=metadata,
+            markdown=markdown
         )
         return result
     
@@ -174,6 +178,34 @@ class IdentifyRisks:
     def save_raw(self, file_path: str) -> None:
         with open(file_path, 'w') as f:
             f.write(json.dumps(self.to_dict(), indent=2))
+
+    @staticmethod
+    def convert_to_markdown(document_details: DocumentDetails) -> str:
+        """
+        Convert the raw document details to markdown.
+        """
+        def format_lowmediumhigh(value: LowMediumHigh) -> str:
+            return value.capitalize()
+        
+        rows = []
+
+        if len(document_details.risks) > 0:
+            for risk_index, risk_item in enumerate(document_details.risks, start=1):
+                rows.append(f"\n## Risk {risk_index} - {risk_item.risk_area}")
+                rows.append(risk_item.risk_description)
+                rows.append(f"\n**Impact:** {risk_item.potential_impact}")
+                rows.append(f"\n**Likelihood:** {format_lowmediumhigh(risk_item.likelihood)}")
+                rows.append(f"\n**Severity:** {format_lowmediumhigh(risk_item.severity)}")
+                rows.append(f"\n**Action:** {risk_item.action}")
+        else:
+            rows.append("No risks identified.")
+
+        rows.append(f"\n## Summary\n{document_details.risk_assessment_summary}")
+        return "\n".join(rows)
+
+    def save_markdown(self, output_file_path: str):
+        with open(output_file_path, 'w', encoding='utf-8') as out_f:
+            out_f.write(self.markdown)
 
 if __name__ == "__main__":
     from src.llm_factory import get_llm
@@ -193,3 +225,5 @@ if __name__ == "__main__":
     json_response = identify_risks.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
+
+    print(f"\n\nMarkdown:\n{identify_risks.markdown}")
