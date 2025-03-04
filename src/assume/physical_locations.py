@@ -226,20 +226,20 @@ class PhysicalLocations:
         """
         rows = []
 
-        value = "Yes" if document_details.has_location_in_plan else "No"
-        rows.append(f"**Has Location in Plan**: {value}")
+        if document_details.has_location_in_plan:
+            rows.append("The plan implies a physical location.")
+        else:
+            rows.append("The plan **does not** imply any physical location.")
 
-        rows.append("\n## Requirements\n")
-        for requirement in document_details.requirements_for_the_physical_locations:
-            rows.append(f"- {requirement}")
-        if len(document_details.requirements_for_the_physical_locations) == 0:
-            rows.append("- No requirements specified.")
+        if len(document_details.requirements_for_the_physical_locations) > 0:
+            rows.append("\n## Requirements\n")
+            for requirement in document_details.requirements_for_the_physical_locations:
+                rows.append(f"- {requirement}")
+        else:
+            rows.append("No requirements for the physical location.")
         
-        rows.append("\n## Locations")
         for location_index, location in enumerate(document_details.physical_locations, start=1):
-            if location_index == 1:
-                rows.append("")
-            rows.append(f"### Location {location_index}")
+            rows.append(f"\n## Location {location_index}")
             physical_location_broad = location.physical_location_broad.strip()
             physical_location_detailed = location.physical_location_detailed.strip()
             physical_location_specific = location.physical_location_specific.strip()
