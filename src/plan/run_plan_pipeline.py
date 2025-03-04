@@ -126,7 +126,10 @@ class PhysicalLocationsTask(PlanTask):
         }
 
     def output(self):
-        return luigi.LocalTarget(str(self.file_path(FilenameEnum.PHYSICAL_LOCATIONS_RAW)))
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.PHYSICAL_LOCATIONS_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.PHYSICAL_LOCATIONS_MARKDOWN)))
+        }
 
     def run(self):
         logger.info("Identify/suggest physical locations for the plan...")
@@ -138,7 +141,8 @@ class PhysicalLocationsTask(PlanTask):
         with self.input()['plan_type'].open("r") as f:
             plan_type_dict = json.load(f)
 
-        output_path = self.output().path
+        output_raw_path = self.output()['raw'].path
+        output_markdown_path = self.output()['markdown'].path
 
         llm = get_llm(self.llm_model)
 
@@ -152,14 +156,18 @@ class PhysicalLocationsTask(PlanTask):
             physical_locations = PhysicalLocations.execute(llm, query)
 
             # Write the physical locations to disk.
-            physical_locations.save_raw(str(output_path))
+            physical_locations.save_raw(str(output_raw_path))
+            physical_locations.save_markdown(str(output_markdown_path))
         else:
             # Write an empty file to indicate that there are no physical locations.
             data = {
                 "comment": "The plan is purely digital, without any physical locations."
             }
-            with open(output_path, "w") as f:
+            with open(output_raw_path, "w") as f:
                 json.dump(data, f, indent=2)
+            
+            with open(output_markdown_path, "w", encoding='utf-8') as f:
+                f.write("The plan is purely digital, without any physical locations.")
 
 class CurrencyStrategyTask(PlanTask):
     """
@@ -191,7 +199,7 @@ class CurrencyStrategyTask(PlanTask):
         with self.input()['plan_type'].open("r") as f:
             plan_type_dict = json.load(f)
 
-        with self.input()['physical_locations'].open("r") as f:
+        with self.input()['physical_locations']['raw'].open("r") as f:
             physical_locations_dict = json.load(f)
 
         query = (
@@ -241,7 +249,7 @@ class IdentifyRisksTask(PlanTask):
         with self.input()['plan_type'].open("r") as f:
             plan_type_dict = json.load(f)
 
-        with self.input()['physical_locations'].open("r") as f:
+        with self.input()['physical_locations']['raw'].open("r") as f:
             physical_locations_dict = json.load(f)
 
         with self.input()['currency_strategy'].open("r") as f:
@@ -300,7 +308,7 @@ class MakeAssumptionsTask(PlanTask):
         with self.input()['plan_type'].open("r") as f:
             plan_type_dict = json.load(f)
 
-        with self.input()['physical_locations'].open("r") as f:
+        with self.input()['physical_locations']['raw'].open("r") as f:
             physical_locations_dict = json.load(f)
 
         with self.input()['currency_strategy'].open("r") as f:
