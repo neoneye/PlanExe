@@ -1,6 +1,8 @@
 """
 Review the assumptions. Are they too low/high? Are they reasonable? Are there any missing assumptions?
 
+IDEA: Now that PhysicalLocations is a separate step that comes rather early in the process. Eliminate the 'DocumentDetails.locations'.
+
 PROMPT> python -m src.assume.review_assumptions
 """
 import os
@@ -117,6 +119,7 @@ class ReviewAssumptions:
     user_prompt: str
     response: dict
     metadata: dict
+    markdown: str
 
     @classmethod
     def execute(cls, llm: LLM, user_prompt: str) -> 'ReviewAssumptions':
@@ -164,11 +167,14 @@ class ReviewAssumptions:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
+        markdown = cls.convert_to_markdown(chat_response.raw)
+
         result = ReviewAssumptions(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
             metadata=metadata,
+            markdown=markdown
         )
         return result
     
@@ -182,6 +188,45 @@ class ReviewAssumptions:
             d['user_prompt'] = self.user_prompt
         return d
 
+    @staticmethod
+    def convert_to_markdown(document_details: DocumentDetails) -> str:
+        """
+        Convert the raw document details to markdown.
+        """
+        rows = []
+
+        rows.append(f"## Domain of the expert reviewer\n{document_details.expert_domain}")
+
+        if len(document_details.domain_specific_considerations) > 0:
+            rows.append("\n## Domain-specific considerations\n")
+            for item in document_details.domain_specific_considerations:
+                rows.append(f"- {item}")
+        else:
+            rows.append("\n## Domain-specific considerations - None\n")
+
+        if len(document_details.location_list) > 0:
+            rows.append("\n## Locations\n")
+            for item in document_details.location_list:
+                rows.append(f"- {item}")
+        else:
+            rows.append("\n## Locations - None\n")
+
+        if len(document_details.issues) > 0:
+            for index, item in enumerate(document_details.issues, start=1):
+                rows.append(f"\n## Issue {index} - {item.issue}")
+                rows.append(item.explanation)
+                rows.append(f"\n**Recommendation:** {item.recommendation}")
+                rows.append(f"\n**Sensitivity:** {item.sensitivity}")
+        else:
+            rows.append("## Issues - None. This is unusual. Please report this to the developer of PlanExe.")
+
+        rows.append(f"\n## Conclusion\n{document_details.conclusion}")
+        return "\n".join(rows)
+
+    def save_markdown(self, output_file_path: str):
+        with open(output_file_path, 'w', encoding='utf-8') as out_f:
+            out_f.write(self.markdown)
+
 if __name__ == "__main__":
     from src.llm_factory import get_llm
     from src.utils.concat_files_into_string import concat_files_into_string
@@ -193,7 +238,9 @@ if __name__ == "__main__":
     all_documents_string = concat_files_into_string(base_path)
     print(all_documents_string)
 
-    review_assumptions = ReviewAssumptions.execute(llm, all_documents_string)
-    json_response = review_assumptions.to_dict(include_system_prompt=False, include_user_prompt=False)
+    result = ReviewAssumptions.execute(llm, all_documents_string)
+    json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
+
+    print(f"\n\nMarkdown:\n{result.markdown}")
