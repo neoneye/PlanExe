@@ -467,7 +467,10 @@ class PreProjectAssessmentTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
     def requires(self):
-        return SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail)
+        return {
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
 
     def output(self):
         return {
@@ -479,11 +482,17 @@ class PreProjectAssessmentTask(PlanTask):
         logger.info("Conducting pre-project assessment...")
 
         # Read the plan prompt from the SetupTask's output.
-        with self.input().open("r") as f:
+        with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
 
+        with self.input()['consolidate_assumptions_markdown'].open("r") as f:
+            consolidate_assumptions_markdown = f.read()
+
         # Build the query.
-        query = f"Initial plan: {plan_prompt}\n\n"
+        query = (
+            f"File 'plan.txt':\n{plan_prompt}\n\n"
+            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}"
+        )
 
         # Get an instance of your LLM.
         llm = get_llm(self.llm_model)
