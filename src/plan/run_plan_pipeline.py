@@ -187,7 +187,10 @@ class CurrencyStrategyTask(PlanTask):
         }
 
     def output(self):
-        return luigi.LocalTarget(str(self.file_path(FilenameEnum.CURRENCY_STRATEGY_RAW)))
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.CURRENCY_STRATEGY_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.CURRENCY_STRATEGY_MARKDOWN)))
+        }
 
     def run(self):
         logger.info("Currency strategy for the plan...")
@@ -213,8 +216,10 @@ class CurrencyStrategyTask(PlanTask):
         currency_strategy = CurrencyStrategy.execute(llm, query)
 
         # Write the result to disk.
-        raw_path = self.output().path
-        currency_strategy.save_raw(str(raw_path))
+        output_raw_path = self.output()['raw'].path
+        currency_strategy.save_raw(str(output_raw_path))
+        output_markdown_path = self.output()['markdown'].path
+        currency_strategy.save_markdown(str(output_markdown_path))
 
 
 class IdentifyRisksTask(PlanTask):
@@ -252,7 +257,7 @@ class IdentifyRisksTask(PlanTask):
         with self.input()['physical_locations']['raw'].open("r") as f:
             physical_locations_dict = json.load(f)
 
-        with self.input()['currency_strategy'].open("r") as f:
+        with self.input()['currency_strategy']['raw'].open("r") as f:
             currency_strategy_dict = json.load(f)
 
         query = (
@@ -311,7 +316,7 @@ class MakeAssumptionsTask(PlanTask):
         with self.input()['physical_locations']['raw'].open("r") as f:
             physical_locations_dict = json.load(f)
 
-        with self.input()['currency_strategy'].open("r") as f:
+        with self.input()['currency_strategy']['raw'].open("r") as f:
             currency_strategy_dict = json.load(f)
 
         with self.input()['identify_risks'].open("r") as f:
