@@ -859,7 +859,7 @@ class ReviewTeamTask(PlanTask):
     def requires(self):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
-            'assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_environment_info': EnrichTeamMembersWithEnvironmentInfoTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
@@ -871,23 +871,23 @@ class ReviewTeamTask(PlanTask):
     def run(self):
         logger.info("ReviewTeamTask. Loading files...")
 
-        # 1. Read the plan prompt from SetupTask.
+        # Read the plan prompt from SetupTask.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
 
-        # 2. Read the distilled assumptions from AssumptionsTask.
-        with self.input()['assumptions']['raw'].open("r") as f:
-            assumption_list = json.load(f)
+        # Load the consolidated assumptions.
+        with self.input()['consolidate_assumptions_markdown'].open("r") as f:
+            consolidate_assumptions_markdown = f.read()
 
-        # 3. Read the pre-project assessment from PreProjectAssessmentTask.
+        # Read the pre-project assessment from PreProjectAssessmentTask.
         with self.input()['preproject']['clean'].open("r") as f:
             pre_project_assessment_dict = json.load(f)
 
-        # 4. Read the project plan from ProjectPlanTask.
+        # Read the project plan from ProjectPlanTask.
         with self.input()['project_plan'].open("r") as f:
             project_plan_dict = json.load(f)
 
-        # 5. Read the team_member_list from EnrichTeamMembersWithEnvironmentInfoTask.
+        # Read the team_member_list from EnrichTeamMembersWithEnvironmentInfoTask.
         with self.input()['enrich_team_members_with_environment_info']['clean'].open("r") as f:
             team_member_list = json.load(f)
 
@@ -900,11 +900,11 @@ class ReviewTeamTask(PlanTask):
 
         # Build the query.
         query = (
-            f"Initial plan: {plan_prompt}\n\n"
-            f"Assumptions:\n{format_json_for_use_in_query(assumption_list)}\n\n"
-            f"Pre-project assessment:\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"Project plan:\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
-            f"Document with team members:\n{team_document_markdown}"
+            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
+            f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
+            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}"
+            f"File 'team-members.md':\n{team_document_markdown}"
         )
 
         # Create LLM instance.
