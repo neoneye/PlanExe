@@ -80,6 +80,12 @@ class ReportGenerator:
             logging.error(f"Error reading CSV file {file_path}: {str(e)}")
             return None
 
+    def append_assumptions_markdown(self, file_path: Path):
+        """Append the assumptions markdown to the report."""
+        markdown = self.read_markdown_file(file_path)
+        if markdown:
+            self.report_data['assumptions'] = markdown
+    
     def append_pitch_markdown(self, file_path: Path):
         """Append the pitch markdown to the report."""
         markdown = self.read_markdown_file(file_path)
@@ -205,6 +211,15 @@ class ReportGenerator:
                 <h2>Project Pitch</h2>
             """)
             html_parts.append(markdown.markdown(self.report_data['pitch']))
+            html_parts.append("</div>")
+        
+        # Assumptions
+        if 'assumptions' in self.report_data:
+            html_parts.append("""
+            <div class="section">
+                <h2>Assumptions</h2>
+            """)
+            html_parts.append(markdown.markdown(self.report_data['assumptions']))
             html_parts.append("</div>")
 
         # SWOT Analysis

@@ -1628,6 +1628,7 @@ class ReportTask(PlanTask):
     
     def requires(self):
         return {
+            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1637,6 +1638,7 @@ class ReportTask(PlanTask):
     
     def run(self):
         rg = ReportGenerator()
+        rg.append_assumptions_markdown(self.input()['consolidate_assumptions_markdown'].path)
         rg.append_pitch_markdown(self.input()['pitch_markdown']['markdown'].path)
         rg.append_swot_analysis_markdown(self.input()['swot_analysis']['markdown'].path)
         rg.append_team_markdown(self.input()['team_markdown'].path)
