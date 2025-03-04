@@ -403,6 +403,64 @@ class DistillAssumptionsTask(PlanTask):
         output_markdown_path = self.output()['markdown'].path
         distill_assumptions.save_markdown(str(output_markdown_path))
 
+class ConsolidateAssumptionsMarkdownTask(PlanTask):
+    """
+    Combines multiple small markdown documents into a single big document.
+    Depends on:
+      - PlanTypeTask
+      - PhysicalLocationsTask
+      - CurrencyStrategyTask
+      - IdentifyRisksTask
+      - MakeAssumptionsTask
+      - DistillAssumptionsTask
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def requires(self):
+        return {
+            'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'currency_strategy': CurrencyStrategyTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'identify_risks': IdentifyRisksTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'make_assumptions': MakeAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'distill_assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+
+    def output(self):
+        return luigi.LocalTarget(str(self.file_path(FilenameEnum.CONSOLIDATE_ASSUMPTIONS_MARKDOWN)))
+
+    def run(self):
+        # Define the list of (name, path) tuples
+        name_path_list = [
+            ('plan_type', self.input()['plan_type']['markdown'].path),
+            ('physical_locations', self.input()['physical_locations']['markdown'].path),
+            ('currency_strategy', self.input()['currency_strategy']['markdown'].path),
+            ('identify_risks', self.input()['identify_risks']['markdown'].path),
+            ('make_assumptions', self.input()['make_assumptions']['markdown'].path),
+            ('distill_assumptions', self.input()['distill_assumptions']['markdown'].path)
+        ]
+
+        # Read the files and handle exceptions
+        markdown_chunks = []
+        for name, path in name_path_list:
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    markdown_chunks.append(f.read())
+            except FileNotFoundError:
+                logger.warning(f"Markdown file not found: {path} (from {name})")
+                markdown_chunks.append(f"## Problem with document '{name}'\n\nFile not found.")
+            except Exception as e:
+                logger.error(f"Error reading markdown file {path} (from {name}): {e}")
+                markdown_chunks.append(f"## Problem with document '{name}'\n\nError reading markdown file.")
+
+        # Combine the markdown chunks
+        full_markdown = "\n\n".join(markdown_chunks)
+
+        # Write the result to disk.
+        output_markdown_path = self.output().path
+        with open(output_markdown_path, "w", encoding="utf-8") as f:
+            f.write(full_markdown)
+
 
 class PreProjectAssessmentTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
@@ -1597,6 +1655,7 @@ class FullPlanPipeline(PlanTask):
             'identify_risks': IdentifyRisksTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'make_assumptions': MakeAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pre_project_assessment': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
