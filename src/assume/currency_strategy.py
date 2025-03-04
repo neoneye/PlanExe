@@ -224,6 +224,7 @@ class CurrencyStrategy:
     user_prompt: str
     response: dict
     metadata: dict
+    markdown: str
 
     @classmethod
     def execute(cls, llm: LLM, user_prompt: str) -> 'CurrencyStrategy':
@@ -271,11 +272,14 @@ class CurrencyStrategy:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
+        markdown = cls.convert_to_markdown(chat_response.raw)
+
         result = CurrencyStrategy(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
             metadata=metadata,
+            markdown=markdown
         )
         return result
     
@@ -293,6 +297,33 @@ class CurrencyStrategy:
         with open(file_path, 'w') as f:
             f.write(json.dumps(self.to_dict(), indent=2))
 
+    @staticmethod
+    def convert_to_markdown(document_details: DocumentDetails) -> str:
+        """
+        Convert the raw document details to markdown.
+        """
+        rows = []
+
+        if document_details.money_involved:
+            rows.append("The plan involves money.")
+        else:
+            rows.append("The plan **does not** involve money.")
+
+        if len(document_details.currency_list) > 0:
+            rows.append("\n## Currencies\n")
+            for currency_item in document_details.currency_list:
+                rows.append(f"- **{currency_item.currency}:** {currency_item.consideration}")
+        else:
+            rows.append("No currencies identified.")
+
+        rows.append(f"\n**Primary currency:** {document_details.primary_currency}")
+        rows.append(f"\n**Currency strategy:** {document_details.currency_strategy}")        
+        return "\n".join(rows)
+
+    def save_markdown(self, output_file_path: str):
+        with open(output_file_path, 'w', encoding='utf-8') as out_f:
+            out_f.write(self.markdown)
+
 if __name__ == "__main__":
     from src.llm_factory import get_llm
     from src.utils.concat_files_into_string import concat_files_into_string
@@ -308,3 +339,5 @@ if __name__ == "__main__":
     json_response = currency_strategy.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
+
+    print(f"\n\nMarkdown:\n{currency_strategy.markdown}")
