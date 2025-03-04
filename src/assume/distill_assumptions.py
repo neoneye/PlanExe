@@ -9,6 +9,12 @@ The llama3.1 has no problems with it.
 IDEA: Sometimes it recognizes that the project starts ASAP as an assumption. This is already part of the project description, this is not something new.
 How do I suppress this kind of information from the output?
 
+IDEA: If there is a mismatch between the number of assumptions in the input and the output.
+Then it's likely that one or more assumptions are getting lost or introduced.
+The number of assumptions should be the same in the input and output.
+Ideally track the assumptions in the input with a uuid, that stays the same in the output.
+If one of the input assumptions gets splitted into 2 assumptions, then the source id should be the same for both.
+
 PROMPT> python -m src.assume.distill_assumptions
 """
 import json
