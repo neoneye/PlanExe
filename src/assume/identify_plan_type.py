@@ -114,7 +114,7 @@ Example scenarios:
   Given "Write a blog post about Paris, listing the top attractions."
   The correct output is:
   {
-    "explanation": "While Paris is the subject, the plan *doesn't* require the writer to be in Paris. The content can be created online.",
+    "explanation": "While Paris is the subject, the plan *doesn't* require the writer to be in Paris. The content can be created with a LLM.",
     "plan_type": "digital"
   }
 
@@ -174,6 +174,7 @@ class IdentifyPlanType:
     user_prompt: str
     response: dict
     metadata: dict
+    markdown: str
 
     @classmethod
     def execute(cls, llm: LLM, user_prompt: str) -> 'IdentifyPlanType':
@@ -221,11 +222,14 @@ class IdentifyPlanType:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
+        markdown = cls.convert_to_markdown(chat_response.raw)
+
         result = IdentifyPlanType(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
             metadata=metadata,
+            markdown=markdown
         )
         return result
     
@@ -242,6 +246,27 @@ class IdentifyPlanType:
     def save_raw(self, file_path: str) -> None:
         with open(file_path, 'w') as f:
             f.write(json.dumps(self.to_dict(), indent=2))
+
+    @staticmethod
+    def convert_to_markdown(document_details: DocumentDetails) -> str:
+        """
+        Convert the raw document details to markdown.
+        """
+        rows = []
+
+        if document_details.plan_type == PlanType.digital:
+            rows.append("The plan is purely digital and can be automated. There is no need for any physical locations.")
+        elif document_details.plan_type == PlanType.physical:
+            rows.append("The plan requires one or more physical locations. It cannot be executed digitally.")
+        else:
+            rows.append(f"Invalid plan type. {document_details.plan_type}")
+
+        rows.append(f"\n**Explanation:** {document_details.explanation}")
+        return "\n".join(rows)
+
+    def save_markdown(self, output_file_path: str):
+        with open(output_file_path, 'w', encoding='utf-8') as out_f:
+            out_f.write(self.markdown)
 
 if __name__ == "__main__":
     from src.llm_factory import get_llm
@@ -261,3 +286,5 @@ if __name__ == "__main__":
     json_response = identify_plan_type.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
+
+    print(f"\n\nMarkdown:\n{identify_plan_type.markdown}")
