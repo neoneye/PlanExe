@@ -6,6 +6,8 @@ As of 2025-03-03, the result is sensitive to what LLM is being used.
 - Medium `openrouter-paid-openai-gpt-4o-mini`.
 - Bad `ollama-llama3.1`.
 
+IDEA: assign uuid's to each risk. So later stages of the plan can refer to the risks by their uuid's.
+
 PROMPT> python -m src.assume.identify_risks
 """
 import os
