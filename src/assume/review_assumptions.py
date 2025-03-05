@@ -1,8 +1,6 @@
 """
 Review the assumptions. Are they too low/high? Are they reasonable? Are there any missing assumptions?
 
-IDEA: Now that PhysicalLocations is a separate step that comes rather early in the process. Eliminate the 'DocumentDetails.locations'.
-
 PROMPT> python -m src.assume.review_assumptions
 """
 import os
@@ -39,9 +37,6 @@ class DocumentDetails(BaseModel):
     )
     domain_specific_considerations: list[str] = Field(
         description="Key factors and areas of focus relevant to the specific project domain, which this review should prioritize."
-    )
-    location_list: list[str] = Field(
-        description="Specific locations or sites relevant to the project. Be as specific as possible. Street, city, country."
     )
     issues: list[ReviewItem] = Field(
         description="The most significant issues."
@@ -88,15 +83,12 @@ Think about all the things that must be true for this project to succeed. Are al
 * Metrics: Clear, measurable success conditions.
 * Technical Considerations: Hardware, Software, Algorithms, Scalability, Data security, etc.
 
-If no location is provided, default to "The project should select a default location." If the location is too broad, choose a location representative of the primary team's location or where the majority of resources are based. Consider time zone and cultural factors when choosing a location. An acceptable response is the city and country or the state and country. Consider factors for this particular task, cloud based in New York would improve performance. Make the recommendation actionable.
-
 Please limit your output to no more than 800 words.
 
 Return your response as a JSON object with the following structure:
 {
   "expert_domain": "The area of expertise most relevant for this review",
   "domain_specific_considerations": ["List", "of", "relevant", "considerations"],
-  "location_list": ["Relevant locations"],
   "issues": [
     {
       "issue": "Title of the issue",
@@ -208,13 +200,6 @@ class ReviewAssumptions:
         else:
             rows.append("\n## Domain-specific considerations - None\n")
 
-        if len(document_details.location_list) > 0:
-            rows.append("\n## Locations\n")
-            for item in document_details.location_list:
-                rows.append(f"- {item}")
-        else:
-            rows.append("\n## Locations - None\n")
-
         if len(document_details.issues) > 0:
             for index, item in enumerate(document_details.issues, start=1):
                 rows.append(f"\n## Issue {index} - {item.issue}")
@@ -224,7 +209,7 @@ class ReviewAssumptions:
         else:
             rows.append("## Issues - None. This is unusual. Please report this to the developer of PlanExe.")
 
-        rows.append(f"\n## Conclusion\n{document_details.conclusion}")
+        rows.append(f"\n## Review conclusion\n{document_details.conclusion}")
         return "\n".join(rows)
 
     def save_markdown(self, output_file_path: str):
