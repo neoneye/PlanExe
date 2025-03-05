@@ -5,6 +5,7 @@ PROMPT> python -m src.report.report_generator /path/to/PlanExe_20250216_dir
 This generates the report without opening the browser.
 PROMPT> python -m src.report.report_generator /path/to/PlanExe_20250216_dir --no-browser
 """
+import re
 import json
 import logging
 import pandas as pd
@@ -121,151 +122,59 @@ class ReportGenerator:
 
     def generate_html_report(self) -> str:
         """Generate an HTML report from the gathered data."""
-        html_parts = []
-        
-        # Header with improved styling
-        html_parts.append("""
-        <html>
-        <head>
-            <title>PlanExe Project Report</title>
-            <style>
-                body { 
-                    font-family: Arial, sans-serif; 
-                    margin: 40px;
-                    line-height: 1.6;
-                    color: #333;
-                    max-width: 1200px;
-                    margin: 0 auto;
-                    padding: 20px;
-                }
-                h1 { 
-                    color: #2c3e50;
-                    border-bottom: 2px solid #eee;
-                    padding-bottom: 10px;
-                }
-                h2 { 
-                    color: #34495e;
-                    margin-top: 30px;
-                    border-bottom: 1px solid #eee;
-                    padding-bottom: 5px;
-                }
-                .section { 
-                    margin: 20px 0;
-                    padding: 20px;
-                    border: 1px solid #eee;
-                    border-radius: 5px;
-                    background-color: #fff;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                }
-                table { 
-                    border-collapse: collapse;
-                    width: 100%;
-                    margin: 20px 0;
-                    font-size: 14px;
-                }
-                th, td { 
-                    border: 1px solid #ddd;
-                    padding: 12px 8px;
-                    text-align: left;
-                }
-                th { 
-                    background-color: #f5f5f5;
-                    font-weight: bold;
-                }
-                tr:nth-child(even) { 
-                    background-color: #f9f9f9;
-                }
-                tr:hover {
-                    background-color: #f5f5f5;
-                }
-                .timestamp { 
-                    color: #666;
-                    font-size: 0.9em;
-                    margin-bottom: 30px;
-                }
-                .dataframe {
-                    overflow-x: auto;
-                    display: block;
-                }
-                .source-info {
-                    color: #666;
-                    font-size: 0.9em;
-                    margin-top: 10px;
-                    font-style: italic;
-                }
-            </style>
-        </head>
-        <body>
-        """)
 
+        path_to_template = Path(__file__).parent / 'report_template.html'
+        with open(path_to_template, 'r') as f:
+            html_template = f.read()
+        
+        html_parts = []
         # Title and Timestamp
         html_parts.append(f"""
         <h1>PlanExe Project Report</h1>
         <p class="timestamp">Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
         """)
 
-        # Project Pitch
+        def add_section(title: str, content: str):
+            html_parts.append(f"""
+            <div class="section">
+                <button class="collapsible">{title}</button>
+                <div class="content">        
+                    {content}
+                </div>
+            </div>
+            """)
+
         if 'pitch' in self.report_data:
-            html_parts.append("""
-            <div class="section">
-                <h2>Project Pitch</h2>
-            """)
-            html_parts.append(markdown.markdown(self.report_data['pitch']))
-            html_parts.append("</div>")
+            add_section('Project Pitch', markdown.markdown(self.report_data['pitch']))
         
-        # Assumptions
         if 'assumptions' in self.report_data:
-            html_parts.append("""
-            <div class="section">
-                <h2>Assumptions</h2>
-            """)
-            html_parts.append(markdown.markdown(self.report_data['assumptions']))
-            html_parts.append("</div>")
+            add_section('Assumptions', markdown.markdown(self.report_data['assumptions']))
 
-        # SWOT Analysis
         if 'swot' in self.report_data:
-            html_parts.append("""
-            <div class="section">
-                <h2>SWOT Analysis</h2>
-            """)
-            html_parts.append(markdown.markdown(self.report_data['swot']))
-            html_parts.append("</div>")
+            add_section('SWOT Analysis', markdown.markdown(self.report_data['swot']))
 
-        # Team
         if 'team' in self.report_data:
-            html_parts.append("""
-            <div class="section">
-                <h2>Team</h2>
-            """)
-            html_parts.append(markdown.markdown(self.report_data['team']))
-            html_parts.append("</div>")
+            add_section('Team', markdown.markdown(self.report_data['team']))
 
-        # Expert Criticism
         if 'expert_criticism' in self.report_data:
-            html_parts.append("""
-            <div class="section">
-                <h2>Expert Criticism</h2>
-            """)
-            html_parts.append(markdown.markdown(self.report_data['expert_criticism']))
-            html_parts.append("</div>")
+            add_section('Expert Criticism', markdown.markdown(self.report_data['expert_criticism']))
 
-        # Project Plan
         if 'project_plan' in self.report_data:
-            html_parts.append("""
-            <div class="section">
-                <h2>Project Plan</h2>
-            """)
             df = self.report_data['project_plan']
-            html_parts.append(df.to_html(classes='dataframe', index=False, na_rep=''))
-            html_parts.append("</div>")
+            table_html = df.to_html(classes='dataframe', index=False, na_rep='')
+            add_section('Project Plan', table_html)
 
-        # Footer
-        html_parts.append("""
-        </body>
-        </html>
-        """)
+        html_content = '\n'.join(html_parts)
 
-        return '\n'.join(html_parts)
+        # Replace the content between <!--CONTENT-START--> and <!--CONTENT-END--> with html_content
+        pattern = re.compile(r'<!--CONTENT-START-->.*<!--CONTENT-END-->', re.DOTALL)
+        html = re.sub(
+            pattern,
+            f'<!--CONTENT-START-->\n{html_content}\n<!--CONTENT-END-->',
+            html_template
+        )
+
+        return html
 
     def save_report(self, output_path: Path) -> None:
         """Generate and save the report."""
@@ -305,6 +214,7 @@ def main():
     
     report_generator = ReportGenerator()
     report_generator.append_pitch_markdown(input_path / FilenameEnum.PITCH_MARKDOWN.value)
+    report_generator.append_assumptions_markdown(input_path / FilenameEnum.CONSOLIDATE_ASSUMPTIONS_MARKDOWN.value)
     report_generator.append_swot_analysis_markdown(input_path / FilenameEnum.SWOT_MARKDOWN.value)
     report_generator.append_team_markdown(input_path / FilenameEnum.TEAM_MARKDOWN.value)
     report_generator.append_expert_criticism_markdown(input_path / FilenameEnum.EXPERT_CRITICISM_MARKDOWN.value)
