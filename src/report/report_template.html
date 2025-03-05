@@ -24,7 +24,6 @@
         }
         .section { 
             margin: 20px 0;
-            padding: 20px;
             border: 1px solid #eee;
             border-radius: 5px;
             background-color: #fff;
@@ -66,24 +65,79 @@
             margin-top: 10px;
             font-style: italic;
         }
+        .collapsible {
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            padding: 18px;
+            width: 100%;
+            border: none;
+            border-radius: 5px;
+            text-align: left;
+            outline: none;
+            font-size: 18px;
+            font-weight: bold;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+        }
+        .collapsible:hover {
+            background-color: #2980b9;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+        .collapsible:after {
+            content: '+';
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            transition: transform 0.3s ease;
+        }
+        .active:after {
+            content: "−";
+        }
+        .content {
+            padding: 0 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+        }
     </style>
 </head>
 <body>
-    <!-- CONTENT-START -->
+    <!--CONTENT-START-->
     <h1>PlanExe Project Report</h1>
     <p class="timestamp">Generated on: 1984-12-31 23:59:59</p>
 
     <div class="section">
-        <h2>Project Pitch</h2>
-            
-        <p>Lorem ipsum</p>
+        <button class="collapsible">Project Pitch</button>
+        <div class="content">        
+            <p>Lorem ipsum</p>
+        </div>
     </div>
 
     <div class="section">
-        <h2>SWOT Analysis</h2>
-
-        <p>Lorem ipsum</p>
+        <button class="collapsible">SWOT Analysis</button>
+        <div class="content">        
+            <p>Lorem ipsum</p>
+        </div>
     </div>
-    <!-- CONTENT-END -->
+    <!--CONTENT-END-->
+
+    <script>
+        var coll = document.getElementsByClassName("collapsible");
+        var i;
+
+        for (i = 0; i < coll.length; i++) {
+            coll[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                var content = this.nextElementSibling;
+                if (content.style.maxHeight){
+                    content.style.maxHeight = null;
+                } else {
+                    content.style.maxHeight = content.scrollHeight + "px";
+                }
+            });
+        }
+    </script>
 </body>
 </html>
