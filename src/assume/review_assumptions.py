@@ -188,6 +188,10 @@ class ReviewAssumptions:
             d['user_prompt'] = self.user_prompt
         return d
 
+    def save_raw(self, file_path: str) -> None:
+        with open(file_path, 'w') as f:
+            f.write(json.dumps(self.to_dict(), indent=2))
+
     @staticmethod
     def convert_to_markdown(document_details: DocumentDetails) -> str:
         """

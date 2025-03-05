@@ -22,6 +22,7 @@ from src.assume.currency_strategy import CurrencyStrategy
 from src.assume.identify_risks import IdentifyRisks
 from src.assume.make_assumptions import MakeAssumptions
 from src.assume.distill_assumptions import DistillAssumptions
+from src.assume.review_assumptions import ReviewAssumptions
 from src.expert.pre_project_assessment import PreProjectAssessment
 from src.plan.create_project_plan import CreateProjectPlan
 from src.swot.swot_analysis import SWOTAnalysis
@@ -403,9 +404,10 @@ class DistillAssumptionsTask(PlanTask):
         output_markdown_path = self.output()['markdown'].path
         distill_assumptions.save_markdown(str(output_markdown_path))
 
-class ConsolidateAssumptionsMarkdownTask(PlanTask):
+
+class ReviewAssumptionsTask(PlanTask):
     """
-    Combines multiple small markdown documents into a single big document.
+    Find issues with the assumptions.
     Depends on:
       - PlanTypeTask
       - PhysicalLocationsTask
@@ -427,10 +429,13 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
         }
 
     def output(self):
-        return luigi.LocalTarget(str(self.file_path(FilenameEnum.CONSOLIDATE_ASSUMPTIONS_MARKDOWN)))
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.REVIEW_ASSUMPTIONS_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.REVIEW_ASSUMPTIONS_MARKDOWN)))
+        }
 
     def run(self):
-        # Define the list of (name, path) tuples
+        # Define the list of (title, path) tuples
         title_path_list = [
             ('Plan Type', self.input()['plan_type']['markdown'].path),
             ('Physical Locations', self.input()['physical_locations']['markdown'].path),
@@ -438,6 +443,74 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
             ('Identify Risks', self.input()['identify_risks']['markdown'].path),
             ('Make Assumptions', self.input()['make_assumptions']['markdown'].path),
             ('Distill Assumptions', self.input()['distill_assumptions']['markdown'].path)
+        ]
+
+        # Read the files and handle exceptions
+        markdown_chunks = []
+        for title, path in title_path_list:
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    markdown_chunk = f.read()
+                markdown_chunks.append(f"# {title}\n\n{markdown_chunk}")
+            except FileNotFoundError:
+                logger.warning(f"Markdown file not found: {path} (from {title})")
+                markdown_chunks.append(f"**Problem with document:** '{title}'\n\nFile not found.")
+            except Exception as e:
+                logger.error(f"Error reading markdown file {path} (from {title}): {e}")
+                markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError reading markdown file.")
+
+        # Combine the markdown chunks
+        full_markdown = "\n\n".join(markdown_chunks)
+
+        llm = get_llm(self.llm_model)
+
+        review_assumptions = ReviewAssumptions.execute(llm, full_markdown)
+
+        # Write the result to disk.
+        output_raw_path = self.output()['raw'].path
+        review_assumptions.save_raw(str(output_raw_path))
+        output_markdown_path = self.output()['markdown'].path
+        review_assumptions.save_markdown(str(output_markdown_path))
+
+
+class ConsolidateAssumptionsMarkdownTask(PlanTask):
+    """
+    Combines multiple small markdown documents into a single big document.
+    Depends on:
+      - PlanTypeTask
+      - PhysicalLocationsTask
+      - CurrencyStrategyTask
+      - IdentifyRisksTask
+      - MakeAssumptionsTask
+      - DistillAssumptionsTask
+      - ReviewAssumptionsTask
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def requires(self):
+        return {
+            'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'currency_strategy': CurrencyStrategyTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'identify_risks': IdentifyRisksTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'make_assumptions': MakeAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'distill_assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'review_assumptions': ReviewAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+
+    def output(self):
+        return luigi.LocalTarget(str(self.file_path(FilenameEnum.CONSOLIDATE_ASSUMPTIONS_MARKDOWN)))
+
+    def run(self):
+        # Define the list of (title, path) tuples
+        title_path_list = [
+            ('Plan Type', self.input()['plan_type']['markdown'].path),
+            ('Physical Locations', self.input()['physical_locations']['markdown'].path),
+            ('Currency Strategy', self.input()['currency_strategy']['markdown'].path),
+            ('Identify Risks', self.input()['identify_risks']['markdown'].path),
+            ('Make Assumptions', self.input()['make_assumptions']['markdown'].path),
+            ('Distill Assumptions', self.input()['distill_assumptions']['markdown'].path),
+            ('Review Assumptions', self.input()['review_assumptions']['markdown'].path)
         ]
 
         # Read the files and handle exceptions
@@ -1666,6 +1739,7 @@ class FullPlanPipeline(PlanTask):
             'identify_risks': IdentifyRisksTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'make_assumptions': MakeAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'review_assumptions': ReviewAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pre_project_assessment': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
