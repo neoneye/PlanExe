@@ -1719,12 +1719,12 @@ class ReportTask(PlanTask):
     
     def run(self):
         rg = ReportGenerator()
-        rg.append_assumptions_markdown(self.input()['consolidate_assumptions_markdown'].path)
-        rg.append_pitch_markdown(self.input()['pitch_markdown']['markdown'].path)
-        rg.append_swot_analysis_markdown(self.input()['swot_analysis']['markdown'].path)
-        rg.append_team_markdown(self.input()['team_markdown'].path)
-        rg.append_project_plan_csv(self.input()['wbs_project123']['csv'].path)
-        rg.append_expert_criticism_markdown(self.input()['expert_review'].path)
+        rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
+        rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown'].path)
+        rg.append_markdown('SWOT Analysis', self.input()['swot_analysis']['markdown'].path)
+        rg.append_markdown('Team', self.input()['team_markdown'].path)
+        rg.append_markdown('Expert Criticism', self.input()['expert_review'].path)
+        rg.append_csv('Work Breakdown Structure', self.input()['wbs_project123']['csv'].path)
         rg.save_report(self.output().path)
 
 class FullPlanPipeline(PlanTask):

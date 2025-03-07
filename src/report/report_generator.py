@@ -9,6 +9,7 @@ import re
 import json
 import logging
 import pandas as pd
+from dataclasses import dataclass
 from pathlib import Path
 from datetime import datetime
 import markdown
@@ -16,9 +17,14 @@ from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
+@dataclass
+class ReportDocumentItem:
+    document_title: str
+    document_html_content: str
+
 class ReportGenerator:
     def __init__(self):
-        self.report_data = {}
+        self.report_item_list: list[ReportDocumentItem] = []
         
     def read_json_file(self, file_path: Path) -> Optional[Dict[str, Any]]:
         """Read a JSON file and return its contents."""
@@ -81,44 +87,26 @@ class ReportGenerator:
             logging.error(f"Error reading CSV file {file_path}: {str(e)}")
             return None
 
-    def append_assumptions_markdown(self, file_path: Path):
-        """Append the assumptions markdown to the report."""
-        markdown = self.read_markdown_file(file_path)
-        if markdown:
-            self.report_data['assumptions'] = markdown
+    def append_markdown(self, document_title: str, file_path: Path):
+        """Append a markdown document to the report."""
+        md_data = self.read_markdown_file(file_path)
+        if md_data is None:
+            logging.warning(f"Document: '{document_title}'. Could not read markdown file: {file_path}")
+            return
+        html = markdown.markdown(md_data)
+        self.report_item_list.append(ReportDocumentItem(document_title, html))
     
-    def append_pitch_markdown(self, file_path: Path):
-        """Append the pitch markdown to the report."""
-        markdown = self.read_markdown_file(file_path)
-        if markdown:
-            self.report_data['pitch'] = markdown
-    
-    def append_swot_analysis_markdown(self, file_path: Path):
-        """Append the SWOT markdown to the report."""
-        markdown = self.read_markdown_file(file_path)
-        if markdown:
-            self.report_data['swot'] = markdown
-    
-    def append_team_markdown(self, file_path: Path):
-        """Append the team markdown to the report."""
-        markdown = self.read_markdown_file(file_path)
-        if markdown:
-            self.report_data['team'] = markdown
-    
-    def append_expert_criticism_markdown(self, file_path: Path):
-        """Append the expert criticism markdown to the report."""
-        markdown = self.read_markdown_file(file_path)
-        if markdown:
-            self.report_data['expert_criticism'] = markdown
-    
-    def append_project_plan_csv(self, file_path: Path):
-        """Append the project plan CSV to the report."""
-        plan_df = self.read_csv_file(file_path)
-        if plan_df is not None:
-            # Clean up the dataframe
-            # Remove any completely empty rows or columns
-            plan_df = plan_df.dropna(how='all', axis=0).dropna(how='all', axis=1)
-            self.report_data['project_plan'] = plan_df
+    def append_csv(self, document_title: str, file_path: Path):
+        """Append a CSV to the report."""
+        df_data = self.read_csv_file(file_path)
+        if df_data is None:
+            logging.warning(f"Document: '{document_title}'. Could not read CSV file: {file_path}")
+            return
+        # Clean up the dataframe
+        # Remove any completely empty rows or columns
+        df = df_data.dropna(how='all', axis=0).dropna(how='all', axis=1)
+        html = df.to_html(classes='dataframe', index=False, na_rep='')
+        self.report_item_list.append(ReportDocumentItem(document_title, html))
 
     def generate_html_report(self) -> str:
         """Generate an HTML report from the gathered data."""
@@ -144,25 +132,8 @@ class ReportGenerator:
             </div>
             """)
 
-        if 'pitch' in self.report_data:
-            add_section('Project Pitch', markdown.markdown(self.report_data['pitch']))
-        
-        if 'assumptions' in self.report_data:
-            add_section('Assumptions', markdown.markdown(self.report_data['assumptions']))
-
-        if 'swot' in self.report_data:
-            add_section('SWOT Analysis', markdown.markdown(self.report_data['swot']))
-
-        if 'team' in self.report_data:
-            add_section('Team', markdown.markdown(self.report_data['team']))
-
-        if 'expert_criticism' in self.report_data:
-            add_section('Expert Criticism', markdown.markdown(self.report_data['expert_criticism']))
-
-        if 'project_plan' in self.report_data:
-            df = self.report_data['project_plan']
-            table_html = df.to_html(classes='dataframe', index=False, na_rep='')
-            add_section('Project Plan', table_html)
+        for item in self.report_item_list:
+            add_section(item.document_title, item.document_html_content)
 
         html_content = '\n'.join(html_parts)
 
@@ -213,12 +184,12 @@ def main():
     output_path = input_path / FilenameEnum.REPORT.value
     
     report_generator = ReportGenerator()
-    report_generator.append_pitch_markdown(input_path / FilenameEnum.PITCH_MARKDOWN.value)
-    report_generator.append_assumptions_markdown(input_path / FilenameEnum.CONSOLIDATE_ASSUMPTIONS_MARKDOWN.value)
-    report_generator.append_swot_analysis_markdown(input_path / FilenameEnum.SWOT_MARKDOWN.value)
-    report_generator.append_team_markdown(input_path / FilenameEnum.TEAM_MARKDOWN.value)
-    report_generator.append_expert_criticism_markdown(input_path / FilenameEnum.EXPERT_CRITICISM_MARKDOWN.value)
-    report_generator.append_project_plan_csv(input_path / FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_CSV.value)
+    report_generator.append_markdown('Pitch', input_path / FilenameEnum.PITCH_MARKDOWN.value)
+    report_generator.append_markdown('Assumptions', input_path / FilenameEnum.CONSOLIDATE_ASSUMPTIONS_MARKDOWN.value)
+    report_generator.append_markdown('SWOT Analysis', input_path / FilenameEnum.SWOT_MARKDOWN.value)
+    report_generator.append_markdown('Team', input_path / FilenameEnum.TEAM_MARKDOWN.value)
+    report_generator.append_markdown('Expert Criticism', input_path / FilenameEnum.EXPERT_CRITICISM_MARKDOWN.value)
+    report_generator.append_csv('Work Breakdown Structure', input_path / FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_CSV.value)
     report_generator.save_report(output_path)
         
     if not args.no_browser:
