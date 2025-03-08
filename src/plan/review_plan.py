@@ -68,8 +68,9 @@ class ReviewPlan:
         system_prompt += document
 
         questions = [
-            "What are the three most critical, actionable adjustments required in version 2 of the plan based on newly discovered insights or overlooked assumptions? For each, provide a specific action step, identify the responsible party, and outline a measurable outcome. Please answer in exactly three bullet points, combining related details as needed.",
-            "List three factors that determine whether the plan is realistic, considering time, budget, resources, and the environment.",
+            "Identify exactly three significant consequences—both positive and negative—that may result from implementing the plan. For each consequence, provide a brief explanation of its impact on the plan’s overall feasibility, outcomes, or long-term success. Please present your answer in exactly three bullet points.",
+            # "What are the three most critical, actionable adjustments required in version 2 of the plan based on newly discovered insights or overlooked assumptions? For each, provide a specific action step, identify the responsible party, and outline a measurable outcome. Please answer in exactly three bullet points, combining related details as needed.",
+            # "List three factors that determine whether the plan is realistic, considering time, budget, resources, and the environment.",
             # "Summarize the key aspects of the assumptions, their justification, and supporting evidence in exactly three bullet points.",
             # "List exactly three key dependencies for the project. For each dependency, provide one bullet point that combines the dependency, its likelihood (e.g., Medium, High, Low), and whether it is controlled internally or externally.",
             # "Summarize the key ‘showstopper’ risks and their mitigation strategies in exactly three bullet points. Combine multiple related risks into one bullet if needed.",
