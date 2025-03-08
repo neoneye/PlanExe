@@ -6,6 +6,7 @@ Based on a vague description, the creates a rough draft for a project plan.
 import json
 import time
 import logging
+from dataclasses import dataclass
 from math import ceil
 from typing import List, Optional, Any, Type, TypeVar
 from dataclasses import dataclass
@@ -209,6 +210,7 @@ class CreateProjectPlan:
     user_prompt: str
     response: dict
     metadata: dict
+    markdown: str
 
     @classmethod
     def execute(cls, llm: LLM, user_prompt: str) -> 'CreateProjectPlan':
@@ -262,11 +264,14 @@ class CreateProjectPlan:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
+        markdown = cls.convert_to_markdown(chat_response.raw)
+
         result = CreateProjectPlan(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
-            metadata=metadata
+            metadata=metadata,
+            markdown=markdown
         )
         logger.debug("CreateProjectPlan instance created successfully.")
         return result
@@ -285,6 +290,87 @@ class CreateProjectPlan:
         d = self.to_dict()
         with open(file_path, 'w') as f:
             f.write(json.dumps(d, indent=2))
+
+    @staticmethod
+    def convert_to_markdown(document_details: GoalDefinition) -> str:
+        """
+        Convert the raw document details to markdown.
+        """
+        rows = []
+
+        rows.append(f"**Goal Statement:** {document_details.goal_statement}")
+
+        rows.append("\n## SMART Criteria\n")
+        rows.append(f"- **Specific:** {document_details.smart_criteria.specific}")
+        rows.append(f"- **Measurable:** {document_details.smart_criteria.measurable}")
+        rows.append(f"- **Achievable:** {document_details.smart_criteria.achievable}")
+        rows.append(f"- **Relevant:** {document_details.smart_criteria.relevant}")
+        rows.append(f"- **Time-bound:** {document_details.smart_criteria.time_bound}")
+
+        rows.append("\n## Dependencies\n")
+        for dep in document_details.dependencies:
+            rows.append(f"- {dep}")
+
+        rows.append("\n## Resources Required\n")
+        for resource in document_details.resources_required:
+            rows.append(f"- {resource}")
+
+        rows.append("\n## Related Goals\n")
+        for goal in document_details.related_goals:
+            rows.append(f"- {goal}")
+
+        rows.append("\n## Tags\n")
+        for tag in document_details.tags:
+            rows.append(f"- {tag}")
+
+        rows.append("\n## Risk Assessment and Mitigation Strategies\n")
+        rows.append("\n### Key Risks\n")
+        for risk in document_details.risk_assessment_and_mitigation_strategies.key_risks:
+            rows.append(f"- {risk}")
+
+        rows.append("\n### Diverse Risks\n")
+        for risk in document_details.risk_assessment_and_mitigation_strategies.diverse_risks:
+            rows.append(f"- {risk}")
+
+        rows.append("\n### Mitigation Plans\n")
+        for plan in document_details.risk_assessment_and_mitigation_strategies.mitigation_plans:
+            rows.append(f"- {plan}")
+
+        rows.append("\n## Stakeholder Analysis\n")
+        rows.append("\n### Primary Stakeholders\n")
+        for stakeholder in document_details.stakeholder_analysis.primary_stakeholders:
+            rows.append(f"- {stakeholder}")
+
+        rows.append("\n### Secondary Stakeholders\n")
+        for stakeholder in document_details.stakeholder_analysis.secondary_stakeholders:
+            rows.append(f"- {stakeholder}")
+
+        rows.append("\n### Engagement Strategies\n")
+        for strategy in document_details.stakeholder_analysis.engagement_strategies:
+            rows.append(f"- {strategy}")
+
+        rows.append("\n## Regulatory and Compliance Requirements\n")
+        rows.append("\n### Permits and Licenses\n")
+        for permit in document_details.regulatory_and_compliance_requirements.permits_and_licenses:
+            rows.append(f"- {permit}")
+
+        rows.append("\n### Compliance Standards\n")
+        for standard in document_details.regulatory_and_compliance_requirements.compliance_standards:
+            rows.append(f"- {standard}")
+
+        rows.append("\n### Regulatory Bodies\n")
+        for body in document_details.regulatory_and_compliance_requirements.regulatory_bodies:
+            rows.append(f"- {body}")
+
+        rows.append("\n### Compliance Actions\n")
+        for action in document_details.regulatory_and_compliance_requirements.compliance_actions:
+            rows.append(f"- {action}")
+
+        return "\n".join(rows)
+
+    def save_markdown(self, output_file_path: str):
+        with open(output_file_path, 'w', encoding='utf-8') as out_f:
+            out_f.write(self.markdown)
 
 if __name__ == "__main__":
     import logging
@@ -308,4 +394,7 @@ if __name__ == "__main__":
     print(f"Query:\n{plan_prompt}\n\n")
     result = CreateProjectPlan.execute(llm, plan_prompt)
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
+    print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
+
+    print(f"\n\nMarkdown:\n{result.markdown}")
