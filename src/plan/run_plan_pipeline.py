@@ -599,7 +599,10 @@ class ProjectPlanTask(PlanTask):
         }
 
     def output(self):
-        return luigi.LocalTarget(str(self.file_path(FilenameEnum.PROJECT_PLAN_RAW)))
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.PROJECT_PLAN_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.PROJECT_PLAN_MARKDOWN)))
+        }
 
     def run(self):
         logger.info("Creating plan...")
@@ -630,10 +633,14 @@ class ProjectPlanTask(PlanTask):
 
         # Execute the plan creation.
         create_project_plan = CreateProjectPlan.execute(llm, query)
-        output_path = self.output().path
-        create_project_plan.save_raw(output_path)
+        
+        # Save raw output
+        create_project_plan.save_raw(self.output()['raw'].path)
+        
+        # Save markdown output
+        create_project_plan.save_markdown(self.output()['markdown'].path)
 
-        logger.info("Project plan created and saved to %s", output_path)
+        logger.info("Project plan created and saved")
 
 
 class FindTeamMembersTask(PlanTask):
@@ -669,7 +676,7 @@ class FindTeamMembersTask(PlanTask):
             pre_project_assessment_dict = json.load(f)
 
         # Read the project plan from ProjectPlanTask.
-        with self.input()['project_plan'].open("r") as f:
+        with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
 
         logger.info("FindTeamMembers. All files are now ready. Brainstorming a team...")
@@ -738,7 +745,7 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
             pre_project_assessment_dict = json.load(f)
 
         # Read the project plan from ProjectPlanTask.
-        with self.input()['project_plan'].open("r") as f:
+        with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
 
         # Read the team_member_list from FindTeamMembersTask.
@@ -812,7 +819,7 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
             pre_project_assessment_dict = json.load(f)
 
         # Read the project plan from ProjectPlanTask.
-        with self.input()['project_plan'].open("r") as f:
+        with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
 
         # Read the team_member_list from EnrichTeamMembersWithContractTypeTask.
@@ -886,7 +893,7 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
             pre_project_assessment_dict = json.load(f)
 
         # Read the project plan from ProjectPlanTask.
-        with self.input()['project_plan'].open("r") as f:
+        with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
 
         # Read the team_member_list from EnrichTeamMembersWithBackgroundStoryTask.
@@ -957,7 +964,7 @@ class ReviewTeamTask(PlanTask):
             pre_project_assessment_dict = json.load(f)
 
         # Read the project plan from ProjectPlanTask.
-        with self.input()['project_plan'].open("r") as f:
+        with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
 
         # Read the team_member_list from EnrichTeamMembersWithEnvironmentInfoTask.
@@ -1064,7 +1071,7 @@ class SWOTAnalysisTask(PlanTask):
             pre_project_assessment_dict = json.load(f)
 
         # Read the project plan from ProjectPlanTask.
-        with self.input()['project_plan'].open("r") as f:
+        with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
 
         logger.info("SWOTAnalysisTask. All files are now ready. Performing analysis...")
@@ -1137,7 +1144,7 @@ class ExpertReviewTask(PlanTask):
             plan_prompt = f.read()
         with self.input()['preproject']['clean'].open("r") as f:
             pre_project_assessment_dict = json.load(f)
-        with self.input()['project_plan'].open("r") as f:
+        with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
         swot_markdown_path = self.input()['swot_analysis']['markdown'].path
         with open(swot_markdown_path, "r", encoding="utf-8") as f:
@@ -1202,7 +1209,7 @@ class CreateWBSLevel1Task(PlanTask):
         logger.info("Creating Work Breakdown Structure (WBS) Level 1...")
         
         # Read the project plan JSON from the dependency.
-        with self.input()['project_plan'].open("r") as f:
+        with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
         
         # Build the query using the project plan.
@@ -1254,7 +1261,7 @@ class CreateWBSLevel2Task(PlanTask):
         logger.info("Creating Work Breakdown Structure (WBS) Level 2...")
         
         # Read the project plan from the ProjectPlanTask output.
-        with self.input()['project_plan'].open("r") as f:
+        with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
         
         # Read the cleaned WBS Level 1 result from the CreateWBSLevel1Task output.
@@ -1336,7 +1343,7 @@ class CreatePitchTask(PlanTask):
         logger.info("Creating pitch...")
         
         # Read the project plan JSON.
-        with self.input()['project_plan'].open("r") as f:
+        with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
         
         wbs_project_path = self.input()['wbs_project'].path
@@ -1433,7 +1440,7 @@ class IdentifyTaskDependenciesTask(PlanTask):
         logger.info("Identifying task dependencies...")
         
         # Read the project plan JSON.
-        with self.input()['project_plan'].open("r") as f:
+        with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
         
         # Read the major phases with subtasks from WBS Level 2 output.
@@ -1487,7 +1494,7 @@ class EstimateTaskDurationsTask(PlanTask):
         logger.info("Estimating task durations...")
         
         # Load the project plan JSON.
-        with self.input()['project_plan'].open("r") as f:
+        with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
 
         with self.input()['wbs_project'].open("r") as f:
@@ -1579,7 +1586,7 @@ class CreateWBSLevel3Task(PlanTask):
         logger.info("Creating Work Breakdown Structure (WBS) Level 3...")
         
         # Load the project plan JSON.
-        with self.input()['project_plan'].open("r") as f:
+        with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
         
         with self.input()['wbs_project'].open("r") as f:
@@ -1701,6 +1708,7 @@ class ReportTask(PlanTask):
       - ConvertPitchToMarkdownTask: provides the pitch as Markdown.
       - WBSProjectLevel1AndLevel2AndLevel3Task: provides the table csv file.
       - ExpertReviewTask: provides the expert criticism as Markdown.
+      - ProjectPlanTask: provides the project plan as Markdown.
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
@@ -1714,12 +1722,14 @@ class ReportTask(PlanTask):
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
     
     def run(self):
         rg = ReportGenerator()
         rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
+        rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
         rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown'].path)
         rg.append_markdown('SWOT Analysis', self.input()['swot_analysis']['markdown'].path)
         rg.append_markdown('Team', self.input()['team_markdown'].path)
