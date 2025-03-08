@@ -599,7 +599,7 @@ class ProjectPlanTask(PlanTask):
         }
 
     def output(self):
-        return luigi.LocalTarget(str(self.file_path(FilenameEnum.PROJECT_PLAN)))
+        return luigi.LocalTarget(str(self.file_path(FilenameEnum.PROJECT_PLAN_RAW)))
 
     def run(self):
         logger.info("Creating plan...")
@@ -631,7 +631,7 @@ class ProjectPlanTask(PlanTask):
         # Execute the plan creation.
         create_project_plan = CreateProjectPlan.execute(llm, query)
         output_path = self.output().path
-        create_project_plan.save(output_path)
+        create_project_plan.save_raw(output_path)
 
         logger.info("Project plan created and saved to %s", output_path)
 

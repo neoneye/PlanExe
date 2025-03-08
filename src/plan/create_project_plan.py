@@ -281,7 +281,7 @@ class CreateProjectPlan:
             d['system_prompt'] = self.system_prompt
         return d
 
-    def save(self, file_path: str) -> None:
+    def save_raw(self, file_path: str) -> None:
         d = self.to_dict()
         with open(file_path, 'w') as f:
             f.write(json.dumps(d, indent=2))
