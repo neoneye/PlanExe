@@ -93,8 +93,6 @@ class SWOTAnalysis:
 
     def to_markdown(self, include_metadata=True) -> str:
         rows = []
-        rows.append(f"# SWOT Analysis")
-
         rows.append(f"\n## Topic")
         rows.append(f"{self.topic}")
 
