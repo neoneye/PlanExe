@@ -24,7 +24,7 @@ from src.assume.make_assumptions import MakeAssumptions
 from src.assume.distill_assumptions import DistillAssumptions
 from src.assume.review_assumptions import ReviewAssumptions
 from src.expert.pre_project_assessment import PreProjectAssessment
-from src.plan.create_project_plan import CreateProjectPlan
+from src.plan.project_plan import ProjectPlan
 from src.swot.swot_analysis import SWOTAnalysis
 from src.expert.expert_finder import ExpertFinder
 from src.expert.expert_criticism import ExpertCriticism
@@ -632,13 +632,13 @@ class ProjectPlanTask(PlanTask):
         llm = get_llm(self.llm_model)
 
         # Execute the plan creation.
-        create_project_plan = CreateProjectPlan.execute(llm, query)
+        project_plan = ProjectPlan.execute(llm, query)
         
         # Save raw output
-        create_project_plan.save_raw(self.output()['raw'].path)
+        project_plan.save_raw(self.output()['raw'].path)
         
         # Save markdown output
-        create_project_plan.save_markdown(self.output()['markdown'].path)
+        project_plan.save_markdown(self.output()['markdown'].path)
 
         logger.info("Project plan created and saved")
 

@@ -1,5 +1,5 @@
 """
-PROMPT> python -m src.plan.create_project_plan
+PROMPT> python -m src.plan.project_plan
 
 Based on a vague description, the creates a rough draft for a project plan.
 """
@@ -114,7 +114,7 @@ class GoalDefinition(BaseModel):
         description="Ensure compliance with all regulatory and legal requirements, including permits, licenses, and industry-specific standards."
     )
 
-CREATE_PROJECT_PLAN_SYSTEM_PROMPT_1 = """
+PROJECT_PLAN_SYSTEM_PROMPT_1 = """
 You are an expert project planner tasked with creating comprehensive and detailed project plans based on user-provided descriptions. Your output must be a complete JSON object conforming to the provided GoalDefinition schema. Focus on being specific and actionable, generating a plan that is realistic and useful for guiding project development.
 Your plans must include:
 - A clear goal statement adhering to the SMART criteria (Specific, Measurable, Achievable, Relevant, Time-bound). Provide specific metrics and timeframes where possible.
@@ -127,7 +127,7 @@ Your plans must include:
 Prioritize feasibility, practicality, and alignment with the user-provided description. Ensure the plan is actionable, with concrete steps where possible and measurable outcomes.
 """
 
-CREATE_PROJECT_PLAN_SYSTEM_PROMPT_2 = """
+PROJECT_PLAN_SYSTEM_PROMPT_2 = """
 You are an expert project planner tasked with creating comprehensive and detailed project plans based on user-provided descriptions. Your output must be a complete JSON object conforming to the provided GoalDefinition schema. Focus on being specific and actionable, generating a plan that is realistic and useful for guiding project development.
 
 Your plans must include:
@@ -149,7 +149,7 @@ Your plans must include:
 Prioritize feasibility, practicality, and alignment with the user-provided description. Ensure the plan is actionable, with concrete steps where possible and measurable outcomes.
 """
 
-CREATE_PROJECT_PLAN_SYSTEM_PROMPT_3 = """
+PROJECT_PLAN_SYSTEM_PROMPT_3 = """
 You are an expert project planner tasked with creating comprehensive and detailed project plans based on user-provided descriptions. Your output must be a complete JSON object conforming to the provided GoalDefinition schema. Focus on being specific and actionable, generating a plan that is realistic and useful for guiding project development.
 
 Your plans must include:
@@ -197,12 +197,12 @@ Here's an example of the expected output format for a simple project:
 }
 """
 
-CREATE_PROJECT_PLAN_SYSTEM_PROMPT = CREATE_PROJECT_PLAN_SYSTEM_PROMPT_3
+PROJECT_PLAN_SYSTEM_PROMPT = PROJECT_PLAN_SYSTEM_PROMPT_3
 
 T = TypeVar('T', bound=BaseModel)
 
 @dataclass
-class CreateProjectPlan:
+class ProjectPlan:
     """
     Creating a project plan from a vague description.
     """
@@ -213,7 +213,7 @@ class CreateProjectPlan:
     markdown: str
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'CreateProjectPlan':
+    def execute(cls, llm: LLM, user_prompt: str) -> 'ProjectPlan':
         """
         Invoke LLM to create project plan from a vague description.
 
@@ -226,7 +226,7 @@ class CreateProjectPlan:
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
 
-        system_prompt = CREATE_PROJECT_PLAN_SYSTEM_PROMPT.strip()
+        system_prompt = PROJECT_PLAN_SYSTEM_PROMPT.strip()
         logger.debug(f"System Prompt:\n{system_prompt}")
         logger.debug(f"User Prompt:\n{user_prompt}")
 
@@ -266,7 +266,7 @@ class CreateProjectPlan:
 
         markdown = cls.convert_to_markdown(chat_response.raw)
 
-        result = CreateProjectPlan(
+        result = ProjectPlan(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
@@ -392,7 +392,7 @@ if __name__ == "__main__":
     # llm = get_llm("deepseek-chat")
 
     print(f"Query:\n{plan_prompt}\n\n")
-    result = CreateProjectPlan.execute(llm, plan_prompt)
+    result = ProjectPlan.execute(llm, plan_prompt)
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
