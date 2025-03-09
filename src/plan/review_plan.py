@@ -2,6 +2,10 @@
 Review the plan.
 
 PROMPT> python -m src.plan.review_plan
+
+IDEA: Append the ReviewPlan Questions and Answers to report.
+
+IDEA: Determine what are the most significant questions to ask.
 """
 import os
 import json
