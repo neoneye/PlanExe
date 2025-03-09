@@ -49,6 +49,7 @@ class ReviewPlan:
     system_prompt: str
     question_answers_list: list[dict]
     metadata: dict
+    markdown: str
 
     @classmethod
     def execute(cls, llm: LLM, document: str) -> 'ReviewPlan':
@@ -137,10 +138,13 @@ class ReviewPlan:
         metadata["response_byte_count_total"] = response_byte_count_total
         metadata["response_byte_count_average"] = response_byte_count_average
 
+        markdown = cls.convert_to_markdown(question_answers_list)
+
         result = ReviewPlan(
             system_prompt=system_prompt,
             question_answers_list=question_answers_list,
             metadata=metadata,
+            markdown=markdown
         )
         return result
     
@@ -152,6 +156,36 @@ class ReviewPlan:
         if include_system_prompt:
             d['system_prompt'] = self.system_prompt
         return d
+
+    def save_raw(self, file_path: str) -> None:
+        with open(file_path, 'w') as f:
+            f.write(json.dumps(self.to_dict(), indent=2))
+
+    @staticmethod
+    def convert_to_markdown(question_answers_list: list[dict]) -> str:
+        """
+        Convert the question answers list to markdown.
+        """
+        rows = []
+
+        for index, question_answers in enumerate(question_answers_list, start=1):
+            question = question_answers.get('question', None)
+            if question is None:
+                logger.warning("Question is None.")
+                continue
+            answers = question_answers.get('answers', None)
+            if answers is None:
+                logger.warning("Answers are None.")
+                continue
+            rows.append(f"## Question {index}: {question}\n")
+            for answer in answers:
+                rows.append(f"- {answer}")
+
+        return "\n".join(rows)
+
+    def save_markdown(self, output_file_path: str):
+        with open(output_file_path, 'w', encoding='utf-8') as out_f:
+            out_f.write(self.markdown)
 
 if __name__ == "__main__":
     from src.llm_factory import get_llm
@@ -169,4 +203,7 @@ if __name__ == "__main__":
 
     result = ReviewPlan.execute(llm, query)
     json_response = result.to_dict(include_system_prompt=False)
+    print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
+
+    print(f"\n\nMarkdown:\n{result.markdown}")
