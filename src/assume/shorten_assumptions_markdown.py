@@ -14,11 +14,12 @@ from llama_index.core.llms.llm import LLM
 from llama_index.core.llms import ChatMessage, MessageRole
 from src.format_json_for_use_in_query import format_json_for_use_in_query
 from src.markdown_util.fix_bullet_lists import fix_bullet_lists
+from src.markdown_util.remove_bold_formatting import remove_bold_formatting
 
 logger = logging.getLogger(__name__)
 
 SHORTEN_ASSUMPTIONS_MARKDOWN_SYSTEM_PROMPT = """
-You are a content transformer designed to condense and simplify project planning Markdown documents. Your ONLY task is to generate a shorter, more concise version of the input Markdown document itself, and NOTHING ELSE.  Maintain the original document's topics and overall structure as much as possible.
+You are a content transformer designed to condense and simplify project planning Markdown documents. Your ONLY task is to generate a shorter, more concise version of the input Markdown document itself, and NOTHING ELSE. Maintain the original document's topics and overall structure as much as possible.
 
 # Output Requirements:
 - ABSOLUTELY NO INTRODUCTORY OR CONCLUDING TEXT. Do NOT add any extra sentences or paragraphs before or after the Markdown document.
@@ -28,9 +29,9 @@ You are a content transformer designed to condense and simplify project planning
 - Use ONLY the information present in the provided input Markdown. Do NOT introduce any external information or topics.
 
 # Markdown Transformation Instructions:
-- **Headings:**  Preserve the original heading structure as much as possible.  Use only `#` and `##` level headings. If the input uses other heading levels, convert them to `#` or `##` as appropriate to maintain a clear, hierarchical structure. Ensure that section titles are concise and directly reflect the topic of the content below.
+- **Headings:** Preserve the original heading structure as much as possible. Use only `#` and `##` level headings. If the input uses other heading levels, convert them to `#` or `##` as appropriate to maintain a clear, hierarchical structure. Ensure that section titles are concise and directly reflect the topic of the content below.
 - **Document Structure:**
-    - **Maintain Original Topics:**  Ensure that all topics and sections present in the input Markdown are covered in the output. Do NOT omit any major topic areas.
+    - **Maintain Original Topics:** Ensure that all topics and sections present in the input Markdown are covered in the output. Do NOT omit any major topic areas.
     - **Condense Content:** Focus on condensing the content within each section.
     - **Remove Redundancy:** Eliminate redundant information and repetitive phrasing.
     - **Prioritize Key Information:** Retain the most important details, such as key assumptions, risks, and recommendations.
@@ -41,13 +42,13 @@ You are a content transformer designed to condense and simplify project planning
     - Item 2
     - Item 3
     ```
-- **Strategic Bolding:** Bold key project elements, critical actions, and desired outcomes to enhance scannability. For example, bold terms such as **innovation**, **efficiency**, **sustainability**, and **collaboration**. Ensure that each section contains at least one bolded key term where applicable.
+- **No Bolding:**  Do NOT use any bold formatting in the output. Present the content in plain Markdown.
 - **Condensation Techniques:**
     - **Summarize Paragraphs:** Condense longer paragraphs into shorter summaries while retaining the core meaning.
     - **Combine Similar Sections:** If multiple sections cover similar topics, consider combining them into a single, more concise section.
     - **Use Concise Language:** Rewrite sentences and phrases using more concise and direct language.
 - **Delimiters Enforcement:** Ensure that the entire transformed Markdown document is wrapped exactly within [START_MARKDOWN] and [END_MARKDOWN] with no additional text outside these delimiters.
-- **Focus on Transformation, Not Summarization:**  The goal is to *transform* the original document into a shorter version of *itself*, not to provide a summary or overview of the document.  The output should still resemble a project planning document, just a more concise one.
+- **Focus on Transformation, Not Summarization:** The goal is to *transform* the original document into a shorter version of *itself*, not to provide a summary or overview of the document. The output should still resemble a project planning document, just a more concise one.
 """
 
 @dataclass
@@ -61,12 +62,15 @@ class ShortenAssumptionsMarkdown:
     @classmethod
     def execute(cls, llm: LLM, user_prompt: str) -> 'ShortenAssumptionsMarkdown':
         """
-        Invoke LLM with a json document that is the raw pitch.
+        Invoke LLM with a long markdown document that is to be shortened.
         """
         if not isinstance(llm, LLM):
             raise ValueError("Invalid LLM instance.")
         if not isinstance(user_prompt, str):
-            raise ValueError("Invalid query.")
+            raise ValueError("Invalid user_prompt.")
+        
+        user_prompt = user_prompt.strip()
+        user_prompt = remove_bold_formatting(user_prompt)
 
         system_prompt = SHORTEN_ASSUMPTIONS_MARKDOWN_SYSTEM_PROMPT.strip()
         chat_message_list = [
@@ -109,10 +113,8 @@ class ShortenAssumptionsMarkdown:
             markdown_content = response_content  # Use the entire content if delimiters are missing
             logger.warning("Output delimiters not found in LLM response.")
 
-        # The bullet lists are supposed to be preceded by 2 newlines. 
-        # However often there is just 1 newline. 
-        # This fix makes sure there are 2 newlines before bullet lists.
         markdown_content = fix_bullet_lists(markdown_content)
+        markdown_content = remove_bold_formatting(markdown_content)
 
         json_response = {}
         json_response['response_content'] = response_content
@@ -125,7 +127,7 @@ class ShortenAssumptionsMarkdown:
             markdown=markdown_content,
             metadata=metadata,
         )
-        logger.debug("CleanupPitch instance created successfully.")
+        logger.debug("ShortenAssumptionsMarkdown instance created successfully.")
         return result    
 
     def to_dict(self, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
