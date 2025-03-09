@@ -18,25 +18,23 @@ from src.markdown_util.fix_bullet_lists import fix_bullet_lists
 logger = logging.getLogger(__name__)
 
 SHORTEN_ASSUMPTIONS_MARKDOWN_SYSTEM_PROMPT = """
-You are a content formatter designed to transform project markdown document into a shorter Markdown document. Your ONLY task is to generate and simplify the Markdown document itself, and NOTHING ELSE.
+You are a content transformer designed to condense and simplify project planning Markdown documents. Your ONLY task is to generate a shorter, more concise version of the input Markdown document itself, and NOTHING ELSE.  Maintain the original document's topics and overall structure as much as possible.
 
 # Output Requirements:
 - ABSOLUTELY NO INTRODUCTORY OR CONCLUDING TEXT. Do NOT add any extra sentences or paragraphs before or after the Markdown document.
-- Enclose the ENTIRE Markdown document within the following delimiters:
+- Enclose the ENTIRE transformed Markdown document within the following delimiters:
     - **Start Delimiter:** [START_MARKDOWN]
-    - **End DelIMITER:** [END_MARKDOWN]
-- Use ONLY the provided text. Do NOT add any external information.
+    - **End DELIMITER:** [END_MARKDOWN]
+- Use ONLY the information present in the provided input Markdown. Do NOT introduce any external information or topics.
 
-# Markdown Formatting Instructions:
-- **Headings:** Use only two levels of headings:
-    - Top-level heading for the document title: `# Top Level Heading`
-    - Second-level headings for section titles: `## Section Title`
-    - DO NOT use any heading levels beyond these two.
+# Markdown Transformation Instructions:
+- **Headings:**  Preserve the original heading structure as much as possible.  Use only `#` and `##` level headings. If the input uses other heading levels, convert them to `#` or `##` as appropriate to maintain a clear, hierarchical structure. Ensure that section titles are concise and directly reflect the topic of the content below.
 - **Document Structure:**
-    - The input is markdown and may contain multiple topics.
-    - Do not invent or add sections that are not referenced in the input.
-    - If the input text is messy, then make it more readable.
-    - If the input text contains redundant info needlessly repeated, then remove the redundancy.
+    - **Maintain Original Topics:**  Ensure that all topics and sections present in the input Markdown are covered in the output. Do NOT omit any major topic areas.
+    - **Condense Content:** Focus on condensing the content within each section.
+    - **Remove Redundancy:** Eliminate redundant information and repetitive phrasing.
+    - **Prioritize Key Information:** Retain the most important details, such as key assumptions, risks, and recommendations.
+    - **Avoid Introducing New Information:** Do NOT add any new information or topics that are not explicitly present in the input document.
 - **Lists:** Format lists with Markdown bullet points using a hyphen followed by a space:
     ```markdown
     - Item 1
@@ -44,9 +42,12 @@ You are a content formatter designed to transform project markdown document into
     - Item 3
     ```
 - **Strategic Bolding:** Bold key project elements, critical actions, and desired outcomes to enhance scannability. For example, bold terms such as **innovation**, **efficiency**, **sustainability**, and **collaboration**. Ensure that each section contains at least one bolded key term where applicable.
-- **Expansion:** Expand on the provided content with additional explanatory paragraphs where needed, but do NOT add information that is not present in the input.
-- **Delimiters Enforcement:** Ensure that the entire Markdown document is wrapped exactly within [START_MARKDOWN] and [END_MARKDOWN] with no additional text outside these delimiters.
-- Ensure that all topics present in the input JSON are covered and organized in a clear, readable format.
+- **Condensation Techniques:**
+    - **Summarize Paragraphs:** Condense longer paragraphs into shorter summaries while retaining the core meaning.
+    - **Combine Similar Sections:** If multiple sections cover similar topics, consider combining them into a single, more concise section.
+    - **Use Concise Language:** Rewrite sentences and phrases using more concise and direct language.
+- **Delimiters Enforcement:** Ensure that the entire transformed Markdown document is wrapped exactly within [START_MARKDOWN] and [END_MARKDOWN] with no additional text outside these delimiters.
+- **Focus on Transformation, Not Summarization:**  The goal is to *transform* the original document into a shorter version of *itself*, not to provide a summary or overview of the document.  The output should still resemble a project planning document, just a more concise one.
 """
 
 @dataclass
