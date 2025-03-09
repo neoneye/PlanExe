@@ -53,5 +53,7 @@ class FilenameEnum(str, Enum):
     WBS_LEVEL3 = "021-2-wbs_level3.json"
     WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_FULL = "021-3-wbs_project_level1_and_level2_and_level3.json"
     WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_CSV = "021-4-wbs_project_level1_and_level2_and_level3.csv"
-    REPORT = "022-report.html"
+    REVIEW_PLAN_RAW = "022-1-review_plan_raw.json"
+    REVIEW_PLAN_MARKDOWN = "022-2-review_plan.md"
+    REPORT = "023-report.html"
     PIPELINE_COMPLETE = "999-pipeline_complete.txt"

@@ -36,6 +36,7 @@ from src.pitch.create_pitch import CreatePitch
 from src.pitch.convert_pitch_to_markdown import ConvertPitchToMarkdown
 from src.plan.identify_wbs_task_dependencies import IdentifyWBSTaskDependencies
 from src.plan.estimate_wbs_task_durations import EstimateWBSTaskDurations
+from src.plan.review_plan import ReviewPlan
 from src.team.find_team_members import FindTeamMembers
 from src.team.enrich_team_members_with_contract_type import EnrichTeamMembersWithContractType
 from src.team.enrich_team_members_with_background_story import EnrichTeamMembersWithBackgroundStory
@@ -1699,6 +1700,69 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
         with self.output()['csv'].open("w") as f:
             f.write(csv_representation)
 
+class ReviewPlanTask(PlanTask):
+    """
+    Review the plan.
+    
+    It depends on:
+      - SWOTAnalysisTask: provides the SWOT analysis as Markdown.
+      - ConvertPitchToMarkdownTask: provides the pitch as Markdown.
+      - WBSProjectLevel1AndLevel2AndLevel3Task: provides the table csv file.
+      - ExpertReviewTask: provides the expert criticism as Markdown.
+      - ProjectPlanTask: provides the project plan as Markdown.
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def output(self):
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.REVIEW_PLAN_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.REVIEW_PLAN_MARKDOWN)))
+        }
+    
+    def requires(self):
+        return {
+            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+    
+    def run(self):
+        # Read inputs from required tasks.
+        with self.input()['consolidate_assumptions_markdown'].open("r") as f:
+            assumptions_markdown = f.read()
+        with self.input()['team_markdown'].open("r") as f:
+            team_markdown = f.read()
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
+        with self.input()['swot_analysis']['markdown'].open("r") as f:
+            swot_analysis_markdown = f.read()
+
+        # Build the query.
+        query = (
+            f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
+            f"File 'team.md':\n{team_markdown}\n\n"
+            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
+            f"File 'swot-analysis.md':\n{swot_analysis_markdown}"
+        )
+
+        llm = get_llm(self.llm_model)
+
+        # Execute the convertion.
+        review_plan = ReviewPlan.execute(llm, query)
+
+        # Save the results.
+        json_path = self.output()['raw'].path
+        review_plan.save_raw(json_path)
+        markdown_path = self.output()['markdown'].path
+        review_plan.save_markdown(markdown_path)
+
+        logger.info("Reviewed the plan.")
+
+
 class ReportTask(PlanTask):
     """
     Generate a report html document.
@@ -1770,6 +1834,7 @@ class FullPlanPipeline(PlanTask):
             'durations': EstimateTaskDurationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level3': CreateWBSLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'review_plan': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'report': ReportTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
 
