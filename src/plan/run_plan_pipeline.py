@@ -23,6 +23,7 @@ from src.assume.identify_risks import IdentifyRisks
 from src.assume.make_assumptions import MakeAssumptions
 from src.assume.distill_assumptions import DistillAssumptions
 from src.assume.review_assumptions import ReviewAssumptions
+from src.assume.shorten_markdown import ShortenMarkdown
 from src.expert.pre_project_assessment import PreProjectAssessment
 from src.plan.project_plan import ProjectPlan
 from src.swot.swot_analysis import SWOTAnalysis
@@ -500,9 +501,14 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
         }
 
     def output(self):
-        return luigi.LocalTarget(str(self.file_path(FilenameEnum.CONSOLIDATE_ASSUMPTIONS_MARKDOWN)))
+        return {
+            'full': luigi.LocalTarget(str(self.file_path(FilenameEnum.CONSOLIDATE_ASSUMPTIONS_FULL_MARKDOWN))),
+            'short': luigi.LocalTarget(str(self.file_path(FilenameEnum.CONSOLIDATE_ASSUMPTIONS_SHORT_MARKDOWN)))
+        }
 
     def run(self):
+        llm = get_llm(self.llm_model)
+
         # Define the list of (title, path) tuples
         title_path_list = [
             ('Plan Type', self.input()['plan_type']['markdown'].path),
@@ -515,26 +521,44 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
         ]
 
         # Read the files and handle exceptions
-        markdown_chunks = []
+        full_markdown_chunks = []
+        short_markdown_chunks = []
         for title, path in title_path_list:
             try:
                 with open(path, 'r', encoding='utf-8') as f:
                     markdown_chunk = f.read()
-                markdown_chunks.append(f"# {title}\n\n{markdown_chunk}")
+                full_markdown_chunks.append(f"# {title}\n\n{markdown_chunk}")
             except FileNotFoundError:
                 logger.warning(f"Markdown file not found: {path} (from {title})")
-                markdown_chunks.append(f"**Problem with document:** '{title}'\n\nFile not found.")
+                full_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nFile not found.")
+                short_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nFile not found.")
+                continue
             except Exception as e:
                 logger.error(f"Error reading markdown file {path} (from {title}): {e}")
-                markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError reading markdown file.")
+                full_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError reading markdown file.")
+                short_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError reading markdown file.")
+                continue
 
+            try:
+                shorten_markdown = ShortenMarkdown.execute(llm, markdown_chunk)
+                short_markdown_chunks.append(f"# {title}\n{shorten_markdown.markdown}")
+            except Exception as e:
+                logger.error(f"Error shortening markdown file {path} (from {title}): {e}")
+                short_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError shortening markdown file.")
+                continue
+            
         # Combine the markdown chunks
-        full_markdown = "\n\n".join(markdown_chunks)
+        full_markdown = "\n\n".join(full_markdown_chunks)
+        short_markdown = "\n\n".join(short_markdown_chunks)
 
         # Write the result to disk.
-        output_markdown_path = self.output().path
-        with open(output_markdown_path, "w", encoding="utf-8") as f:
+        output_full_markdown_path = self.output()['full'].path
+        with open(output_full_markdown_path, "w", encoding="utf-8") as f:
             f.write(full_markdown)
+
+        output_short_markdown_path = self.output()['short'].path
+        with open(output_short_markdown_path, "w", encoding="utf-8") as f:
+            f.write(short_markdown)
 
 
 class PreProjectAssessmentTask(PlanTask):
@@ -559,7 +583,7 @@ class PreProjectAssessmentTask(PlanTask):
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
 
-        with self.input()['consolidate_assumptions_markdown'].open("r") as f:
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
 
         # Build the query.
@@ -614,7 +638,7 @@ class ProjectPlanTask(PlanTask):
             plan_prompt = f.read()
 
         # Load the consolidated assumptions.
-        with self.input()['consolidate_assumptions_markdown'].open("r") as f:
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
 
         # Read the pre-project assessment from its file.
@@ -669,7 +693,7 @@ class FindTeamMembersTask(PlanTask):
             plan_prompt = f.read()
 
         # Load the consolidated assumptions.
-        with self.input()['consolidate_assumptions_markdown'].open("r") as f:
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
 
         # Read the pre-project assessment from PreProjectAssessmentTask.
@@ -738,7 +762,7 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
             plan_prompt = f.read()
 
         # Load the consolidated assumptions.
-        with self.input()['consolidate_assumptions_markdown'].open("r") as f:
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
 
         # Read the pre-project assessment from PreProjectAssessmentTask.
@@ -812,7 +836,7 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
             plan_prompt = f.read()
 
         # Load the consolidated assumptions.
-        with self.input()['consolidate_assumptions_markdown'].open("r") as f:
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
 
         # Read the pre-project assessment from PreProjectAssessmentTask.
@@ -886,7 +910,7 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
             plan_prompt = f.read()
 
         # Load the consolidated assumptions.
-        with self.input()['consolidate_assumptions_markdown'].open("r") as f:
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
 
         # Read the pre-project assessment from PreProjectAssessmentTask.
@@ -957,7 +981,7 @@ class ReviewTeamTask(PlanTask):
             plan_prompt = f.read()
 
         # Load the consolidated assumptions.
-        with self.input()['consolidate_assumptions_markdown'].open("r") as f:
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
 
         # Read the pre-project assessment from PreProjectAssessmentTask.
@@ -1064,7 +1088,7 @@ class SWOTAnalysisTask(PlanTask):
             plan_prompt = f.read()
 
         # Load the consolidated assumptions.
-        with self.input()['consolidate_assumptions_markdown'].open("r") as f:
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
 
         # Read the pre-project assessment from PreProjectAssessmentTask.
@@ -1732,7 +1756,7 @@ class ReviewPlanTask(PlanTask):
     
     def run(self):
         # Read inputs from required tasks.
-        with self.input()['consolidate_assumptions_markdown'].open("r") as f:
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
         with self.input()['team_markdown'].open("r") as f:
             team_markdown = f.read()
@@ -1794,7 +1818,7 @@ class ReportTask(PlanTask):
         rg = ReportGenerator()
         rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
         rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
-        rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown'].path)
+        rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown']['full'].path)
         rg.append_markdown('SWOT Analysis', self.input()['swot_analysis']['markdown'].path)
         rg.append_markdown('Team', self.input()['team_markdown'].path)
         rg.append_markdown('Expert Criticism', self.input()['expert_review'].path)
