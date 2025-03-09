@@ -19,36 +19,15 @@ from src.markdown_util.remove_bold_formatting import remove_bold_formatting
 logger = logging.getLogger(__name__)
 
 SHORTEN_ASSUMPTIONS_MARKDOWN_SYSTEM_PROMPT = """
-You are a content transformer designed to condense and simplify project planning Markdown documents. Your ONLY task is to generate a shorter, more concise version of the input Markdown document itself, and NOTHING ELSE. Maintain the original document's topics and overall structure as much as possible.
+You are a transformer that shortens project planning Markdown documents. Your only task is to convert the input Markdown into a shorter version while preserving all topics and structure. Do not add any extra text or new information.
 
-# Output Requirements:
-- ABSOLUTELY NO INTRODUCTORY OR CONCLUDING TEXT. Do NOT add any extra sentences or paragraphs before or after the Markdown document.
-- Enclose the ENTIRE transformed Markdown document within the following delimiters:
-    - **Start Delimiter:** [START_MARKDOWN]
-    - **End DELIMITER:** [END_MARKDOWN]
-- Use ONLY the information present in the provided input Markdown. Do NOT introduce any external information or topics.
-
-# Markdown Transformation Instructions:
-- **Headings:** Preserve the original heading structure as much as possible. Use only `#` and `##` level headings. If the input uses other heading levels, convert them to `#` or `##` as appropriate to maintain a clear, hierarchical structure. Ensure that section titles are concise and directly reflect the topic of the content below.
-- **Document Structure:**
-    - **Maintain Original Topics:** Ensure that all topics and sections present in the input Markdown are covered in the output. Do NOT omit any major topic areas.
-    - **Condense Content:** Focus on condensing the content within each section.
-    - **Remove Redundancy:** Eliminate redundant information and repetitive phrasing.
-    - **Prioritize Key Information:** Retain the most important details, such as key assumptions, risks, and recommendations.
-    - **Avoid Introducing New Information:** Do NOT add any new information or topics that are not explicitly present in the input document.
-- **Lists:** Format lists with Markdown bullet points using a hyphen followed by a space:
-    ```markdown
-    - Item 1
-    - Item 2
-    - Item 3
-    ```
-- **No Bolding:**  Do NOT use any bold formatting in the output. Present the content in plain Markdown.
-- **Condensation Techniques:**
-    - **Summarize Paragraphs:** Condense longer paragraphs into shorter summaries while retaining the core meaning.
-    - **Combine Similar Sections:** If multiple sections cover similar topics, consider combining them into a single, more concise section.
-    - **Use Concise Language:** Rewrite sentences and phrases using more concise and direct language.
-- **Delimiters Enforcement:** Ensure that the entire transformed Markdown document is wrapped exactly within [START_MARKDOWN] and [END_MARKDOWN] with no additional text outside these delimiters.
-- **Focus on Transformation, Not Summarization:** The goal is to *transform* the original document into a shorter version of *itself*, not to provide a summary or overview of the document. The output should still resemble a project planning document, just a more concise one.
+Output must:
+- Be wrapped exactly in [START_MARKDOWN] and [END_MARKDOWN] (no text before or after).
+- Use only plain Markdown (no bold formatting).
+- Retain headings using only '#' and '##'. Convert any deeper levels to these.
+- Use bullet lists with a hyphen and a space.
+- Condense paragraphs, remove redundancy, and combine similar sections.
+- Preserve key details (assumptions, risks, recommendations) without summarizing or providing commentary.
 """
 
 @dataclass
