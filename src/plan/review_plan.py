@@ -16,8 +16,8 @@ from llama_index.core.llms.llm import LLM
 logger = logging.getLogger(__name__)
 
 class DocumentDetails(BaseModel):
-    answer_items: list[str] = Field(
-        description="Answers."
+    bullet_points: list[str] = Field(
+        description="Answers to the questions in bullet points."
     )
 
 REVIEW_PLAN_SYSTEM_PROMPT = """
@@ -31,7 +31,7 @@ If additional details are needed, merge or summarize them so that your final ans
 
 Your final output must be a JSON object in the following format:
 {
-  "answer_items": [
+  "bullet_points": [
     "Bullet point 1 (including all required details)",
     "Bullet point 2 (including all required details)",
     "Bullet point 3 (including all required details)"
@@ -64,7 +64,7 @@ class ReviewPlan:
         logger.debug(f"Document:\n{document}")
 
         system_prompt = REVIEW_PLAN_SYSTEM_PROMPT.strip()
-        system_prompt += "\n\nDocument for review\n"
+        system_prompt += "\n\nDocument for review:\n"
         system_prompt += document
 
         questions = [
