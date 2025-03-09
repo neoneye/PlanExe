@@ -1,7 +1,7 @@
 """
 Shorten the long consolidated assumptions to a shorter markdown document.
 
-PROMPT> python -m src.assume.shorten_assumptions_markdown
+PROMPT> python -m src.assume.shorten_markdown
 """
 import os
 import json
@@ -18,7 +18,7 @@ from src.markdown_util.remove_bold_formatting import remove_bold_formatting
 
 logger = logging.getLogger(__name__)
 
-SHORTEN_ASSUMPTIONS_MARKDOWN_SYSTEM_PROMPT = """
+SHORTEN_MARKDOWN_SYSTEM_PROMPT = """
 You are a transformer that shortens project planning Markdown documents. Your only task is to convert the input Markdown into a shorter version while preserving all topics and structure. Do not add any extra text or new information.
 
 Output must:
@@ -31,7 +31,7 @@ Output must:
 """
 
 @dataclass
-class ShortenAssumptionsMarkdown:
+class ShortenMarkdown:
     system_prompt: Optional[str]
     user_prompt: str
     response: str
@@ -39,7 +39,7 @@ class ShortenAssumptionsMarkdown:
     metadata: dict
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'ShortenAssumptionsMarkdown':
+    def execute(cls, llm: LLM, user_prompt: str) -> 'ShortenMarkdown':
         """
         Invoke LLM with a long markdown document that is to be shortened.
         """
@@ -51,7 +51,7 @@ class ShortenAssumptionsMarkdown:
         user_prompt = user_prompt.strip()
         user_prompt = remove_bold_formatting(user_prompt)
 
-        system_prompt = SHORTEN_ASSUMPTIONS_MARKDOWN_SYSTEM_PROMPT.strip()
+        system_prompt = SHORTEN_MARKDOWN_SYSTEM_PROMPT.strip()
         chat_message_list = [
             ChatMessage(
                 role=MessageRole.SYSTEM,
@@ -99,14 +99,14 @@ class ShortenAssumptionsMarkdown:
         json_response['response_content'] = response_content
         json_response['markdown'] = markdown_content
 
-        result = ShortenAssumptionsMarkdown(
+        result = ShortenMarkdown(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
             markdown=markdown_content,
             metadata=metadata,
         )
-        logger.debug("ShortenAssumptionsMarkdown instance created successfully.")
+        logger.debug("ShortenMarkdown instance created successfully.")
         return result    
 
     def to_dict(self, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
@@ -131,7 +131,9 @@ class ShortenAssumptionsMarkdown:
 if __name__ == "__main__":
     from src.llm_factory import get_llm
 
-    path = os.path.join(os.path.dirname(__file__), 'test_data', 'shorten_assumptions_markdown1', 'consolidate_assumptions.md')
+    # path = os.path.join(os.path.dirname(__file__), 'test_data', 'shorten_markdown1', 'currency_strategy.md')
+    # path = os.path.join(os.path.dirname(__file__), 'test_data', 'shorten_markdown1', 'identify_risks.md')
+    path = os.path.join(os.path.dirname(__file__), 'test_data', 'shorten_markdown1', 'physical_locations.md')
     with open(path, 'r', encoding='utf-8') as f:
         the_markdown = f.read()
 
@@ -142,7 +144,7 @@ if __name__ == "__main__":
     query = the_markdown
     input_bytes_count = len(query.encode('utf-8'))
     print(f"Query: {query}")
-    result = ShortenAssumptionsMarkdown.execute(llm, query)
+    result = ShortenMarkdown.execute(llm, query)
 
     print("\nResponse:")
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
