@@ -47,8 +47,7 @@ class ReviewPlan:
     Take a look at the proposed plan and provide feedback.
     """
     system_prompt: str
-    user_prompt: str
-    response: dict
+    question_answers_list: list[dict]
     metadata: dict
 
     @classmethod
@@ -85,6 +84,11 @@ class ReviewPlan:
             )
         ]
 
+        question_answers_list = []
+
+        durations = []
+        response_byte_counts = []
+
         for index, question in enumerate(questions, start=1):
             print(f"Question {index}: {question}")
             chat_message_list.append(ChatMessage(
@@ -103,42 +107,50 @@ class ReviewPlan:
 
             end_time = time.perf_counter()
             duration = int(ceil(end_time - start_time))
+            durations.append(duration)
             response_byte_count = len(chat_response.message.content.encode('utf-8'))
+            response_byte_counts.append(response_byte_count)
             logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
 
             json_response = chat_response.raw.model_dump()
             print(json.dumps(json_response, indent=2))
+
+            question_answers_list.append({
+                "question": question,
+                "answers": chat_response.raw.bullet_points,
+            })
 
             chat_message_list.append(ChatMessage(
                 role=MessageRole.ASSISTANT,
                 content=chat_response.message.content,
             ))
 
-        json_response = {}
-        response_byte_count = 0
-        duration = 0
+        response_byte_count_total = sum(response_byte_counts)
+        response_byte_count_average = response_byte_count_total / len(questions)
+        duration_total = sum(durations)
+        duration_average = duration_total / len(questions)
 
         metadata = dict(llm.metadata)
         metadata["llm_classname"] = llm.class_name()
-        metadata["duration"] = duration
-        metadata["response_byte_count"] = response_byte_count
+        metadata["duration_total"] = duration_total
+        metadata["duration_average"] = duration_average
+        metadata["response_byte_count_total"] = response_byte_count_total
+        metadata["response_byte_count_average"] = response_byte_count_average
 
         result = ReviewPlan(
             system_prompt=system_prompt,
-            user_prompt=document,
-            response=json_response,
+            question_answers_list=question_answers_list,
             metadata=metadata,
         )
         return result
     
-    def to_dict(self, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
-        d = self.response.copy()
+    def to_dict(self, include_metadata=True, include_system_prompt=True) -> dict:
+        d = {}
+        d['question_answers_list'] = self.question_answers_list
         if include_metadata:
             d['metadata'] = self.metadata
         if include_system_prompt:
             d['system_prompt'] = self.system_prompt
-        if include_user_prompt:
-            d['user_prompt'] = self.user_prompt
         return d
 
 if __name__ == "__main__":
@@ -156,5 +168,5 @@ if __name__ == "__main__":
     print(f"Query:\n{query}\n\n")
 
     result = ReviewPlan.execute(llm, query)
-    json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
+    json_response = result.to_dict(include_system_prompt=False)
     print(json.dumps(json_response, indent=2))
