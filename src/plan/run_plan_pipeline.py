@@ -37,7 +37,7 @@ from src.pitch.create_pitch import CreatePitch
 from src.pitch.convert_pitch_to_markdown import ConvertPitchToMarkdown
 from src.plan.identify_wbs_task_dependencies import IdentifyWBSTaskDependencies
 from src.plan.estimate_wbs_task_durations import EstimateWBSTaskDurations
-from src.plan.review_plan import PlanEvaluator
+from src.plan.plan_evaluator import PlanEvaluator
 from src.team.find_team_members import FindTeamMembers
 from src.team.enrich_team_members_with_contract_type import EnrichTeamMembersWithContractType
 from src.team.enrich_team_members_with_background_story import EnrichTeamMembersWithBackgroundStory
@@ -1729,11 +1729,13 @@ class PlanEvaluatorTask(PlanTask):
     Ask questions about the almost finished plan.
     
     It depends on:
-      - SWOTAnalysisTask: provides the SWOT analysis as Markdown.
-      - ConvertPitchToMarkdownTask: provides the pitch as Markdown.
-      - WBSProjectLevel1AndLevel2AndLevel3Task: provides the table csv file.
-      - ExpertReviewTask: provides the expert criticism as Markdown.
+      - ConsolidateAssumptionsMarkdownTask: provides the assumptions as Markdown.
       - ProjectPlanTask: provides the project plan as Markdown.
+      - SWOTAnalysisTask: provides the SWOT analysis as Markdown.
+      - TeamMarkdownTask: provides the team as Markdown.
+      - ConvertPitchToMarkdownTask: provides the pitch as Markdown.
+      - ExpertReviewTask: provides the expert criticism as Markdown.
+      - WBSProjectLevel1AndLevel2AndLevel3Task: provides the table csv file.
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
