@@ -1746,31 +1746,40 @@ class ReviewPlanTask(PlanTask):
     def requires(self):
         return {
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
     
     def run(self):
         # Read inputs from required tasks.
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
-        with self.input()['team_markdown'].open("r") as f:
-            team_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
             project_plan_markdown = f.read()
         with self.input()['swot_analysis']['markdown'].open("r") as f:
             swot_analysis_markdown = f.read()
+        with self.input()['team_markdown'].open("r") as f:
+            team_markdown = f.read()
+        with self.input()['pitch_markdown']['markdown'].open("r") as f:
+            pitch_markdown = f.read()
+        with self.input()['expert_review'].open("r") as f:
+            expert_review = f.read()
+        with self.input()['wbs_project123']['csv'].open("r") as f:
+            wbs_project_csv = f.read()
 
         # Build the query.
         query = (
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
-            f"File 'team.md':\n{team_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'swot-analysis.md':\n{swot_analysis_markdown}"
+            f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
+            f"File 'team.md':\n{team_markdown}\n\n"
+            f"File 'pitch.md':\n{pitch_markdown}\n\n"
+            f"File 'expert-review.md':\n{expert_review}\n\n"
+            f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}"
         )
 
         llm = get_llm(self.llm_model)
