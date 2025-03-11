@@ -25,7 +25,7 @@ class DocumentDetails(BaseModel):
     )
 
 REVIEW_PLAN_SYSTEM_PROMPT = """
-You are an expert in reviewing plans for projects of all scales.  Your goal is to identify the most critical issues that could impact the project's success and provide actionable recommendations to address them.
+You are an expert in reviewing plans for projects of all scales. Your goal is to identify the most critical issues that could impact the project's success and provide actionable recommendations to address them.
 
 A good plan is specific, measurable, achievable, relevant, and time-bound (SMART). It addresses potential risks with concrete mitigation strategies, has clear roles and responsibilities, and considers relevant constraints. A strong plan has a detailed financial model, addresses grid connection complexities, and a solid operations and maintenance strategy.
 
@@ -47,6 +47,8 @@ Your final output must be a JSON object in the following format:
 }
 
 Do not include any extra bullet points, header lines, or any additional text outside of this JSON structure.
+
+Do not duplicate issues already identified in previous questions of this review.
 """
 
 @dataclass
@@ -78,7 +80,7 @@ class ReviewPlan:
         questions = [
             "Identify exactly three critical or urgent issues highlighted in the report. For each issue, provide a brief explanation of its quantified significance (e.g., impact in terms of cost, risk, or timing) on the immediate priorities, desired outcomes, or overall effectiveness. Also, explain how these issues might interact with or influence each other, along with a brief, actionable recommendation to address it. Please present your answer in exactly three bullet points.",
             "Identify exactly three significant consequences—both positive and negative—that may result from implementing the plan. For each consequence, provide a brief explanation of its *quantified* impact (e.g., in terms of cost, time, or ROI) on the plan’s overall feasibility, outcomes, or long-term success. *Also, explain how these consequences might interact with or influence each other*, *along with a brief, actionable recommendation to address it*. Please present your answer in exactly three bullet points.",
-            "Identify exactly three specific actions recommended by the report. For each action, briefly quantify its expected impact (e.g., cost savings, risk reduction, time improvements), clearly state its priority level, and provide a brief, actionable recommendation on how it should be implemented. Present your answer in exactly three bullet points.",
+            "Identify exactly three specific actions recommended by the report. For each action, briefly quantify its expected impact (e.g., cost savings, risk reduction, time improvements), clearly state its priority level, and provide a brief, actionable recommendation on how it should be implemented. Present your answer in exactly three bullet points. Actions listed here should complement, extend, or provide additional details to recommendations mentioned previously, rather than repeat them directly.",
             # "What are the three most critical, actionable adjustments required in version 2 of the plan based on newly discovered insights or overlooked assumptions? For each, provide a specific action step, identify the responsible party, and outline a measurable outcome. Please answer in exactly three bullet points, combining related details as needed.",
             # "List three factors that determine whether the plan is realistic, considering time, budget, resources, and the environment.",
             # "Summarize the key aspects of the assumptions, their justification, and supporting evidence in exactly three bullet points.",
