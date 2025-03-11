@@ -37,7 +37,7 @@ from src.pitch.create_pitch import CreatePitch
 from src.pitch.convert_pitch_to_markdown import ConvertPitchToMarkdown
 from src.plan.identify_wbs_task_dependencies import IdentifyWBSTaskDependencies
 from src.plan.estimate_wbs_task_durations import EstimateWBSTaskDurations
-from src.plan.plan_evaluator import PlanEvaluator
+from src.plan.plan_evaluator import ReviewPlan
 from src.team.find_team_members import FindTeamMembers
 from src.team.enrich_team_members_with_contract_type import EnrichTeamMembersWithContractType
 from src.team.enrich_team_members_with_background_story import EnrichTeamMembersWithBackgroundStory
@@ -1724,7 +1724,7 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
         with self.output()['csv'].open("w") as f:
             f.write(csv_representation)
 
-class PlanEvaluatorTask(PlanTask):
+class ReviewPlanTask(PlanTask):
     """
     Ask questions about the almost finished plan.
     
@@ -1741,8 +1741,8 @@ class PlanEvaluatorTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.PLAN_EVALUATOR_RAW))),
-            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.PLAN_EVALUATOR_MARKDOWN)))
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.REVIEW_PLAN_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.REVIEW_PLAN_MARKDOWN)))
         }
     
     def requires(self):
@@ -1786,14 +1786,14 @@ class PlanEvaluatorTask(PlanTask):
 
         llm = get_llm(self.llm_model)
 
-        # Execute the convertion.
-        plan_evaluator = PlanEvaluator.execute(llm, query)
+        # Perform the review.
+        review_plan = ReviewPlan.execute(llm, query)
 
         # Save the results.
         json_path = self.output()['raw'].path
-        plan_evaluator.save_raw(json_path)
+        review_plan.save_raw(json_path)
         markdown_path = self.output()['markdown'].path
-        plan_evaluator.save_markdown(markdown_path)
+        review_plan.save_markdown(markdown_path)
 
         logger.info("Evaluated the plan.")
 
@@ -1808,7 +1808,7 @@ class ReportTask(PlanTask):
       - WBSProjectLevel1AndLevel2AndLevel3Task: provides the table csv file.
       - ExpertReviewTask: provides the expert criticism as Markdown.
       - ProjectPlanTask: provides the project plan as Markdown.
-      - PlanEvaluatorTask: provides the plan evaluator as Markdown.
+      - ReviewPlanTask: provides the reviewed plan as Markdown.
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
@@ -1824,7 +1824,7 @@ class ReportTask(PlanTask):
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'plan_evaluator': PlanEvaluatorTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'review_plan': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
     
     def run(self):
@@ -1836,7 +1836,7 @@ class ReportTask(PlanTask):
         rg.append_markdown('Team', self.input()['team_markdown'].path)
         rg.append_markdown('Expert Criticism', self.input()['expert_review'].path)
         rg.append_csv('Work Breakdown Structure', self.input()['wbs_project123']['csv'].path)
-        rg.append_markdown('Plan Evaluator', self.input()['plan_evaluator']['markdown'].path)
+        rg.append_markdown('Review Plan', self.input()['review_plan']['markdown'].path)
         rg.save_report(self.output().path)
 
 class FullPlanPipeline(PlanTask):
@@ -1872,7 +1872,7 @@ class FullPlanPipeline(PlanTask):
             'durations': EstimateTaskDurationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level3': CreateWBSLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'plan_evaluator': PlanEvaluatorTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'plan_evaluator': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'report': ReportTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
 
