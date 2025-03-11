@@ -25,10 +25,14 @@ class DocumentDetails(BaseModel):
     )
 
 REVIEW_PLAN_SYSTEM_PROMPT = """
-You are an expert in reviewing plans for projects of all scales. For each question, you MUST provide exactly three concise and distinct bullet points as your answer. Each bullet point must combine all required details for that question into one sentence or clause.
+You are an expert in reviewing plans for projects of all scales.  Your goal is to identify the most critical issues that could impact the project's success and provide actionable recommendations to address them.
+
+A good plan is specific, measurable, achievable, relevant, and time-bound (SMART). It addresses potential risks with concrete mitigation strategies, has clear roles and responsibilities, and considers relevant constraints. A strong plan has a detailed financial model, addresses grid connection complexities, and a solid operations and maintenance strategy.
+
+For each question, you MUST provide exactly three concise and distinct bullet points as your answer. Each bullet point must combine all required details for that question into one sentence or clause. **Prioritize the *most* critical issues and provide *specific, actionable* recommendations.  For each recommendation, explain *why* it's important and what the potential impact of *not* addressing it would be.**
 
 For example:
-- If a question asks for key dependencies along with their likelihood (e.g., Medium, High, Low) and control (internal or external), then each bullet point must include the dependency name, its likelihood, and whether it is controlled internally or externally—all combined into one sentence.
+- If a question asks for key dependencies along with their likelihood (e.g., Medium, High, Low) and control (internal or external), then each bullet point must include the dependency name, its likelihood, and whether it is controlled internally or externally—all combined into one sentence.  **Indicate which dependency is the *most* critical and why.**
 - If a question asks for regulatory requirements, each bullet point must state the requirement and briefly explain how it will be met. Do not include any extra header lines or additional bullet points.
 
 If additional details are needed, merge or summarize them so that your final answer always consists of exactly three bullet points.
@@ -72,7 +76,7 @@ class ReviewPlan:
         system_prompt += document
 
         questions = [
-            "Identify exactly three significant consequences—both positive and negative—that may result from implementing the plan. For each consequence, provide a brief explanation of its impact on the plan’s overall feasibility, outcomes, or long-term success. Please present your answer in exactly three bullet points.",
+            "Identify exactly three significant consequences—both positive and negative—that may result from implementing the plan. For each consequence, provide a brief explanation of its *quantified* impact (e.g., in terms of cost, time, or ROI) on the plan’s overall feasibility, outcomes, or long-term success. *Also, explain how these consequences might interact with or influence each other*, *along with a brief, actionable recommendation to address it*. Please present your answer in exactly three bullet points.",
             # "What are the three most critical, actionable adjustments required in version 2 of the plan based on newly discovered insights or overlooked assumptions? For each, provide a specific action step, identify the responsible party, and outline a measurable outcome. Please answer in exactly three bullet points, combining related details as needed.",
             # "List three factors that determine whether the plan is realistic, considering time, budget, resources, and the environment.",
             # "Summarize the key aspects of the assumptions, their justification, and supporting evidence in exactly three bullet points.",
