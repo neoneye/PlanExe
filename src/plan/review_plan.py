@@ -178,6 +178,8 @@ class ReviewPlan:
         rows = []
 
         for index, question_answers in enumerate(question_answers_list, start=1):
+            if index > 1:
+                rows.append("\n")
             question = question_answers.get('question', None)
             if question is None:
                 logger.warning("Question is None.")
