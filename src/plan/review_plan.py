@@ -1,11 +1,11 @@
 """
-Review the plan.
+Ask questions about the almost finished plan.
 
-PROMPT> python -m src.plan.review_plan
+PROMPT> python -m src.plan.plan_evaluator
 
 IDEA: Executive Summary: Briefly summarizing critical insights from the review.
 
-IDEA: Append the ReviewPlan Questions and Answers to report.
+IDEA: Append the PlanEvaluator Questions and Answers to report.
 """
 import os
 import json
@@ -24,7 +24,7 @@ class DocumentDetails(BaseModel):
         description="Answers to the questions in bullet points."
     )
 
-REVIEW_PLAN_SYSTEM_PROMPT = """
+PLAN_EVALUATOR_SYSTEM_PROMPT = """
 You are an expert in reviewing plans for projects of all scales. Your goal is to identify the most critical issues that could impact the project's success and provide actionable recommendations to address them.
 
 A good plan is specific, measurable, achievable, relevant, and time-bound (SMART). It addresses potential risks with concrete mitigation strategies, has clear roles and responsibilities, and considers relevant constraints. A strong plan has a detailed financial model, addresses grid connection complexities, and a solid operations and maintenance strategy.
@@ -52,7 +52,7 @@ Do not duplicate issues already identified in previous questions of this review.
 """
 
 @dataclass
-class ReviewPlan:
+class PlanEvaluator:
     """
     Take a look at the proposed plan and provide feedback.
     """
@@ -62,7 +62,7 @@ class ReviewPlan:
     markdown: str
 
     @classmethod
-    def execute(cls, llm: LLM, document: str) -> 'ReviewPlan':
+    def execute(cls, llm: LLM, document: str) -> 'PlanEvaluator':
         """
         Invoke LLM with the data to be reviewed.
         """
@@ -73,7 +73,7 @@ class ReviewPlan:
 
         logger.debug(f"Document:\n{document}")
 
-        system_prompt = REVIEW_PLAN_SYSTEM_PROMPT.strip()
+        system_prompt = PLAN_EVALUATOR_SYSTEM_PROMPT.strip()
         system_prompt += "\n\nDocument for review:\n"
         system_prompt += document
 
@@ -109,7 +109,7 @@ class ReviewPlan:
         response_byte_counts = []
 
         for index, question in enumerate(questions, start=1):
-            print(f"Question {index}: {question}")
+            print(f"Question {index} of {len(questions)}: {question}")
             chat_message_list.append(ChatMessage(
                 role=MessageRole.USER,
                 content=question,
@@ -158,7 +158,7 @@ class ReviewPlan:
 
         markdown = cls.convert_to_markdown(question_answers_list)
 
-        result = ReviewPlan(
+        result = PlanEvaluator(
             system_prompt=system_prompt,
             question_answers_list=question_answers_list,
             metadata=metadata,
@@ -221,7 +221,7 @@ if __name__ == "__main__":
     )
     print(f"Query:\n{query}\n\n")
 
-    result = ReviewPlan.execute(llm, query)
+    result = PlanEvaluator.execute(llm, query)
     json_response = result.to_dict(include_system_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))

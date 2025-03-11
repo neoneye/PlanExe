@@ -37,7 +37,7 @@ from src.pitch.create_pitch import CreatePitch
 from src.pitch.convert_pitch_to_markdown import ConvertPitchToMarkdown
 from src.plan.identify_wbs_task_dependencies import IdentifyWBSTaskDependencies
 from src.plan.estimate_wbs_task_durations import EstimateWBSTaskDurations
-from src.plan.review_plan import ReviewPlan
+from src.plan.review_plan import PlanEvaluator
 from src.team.find_team_members import FindTeamMembers
 from src.team.enrich_team_members_with_contract_type import EnrichTeamMembersWithContractType
 from src.team.enrich_team_members_with_background_story import EnrichTeamMembersWithBackgroundStory
@@ -1724,9 +1724,9 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
         with self.output()['csv'].open("w") as f:
             f.write(csv_representation)
 
-class ReviewPlanTask(PlanTask):
+class PlanEvaluatorTask(PlanTask):
     """
-    Review the plan.
+    Ask questions about the almost finished plan.
     
     It depends on:
       - SWOTAnalysisTask: provides the SWOT analysis as Markdown.
@@ -1739,8 +1739,8 @@ class ReviewPlanTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.REVIEW_PLAN_RAW))),
-            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.REVIEW_PLAN_MARKDOWN)))
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.PLAN_EVALUATOR_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.PLAN_EVALUATOR_MARKDOWN)))
         }
     
     def requires(self):
@@ -1785,15 +1785,15 @@ class ReviewPlanTask(PlanTask):
         llm = get_llm(self.llm_model)
 
         # Execute the convertion.
-        review_plan = ReviewPlan.execute(llm, query)
+        plan_evaluator = PlanEvaluator.execute(llm, query)
 
         # Save the results.
         json_path = self.output()['raw'].path
-        review_plan.save_raw(json_path)
+        plan_evaluator.save_raw(json_path)
         markdown_path = self.output()['markdown'].path
-        review_plan.save_markdown(markdown_path)
+        plan_evaluator.save_markdown(markdown_path)
 
-        logger.info("Reviewed the plan.")
+        logger.info("Evaluated the plan.")
 
 
 class ReportTask(PlanTask):
@@ -1867,8 +1867,8 @@ class FullPlanPipeline(PlanTask):
             'durations': EstimateTaskDurationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level3': CreateWBSLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            # Experimental: 'review_plan': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'report': ReportTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'plan_evaluator': PlanEvaluatorTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            # 'report': ReportTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
 
     def output(self):
