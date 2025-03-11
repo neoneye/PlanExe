@@ -75,23 +75,23 @@ class PlanEvaluator:
         system_prompt += "\n\nDocument for review:\n"
         system_prompt += document
 
-        questions = [
-            "Identify exactly three critical or urgent issues highlighted in the report. For each issue, provide a brief explanation of its quantified significance (e.g., impact in terms of cost, risk, or timing) on the immediate priorities, desired outcomes, or overall effectiveness. Also, explain how these issues might interact with or influence each other, along with a brief, actionable recommendation to address it. Please present your answer in exactly three bullet points.",
-            "Identify exactly three significant consequences—both positive and negative—that may result from implementing the plan. For each consequence, provide a brief explanation of its *quantified* impact (e.g., in terms of cost, time, or ROI) on the plan’s overall feasibility, outcomes, or long-term success. *Also, explain how these consequences might interact with or influence each other*, *along with a brief, actionable recommendation to address it*. Please present your answer in exactly three bullet points.",
-            "Identify exactly three specific actions recommended by the report. For each action, briefly quantify its expected impact (e.g., cost savings, risk reduction, time improvements), clearly state its priority level, and provide a brief, actionable recommendation on how it should be implemented. Present your answer in exactly three bullet points. Actions listed here should complement, extend, or provide additional details to recommendations mentioned previously, rather than repeat them directly.",
-            "Identify exactly three 'showstopper' risks to the project's success that have not yet been addressed.\nFor each risk:\n- Quantify its potential impact (e.g., in terms of budget increase, timeline delays, ROI reduction).\n- State explicitly its likelihood (High, Medium, Low).\n- Clearly explain how these risks might interact or compound each other.\n- Provide a brief, actionable recommendation to address it.\nPresent your answer in exactly three bullet points, avoiding repetition of previously covered issues or actions. Additionally, for each risk, briefly suggest a contingency measure to be activated if the initial mitigation action proves insufficient.",
-            "List exactly three critical assumptions underlying the plan that must hold true for it to succeed. For each assumption, quantify the impact if proven incorrect (e.g., cost increase, ROI decrease, timeline delays), explain clearly how each assumption interacts or compounds with previously identified risks or consequences, and provide a brief, actionable recommendation for validating or adjusting each assumption. Present your answer in exactly three bullet points without repeating previously mentioned risks or issues.",
-            "Identify exactly three Key Performance Indicators (KPIs) essential for measuring the project's long-term success. For each KPI, quantify specific target values or ranges that indicate success or require corrective action. Clearly explain how each KPI interacts with previously identified risks, assumptions, or recommended actions, and provide a brief, actionable recommendation on how to regularly monitor or achieve each KPI. Present your answer in exactly three bullet points without repeating previously mentioned details.",
-            "What exactly are the primary objectives and deliverables of this report? Clearly state the intended audience, the key decisions this report aims to inform, and how Version 2 should differ from Version 1. Present your answer concisely in three bullet points.",
-            "Identify exactly three key areas in the current draft where data accuracy or completeness may be uncertain or insufficient. For each area, briefly explain why the data is critical, quantify the potential consequences of relying on incorrect or incomplete data, and recommend a clear approach for validating or improving data quality before Version 2. Present your answer in exactly three bullet points.",
-            "List exactly three important pieces of stakeholder feedback or clarification needed before finalizing Version 2 of the report. For each piece of feedback, explain why it's critical, how unresolved stakeholder concerns might impact the project (quantify potential impact), and provide a brief recommendation for obtaining and incorporating this feedback effectively. Present your answer in exactly three bullet points.",
-            "Identify exactly three assumptions or conditions from the initial planning stage that might have changed or require re-evaluation since Version 1 was drafted. For each assumption, briefly quantify how changes might affect the report’s outcomes (cost, ROI, timeline), explain how these revised assumptions could influence previously identified risks or recommendations, and suggest an actionable approach to reviewing or updating each assumption. Present your answer in exactly three bullet points without repeating previously discussed points.",
-            "Provide exactly three critical budget clarifications necessary before finalizing Version 2. For each clarification, quantify its impact on the project's financial planning (e.g., cost adjustments, budget reserves, ROI impact), clearly explain why it's needed, and recommend actionable steps to resolve the uncertainty.",
-            "Identify exactly three key roles or responsibilities that must be explicitly defined or clarified in Version 2. For each role, briefly explain why clarification is essential, quantify potential impacts (e.g., timeline delays, accountability risks) if roles remain unclear, and recommend actionable steps to ensure clear assignment and accountability.",
-            "Identify exactly three timeline dependencies or sequencing concerns that must be clarified before finalizing Version 2. For each dependency, quantify its potential impact if incorrectly sequenced (e.g., timeline delays, increased costs), clearly explain its interaction with previously identified risks or actions, and recommend a concrete action to address the sequencing or dependency concern.",
-            "Identify exactly three long-term financial strategy questions that must be clarified in Version 2. For each, quantify the financial or strategic impact of leaving it unanswered, explain clearly how each interacts with previously identified assumptions or risks, and recommend actionable steps to clarify or address the question.",
-            "Identify exactly three factors essential to maintaining motivation and ensuring consistent progress toward the project's goals. For each factor, quantify potential setbacks if motivation falters (e.g., delays, reduced success rates, increased costs), clearly explain how it interacts with previously identified risks or assumptions, and provide a brief, actionable recommendation on maintaining motivation or addressing motivational barriers.",
-            "Identify exactly three opportunities within the project where tasks or processes can be automated or streamlined for improved efficiency. For each opportunity, quantify the potential savings (time, resources, or cost), explain how this interacts with previously identified timelines or resource constraints, and recommend a clear, actionable approach for implementing each automation or efficiency improvement.",
+        title_question_list = [
+            ("Critical Issues", "Identify exactly three critical or urgent issues highlighted in the report. For each issue, provide a brief explanation of its quantified significance (e.g., impact in terms of cost, risk, or timing) on the immediate priorities, desired outcomes, or overall effectiveness. Also, explain how these issues might interact with or influence each other, along with a brief, actionable recommendation to address it. Please present your answer in exactly three bullet points."),
+            ("Implementation Consequences", "Identify exactly three significant consequences—both positive and negative—that may result from implementing the plan. For each consequence, provide a brief explanation of its *quantified* impact (e.g., in terms of cost, time, or ROI) on the plan's overall feasibility, outcomes, or long-term success. *Also, explain how these consequences might interact with or influence each other*, *along with a brief, actionable recommendation to address it*. Please present your answer in exactly three bullet points."),
+            ("Recommended Actions", "Identify exactly three specific actions recommended by the report. For each action, briefly quantify its expected impact (e.g., cost savings, risk reduction, time improvements), clearly state its priority level, and provide a brief, actionable recommendation on how it should be implemented. Present your answer in exactly three bullet points. Actions listed here should complement, extend, or provide additional details to recommendations mentioned previously, rather than repeat them directly."),
+            ("Showstopper Risks", "Identify exactly three 'showstopper' risks to the project's success that have not yet been addressed.\nFor each risk:\n- Quantify its potential impact (e.g., in terms of budget increase, timeline delays, ROI reduction).\n- State explicitly its likelihood (High, Medium, Low).\n- Clearly explain how these risks might interact or compound each other.\n- Provide a brief, actionable recommendation to address it.\nPresent your answer in exactly three bullet points, avoiding repetition of previously covered issues or actions. Additionally, for each risk, briefly suggest a contingency measure to be activated if the initial mitigation action proves insufficient."),
+            ("Critical Assumptions", "List exactly three critical assumptions underlying the plan that must hold true for it to succeed. For each assumption, quantify the impact if proven incorrect (e.g., cost increase, ROI decrease, timeline delays), explain clearly how each assumption interacts or compounds with previously identified risks or consequences, and provide a brief, actionable recommendation for validating or adjusting each assumption. Present your answer in exactly three bullet points without repeating previously mentioned risks or issues."),
+            ("Key Performance Indicators", "Identify exactly three Key Performance Indicators (KPIs) essential for measuring the project's long-term success. For each KPI, quantify specific target values or ranges that indicate success or require corrective action. Clearly explain how each KPI interacts with previously identified risks, assumptions, or recommended actions, and provide a brief, actionable recommendation on how to regularly monitor or achieve each KPI. Present your answer in exactly three bullet points without repeating previously mentioned details."),
+            ("Report Objectives", "What exactly are the primary objectives and deliverables of this report? Clearly state the intended audience, the key decisions this report aims to inform, and how Version 2 should differ from Version 1. Present your answer concisely in three bullet points."),
+            ("Data Quality Concerns", "Identify exactly three key areas in the current draft where data accuracy or completeness may be uncertain or insufficient. For each area, briefly explain why the data is critical, quantify the potential consequences of relying on incorrect or incomplete data, and recommend a clear approach for validating or improving data quality before Version 2. Present your answer in exactly three bullet points."),
+            ("Stakeholder Feedback", "List exactly three important pieces of stakeholder feedback or clarification needed before finalizing Version 2 of the report. For each piece of feedback, explain why it's critical, how unresolved stakeholder concerns might impact the project (quantify potential impact), and provide a brief recommendation for obtaining and incorporating this feedback effectively. Present your answer in exactly three bullet points."),
+            ("Changed Assumptions", "Identify exactly three assumptions or conditions from the initial planning stage that might have changed or require re-evaluation since Version 1 was drafted. For each assumption, briefly quantify how changes might affect the report's outcomes (cost, ROI, timeline), explain how these revised assumptions could influence previously identified risks or recommendations, and suggest an actionable approach to reviewing or updating each assumption. Present your answer in exactly three bullet points without repeating previously discussed points."),
+            ("Budget Clarifications", "Provide exactly three critical budget clarifications necessary before finalizing Version 2. For each clarification, quantify its impact on the project's financial planning (e.g., cost adjustments, budget reserves, ROI impact), clearly explain why it's needed, and recommend actionable steps to resolve the uncertainty."),
+            ("Role Definitions", "Identify exactly three key roles or responsibilities that must be explicitly defined or clarified in Version 2. For each role, briefly explain why clarification is essential, quantify potential impacts (e.g., timeline delays, accountability risks) if roles remain unclear, and recommend actionable steps to ensure clear assignment and accountability."),
+            ("Timeline Dependencies", "Identify exactly three timeline dependencies or sequencing concerns that must be clarified before finalizing Version 2. For each dependency, quantify its potential impact if incorrectly sequenced (e.g., timeline delays, increased costs), clearly explain its interaction with previously identified risks or actions, and recommend a concrete action to address the sequencing or dependency concern."),
+            ("Financial Strategy", "Identify exactly three long-term financial strategy questions that must be clarified in Version 2. For each, quantify the financial or strategic impact of leaving it unanswered, explain clearly how each interacts with previously identified assumptions or risks, and recommend actionable steps to clarify or address the question."),
+            ("Motivation Factors", "Identify exactly three factors essential to maintaining motivation and ensuring consistent progress toward the project's goals. For each factor, quantify potential setbacks if motivation falters (e.g., delays, reduced success rates, increased costs), clearly explain how it interacts with previously identified risks or assumptions, and provide a brief, actionable recommendation on maintaining motivation or addressing motivational barriers."),
+            ("Automation Opportunities", "Identify exactly three opportunities within the project where tasks or processes can be automated or streamlined for improved efficiency. For each opportunity, quantify the potential savings (time, resources, or cost), explain how this interacts with previously identified timelines or resource constraints, and recommend a clear, actionable approach for implementing each automation or efficiency improvement."),
         ]
 
         chat_message_list = [
@@ -106,8 +106,9 @@ class PlanEvaluator:
         durations = []
         response_byte_counts = []
 
-        for index, question in enumerate(questions, start=1):
-            logger.debug(f"Question {index} of {len(questions)}: {question}")
+        for index, title_question in enumerate(title_question_list, start=1):
+            title, question = title_question
+            logger.debug(f"Question {index} of {len(title_question_list)}: {question}")
             chat_message_list.append(ChatMessage(
                 role=MessageRole.USER,
                 content=question,
@@ -118,8 +119,8 @@ class PlanEvaluator:
             try:
                 chat_response = sllm.chat(chat_message_list)
             except Exception as e:
-                logger.debug(f"Question {index} of {len(questions)}. LLM chat interaction failed: {e}")
-                logger.error(f"Question {index} of {len(questions)}. LLM chat interaction failed.", exc_info=True)
+                logger.debug(f"Question {index} of {len(title_question_list)}. LLM chat interaction failed: {e}")
+                logger.error(f"Question {index} of {len(title_question_list)}. LLM chat interaction failed.", exc_info=True)
                 raise ValueError("LLM chat interaction failed.") from e
 
             end_time = time.perf_counter()
@@ -127,12 +128,13 @@ class PlanEvaluator:
             durations.append(duration)
             response_byte_count = len(chat_response.message.content.encode('utf-8'))
             response_byte_counts.append(response_byte_count)
-            logger.info(f"Question {index} of {len(questions)}. LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
+            logger.info(f"Question {index} of {len(title_question_list)}. LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
 
             json_response = chat_response.raw.model_dump()
             logger.debug(json.dumps(json_response, indent=2))
 
             question_answers_list.append({
+                "title": title,
                 "question": question,
                 "answers": chat_response.raw.bullet_points,
             })
@@ -143,11 +145,11 @@ class PlanEvaluator:
             ))
 
         response_byte_count_total = sum(response_byte_counts)
-        response_byte_count_average = response_byte_count_total / len(questions)
+        response_byte_count_average = response_byte_count_total / len(title_question_list)
         response_byte_count_max = max(response_byte_counts)
         response_byte_count_min = min(response_byte_counts)
         duration_total = sum(durations)
-        duration_average = duration_total / len(questions)
+        duration_average = duration_total / len(title_question_list)
         duration_max = max(durations)
         duration_min = min(durations)
 
@@ -194,15 +196,15 @@ class PlanEvaluator:
         for index, question_answers in enumerate(question_answers_list, start=1):
             if index > 1:
                 rows.append("\n")
-            question = question_answers.get('question', None)
-            if question is None:
-                logger.warning("Question is None.")
+            title = question_answers.get('title', None)
+            if title is None:
+                logger.warning("Title is None.")
                 continue
             answers = question_answers.get('answers', None)
             if answers is None:
                 logger.warning("Answers are None.")
                 continue
-            rows.append(f"## Question {index}: {question}\n")
+            rows.append(f"## Evaluation {index}: {title}\n")
             for answer_index, answer in enumerate(answers, start=1):
                 if answer_index > 1:
                     rows.append("\n")
