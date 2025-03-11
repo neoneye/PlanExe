@@ -1808,6 +1808,7 @@ class ReportTask(PlanTask):
       - WBSProjectLevel1AndLevel2AndLevel3Task: provides the table csv file.
       - ExpertReviewTask: provides the expert criticism as Markdown.
       - ProjectPlanTask: provides the project plan as Markdown.
+      - PlanEvaluatorTask: provides the plan evaluator as Markdown.
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
@@ -1822,7 +1823,8 @@ class ReportTask(PlanTask):
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'plan_evaluator': PlanEvaluatorTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
     
     def run(self):
@@ -1834,6 +1836,7 @@ class ReportTask(PlanTask):
         rg.append_markdown('Team', self.input()['team_markdown'].path)
         rg.append_markdown('Expert Criticism', self.input()['expert_review'].path)
         rg.append_csv('Work Breakdown Structure', self.input()['wbs_project123']['csv'].path)
+        rg.append_markdown('Plan Evaluator', self.input()['plan_evaluator']['markdown'].path)
         rg.save_report(self.output().path)
 
 class FullPlanPipeline(PlanTask):
@@ -1870,7 +1873,7 @@ class FullPlanPipeline(PlanTask):
             'wbs_level3': CreateWBSLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'plan_evaluator': PlanEvaluatorTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            # 'report': ReportTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'report': ReportTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
 
     def output(self):
