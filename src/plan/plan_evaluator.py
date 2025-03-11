@@ -4,8 +4,6 @@ Ask questions about the almost finished plan.
 PROMPT> python -m src.plan.plan_evaluator
 
 IDEA: Executive Summary: Briefly summarizing critical insights from the review.
-
-IDEA: Append the PlanEvaluator Questions and Answers to report.
 """
 import os
 import json
@@ -109,7 +107,7 @@ class PlanEvaluator:
         response_byte_counts = []
 
         for index, question in enumerate(questions, start=1):
-            print(f"Question {index} of {len(questions)}: {question}")
+            logger.debug(f"Question {index} of {len(questions)}: {question}")
             chat_message_list.append(ChatMessage(
                 role=MessageRole.USER,
                 content=question,
@@ -120,8 +118,8 @@ class PlanEvaluator:
             try:
                 chat_response = sllm.chat(chat_message_list)
             except Exception as e:
-                logger.debug(f"LLM chat interaction failed: {e}")
-                logger.error("LLM chat interaction failed.", exc_info=True)
+                logger.debug(f"Question {index} of {len(questions)}. LLM chat interaction failed: {e}")
+                logger.error(f"Question {index} of {len(questions)}. LLM chat interaction failed.", exc_info=True)
                 raise ValueError("LLM chat interaction failed.") from e
 
             end_time = time.perf_counter()
@@ -129,10 +127,10 @@ class PlanEvaluator:
             durations.append(duration)
             response_byte_count = len(chat_response.message.content.encode('utf-8'))
             response_byte_counts.append(response_byte_count)
-            logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
+            logger.info(f"Question {index} of {len(questions)}. LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
 
             json_response = chat_response.raw.model_dump()
-            print(json.dumps(json_response, indent=2))
+            logger.debug(json.dumps(json_response, indent=2))
 
             question_answers_list.append({
                 "question": question,
@@ -146,16 +144,23 @@ class PlanEvaluator:
 
         response_byte_count_total = sum(response_byte_counts)
         response_byte_count_average = response_byte_count_total / len(questions)
+        response_byte_count_max = max(response_byte_counts)
+        response_byte_count_min = min(response_byte_counts)
         duration_total = sum(durations)
         duration_average = duration_total / len(questions)
+        duration_max = max(durations)
+        duration_min = min(durations)
 
         metadata = dict(llm.metadata)
         metadata["llm_classname"] = llm.class_name()
         metadata["duration_total"] = duration_total
         metadata["duration_average"] = duration_average
+        metadata["duration_max"] = duration_max
+        metadata["duration_min"] = duration_min
         metadata["response_byte_count_total"] = response_byte_count_total
         metadata["response_byte_count_average"] = response_byte_count_average
-
+        metadata["response_byte_count_max"] = response_byte_count_max
+        metadata["response_byte_count_min"] = response_byte_count_min
         markdown = cls.convert_to_markdown(question_answers_list)
 
         result = PlanEvaluator(
