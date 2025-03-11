@@ -203,8 +203,10 @@ class PlanEvaluator:
                 logger.warning("Answers are None.")
                 continue
             rows.append(f"## Question {index}: {question}\n")
-            for answer in answers:
-                rows.append(f"- {answer}")
+            for answer_index, answer in enumerate(answers, start=1):
+                if answer_index > 1:
+                    rows.append("\n")
+                rows.append(f"{answer_index}. {answer}")
 
         return "\n".join(rows)
 
