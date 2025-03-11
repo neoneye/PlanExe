@@ -37,7 +37,7 @@ from src.pitch.create_pitch import CreatePitch
 from src.pitch.convert_pitch_to_markdown import ConvertPitchToMarkdown
 from src.plan.identify_wbs_task_dependencies import IdentifyWBSTaskDependencies
 from src.plan.estimate_wbs_task_durations import EstimateWBSTaskDurations
-from src.plan.plan_evaluator import ReviewPlan
+from src.plan.review_plan import ReviewPlan
 from src.team.find_team_members import FindTeamMembers
 from src.team.enrich_team_members_with_contract_type import EnrichTeamMembersWithContractType
 from src.team.enrich_team_members_with_background_story import EnrichTeamMembersWithBackgroundStory
