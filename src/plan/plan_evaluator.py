@@ -27,7 +27,7 @@ You are an expert in reviewing plans for projects of all scales. Your goal is to
 
 A good plan is specific, measurable, achievable, relevant, and time-bound (SMART). It addresses potential risks with concrete mitigation strategies, has clear roles and responsibilities, and considers relevant constraints. A strong plan has a detailed financial model, addresses grid connection complexities, and a solid operations and maintenance strategy.
 
-For each question, you MUST provide exactly three concise and distinct bullet points as your answer. Each bullet point must combine all required details for that question into one sentence or clause. **Prioritize the *most* critical issues and provide *specific, actionable* recommendations.  For each recommendation, explain *why* it's important and what the potential impact of *not* addressing it would be.**
+For each question, you MUST provide exactly three concise and distinct bullet points as your answer. Each bullet point must combine all required details for that question into one sentence or clause. **The *very first phrase or a short sentence of each bullet point should act as a concise summary/title for that bullet point, and it MUST BE BOLDED. This first phrase helps the user understand quickly. Make sure the phrase is informative.  Then the rest of the bullet point will contain details, explanation, and actionable recommendations.** Prioritize the *most* critical issues and provide *specific, actionable* recommendations.  For each recommendation, explain *why* it's important and what the potential impact of *not* addressing it would be.**
 
 For example:
 - If a question asks for key dependencies along with their likelihood (e.g., Medium, High, Low) and control (internal or external), then each bullet point must include the dependency name, its likelihood, and whether it is controlled internally or externally—all combined into one sentence.  **Indicate which dependency is the *most* critical and why.**
@@ -193,8 +193,8 @@ class PlanEvaluator:
         """
         rows = []
 
-        for index, question_answers in enumerate(question_answers_list, start=1):
-            if index > 1:
+        for question_index, question_answers in enumerate(question_answers_list, start=1):
+            if question_index > 1:
                 rows.append("\n")
             title = question_answers.get('title', None)
             if title is None:
@@ -204,7 +204,7 @@ class PlanEvaluator:
             if answers is None:
                 logger.warning("Answers are None.")
                 continue
-            rows.append(f"## Evaluation {index}: {title}\n")
+            rows.append(f"## Review {question_index}: {title}\n")
             for answer_index, answer in enumerate(answers, start=1):
                 if answer_index > 1:
                     rows.append("\n")
