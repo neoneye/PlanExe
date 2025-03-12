@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from llama_index.core.llms.llm import LLM
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
+from src.markdown_util.fix_bullet_lists import fix_bullet_lists
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +188,9 @@ class ExecutiveSummary:
         rows.append(f"\n## Action Orientation\n{document_details.action_orientation}")
         rows.append(f"\n## Overall Takeaway\n{document_details.overall_takeaway}")
         rows.append(f"\n## Feedback\n{document_details.feedback}")
-        return "\n".join(rows)
+        markdown = "\n".join(rows)
+        markdown = fix_bullet_lists(markdown)
+        return markdown
 
     def save_markdown(self, output_file_path: str):
         with open(output_file_path, 'w', encoding='utf-8') as out_f:
