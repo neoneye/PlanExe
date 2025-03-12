@@ -18,30 +18,65 @@ from math import ceil
 from typing import Optional
 from dataclasses import dataclass
 from llama_index.core.llms.llm import LLM
+from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from src.markdown_util.fix_bullet_lists import fix_bullet_lists
 from src.markdown_util.remove_bold_formatting import remove_bold_formatting
 
 logger = logging.getLogger(__name__)
 
+class DocumentDetails(BaseModel):
+    audience_tailoring: str = Field(
+        description="Adapt the tone and detail based on who will be reading this summary (individual hobbyist, corporate, government, etc.)."
+    )
+    focus_and_context: str = Field(
+        description="A short statement about why this project or plan exists and its overall objectives."
+    )
+    purpose_and_goals: str = Field(
+        description="A crisp statement of the project's main goals and success criteria."
+    )
+    key_deliverables_and_outcomes: str = Field(
+        description="Bulleted summary of the expected end-products or results from the plan."
+    )
+    high_level_approach: str = Field(
+        description="An outline of major steps or phases to accomplish the goals."
+    )
+    timeline_and_budget: str = Field(
+        description="A short estimate of time and top-level budget"
+    )
+    risks_and_mitigations: str = Field(
+        description="Identify 1-2 major risks and how you plan to reduce or address them."
+    )
+    action_orientation: str = Field(
+        description="Explain the immediate actions or next steps needed to move forward. Summarize who, what, and when."
+    )
+    overall_takeaway: str = Field(
+        description="A final, concise statement emphasizing the main point or value of the plan (e.g., expected benefits, ROI, key success metric)."
+    )
+
 EXECUTIVE_SUMMARY_SYSTEM_PROMPT = """
-You are an expert at creating executive summaries from project planning documents. Your task is to convert the input Markdown into a concise, one-page summary that provides a high-level overview of the project's key points. The executive summary should be placed at the beginning of the report and is designed to be read first by senior management, executives, investors, and other key decision-makers.
+You are an expert at creating *executive summaries of project *review reports*. Your task is to convert the input Markdown into a *concise, high-impact, one-page summary that provides key decision-makers with the most important findings and actionable recommendations from the review*. This executive summary should be placed at the beginning of the report.
+
+Adapt the tone and detail based on who will be reading this summary (individual hobbyist, corporate, government, senior management, executives, investors, and other key decision-makers, etc.).
+
+**Key Principles:**
+*   **Focus on Actionability:**  Prioritize information that will *drive immediate decisions and actions*. What are the *most urgent issues* the project team needs to address?
+*   **Quantify Impacts:** *Whenever possible, quantify the potential benefits of implementing recommendations* (e.g., cost savings, time improvements, ROI increases). Use realistic estimates if precise data is unavailable.
+*   **Prioritize Findings:** *Highlight the MOST CRITICAL findings from the review, not just a general overview of the project*.
+*   **Be Concise:** Every sentence must have extreme clarity and succinctness.
+*   **Focus on the Report:** Ensure this is an executive summary of the *review report*, not just a summary of the project itself.
 
 **Output Requirements:**
-- Wrap the output exactly in [START_MARKDOWN] and [END_MARKDOWN] (no text before or after).
 - Use only plain Markdown (no bold formatting or other styling).
 - Retain headings using only '#' and '##'. Convert any deeper levels to these.
 - Use bullet lists with a hyphen and a space.
-- Condense paragraphs, remove redundancy, and combine similar sections.
-- Preserve key details (e.g., assumptions, risks, recommendations) without summarizing or providing commentary.
 
 **Structure of the Executive Summary:**
-1. **Project Overview:** Provide a brief description of the project, its goals, and its significance.
-2. **Key Objectives:** List the main objectives of the project in bullet points.
-3. **Scope:** Summarize the project's scope, including key activities and deliverables.
-4. **Key Risks and Mitigation Strategies:** Highlight the most critical risks and how they will be addressed.
-5. **Expected Outcomes:** Describe the anticipated benefits and impacts of the project.
-6. **Call to Action:** End with a clear call to action, encouraging stakeholders to engage with the project.
+1.  **Report Purpose:** *Clearly state the purpose of the review report*. What questions did the review aim to answer? What sources of information were used (e.g., SWOT analysis, expert interviews)?
+2.  **Critical Findings:** *Highlight the 3-5 most critical findings* from the review. These should be the areas that pose the greatest risk to the project's success.
+3.  **Key Recommendations:** *For each critical finding, provide a specific, actionable recommendation*. What concrete steps should the project team take to address the issue?
+4.  **Expected Benefits:** *For each recommendation, quantify the expected benefits*. What will be the impact in terms of cost savings, time improvements, or ROI increases?
+5.  **Key Next Steps:** *End with a clear call to action, outlining the immediate next steps* the project team should take.
 
 **Tone and Style:**
 - Use clear, concise, and professional language.
@@ -70,9 +105,6 @@ class ExecutiveSummary:
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
         
-        user_prompt = user_prompt.strip()
-        user_prompt = remove_bold_formatting(user_prompt)
-
         system_prompt = EXECUTIVE_SUMMARY_SYSTEM_PROMPT.strip()
         chat_message_list = [
             ChatMessage(
@@ -84,48 +116,35 @@ class ExecutiveSummary:
                 content=user_prompt,
             )
         ]
-        
-        logger.debug(f"User Prompt:\n{user_prompt}")
 
-        logger.debug("Starting LLM chat interaction.")
+        sllm = llm.as_structured_llm(DocumentDetails)
         start_time = time.perf_counter()
-        chat_response = llm.chat(chat_message_list)
+        try:
+            chat_response = sllm.chat(chat_message_list)
+        except Exception as e:
+            logger.debug(f"LLM chat interaction failed: {e}")
+            logger.error("LLM chat interaction failed.", exc_info=True)
+            raise ValueError("LLM chat interaction failed.") from e
+
         end_time = time.perf_counter()
         duration = int(ceil(end_time - start_time))
         response_byte_count = len(chat_response.message.content.encode('utf-8'))
         logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
+
+        json_response = chat_response.raw.model_dump()
 
         metadata = dict(llm.metadata)
         metadata["llm_classname"] = llm.class_name()
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
-        response_content = chat_response.message.content
-
-        start_delimiter = "[START_MARKDOWN]"
-        end_delimiter = "[END_MARKDOWN]"
-
-        start_index = response_content.find(start_delimiter)
-        end_index = response_content.find(end_delimiter)
-
-        if start_index != -1 and end_index != -1:
-            markdown_content = response_content[start_index + len(start_delimiter):end_index].strip()
-        else:
-            markdown_content = response_content  # Use the entire content if delimiters are missing
-            logger.warning("Output delimiters not found in LLM response.")
-
-        markdown_content = fix_bullet_lists(markdown_content)
-        markdown_content = remove_bold_formatting(markdown_content)
-
-        json_response = {}
-        json_response['response_content'] = response_content
-        json_response['markdown'] = markdown_content
+        markdown = cls.convert_to_markdown(chat_response.raw)
 
         result = ExecutiveSummary(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
-            markdown=markdown_content,
+            markdown=markdown,
             metadata=metadata,
         )
         logger.debug("ExecutiveSummary instance created successfully.")
@@ -146,14 +165,30 @@ class ExecutiveSummary:
         with open(file_path, 'w') as f:
             f.write(json.dumps(self.to_dict(), indent=2))
 
-    def save_markdown(self, file_path: str) -> None:
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(self.markdown)
+    @staticmethod
+    def convert_to_markdown(document_details: DocumentDetails) -> str:
+        """
+        Convert the raw document details to markdown.
+        """
+        rows = []
+        rows.append(f"## Focus and Context\n{document_details.focus_and_context}")
+        rows.append(f"\n## Purpose and Goals\n{document_details.purpose_and_goals}")
+        rows.append(f"\n## Key Deliverables and Outcomes\n{document_details.key_deliverables_and_outcomes}")
+        rows.append(f"\n## High-Level Approach\n{document_details.high_level_approach}")
+        rows.append(f"\n## Timeline and Budget\n{document_details.timeline_and_budget}")
+        rows.append(f"\n## Risks and Mitigations\n{document_details.risks_and_mitigations}")
+        rows.append(f"\n## Action Orientation\n{document_details.action_orientation}")
+        rows.append(f"\n## Overall Takeaway\n{document_details.overall_takeaway}")
+        return "\n".join(rows)
+
+    def save_markdown(self, output_file_path: str):
+        with open(output_file_path, 'w', encoding='utf-8') as out_f:
+            out_f.write(self.markdown)
     
 if __name__ == "__main__":
     from src.llm_factory import get_llm
 
-    path = os.path.join(os.path.dirname(__file__), 'test_data', 'shorten_markdown1', 'physical_locations.md')
+    path = os.path.join(os.path.dirname(__file__), 'test_data', 'solarfarm_consolidate_assumptions_short.md')
     with open(path, 'r', encoding='utf-8') as f:
         the_markdown = f.read()
 
