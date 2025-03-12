@@ -182,6 +182,7 @@ class ExecutiveSummary:
         rows.append(f"\n## Key Deliverables and Outcomes\n{document_details.key_deliverables_and_outcomes}")
         rows.append(f"\n## Timeline and Budget\n{document_details.timeline_and_budget}")
         rows.append(f"\n## Risks and Mitigations\n{document_details.risks_and_mitigations}")
+        rows.append(f"\n## Audience Tailoring\n{document_details.audience_tailoring}")
         rows.append(f"\n## Action Orientation\n{document_details.action_orientation}")
         rows.append(f"\n## Overall Takeaway\n{document_details.overall_takeaway}")
         rows.append(f"\n## Feedback\n{document_details.feedback}")
