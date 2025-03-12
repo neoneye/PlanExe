@@ -54,43 +54,41 @@ class DocumentDetails(BaseModel):
     overall_takeaway: str = Field(
         description="A final, concise statement emphasizing the main point or value of the plan (e.g., expected benefits, ROI, key success metric)."
     )
+    feedback: str = Field(
+        description="Suggestions for how to strengthen the executive summary by adding more evidence or improving persuasiveness."
+    )
 
 EXECUTIVE_SUMMARY_SYSTEM_PROMPT = """
-You are an expert at creating executive summaries of project plans. Your task is to convert the input Markdown into a concise, high-impact, one-page summary that provides key decision-makers with the most essential information, risks, and actionable steps. This executive summary should be placed at the beginning of the plan or proposal.
+You are an expert at creating executive summaries of project plans. Your task is to produce a concise, high-impact, one-page summary that provides key decision-makers with the most essential information, risks, and actionable steps. Additionally, you must include a 'feedback' section offering multiple suggestions on how to strengthen or improve the executive summary by gathering more evidence, adjusting tone, or addressing potential gaps.
 
-Adapt the tone and detail based on who will be reading this summary (individual hobbyist, corporate, government, senior management, executives, investors, and other key decision-makers, etc.).
+Please populate the following fields in your response:
 
-Key Principles:
-- Focus on Actionability: Emphasize what immediate decisions or actions the project team must take. Highlight the most urgent issues.
-- Balance Practicality with Vision: While the summary should be concise and actionable, also connect the plan to broader goals or benefits (e.g., sustainability, community impact, innovation).
-- Quantify Impacts: Whenever possible, include concrete or estimated benefits (cost savings, time reductions, ROI, etc.). If precise data is not available, use realistic ranges or assumptions.
-- Prioritize: Zero in on the most critical points—risks, deliverables, timelines—rather than describing every detail of the plan.
-- Be Concise: Each sentence should have extreme clarity and succinctness.
-- Clarify Scope and Stakeholders: Where relevant, specify who owns the plan, who benefits from it, and whether there are any regulatory, environmental, or community considerations.
-- Highlight Intangible Benefits: Don’t overlook non-financial gains, such as brand perception, community support, or alignment with sustainability targets.
-- Focus on the Plan: Ensure this is an executive summary of the overall plan, not just the project’s background.
+1. audience_tailoring: Describe how you have adapted the tone and details for the intended audience (e.g., hobbyist, corporate, government).
+2. focus_and_context: Provide a brief overview of why this plan exists and its overarching objectives.
+3. purpose_and_goals: State the main goals and success criteria of the plan.
+4. key_deliverables_and_outcomes: Summarize the primary end-products or objectives the plan will achieve.
+5. timeline_and_budget: Offer a short estimate of the timeframe and top-level budget.
+6. risks_and_mitigations: Identify 1–2 major risks and outline how they will be mitigated.
+7. action_orientation: Detail the immediate next steps or actions that need to be taken, including who is responsible and when.
+8. overall_takeaway: Provide a final, concise statement emphasizing the main value of the plan (e.g., ROI, strategic importance, etc.).
+9. feedback: List multiple suggestions on how to enhance the executive summary’s persuasiveness or clarity. Consider:
+   - Additional data points (e.g., ROI metrics, carbon reduction figures, job creation estimates)
+   - Case studies or references to bolster credibility
+   - Ways to address stakeholder concerns or regulatory requirements
+   - Approaches to strengthen vision or community engagement
 
 Output Requirements:
 - Use only plain Markdown (no bold formatting or other styling).
-- Retain headings using only '#' and '##'. Convert any deeper levels to these.
-- Use bullet lists with a hyphen and a space.
-
-Structure of the Executive Summary:
-1. Focus and Context: Provide a brief overview of why this plan exists and its overarching objectives.
-2. Purpose and Goals: Clearly state the plan’s main goals and success criteria.
-3. Key Deliverables and Outcomes: Summarize the primary end-products or objectives the plan will achieve.
-4. Timeline and Budget: Offer a short estimate of the time frame and top-level budget (specify if the budget is for initial steps or the full project).
-5. Risks and Mitigations: Highlight the top 1–2 major risks and how they will be mitigated.
-6. Action Orientation: Detail the immediate next steps or actions that need to be taken, including who is responsible and when.
-7. Overall Takeaway: End with a succinct statement of the plan’s core value, potential ROI, or broader impact.
+- Use '#' and '##' for headings; any deeper level headings should be converted to '##'.
+- Use bullet lists with a hyphen and a space to structure your points.
 
 Tone and Style:
 - Maintain a clear, concise, and professional voice.
 - Avoid unnecessary technical jargon or overly complex phrasing.
-- Emphasize what key stakeholders need to know to make informed decisions or give approval.
+- Emphasize what key stakeholders need to know to make informed decisions.
 
 Audience:
-- The primary audience comprises senior management, executives, investors, and other decision-makers who have limited time and need a rapid, big-picture understanding of the plan.
+- The primary audience comprises senior management, executives, investors, and other decision-makers who need a rapid, big-picture understanding of the plan.
 """
 
 @dataclass
@@ -184,6 +182,7 @@ class ExecutiveSummary:
         rows.append(f"\n## Risks and Mitigations\n{document_details.risks_and_mitigations}")
         rows.append(f"\n## Action Orientation\n{document_details.action_orientation}")
         rows.append(f"\n## Overall Takeaway\n{document_details.overall_takeaway}")
+        rows.append(f"\n## Feedback\n{document_details.feedback}")
         return "\n".join(rows)
 
     def save_markdown(self, output_file_path: str):
