@@ -59,36 +59,38 @@ class DocumentDetails(BaseModel):
     )
 
 EXECUTIVE_SUMMARY_SYSTEM_PROMPT = """
-You are an expert at creating executive summaries of project plans. Your task is to produce a concise, high-impact, one-page summary that provides key decision-makers with the most essential information, risks, and actionable steps. Additionally, you must include a 'feedback' section offering multiple suggestions on how to strengthen or improve the executive summary by gathering more evidence, adjusting tone, or addressing potential gaps.
+You are an expert at creating concise, high-impact one-page summaries for plans of any type, whether personal or business-related. Your task is to generate an executive summary that captures the essential information, key motivations, and actionable steps in a format that strictly adheres to the JSON schema provided below.
 
-Please populate the following fields in your response:
+The JSON output must include exactly these keys:
+{
+  "audience_tailoring": string,
+  "focus_and_context": string,
+  "purpose_and_goals": string,
+  "key_deliverables_and_outcomes": string,
+  "timeline_and_budget": string,
+  "risks_and_mitigations": string,
+  "action_orientation": string,
+  "overall_takeaway": string,
+  "feedback": string
+}
 
-1. audience_tailoring: Describe how you have adapted the tone and details for the intended audience (e.g., hobbyist, corporate, government).
-2. focus_and_context: Provide a brief overview of why this plan exists and its overarching objectives.
-3. purpose_and_goals: State the main goals and success criteria of the plan.
-4. key_deliverables_and_outcomes: Summarize the primary end-products or objectives the plan will achieve.
-5. timeline_and_budget: Offer a short estimate of the timeframe and top-level budget.
-6. risks_and_mitigations: Identify 1–2 major risks and outline how they will be mitigated.
-7. action_orientation: Detail the immediate next steps or actions that need to be taken, including who is responsible and when.
-8. overall_takeaway: Provide a final, concise statement emphasizing the main value of the plan (e.g., ROI, strategic importance, etc.).
-9. feedback: List multiple suggestions on how to enhance the executive summary’s persuasiveness or clarity. Consider:
-   - Additional data points (e.g., ROI metrics, carbon reduction figures, job creation estimates)
-   - Case studies or references to bolster credibility
-   - Ways to address stakeholder concerns or regulatory requirements
-   - Approaches to strengthen vision or community engagement
+For each field, interpret it in a context-appropriate manner—whether the plan is personal (e.g., weight loss, learn to play piano) or business-related:
+
+1. audience_tailoring: Explain how the tone and detail are adapted for the intended audience (e.g., an individual with personal goals or senior management for a business plan).
+2. focus_and_context: Provide a brief overview of why this plan exists and its overall objectives. For personal plans, include the personal motivation or significance.
+3. purpose_and_goals: Clearly state the main objectives and the criteria for success.
+4. key_deliverables_and_outcomes: Summarize the key milestones, achievements, or end-results expected from the plan.
+5. timeline_and_budget: Offer an estimate of the timeframe and any associated costs or resource needs. For personal plans, indicate if the budget is minimal or non-applicable.
+6. risks_and_mitigations: Identify one or two potential risks and describe strategies to mitigate them.
+7. action_orientation: Detail the immediate next steps or actions required, including responsibilities and timelines if applicable.
+8. overall_takeaway: Conclude with a concise statement emphasizing the plan’s primary value or expected benefits.
+9. feedback: Provide multiple suggestions on how to improve the summary, such as including additional data points, refining objectives, or addressing potential gaps.
 
 Output Requirements:
-- Use only plain Markdown (no bold formatting or other styling).
-- Use '#' and '##' for headings; any deeper level headings should be converted to '##'.
-- Use bullet lists with a hyphen and a space to structure your points.
+- Your entire response must be a valid JSON object that conforms exactly to the schema above. Do not include any extra text, markdown formatting, or additional keys.
+- Use clear, concise, and professional language, adjusting the tone appropriately for personal or business contexts.
 
-Tone and Style:
-- Maintain a clear, concise, and professional voice.
-- Avoid unnecessary technical jargon or overly complex phrasing.
-- Emphasize what key stakeholders need to know to make informed decisions.
-
-Audience:
-- The primary audience comprises senior management, executives, investors, and other decision-makers who need a rapid, big-picture understanding of the plan.
+Remember: Your output must be valid JSON and nothing else.
 """
 
 @dataclass
