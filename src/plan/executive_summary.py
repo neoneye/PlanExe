@@ -77,7 +77,7 @@ The JSON object must include exactly the following keys:
 
 Instructions for each key:
 - audience_tailoring: Describe how the tone and details are tailored for the intended audience (e.g., an individual with personal goals or senior management for a business plan).
-- focus_and_context: Provide a succinct overview of why the plan exists and its overall objectives. Include personal motivations if applicable.
+- focus_and_context: Provide a succinct overview of why the plan exists and its overall objectives. Begin with a compelling hook—a visionary statement, provocative question, or striking statistic—to immediately capture the decision-maker's attention.
 - purpose_and_goals: Clearly state the main objectives and success criteria.
 - key_deliverables_and_outcomes: Summarize the primary deliverables, milestones, or outcomes expected.
 - timeline_and_budget: Provide a brief estimate of the timeframe and any associated costs or resource needs. For personal plans, note if costs are minimal or not applicable.
