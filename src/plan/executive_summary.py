@@ -1,6 +1,8 @@
 """
 One-pager that summarizes the plan.
 
+https://en.wikipedia.org/wiki/Executive_summary
+
 - The executive summary should always be placed at the beginning of the report.
 - It's designed to be read first. Its purpose is to provide a high-level overview of the report's contents so that readers can quickly understand the key findings and recommendations.
 - It helps readers decide how to engage with the rest of the report. Knowing the key takeaways upfront allows readers to prioritize which sections they need to read in detail.
@@ -20,8 +22,6 @@ from dataclasses import dataclass
 from llama_index.core.llms.llm import LLM
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
-from src.markdown_util.fix_bullet_lists import fix_bullet_lists
-from src.markdown_util.remove_bold_formatting import remove_bold_formatting
 
 logger = logging.getLogger(__name__)
 
@@ -60,11 +60,13 @@ You are an expert at creating *executive summaries of project *review reports*. 
 Adapt the tone and detail based on who will be reading this summary (individual hobbyist, corporate, government, senior management, executives, investors, and other key decision-makers, etc.).
 
 **Key Principles:**
-*   **Focus on Actionability:**  Prioritize information that will *drive immediate decisions and actions*. What are the *most urgent issues* the project team needs to address?
-*   **Quantify Impacts:** *Whenever possible, quantify the potential benefits of implementing recommendations* (e.g., cost savings, time improvements, ROI increases). Use realistic estimates if precise data is unavailable.
-*   **Prioritize Findings:** *Highlight the MOST CRITICAL findings from the review, not just a general overview of the project*.
-*   **Be Concise:** Every sentence must have extreme clarity and succinctness.
-*   **Focus on the Report:** Ensure this is an executive summary of the *review report*, not just a summary of the project itself.
+- **Focus on Actionability:** Prioritize information that will *drive immediate decisions and actions*. Highlight the *most urgent issues* the project team must address.
+- **Quantify Impacts:** *Whenever possible, quantify the potential benefits of implementing recommendations* (e.g., cost savings, time improvements, ROI increases). Use realistic estimates if precise data is unavailable.
+- **Prioritize Findings:** *Highlight the MOST CRITICAL findings from the review, not just a general overview of the project*. If applicable, indicate the severity or likelihood of each risk to help decision-makers prioritize.
+- **Be Concise:** Every sentence must have extreme clarity and succinctness.
+- **Clarify Scope and Stakeholders:** Where relevant, mention stakeholder context (e.g., who commissioned the review, who benefits from it) and any environmental or regulatory compliance concerns. If you include a budget figure, specify if it covers only immediate next steps or the entire plan.
+- **Highlight Intangible Benefits:** If relevant, note any intangible or non-financial benefits (e.g., community goodwill, brand perception, or compliance improvements).
+- **Focus on the Report:** Ensure this is an executive summary of the *review report*, not just a summary of the project itself.
 
 **Output Requirements:**
 - Use only plain Markdown (no bold formatting or other styling).
@@ -72,11 +74,11 @@ Adapt the tone and detail based on who will be reading this summary (individual 
 - Use bullet lists with a hyphen and a space.
 
 **Structure of the Executive Summary:**
-1.  **Report Purpose:** *Clearly state the purpose of the review report*. What questions did the review aim to answer? What sources of information were used (e.g., SWOT analysis, expert interviews)?
-2.  **Critical Findings:** *Highlight the 3-5 most critical findings* from the review. These should be the areas that pose the greatest risk to the project's success.
-3.  **Key Recommendations:** *For each critical finding, provide a specific, actionable recommendation*. What concrete steps should the project team take to address the issue?
-4.  **Expected Benefits:** *For each recommendation, quantify the expected benefits*. What will be the impact in terms of cost savings, time improvements, or ROI increases?
-5.  **Key Next Steps:** *End with a clear call to action, outlining the immediate next steps* the project team should take.
+1. **Report Purpose:** Clearly state the purpose of the review report. What questions did the review aim to answer? What sources of information were used (e.g., SWOT analysis, expert interviews, existing documentation)?
+2. **Critical Findings:** Highlight the 3–5 most critical findings from the review. These should be the areas that pose the greatest risk to the project’s success or present major opportunities.
+3. **Key Recommendations:** For each critical finding, provide a specific, actionable recommendation. What concrete steps should the project team take to address the issue? If there are multiple deliverables or phases, indicate which have the highest priority.
+4. **Expected Benefits:** For each recommendation, quantify or estimate the expected benefits (cost savings, time improvements, or ROI increases) and call out any intangible benefits or regulatory advantages.
+5. **Key Next Steps:** End with a clear call to action, outlining the immediate next steps the project team should take. Specify if these steps need to happen within a particular timeframe or budget range.
 
 **Tone and Style:**
 - Use clear, concise, and professional language.
@@ -84,7 +86,7 @@ Adapt the tone and detail based on who will be reading this summary (individual 
 - Focus on the most important information that decision-makers need to know.
 
 **Audience:**
-- The primary audience is senior management, executives, investors, and other key decision-makers who have limited time and need to quickly understand the project's value and key takeaways.
+- The primary audience is senior management, executives, investors, and other key decision-makers who have limited time and need to quickly understand the project’s value and key takeaways.
 """
 
 @dataclass
