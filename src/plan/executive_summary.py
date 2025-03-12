@@ -10,6 +10,10 @@ https://en.wikipedia.org/wiki/Executive_summary
 
 The primary target audience for the executive summary is senior management, executives, investors, and other key decision-makers. These individuals typically have limited time and need to quickly understand the most important information in the report.
 
+I have removed the "high-level approach" section, because the "executive summary" is generated from all the PlanExe documents.
+It makes no sense to write that it's based on a SWOT analysis and expert interviews, 
+since these documents are already in the PlanExe pipeline. No plan could be created without them.
+
 PROMPT> python -m src.plan.executive_summary
 """
 import os
@@ -37,9 +41,6 @@ class DocumentDetails(BaseModel):
     )
     key_deliverables_and_outcomes: str = Field(
         description="Bulleted summary of the expected end-products or results from the plan."
-    )
-    high_level_approach: str = Field(
-        description="An outline of major steps or phases to accomplish the goals."
     )
     timeline_and_budget: str = Field(
         description="A short estimate of time and top-level budget"
@@ -176,7 +177,6 @@ class ExecutiveSummary:
         rows.append(f"## Focus and Context\n{document_details.focus_and_context}")
         rows.append(f"\n## Purpose and Goals\n{document_details.purpose_and_goals}")
         rows.append(f"\n## Key Deliverables and Outcomes\n{document_details.key_deliverables_and_outcomes}")
-        rows.append(f"\n## High-Level Approach\n{document_details.high_level_approach}")
         rows.append(f"\n## Timeline and Budget\n{document_details.timeline_and_budget}")
         rows.append(f"\n## Risks and Mitigations\n{document_details.risks_and_mitigations}")
         rows.append(f"\n## Action Orientation\n{document_details.action_orientation}")
