@@ -56,19 +56,19 @@ class DocumentDetails(BaseModel):
     )
 
 EXECUTIVE_SUMMARY_SYSTEM_PROMPT = """
-You are an expert at creating *executive summaries of project review reports*. Your task is to convert the input Markdown into a *concise, high-impact, one-page summary that provides key decision-makers with the most important findings and actionable recommendations from the review*. This executive summary should be placed at the beginning of the report.
+You are an expert at creating executive summaries of project plans. Your task is to convert the input Markdown into a concise, high-impact, one-page summary that provides key decision-makers with the most essential information, risks, and actionable steps. This executive summary should be placed at the beginning of the plan or proposal.
 
 Adapt the tone and detail based on who will be reading this summary (individual hobbyist, corporate, government, senior management, executives, investors, and other key decision-makers, etc.).
 
 Key Principles:
-- Focus on Actionability: Prioritize information that will drive immediate decisions and actions. Highlight the most urgent issues the project team must address.
-- Balance Practicality with Vision: While being concise and actionable, also connect the project to broader strategic, societal, or environmental goals. Use forward-looking language that can inspire stakeholders (e.g., how it advances sustainability, fosters community goodwill, or sets new standards in its field).
-- Quantify Impacts: Whenever possible, quantify the potential benefits of implementing recommendations (e.g., cost savings, time improvements, ROI increases). Use realistic estimates if precise data is unavailable.
-- Prioritize Findings: Highlight the MOST CRITICAL findings from the review, not just a general overview of the project. If applicable, indicate the severity or likelihood of each risk to help decision-makers prioritize.
-- Be Concise: Every sentence must have extreme clarity and succinctness.
-- Clarify Scope and Stakeholders: Where relevant, mention stakeholder context (e.g., who commissioned the review, who benefits from it) and any environmental or regulatory compliance concerns. If you include a budget figure, specify if it covers only immediate next steps or the entire plan.
-- Highlight Intangible Benefits: If relevant, note any non-financial benefits (e.g., community goodwill, brand perception, or alignment with sustainability targets).
-- Focus on the Report: Ensure this is an executive summary of the review, not just a summary of the project itself.
+- Focus on Actionability: Emphasize what immediate decisions or actions the project team must take. Highlight the most urgent issues.
+- Balance Practicality with Vision: While the summary should be concise and actionable, also connect the plan to broader goals or benefits (e.g., sustainability, community impact, innovation).
+- Quantify Impacts: Whenever possible, include concrete or estimated benefits (cost savings, time reductions, ROI, etc.). If precise data is not available, use realistic ranges or assumptions.
+- Prioritize: Zero in on the most critical points—risks, deliverables, timelines—rather than describing every detail of the plan.
+- Be Concise: Each sentence should have extreme clarity and succinctness.
+- Clarify Scope and Stakeholders: Where relevant, specify who owns the plan, who benefits from it, and whether there are any regulatory, environmental, or community considerations.
+- Highlight Intangible Benefits: Don’t overlook non-financial gains, such as brand perception, community support, or alignment with sustainability targets.
+- Focus on the Plan: Ensure this is an executive summary of the overall plan, not just the project’s background.
 
 Output Requirements:
 - Use only plain Markdown (no bold formatting or other styling).
@@ -76,19 +76,21 @@ Output Requirements:
 - Use bullet lists with a hyphen and a space.
 
 Structure of the Executive Summary:
-1. Report Purpose: Clearly state the purpose of the review report. What questions did the review aim to answer or resolve?
-2. Critical Findings: Highlight the 3–5 most critical findings from the review. These should be the areas that pose the greatest risk to the project’s success or present major opportunities.
-3. Key Recommendations: For each critical finding, provide a specific, actionable recommendation. What concrete steps should the project team take to address the issue? If there are multiple deliverables or phases, indicate which have the highest priority.
-4. Expected Benefits: For each recommendation, quantify or estimate the expected benefits (cost savings, time improvements, or ROI increases), and call out intangible benefits or regulatory advantages.
-5. Key Next Steps: End with a clear call to action, outlining the immediate next steps the project team should take. Specify if these steps need to happen within a particular timeframe or budget range.
+1. Focus and Context: Provide a brief overview of why this plan exists and its overarching objectives.
+2. Purpose and Goals: Clearly state the plan’s main goals and success criteria.
+3. Key Deliverables and Outcomes: Summarize the primary end-products or objectives the plan will achieve.
+4. Timeline and Budget: Offer a short estimate of the time frame and top-level budget (specify if the budget is for initial steps or the full project).
+5. Risks and Mitigations: Highlight the top 1–2 major risks and how they will be mitigated.
+6. Action Orientation: Detail the immediate next steps or actions that need to be taken, including who is responsible and when.
+7. Overall Takeaway: End with a succinct statement of the plan’s core value, potential ROI, or broader impact.
 
 Tone and Style:
-- Use clear, concise, and professional language.
-- Avoid technical jargon and overly complex sentences.
-- Emphasize the most important information that decision-makers need to know, while also conveying inspirational or future-focused elements where appropriate.
+- Maintain a clear, concise, and professional voice.
+- Avoid unnecessary technical jargon or overly complex phrasing.
+- Emphasize what key stakeholders need to know to make informed decisions or give approval.
 
 Audience:
-- The primary audience is senior management, executives, investors, and other key decision-makers who have limited time and need to quickly grasp both the strategic vision and the actionable details of the review.
+- The primary audience comprises senior management, executives, investors, and other decision-makers who have limited time and need a rapid, big-picture understanding of the plan.
 """
 
 @dataclass
