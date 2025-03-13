@@ -1,10 +1,28 @@
 # PlanExe: Transform your ideas into actionable plans
 
-![Video of PlanExe](/extra/planexe-humanoid-factory.gif?raw=true "Video of PlanExe")
+## Comparison with similar tools
+
+| Feature                  | PlanExe | Open Source LLM (Offline)  | Commercial LLM (Offline) |  LLM w/ Agents | Consulting Firms | Project Mgt Software |
+| ------------------------ | ------- | -------------------------- | ------------------------ | -------------- | ---------------- | -------------------- |
+| Detailed Plans           | ✅      | ❌                          | ❌                       | ✅             | ✅                | ✅                   |
+| Report Generation Time   | 30m     | 10s                        | 10s                      | 30m            | 1 week+          | Manual work          |
+| Cost                     | Low     | Low                        | Low                      | Low            | High             | Medium               |
+| Factual Accuracy         | ⭐      | ⭐                          | ⭐                       | ⭐⭐⭐⭐        | ⭐⭐⭐⭐⭐         | 1-5 Stars            |
+| Open Source              | ✅      | ✅                          | ❌                       | ❌             | ❌                | ❌                   |
+
+**Where:**
+* **Open Source LLM (Offline):** Ollama, LM Studio
+* **Commercial LLM (Offline):** OpenAI, Google, Anthropic
+* **LLM w/ Agents:** OpenAI’s Deep Research, Manus. Only 4 star in `Factual Accuracy`, since this is AI-generated with limited verification.
+* **Consulting Firms:** McKinsey, BCG, Bain. 5 star in `Factual Accuracy`, assuming it's expert verified data.
+* **Project Management Software:** Asana, Monday, Jira, ClickUp. Variable number of stars in `Factual Accuracy` since it depends on team, effort, budget.
+
 
 ## What is PlanExe?
 
 PlanExe is a planning AI. You input a vague description of what you want and PlanExe outputs a plan. [See generated plans here](https://neoneye.github.io/PlanExe-web/use-cases/).
+
+![Video of PlanExe](/extra/planexe-humanoid-factory.gif?raw=true "Video of PlanExe")
 
 [YouTube video: Using PlanExe to plan a lunar base](https://www.youtube.com/watch?v=7AM2F1C4CGI)
 
