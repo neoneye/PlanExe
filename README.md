@@ -1,4 +1,10 @@
-# PlanExe: Transform your ideas into actionable plans
+# Pitch
+      
+Tired of starting a project with a **blank page**? `PlanExe` transforms your idea into an actionable plan, saving you hours of research and preparation.
+
+Whether you're planning a lunar base, launching a new business, or want to loose some kilos, `PlanExe` generates a report with assumptions, risks, SWOT analysis, work breakdown structure (WBS).
+    
+Purpose: "Transform your ideas into actionable plans".
 
 ## Comparison with similar tools
 
