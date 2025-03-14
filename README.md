@@ -1,20 +1,26 @@
-# Pitch
-      
-Tired of starting a project with a **blank page**? `PlanExe` transforms your idea into an actionable plan, saving you hours of research and preparation.
+# PlanExe 🚀
 
-Whether you're planning a lunar base, launching a new business, or want to loose some kilos, `PlanExe` generates a report with assumptions, risks, SWOT analysis, work breakdown structure (WBS).
-    
-Purpose: "Transform your ideas into actionable plans".
+### Turn Your Ideas Into Actionable Plans — Fast.
 
-## Comparison with similar tools
+Tired of staring at a **blank page** whenever you start something new? `PlanExe` instantly transforms your vague idea into a detailed, actionable plan. Save hours of research, brainstorming, and preparation!
 
-|                          | PlanExe | Open Source LLM            | Commercial LLM           |  LLM w/ Agents | Consulting Firms | Project Mgt Software |
-| ------------------------ | ------- | -------------------------- | ------------------------ | -------------- | ---------------- | -------------------- |
-| Detailed Plans           | ✅      | ❌                          | ❌                       | ✅             | ✅                | ✅                   |
-| Report Generation Time   | 30m     | 10s                        | 10s                      | 30m            | 1 week+          | Manual work          |
-| Cost                     | Low     | Low                        | Low                      | Low            | High             | Medium               |
-| Factual Accuracy         | ⭐      | ⭐                          | ⭐                       | ⭐⭐⭐⭐        | ⭐⭐⭐⭐⭐         | 1-5 Stars            |
-| Open Source              | ✅      | ✅                          | ❌                       | ❌             | ❌                | ❌                   |
+Whether you’re planning a **lunar base**, **launching a business**, or aiming to **lose a few kilos**, PlanExe quickly generates a comprehensive report that includes:
+
+- ✅ Assumptions & Risks
+- ✅ SWOT Analysis
+- ✅ Work Breakdown Structure (WBS)
+
+> **"Turn vague concepts into concrete plans—in minutes, not weeks."**
+
+## How PlanExe Stands Out
+
+|                          | **PlanExe** | Open Source LLM    | Commercial LLM           |  LLM w/ Agents | Consulting Firms | Project Mgt Software |
+| ------------------------ | ----------- | ------------------ | ------------------------ | -------------- | ---------------- | -------------------- |
+| **Detailed Plans**       | ✅          | ❌                 | ❌                       | ✅             | ✅                | ✅                   |
+| Report Generation Time   | 30m         | 10s                | 10s                      | 30m            | 1 week+          | Manual               |
+| Cost                     | Low         | Low                | Low                      | Low            | High             | Medium               |
+| Factual Accuracy         | ⭐          | ⭐                 | ⭐                       | ⭐⭐⭐⭐        | ⭐⭐⭐⭐⭐         | 1-5 Stars            |
+| Open Source              | ✅          | ✅                 | ❌                       | ❌             | ❌                | ❌                   |
 
 **Where:**
 * **Open Source LLM, without agents:** Ollama, LM Studio
