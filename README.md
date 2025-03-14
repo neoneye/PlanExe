@@ -66,9 +66,9 @@ This command launches a server at http://localhost:7860. Open that link in your 
 
 To stop the server at any time, press `Ctrl+C` in your terminal.
 
-# Community & Support
+# Community
 
-Have questions? Need help? Join the [PlanExe Discord](https://neoneye.github.io/PlanExe-web/discord) to chat about PlanExe, share ideas, and get help.
+Have questions? Need help? Join the [PlanExe Discord](https://neoneye.github.io/PlanExe-web/discord) to chat about PlanExe, share ideas, and get support.
 
 # :heart: Thank you to all [supporters](https://github.com/neoneye/PlanExe/stargazers)
 
