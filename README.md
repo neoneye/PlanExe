@@ -68,4 +68,11 @@ To stop the server at any time, press `Ctrl+C` in your terminal.
 
 # Community & Support
 
-Join the [PlanExe Discord](https://neoneye.github.io/PlanExe-web/discord) to chat about PlanExe, share ideas, and get help.
+Have questions? Need help? Join the [PlanExe Discord](https://neoneye.github.io/PlanExe-web/discord) to chat about PlanExe, share ideas, and get help.
+
+# :heart: Thank you to all [supporters](https://github.com/neoneye/PlanExe/stargazers)
+
+If you like this project, please give it a star ⭐ and 📢 spread the word in your network or social media:
+
+[![Share on X](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2Fneoneye%2FPlanExe)](https://x.com/intent/post?text=PlanExe:%20Stop%20starting%20from%20scratch!%20Turn%20vague%20ideas%20into%20actionable%20plans%20in%20minutes%20with%20this%20open-source%20AI%20planner.%20Check%20out%20PlanExe%20on%20GitHub:%20https%3A%2F%2Fgithub.com%2Fneoneye%2FPlanExe)
+
