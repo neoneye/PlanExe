@@ -75,4 +75,4 @@ Have questions? Need help? Join the [PlanExe Discord](https://neoneye.github.io/
 If you like this project, please give it a star ⭐ and 📢 spread the word in your network or social media:
 
 [![Share on X](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2Fneoneye%2FPlanExe)](https://x.com/intent/post?text=PlanExe:%20Stop%20starting%20from%20scratch!%20Turn%20vague%20ideas%20into%20actionable%20plans%20in%20minutes%20with%20this%20open-source%20AI%20planner.%20Check%20out%20PlanExe%20on%20GitHub:%20https%3A%2F%2Fgithub.com%2Fneoneye%2FPlanExe)
-
+[![Share on LinkedIn](https://img.shields.io/badge/Share%20on-LinkedIn-blue)](https://www.linkedin.com/feed/?linkOrigin=LI_BADGE&shareActive=true&shareUrl=https://github.com/neoneye/PlanExe)
