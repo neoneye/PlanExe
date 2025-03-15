@@ -167,24 +167,24 @@ class SimilarProjects:
         rows = []
 
         for item_index, suggestion in enumerate(document_details.suggestion_list, start=1):
-            rows.append(f"## Suggestion {item_index} - {suggestion.project_name}")
+            rows.append(f"## Suggestion {item_index} - {suggestion.project_name}\n")
             rows.append(suggestion.project_description)
 
             success_metrics = "\n".join(suggestion.success_metrics)
-            rows.append(f"### Success Metrics\n\n{success_metrics}")
+            rows.append(f"\n### Success Metrics\n\n{success_metrics}")
 
             risks_and_challenges_faced = "\n".join(suggestion.risks_and_challenges_faced)
-            rows.append(f"### Risks and Challenges Faced\n\n{risks_and_challenges_faced}")
+            rows.append(f"\n### Risks and Challenges Faced\n\n{risks_and_challenges_faced}")
 
             where_to_find_more_information = "\n".join(suggestion.where_to_find_more_information)
-            rows.append(f"### Where to Find More Information\n\n{where_to_find_more_information}")
+            rows.append(f"\n### Where to Find More Information\n\n{where_to_find_more_information}")
 
             actionable_steps = "\n".join(suggestion.actionable_steps)
-            rows.append(f"### Actionable Steps\n\n{actionable_steps}")
+            rows.append(f"\n### Actionable Steps\n\n{actionable_steps}")
 
-            rows.append(f"### Rationale for Suggestion\n\n{suggestion.rationale_for_suggestion}")
+            rows.append(f"\n### Rationale for Suggestion\n\n{suggestion.rationale_for_suggestion}")
 
-        rows.append(f"\n## Summary\n{document_details.summary}")
+        rows.append(f"\n## Summary\n\n{document_details.summary}")
         return "\n".join(rows)
 
     def save_markdown(self, output_file_path: str):
