@@ -1,5 +1,8 @@
 """
 Determine what kind of SWOT analysis is to be conducted.
+- **Business:** Profit-Driven, aimed at generating profit.
+- **Personal:** Personal stuff, not aimed at generating profit.
+- **Other:** Doesn't fit into the above categories.
 
 PROMPT> python -m src.swot.swot_phase1_determine_type
 """
