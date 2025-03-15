@@ -785,7 +785,8 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
     def output(self):
@@ -795,37 +796,28 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
         }
 
     def run(self):
-        logger.info("EnrichTeamMembersWithContractType. Loading files...")
-
-        # Read the plan prompt from SetupTask.
+        # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-
-        # Load the consolidated assumptions.
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
-
-        # Read the pre-project assessment from PreProjectAssessmentTask.
         with self.input()['preproject']['clean'].open("r") as f:
             pre_project_assessment_dict = json.load(f)
-
-        # Read the project plan from ProjectPlanTask.
         with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
-
-        # Read the team_member_list from FindTeamMembersTask.
         with self.input()['find_team_members']['clean'].open("r") as f:
             team_member_list = json.load(f)
-
-        logger.info("EnrichTeamMembersWithContractType. All files are now ready. Processing...")
+        with self.input()['similar_projects']['raw'].open("r") as f:
+            similar_projects_dict = json.load(f)
 
         # Build the query.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}"
-            f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}"
+            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\n"
+            f"File 'similar-projects.json':\n{format_json_for_use_in_query(similar_projects_dict)}"
         )
 
         # Create LLM instance.
@@ -848,8 +840,6 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
         with self.output()['clean'].open("w") as f:
             json.dump(team_member_list, f, indent=2)
 
-        logger.info("EnrichTeamMembersWithContractType complete.")
-
 class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
@@ -859,7 +849,8 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'enrich_team_members_with_contract_type': EnrichTeamMembersWithContractTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'enrich_team_members_with_contract_type': EnrichTeamMembersWithContractTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
     def output(self):
@@ -869,37 +860,28 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
         }
 
     def run(self):
-        logger.info("EnrichTeamMembersWithBackgroundStoryTask. Loading files...")
-
-        # Read the plan prompt from SetupTask.
+        # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-
-        # Load the consolidated assumptions.
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
-
-        # Read the pre-project assessment from PreProjectAssessmentTask.
         with self.input()['preproject']['clean'].open("r") as f:
             pre_project_assessment_dict = json.load(f)
-
-        # Read the project plan from ProjectPlanTask.
         with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
-
-        # Read the team_member_list from EnrichTeamMembersWithContractTypeTask.
         with self.input()['enrich_team_members_with_contract_type']['clean'].open("r") as f:
             team_member_list = json.load(f)
-
-        logger.info("EnrichTeamMembersWithBackgroundStoryTask. All files are now ready. Processing...")
+        with self.input()['similar_projects']['raw'].open("r") as f:
+            similar_projects_dict = json.load(f)
 
         # Build the query.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}"
-            f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}"
+            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\n"
+            f"File 'similar-projects.json':\n{format_json_for_use_in_query(similar_projects_dict)}"
         )
 
         # Create LLM instance.
@@ -922,8 +904,6 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
         with self.output()['clean'].open("w") as f:
             json.dump(team_member_list, f, indent=2)
 
-        logger.info("EnrichTeamMembersWithBackgroundStoryTask complete.")
-
 class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
@@ -933,7 +913,8 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'enrich_team_members_with_background_story': EnrichTeamMembersWithBackgroundStoryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'enrich_team_members_with_background_story': EnrichTeamMembersWithBackgroundStoryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
     def output(self):
@@ -943,37 +924,28 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
         }
 
     def run(self):
-        logger.info("EnrichTeamMembersWithEnvironmentInfoTask. Loading files...")
-
-        # Read the plan prompt from SetupTask.
+        # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-
-        # Load the consolidated assumptions.
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
-
-        # Read the pre-project assessment from PreProjectAssessmentTask.
         with self.input()['preproject']['clean'].open("r") as f:
             pre_project_assessment_dict = json.load(f)
-
-        # Read the project plan from ProjectPlanTask.
         with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
-
-        # Read the team_member_list from EnrichTeamMembersWithBackgroundStoryTask.
         with self.input()['enrich_team_members_with_background_story']['clean'].open("r") as f:
             team_member_list = json.load(f)
-
-        logger.info("EnrichTeamMembersWithEnvironmentInfoTask. All files are now ready. Processing...")
+        with self.input()['similar_projects']['raw'].open("r") as f:
+            similar_projects_dict = json.load(f)
 
         # Build the query.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}"
-            f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}"
+            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\n"
+            f"File 'similar-projects.json':\n{format_json_for_use_in_query(similar_projects_dict)}"
         )
 
         # Create LLM instance.
@@ -996,8 +968,6 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
         with self.output()['clean'].open("w") as f:
             json.dump(team_member_list, f, indent=2)
 
-        logger.info("EnrichTeamMembersWithEnvironmentInfoTask complete.")
-
 class ReviewTeamTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
@@ -1007,36 +977,27 @@ class ReviewTeamTask(PlanTask):
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'enrich_team_members_with_environment_info': EnrichTeamMembersWithEnvironmentInfoTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'enrich_team_members_with_environment_info': EnrichTeamMembersWithEnvironmentInfoTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
     def output(self):
         return luigi.LocalTarget(str(self.file_path(FilenameEnum.REVIEW_TEAM_RAW)))
 
     def run(self):
-        logger.info("ReviewTeamTask. Loading files...")
-
-        # Read the plan prompt from SetupTask.
+        # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-
-        # Load the consolidated assumptions.
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
-
-        # Read the pre-project assessment from PreProjectAssessmentTask.
         with self.input()['preproject']['clean'].open("r") as f:
             pre_project_assessment_dict = json.load(f)
-
-        # Read the project plan from ProjectPlanTask.
         with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
-
-        # Read the team_member_list from EnrichTeamMembersWithEnvironmentInfoTask.
         with self.input()['enrich_team_members_with_environment_info']['clean'].open("r") as f:
             team_member_list = json.load(f)
-
-        logger.info("ReviewTeamTask. All files are now ready. Processing...")
+        with self.input()['similar_projects']['raw'].open("r") as f:
+            similar_projects_dict = json.load(f)
 
         # Convert the team members to a Markdown document.
         builder = TeamMarkdownDocumentBuilder()
@@ -1048,8 +1009,9 @@ class ReviewTeamTask(PlanTask):
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}"
-            f"File 'team-members.md':\n{team_document_markdown}"
+            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'team-members.md':\n{team_document_markdown}\n\n"
+            f"File 'similar-projects.json':\n{format_json_for_use_in_query(similar_projects_dict)}"
         )
 
         # Create LLM instance.
@@ -1111,7 +1073,8 @@ class SWOTAnalysisTask(PlanTask):
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
     def output(self):
@@ -1121,32 +1084,25 @@ class SWOTAnalysisTask(PlanTask):
         }
 
     def run(self):
-        logger.info("SWOTAnalysisTask. Loading files...")
-
-        # Read the plan prompt from SetupTask.
+        # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-
-        # Load the consolidated assumptions.
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
-
-        # Read the pre-project assessment from PreProjectAssessmentTask.
         with self.input()['preproject']['clean'].open("r") as f:
             pre_project_assessment_dict = json.load(f)
-
-        # Read the project plan from ProjectPlanTask.
         with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
-
-        logger.info("SWOTAnalysisTask. All files are now ready. Performing analysis...")
+        with self.input()['similar_projects']['raw'].open("r") as f:
+            similar_projects_dict = json.load(f)
 
         # Build the query for SWOT analysis.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}"
+            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'similar-projects.json':\n{format_json_for_use_in_query(similar_projects_dict)}"
         )
 
         # Create LLM instances for SWOT analysis.
@@ -1171,8 +1127,6 @@ class SWOTAnalysisTask(PlanTask):
         markdown_path = self.output()['markdown'].path
         with open(markdown_path, "w", encoding="utf-8") as f:
             f.write(swot_markdown)
-
-        logger.info("SWOT analysis complete.")
 
 class ExpertReviewTask(PlanTask):
     """
@@ -1402,6 +1356,7 @@ class CreatePitchTask(PlanTask):
         return {
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project': WBSProjectLevel1AndLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
     
     def run(self):
@@ -1411,16 +1366,19 @@ class CreatePitchTask(PlanTask):
         with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
         
-        wbs_project_path = self.input()['wbs_project'].path
-        with open(wbs_project_path, "r") as f:
+        with self.input()['wbs_project'].open("r") as f:
             wbs_project_dict = json.load(f)
         wbs_project = WBSProject.from_dict(wbs_project_dict)
         wbs_project_json = wbs_project.to_dict()
+
+        with self.input()['similar_projects']['raw'].open("r") as f:
+            similar_projects_dict = json.load(f)
         
         # Build the query
         query = (
             f"The project plan:\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
-            f"Work Breakdown Structure:\n{format_json_for_use_in_query(wbs_project_json)}"
+            f"Work Breakdown Structure:\n{format_json_for_use_in_query(wbs_project_json)}\n\n"
+            f"Similar projects:\n{format_json_for_use_in_query(similar_projects_dict)}"
         )
         
         # Get the LLM instance.
@@ -1789,6 +1747,7 @@ class ReviewPlanTask(PlanTask):
         return {
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1802,6 +1761,8 @@ class ReviewPlanTask(PlanTask):
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
             project_plan_markdown = f.read()
+        with self.input()['similar_projects']['raw'].open("r") as f:
+            similar_projects_dict = json.load(f)
         with self.input()['swot_analysis']['markdown'].open("r") as f:
             swot_analysis_markdown = f.read()
         with self.input()['team_markdown'].open("r") as f:
@@ -1817,6 +1778,7 @@ class ReviewPlanTask(PlanTask):
         query = (
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
+            f"File 'similar-projects.json':\n{format_json_for_use_in_query(similar_projects_dict)}\n\n"
             f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
             f"File 'team.md':\n{team_markdown}\n\n"
             f"File 'pitch.md':\n{pitch_markdown}\n\n"
@@ -1864,6 +1826,7 @@ class ExecutiveSummaryTask(PlanTask):
         return {
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1878,6 +1841,8 @@ class ExecutiveSummaryTask(PlanTask):
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
             project_plan_markdown = f.read()
+        with self.input()['similar_projects']['raw'].open("r") as f:
+            similar_projects_dict = json.load(f)
         with self.input()['swot_analysis']['markdown'].open("r") as f:
             swot_analysis_markdown = f.read()
         with self.input()['team_markdown'].open("r") as f:
@@ -1895,6 +1860,7 @@ class ExecutiveSummaryTask(PlanTask):
         query = (
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
+            f"File 'similar-projects.json':\n{format_json_for_use_in_query(similar_projects_dict)}\n\n"
             f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
             f"File 'team.md':\n{team_markdown}\n\n"
             f"File 'pitch.md':\n{pitch_markdown}\n\n"
@@ -1939,6 +1905,7 @@ class ReportTask(PlanTask):
         return {
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1954,6 +1921,7 @@ class ReportTask(PlanTask):
         rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
         rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
         rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown']['full'].path)
+        rg.append_markdown('Similar Projects', self.input()['similar_projects']['markdown'].path)
         rg.append_markdown('SWOT Analysis', self.input()['swot_analysis']['markdown'].path)
         rg.append_markdown('Team', self.input()['team_markdown'].path)
         rg.append_markdown('Expert Criticism', self.input()['expert_review'].path)
