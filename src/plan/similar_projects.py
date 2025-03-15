@@ -49,7 +49,7 @@ class DocumentDetails(BaseModel):
         description="Providing a high level context."
     )
 
-SIMILAR_PROJECTS_SYSTEM_PROMPT = """
+RELATED_RESOURCES_SYSTEM_PROMPT = """
 You are an expert project analyst tasked with recommending highly relevant past or existing projects as references for a user's described project.
 
 Your goal is to always provide at least **three detailed and insightful recommendations**, strictly adhering to the following guidelines:
@@ -79,7 +79,7 @@ Your recommendations should collectively provide the user with robust insights, 
 """
 
 @dataclass
-class SimilarProjects:
+class RelatedResources:
     """
     Identify similar past or existing projects that can be used as a reference for the current project.
     """
@@ -90,7 +90,7 @@ class SimilarProjects:
     markdown: str
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'SimilarProjects':
+    def execute(cls, llm: LLM, user_prompt: str) -> 'RelatedResources':
         """
         Invoke LLM with the project description.
         """
@@ -101,7 +101,7 @@ class SimilarProjects:
 
         logger.debug(f"User Prompt:\n{user_prompt}")
 
-        system_prompt = SIMILAR_PROJECTS_SYSTEM_PROMPT.strip()
+        system_prompt = RELATED_RESOURCES_SYSTEM_PROMPT.strip()
 
         chat_message_list = [
             ChatMessage(
@@ -137,7 +137,7 @@ class SimilarProjects:
 
         markdown = cls.convert_to_markdown(chat_response.raw)
 
-        result = SimilarProjects(
+        result = RelatedResources(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
@@ -206,9 +206,9 @@ if __name__ == "__main__":
     )
     print(f"Query: {query}")
 
-    physical_locations = SimilarProjects.execute(llm, query)
-    json_response = physical_locations.to_dict(include_system_prompt=False, include_user_prompt=False)
+    result = RelatedResources.execute(llm, query)
+    json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
 
-    print(f"\n\nMarkdown:\n{physical_locations.markdown}")
+    print(f"\n\nMarkdown:\n{result.markdown}")

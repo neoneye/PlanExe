@@ -26,7 +26,7 @@ from src.assume.review_assumptions import ReviewAssumptions
 from src.assume.shorten_markdown import ShortenMarkdown
 from src.expert.pre_project_assessment import PreProjectAssessment
 from src.plan.project_plan import ProjectPlan
-from src.plan.similar_projects import SimilarProjects
+from src.plan.similar_projects import RelatedResources
 from src.swot.swot_analysis import SWOTAnalysis
 from src.expert.expert_finder import ExpertFinder
 from src.expert.expert_criticism import ExpertCriticism
@@ -670,7 +670,7 @@ class ProjectPlanTask(PlanTask):
         logger.info("Project plan created and saved")
 
 
-class SimilarProjectsTask(PlanTask):
+class RelatedResourcesTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
     def requires(self):
@@ -682,8 +682,8 @@ class SimilarProjectsTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.SIMILAR_PROJECTS_RAW))),
-            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.SIMILAR_PROJECTS_MARKDOWN)))
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.RELATED_RESOURCES_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.RELATED_RESOURCES_MARKDOWN)))
         }
 
     def run(self):
@@ -707,14 +707,14 @@ class SimilarProjectsTask(PlanTask):
 
         # Execute.
         try:
-            similar_projects = SimilarProjects.execute(llm, query)
+            related_resources = RelatedResources.execute(llm, query)
         except Exception as e:
             logger.error("SimilarProjects failed: %s", e)
             raise
 
         # Save the results.
-        similar_projects.save_raw(self.output()['raw'].path)
-        similar_projects.save_markdown(self.output()['markdown'].path)
+        related_resources.save_raw(self.output()['raw'].path)
+        related_resources.save_markdown(self.output()['markdown'].path)
 
 class FindTeamMembersTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
@@ -725,7 +725,7 @@ class FindTeamMembersTask(PlanTask):
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
 
     def output(self):
@@ -744,8 +744,8 @@ class FindTeamMembersTask(PlanTask):
             pre_project_assessment_dict = json.load(f)
         with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
-        with self.input()['similar_projects']['raw'].open("r") as f:
-            similar_projects_dict = json.load(f)
+        with self.input()['related_resources']['raw'].open("r") as f:
+            related_resources_dict = json.load(f)
 
         # Build the query.
         query = (
@@ -753,7 +753,7 @@ class FindTeamMembersTask(PlanTask):
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
-            f"File 'similar-projects.json':\n{format_json_for_use_in_query(similar_projects_dict)}"
+            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
         )
 
         # Create LLM instance.
@@ -786,7 +786,7 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
     def output(self):
@@ -807,8 +807,8 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
             project_plan_dict = json.load(f)
         with self.input()['find_team_members']['clean'].open("r") as f:
             team_member_list = json.load(f)
-        with self.input()['similar_projects']['raw'].open("r") as f:
-            similar_projects_dict = json.load(f)
+        with self.input()['related_resources']['raw'].open("r") as f:
+            related_resources_dict = json.load(f)
 
         # Build the query.
         query = (
@@ -817,7 +817,7 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\n"
-            f"File 'similar-projects.json':\n{format_json_for_use_in_query(similar_projects_dict)}"
+            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
         )
 
         # Create LLM instance.
@@ -850,7 +850,7 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_contract_type': EnrichTeamMembersWithContractTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
     def output(self):
@@ -871,8 +871,8 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
             project_plan_dict = json.load(f)
         with self.input()['enrich_team_members_with_contract_type']['clean'].open("r") as f:
             team_member_list = json.load(f)
-        with self.input()['similar_projects']['raw'].open("r") as f:
-            similar_projects_dict = json.load(f)
+        with self.input()['related_resources']['raw'].open("r") as f:
+            related_resources_dict = json.load(f)
 
         # Build the query.
         query = (
@@ -881,7 +881,7 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\n"
-            f"File 'similar-projects.json':\n{format_json_for_use_in_query(similar_projects_dict)}"
+            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
         )
 
         # Create LLM instance.
@@ -914,7 +914,7 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_background_story': EnrichTeamMembersWithBackgroundStoryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
     def output(self):
@@ -935,8 +935,8 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
             project_plan_dict = json.load(f)
         with self.input()['enrich_team_members_with_background_story']['clean'].open("r") as f:
             team_member_list = json.load(f)
-        with self.input()['similar_projects']['raw'].open("r") as f:
-            similar_projects_dict = json.load(f)
+        with self.input()['related_resources']['raw'].open("r") as f:
+            related_resources_dict = json.load(f)
 
         # Build the query.
         query = (
@@ -945,7 +945,7 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\n"
-            f"File 'similar-projects.json':\n{format_json_for_use_in_query(similar_projects_dict)}"
+            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
         )
 
         # Create LLM instance.
@@ -978,7 +978,7 @@ class ReviewTeamTask(PlanTask):
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_environment_info': EnrichTeamMembersWithEnvironmentInfoTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
     def output(self):
@@ -996,8 +996,8 @@ class ReviewTeamTask(PlanTask):
             project_plan_dict = json.load(f)
         with self.input()['enrich_team_members_with_environment_info']['clean'].open("r") as f:
             team_member_list = json.load(f)
-        with self.input()['similar_projects']['raw'].open("r") as f:
-            similar_projects_dict = json.load(f)
+        with self.input()['related_resources']['raw'].open("r") as f:
+            related_resources_dict = json.load(f)
 
         # Convert the team members to a Markdown document.
         builder = TeamMarkdownDocumentBuilder()
@@ -1011,7 +1011,7 @@ class ReviewTeamTask(PlanTask):
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"File 'team-members.md':\n{team_document_markdown}\n\n"
-            f"File 'similar-projects.json':\n{format_json_for_use_in_query(similar_projects_dict)}"
+            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
         )
 
         # Create LLM instance.
@@ -1074,7 +1074,7 @@ class SWOTAnalysisTask(PlanTask):
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
     def output(self):
@@ -1093,8 +1093,8 @@ class SWOTAnalysisTask(PlanTask):
             pre_project_assessment_dict = json.load(f)
         with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
-        with self.input()['similar_projects']['raw'].open("r") as f:
-            similar_projects_dict = json.load(f)
+        with self.input()['related_resources']['raw'].open("r") as f:
+            related_resources_dict = json.load(f)
 
         # Build the query for SWOT analysis.
         query = (
@@ -1102,7 +1102,7 @@ class SWOTAnalysisTask(PlanTask):
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
-            f"File 'similar-projects.json':\n{format_json_for_use_in_query(similar_projects_dict)}"
+            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
         )
 
         # Create LLM instances for SWOT analysis.
@@ -1356,7 +1356,7 @@ class CreatePitchTask(PlanTask):
         return {
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project': WBSProjectLevel1AndLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
     
     def run(self):
@@ -1371,14 +1371,14 @@ class CreatePitchTask(PlanTask):
         wbs_project = WBSProject.from_dict(wbs_project_dict)
         wbs_project_json = wbs_project.to_dict()
 
-        with self.input()['similar_projects']['raw'].open("r") as f:
-            similar_projects_dict = json.load(f)
+        with self.input()['related_resources']['raw'].open("r") as f:
+            related_resources_dict = json.load(f)
         
         # Build the query
         query = (
             f"The project plan:\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"Work Breakdown Structure:\n{format_json_for_use_in_query(wbs_project_json)}\n\n"
-            f"Similar projects:\n{format_json_for_use_in_query(similar_projects_dict)}"
+            f"Similar projects:\n{format_json_for_use_in_query(related_resources_dict)}"
         )
         
         # Get the LLM instance.
@@ -1747,7 +1747,7 @@ class ReviewPlanTask(PlanTask):
         return {
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1761,8 +1761,8 @@ class ReviewPlanTask(PlanTask):
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
             project_plan_markdown = f.read()
-        with self.input()['similar_projects']['raw'].open("r") as f:
-            similar_projects_dict = json.load(f)
+        with self.input()['related_resources']['raw'].open("r") as f:
+            related_resources_dict = json.load(f)
         with self.input()['swot_analysis']['markdown'].open("r") as f:
             swot_analysis_markdown = f.read()
         with self.input()['team_markdown'].open("r") as f:
@@ -1778,7 +1778,7 @@ class ReviewPlanTask(PlanTask):
         query = (
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'similar-projects.json':\n{format_json_for_use_in_query(similar_projects_dict)}\n\n"
+            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}\n\n"
             f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
             f"File 'team.md':\n{team_markdown}\n\n"
             f"File 'pitch.md':\n{pitch_markdown}\n\n"
@@ -1826,7 +1826,7 @@ class ExecutiveSummaryTask(PlanTask):
         return {
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1841,8 +1841,8 @@ class ExecutiveSummaryTask(PlanTask):
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
             project_plan_markdown = f.read()
-        with self.input()['similar_projects']['raw'].open("r") as f:
-            similar_projects_dict = json.load(f)
+        with self.input()['related_resources']['raw'].open("r") as f:
+            related_resources_dict = json.load(f)
         with self.input()['swot_analysis']['markdown'].open("r") as f:
             swot_analysis_markdown = f.read()
         with self.input()['team_markdown'].open("r") as f:
@@ -1860,7 +1860,7 @@ class ExecutiveSummaryTask(PlanTask):
         query = (
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'similar-projects.json':\n{format_json_for_use_in_query(similar_projects_dict)}\n\n"
+            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}\n\n"
             f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
             f"File 'team.md':\n{team_markdown}\n\n"
             f"File 'pitch.md':\n{pitch_markdown}\n\n"
@@ -1905,7 +1905,7 @@ class ReportTask(PlanTask):
         return {
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1921,7 +1921,7 @@ class ReportTask(PlanTask):
         rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
         rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
         rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown']['full'].path)
-        rg.append_markdown('Similar Projects', self.input()['similar_projects']['markdown'].path)
+        rg.append_markdown('Related Resources', self.input()['related_resources']['markdown'].path)
         rg.append_markdown('SWOT Analysis', self.input()['swot_analysis']['markdown'].path)
         rg.append_markdown('Team', self.input()['team_markdown'].path)
         rg.append_markdown('Expert Criticism', self.input()['expert_review'].path)
@@ -1945,7 +1945,7 @@ class FullPlanPipeline(PlanTask):
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pre_project_assessment': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_contract_type': EnrichTeamMembersWithContractTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_background_story': EnrichTeamMembersWithBackgroundStoryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
