@@ -724,7 +724,8 @@ class FindTeamMembersTask(PlanTask):
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
 
     def output(self):
@@ -734,32 +735,25 @@ class FindTeamMembersTask(PlanTask):
         }
 
     def run(self):
-        logger.info("FindTeamMembers. Loading files...")
-
-        # Read the plan prompt from SetupTask.
+        # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-
-        # Load the consolidated assumptions.
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
-
-        # Read the pre-project assessment from PreProjectAssessmentTask.
         with self.input()['preproject']['clean'].open("r") as f:
             pre_project_assessment_dict = json.load(f)
-
-        # Read the project plan from ProjectPlanTask.
         with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
-
-        logger.info("FindTeamMembers. All files are now ready. Brainstorming a team...")
+        with self.input()['similar_projects']['raw'].open("r") as f:
+            similar_projects_dict = json.load(f)
 
         # Build the query.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}"
+            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'similar-projects.json':\n{format_json_for_use_in_query(similar_projects_dict)}"
         )
 
         # Create LLM instance.
@@ -781,8 +775,6 @@ class FindTeamMembersTask(PlanTask):
         team_member_list = find_team_members.team_member_list
         with self.output()['clean'].open("w") as f:
             json.dump(team_member_list, f, indent=2)
-
-        logger.info("FindTeamMembers complete.")
 
 class EnrichTeamMembersWithContractTypeTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
@@ -1985,6 +1977,7 @@ class FullPlanPipeline(PlanTask):
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pre_project_assessment': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'similar_projects': SimilarProjectsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_contract_type': EnrichTeamMembersWithContractTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_background_story': EnrichTeamMembersWithBackgroundStoryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
