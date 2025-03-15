@@ -26,7 +26,7 @@ from src.assume.review_assumptions import ReviewAssumptions
 from src.assume.shorten_markdown import ShortenMarkdown
 from src.expert.pre_project_assessment import PreProjectAssessment
 from src.plan.project_plan import ProjectPlan
-from src.plan.similar_projects import RelatedResources
+from src.plan.related_resources import RelatedResources
 from src.swot.swot_analysis import SWOTAnalysis
 from src.expert.expert_finder import ExpertFinder
 from src.expert.expert_criticism import ExpertCriticism

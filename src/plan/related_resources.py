@@ -1,7 +1,7 @@
 """
 Suggest similar past or existing projects that can be used as a reference for the current project.
 
-PROMPT> python -m src.plan.similar_projects
+PROMPT> python -m src.plan.related_resources
 """
 import os
 import json
