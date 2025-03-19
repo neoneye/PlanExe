@@ -49,6 +49,18 @@
             "max_retries": 5
         }
     },
+    "mistral-paid-large": {
+        "comment": "This is paid. Possible free to use for a limited time. Check the pricing before use.",
+        "class": "MistralAI",
+        "arguments": {
+            "model": "mistral-large-latest",
+            "api_key": "${MISTRAL_API_KEY}",
+            "temperature": 1.0,
+            "timeout": 60.0,
+            "max_tokens": 8192,
+            "max_retries": 5
+        }
+    },
     "openrouter-free-qwen-qwq-32b": {
         "comment": "This is slow and free.",
         "class": "OpenRouter",
