@@ -57,7 +57,13 @@ class OllamaInfo:
 
 if __name__ == '__main__':
     find_model = 'qwen2.5-coder:latest'
-    ollama_info = OllamaInfo.obtain_info()
+    base_url = None
+    # base_url = "localhost:11434"
+    # base_url = "example.com:11434"
+
+    print(f"find_model: {find_model}")
+    print(f"base_url: {base_url}")
+    ollama_info = OllamaInfo.obtain_info(base_url=base_url)
     print(f"Error message: {ollama_info.error_message}")
     print(f'Is Ollama running: {ollama_info.is_running}')
     found = ollama_info.is_model_available(find_model)
