@@ -31,7 +31,7 @@ for prompt_item in all_prompts:
     gradio_examples.append([prompt_item.prompt])
 
 llm_info = LLMInfo.obtain_info()
-logger.info(f"LLMInfo.is_ollama_running: {llm_info.is_ollama_running}")
+logger.info(f"LLMInfo.ollama_status: {llm_info.ollama_status.value}")
 logger.info(f"LLMInfo.error_message_list: {llm_info.error_message_list}")
 
 # Create tupples for the Gradio Radio buttons.

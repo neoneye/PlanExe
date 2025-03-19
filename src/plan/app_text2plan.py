@@ -15,7 +15,7 @@ import logging
 import json
 from dataclasses import dataclass
 from math import ceil
-from src.llm_factory import LLMInfo
+from src.llm_factory import LLMInfo, OllamaStatus
 from src.plan.generate_run_id import generate_run_id, RUN_ID_PREFIX
 from src.plan.create_zip_archive import create_zip_archive
 from src.plan.filenames import FilenameEnum
@@ -107,7 +107,7 @@ for prompt_item in all_prompts:
     gradio_examples.append([prompt_item.prompt])
 
 llm_info = LLMInfo.obtain_info()
-logger.info(f"LLMInfo.is_ollama_running: {llm_info.is_ollama_running}")
+logger.info(f"LLMInfo.ollama_status: {llm_info.ollama_status.value}")
 logger.info(f"LLMInfo.error_message_list: {llm_info.error_message_list}")
 
 trimmed_llm_config_items = []
@@ -478,8 +478,10 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
 
     with gr.Tab("Settings"):
         if CONFIG.visible_llm_info:
-            if llm_info.is_ollama_running == False:
+            if llm_info.ollama_status == OllamaStatus.ollama_not_running:
                 gr.Markdown("**Ollama is not running**, so Ollama models are unavailable. Please start Ollama to use them.")
+            elif llm_info.ollama_status == OllamaStatus.mixed:
+                gr.Markdown("**Mixed. Some Ollama models are running, but some are NOT running.**, You may have to start the ones that aren't running.")
 
             if len(llm_info.error_message_list) > 0:
                 gr.Markdown("**Error messages:**")

@@ -15,20 +15,21 @@ class OllamaInfo:
     error_message: Optional[str] = None
 
     @classmethod
-    def obtain_info(cls) -> 'OllamaInfo':
+    def obtain_info(cls, base_url: Optional[str] = None) -> 'OllamaInfo':
         """Retrieves information about the Ollama service."""
         try:
             # Only import ollama if it's available
-            from ollama import ListResponse, list
-            list_response: ListResponse = list()
+            from ollama import ListResponse, Client
+            client = Client(host=base_url, timeout=5)
+            list_response: ListResponse = client.list()
         except ImportError as e:
-            error_message = f"OllamaInfo. The 'ollama' library was not found: {e}"
+            error_message = f"OllamaInfo base_url={base_url}. The 'ollama' library was not found: {e}"
             return OllamaInfo(model_names=[], is_running=False, error_message=error_message)
         except ConnectionError as e:
-            error_message = f"OllamaInfo. Error connecting to Ollama: {e}"
+            error_message = f"OllamaInfo base_url={base_url}. Error connecting to Ollama: {e}"
             return OllamaInfo(model_names=[], is_running=False, error_message=error_message)
         except Exception as e:
-            error_message = f"OllamaInfo. An unexpected error occurred: {e}"
+            error_message = f"OllamaInfo base_url={base_url}. An unexpected error occurred: {e}"
             return OllamaInfo(model_names=[], is_running=False, error_message=error_message)
 
         model_names = [model.model for model in list_response.models]
