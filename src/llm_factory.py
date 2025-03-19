@@ -1,6 +1,7 @@
 import logging
 import os
 import json
+from enum import Enum
 from dataclasses import dataclass
 from dotenv import dotenv_values
 from typing import Optional, Any, Dict
@@ -68,6 +69,13 @@ def substitute_env_vars(config: Dict[str, Any], env_vars: Dict[str, str]) -> Dic
 
     return process_item(config)
 
+class OllamaStatus(str, Enum):
+    no_ollama_models = 'no ollama models in the llm_config.json file'
+    ollama_not_running = 'ollama is NOT running'
+    mixed = 'Mixed. Some ollama models are running, but some are NOT running.'
+    ollama_running = 'Ollama is running'
+
+
 @dataclass
 class LLMConfigItem:
     id: str
@@ -76,7 +84,7 @@ class LLMConfigItem:
 @dataclass
 class LLMInfo:
     llm_config_items: list[LLMConfigItem]
-    is_ollama_running: bool
+    ollama_status: OllamaStatus
     error_message_list: list[str]
 
     @classmethod
@@ -84,16 +92,41 @@ class LLMInfo:
         """
         Returns a list of available LLM names.
         """
+
+        # Probe each Ollama service endpoint just once.
         error_message_list = []
-        ollama_info = OllamaInfo.obtain_info()
-        if ollama_info.is_running == False:
-            print(f"Ollama is not running. Please start the Ollama service, in order to use the models via Ollama.")
-        elif ollama_info.error_message:
-            print(f"Error message: {ollama_info.error_message}")
-            error_message_list.append(ollama_info.error_message)
+        ollama_info_per_host = {}
+        count_running = 0
+        count_not_running = 0
+        for config_id, config in _llm_configs.items():
+            if config.get("class") != "Ollama":
+                continue
+            arguments = config.get("arguments", {})
+            model = arguments.get("model", None)
+            base_url = arguments.get("base_url", None)
 
+            if base_url in ollama_info_per_host:
+                # Already got info for this host. No need to get it again.
+                continue
+
+            ollama_info = OllamaInfo.obtain_info(base_url=base_url)
+            ollama_info_per_host[base_url] = ollama_info
+
+            running_on = "localhost" if base_url is None else base_url
+
+            if ollama_info.is_running:
+                count_running += 1
+            else:
+                count_not_running += 1
+
+            if ollama_info.is_running == False:
+                print(f"Ollama is not running on {running_on}. Please start the Ollama service, in order to use the models via Ollama.")
+            elif ollama_info.error_message:
+                print(f"Error message: {ollama_info.error_message}")
+                error_message_list.append(ollama_info.error_message)
+
+        # Get info about the each LLM config item that is using Ollama.
         llm_config_items = []
-
         for config_id, config in _llm_configs.items():
             if config.get("class") != "Ollama":
                 item = LLMConfigItem(id=config_id, label=config_id)
@@ -101,6 +134,9 @@ class LLMInfo:
                 continue
             arguments = config.get("arguments", {})
             model = arguments.get("model", None)
+            base_url = arguments.get("base_url", None)
+
+            ollama_info = ollama_info_per_host[base_url]
 
             is_model_available = ollama_info.is_model_available(model)
             if is_model_available:
@@ -115,9 +151,18 @@ class LLMInfo:
             item = LLMConfigItem(id=config_id, label=label)
             llm_config_items.append(item)
 
+        if count_not_running == 0 and count_running > 0:
+            ollama_status = OllamaStatus.ollama_running
+        elif count_not_running > 0 and count_running == 0:
+            ollama_status = OllamaStatus.ollama_not_running
+        elif count_not_running > 0 and count_running > 0:
+            ollama_status = OllamaStatus.mixed
+        else:
+            ollama_status = OllamaStatus.no_ollama_models
+
         return LLMInfo(
             llm_config_items=llm_config_items, 
-            is_ollama_running=ollama_info.is_running,
+            ollama_status=ollama_status,
             error_message_list=error_message_list,
         )
 
