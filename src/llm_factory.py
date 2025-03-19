@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from dotenv import dotenv_values
 from typing import Optional, Any, Dict
 from llama_index.core.llms.llm import LLM
+from llama_index.llms.mistralai import MistralAI
 from llama_index.llms.ollama import Ollama
 from llama_index.llms.openai_like import OpenAILike
 from llama_index.llms.openai import OpenAI
