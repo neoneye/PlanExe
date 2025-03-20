@@ -163,29 +163,48 @@ class DataCollection:
             f.write(json.dumps(self.to_dict(), indent=2))
 
     @staticmethod
+    def _format_bullet_list(items: list[str]) -> str:
+        """
+        Format a list of strings into a markdown bullet list.
+        
+        Args:
+            items: List of strings to format as bullet points
+            
+        Returns:
+            Formatted markdown bullet list
+        """
+        return "\n".join(f"- {item}" for item in items)
+
+    @staticmethod
     def convert_to_markdown(document_details: DocumentDetails) -> str:
         """
         Convert the raw document details to markdown.
         """
         rows = []
 
-        # for item_index, suggestion in enumerate(document_details.suggestion_list, start=1):
-        #     rows.append(f"## Suggestion {item_index} - {suggestion.project_name}\n")
-        #     rows.append(suggestion.project_description)
+        for item_index, data_collection_item in enumerate(document_details.data_collection_list, start=1):
+            if item_index > 1:
+                rows.append("\n")
+            rows.append(f"## Item {item_index} - {data_collection_item.title}\n")
+            rows.append(data_collection_item.rationale)
 
-        #     success_metrics = "\n".join(suggestion.success_metrics)
-        #     rows.append(f"\n### Success Metrics\n\n{success_metrics}")
+            data_to_collect = DataCollection._format_bullet_list(data_collection_item.data_to_collect)
+            rows.append(f"\n### Data to Collect\n\n{data_to_collect}")
 
-        #     risks_and_challenges_faced = "\n".join(suggestion.risks_and_challenges_faced)
-        #     rows.append(f"\n### Risks and Challenges Faced\n\n{risks_and_challenges_faced}")
+            simulation_steps = DataCollection._format_bullet_list(data_collection_item.simulation_steps)
+            rows.append(f"\n### Simulation Steps\n\n{simulation_steps}")
 
-        #     where_to_find_more_information = "\n".join(suggestion.where_to_find_more_information)
-        #     rows.append(f"\n### Where to Find More Information\n\n{where_to_find_more_information}")
+            expert_validation_steps = DataCollection._format_bullet_list(data_collection_item.expert_validation_steps)
+            rows.append(f"\n### Expert Validation Steps\n\n{expert_validation_steps}")
 
-        #     actionable_steps = "\n".join(suggestion.actionable_steps)
-        #     rows.append(f"\n### Actionable Steps\n\n{actionable_steps}")
+            responsible_parties = DataCollection._format_bullet_list(data_collection_item.responsible_parties)
+            rows.append(f"\n### Responsible Parties\n\n{responsible_parties}")
 
-        #     rows.append(f"\n### Rationale for Suggestion\n\n{suggestion.rationale_for_suggestion}")
+            assumptions = DataCollection._format_bullet_list(data_collection_item.assumptions)
+            rows.append(f"\n### Assumptions\n\n{assumptions}")
+
+            notes = DataCollection._format_bullet_list(data_collection_item.notes)
+            rows.append(f"\n### Notes\n\n{notes}")
 
         rows.append(f"\n## Summary\n\n{document_details.summary}")
         return "\n".join(rows)
