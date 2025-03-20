@@ -17,12 +17,21 @@ import json
 import time
 import logging
 from math import ceil
+from enum import Enum
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
 
 logger = logging.getLogger(__name__)
+
+class SensitivityScore(str, Enum):
+    low = 'low'
+    medium = 'medium'
+    high = 'high'
+
+    def human_readable(self) -> str:
+        return self.value.capitalize()
 
 class PlannedDataCollectionItem(BaseModel):
     item_index: int = Field(
@@ -42,6 +51,9 @@ class PlannedDataCollectionItem(BaseModel):
     )
     rationale: str = Field(
         description="Explain why this particular data is to be collected."
+    )
+    sensitivity_score: SensitivityScore = Field(
+        description="So it's possible to focus resources on the most impactful areas."
     )
     responsible_parties: list[str] = Field(
         description="Who specifically should be involved or responsible."
@@ -74,6 +86,7 @@ For each "data collection item", explicitly list:
   - assumptions: Clearly state specific assumptions underlying simulation steps.
   - notes: Clearly highlight uncertainties, data gaps, or potential risks.
   - responsible_parties: Suggest specific roles or stakeholders recommended for task execution.
+  - sensitivity_score: Assign a "sensitivity score" to each assumption. This score reflects the potential impact on the project's objectives if the assumption proves to be false.
 
 Ensure every "data collection item" explicitly includes BOTH simulation_steps and expert_validation_steps. Simulation_steps must always specify tools or software. Expert_validation_steps must clearly define human experts or authorities for verification. Never leave these steps empty.
 
@@ -187,6 +200,8 @@ class DataCollection:
                 rows.append("\n")
             rows.append(f"## Item {item_index} - {data_collection_item.title}\n")
             rows.append(data_collection_item.rationale)
+
+            rows.append(f"\n**Sensitivity:** {data_collection_item.sensitivity_score.human_readable()}")
 
             data_to_collect = DataCollection._format_bullet_list(data_collection_item.data_to_collect)
             rows.append(f"\n### Data to Collect\n\n{data_to_collect}")
