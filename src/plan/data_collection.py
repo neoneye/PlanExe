@@ -33,6 +33,17 @@ class SensitivityScore(str, Enum):
     def human_readable(self) -> str:
         return self.value.capitalize()
 
+class AssumptionItem(BaseModel):
+    item_index: int = Field(
+        description="Enumeration, starting from 1."
+    )
+    assumption: str = Field(
+        description="The assumption to be validated."
+    )
+    sensitivity_score: SensitivityScore = Field(
+        description="The sensitivity score of the assumption."
+    )
+
 class PlannedDataCollectionItem(BaseModel):
     item_index: int = Field(
         description="Enumeration, starting from 1."
@@ -52,14 +63,14 @@ class PlannedDataCollectionItem(BaseModel):
     rationale: str = Field(
         description="Explain why this particular data is to be collected."
     )
-    sensitivity_score: SensitivityScore = Field(
-        description="So it's possible to focus resources on the most impactful areas."
-    )
     responsible_parties: list[str] = Field(
         description="Who specifically should be involved or responsible."
     )
-    assumptions: list[str] = Field(
+    assumptions: list[AssumptionItem] = Field(
         description="What assumptions are made about data, validation, collection, etc."
+    )
+    smart_validation_objective: str = Field(
+        description="Explicit SMART objectives for validation."
     )
     notes: list[str] = Field(
         description="Insights and notes."
@@ -76,17 +87,19 @@ class DocumentDetails(BaseModel):
 DATA_COLLECTION_SYSTEM_PROMPT = """
 You are an automated project planning assistant generating structured project plans.
 
-Your response must strictly adhere to this structured format:
-
-For each "data collection item", explicitly list:
-  - data_to_collect: Specific data points required for informed decisions.
-  - simulation_steps: Clearly specify simulation actions involving software, analytical models, or digital tools (e.g., QGIS, ArcGIS, Autodesk Fusion 360, SolidWorks, SAP SCM, Arena Simulation, local databases). Do not include human consultations here.
-  - expert_validation_steps: Explicitly state the experts, stakeholders, or authorities to consult to verify and validate the simulated data.
-  - rationale: Concisely explain why collecting this data directly impacts project success.
-  - assumptions: Clearly state specific assumptions underlying simulation steps.
-  - notes: Clearly highlight uncertainties, data gaps, or potential risks.
-  - responsible_parties: Suggest specific roles or stakeholders recommended for task execution.
-  - sensitivity_score: Assign a "sensitivity score" to each assumption. This score reflects the potential impact on the project's objectives if the assumption proves to be false.
+When given a project query:
+  - Identify crucial data collection areas necessary to achieve the project's objectives.
+  - Clearly define what data needs to be collected for each area.
+  - Specify detailed simulation steps (e.g., software tools or online resources) to preliminarily validate data before expert consultation.
+  - Specify expert validation steps explicitly, detailing experts or authoritative bodies to consult.
+  - Clearly state a concise rationale explaining the criticality of each data collection area.
+  - List the responsible parties who will carry out or oversee the data collection.
+  - Explicitly state underlying assumptions, labeling each assumption with a sensitivity score ('High', 'Medium', or 'Low') based on potential project impact if incorrect.
+  - Write SMART (Specific, Measurable, Achievable, Relevant, Time-bound) validation objectives for each area.
+  - Include a rough cost estimate for validation activities when possible.
+  - Generate a clear validation results template for each data collection area, containing fields for original assumption, SMART objective, actual data collected, data source, comparison against assumption, conclusion (Validated, Partially Validated, Invalidated), recommended escape hatch or contingency if invalidated, and triage actions if partially validated.
+  - Explicitly mention uncertainties, risks, or missing data.
+  - Provide a concise summary of immediate actionable tasks focusing on validating the most sensitive assumptions first.
 
 Ensure every "data collection item" explicitly includes BOTH simulation_steps and expert_validation_steps. Simulation_steps must always specify tools or software. Expert_validation_steps must clearly define human experts or authorities for verification. Never leave these steps empty.
 
@@ -201,8 +214,6 @@ class DataCollection:
             rows.append(f"## Item {item_index} - {data_collection_item.title}\n")
             rows.append(data_collection_item.rationale)
 
-            rows.append(f"\n**Sensitivity:** {data_collection_item.sensitivity_score.human_readable()}")
-
             data_to_collect = DataCollection._format_bullet_list(data_collection_item.data_to_collect)
             rows.append(f"\n### Data to Collect\n\n{data_to_collect}")
 
@@ -215,8 +226,11 @@ class DataCollection:
             responsible_parties = DataCollection._format_bullet_list(data_collection_item.responsible_parties)
             rows.append(f"\n### Responsible Parties\n\n{responsible_parties}")
 
-            assumptions = DataCollection._format_bullet_list(data_collection_item.assumptions)
+            assumption_list = [f"**{item.sensitivity_score.human_readable()}:** {item.assumption}" for item in data_collection_item.assumptions]
+            assumptions = DataCollection._format_bullet_list(assumption_list)
             rows.append(f"\n### Assumptions\n\n{assumptions}")
+
+            rows.append(f"\n### SMART Validation Objective\n\n{data_collection_item.smart_validation_objective}")
 
             notes = DataCollection._format_bullet_list(data_collection_item.notes)
             rows.append(f"\n### Notes\n\n{notes}")
