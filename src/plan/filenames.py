@@ -49,6 +49,8 @@ class FilenameEnum(str, Enum):
     PITCH_RAW = "018-1-pitch_raw.json"
     PITCH_CONVERT_TO_MARKDOWN_RAW = "018-2-pitch_to_markdown_raw.json"
     PITCH_MARKDOWN = "018-3-pitch.md"
+    DATA_COLLECTION_RAW = "018-4-data_collection_raw.json"
+    DATA_COLLECTION_MARKDOWN = "018-5-data_collection.md"
     TASK_DEPENDENCIES_RAW = "019-task_dependencies_raw.json"
     TASK_DURATIONS_RAW_TEMPLATE = "020-1-{}-task_durations_raw.json"
     TASK_DURATIONS = "020-2-task_durations.json"
