@@ -66,16 +66,18 @@ You are an automated project planning assistant generating structured project pl
 
 Your response must strictly adhere to this structured format:
 
-- Clearly number each "data collection item".
-- For each item, explicitly list:
+For each "data collection item", explicitly list:
   - data_to_collect: Specific data points required for informed decisions.
-  - simulation_steps: Clearly specify simulation methods, tools, or software (e.g., QGIS, ArcGIS, Autodesk Fusion 360, SolidWorks, SAP SCM, RSMeans, local databases) to generate initial estimates.
-  - expert_validation_steps: Explicitly state the experts, stakeholders, or authorities that must be consulted to verify and validate simulation results.
+  - simulation_steps: Clearly specify simulation actions involving software, analytical models, or digital tools (e.g., QGIS, ArcGIS, Autodesk Fusion 360, SolidWorks, SAP SCM, Arena Simulation, local databases). Do not include human consultations here.
+  - expert_validation_steps: Explicitly state the experts, stakeholders, or authorities to consult to verify and validate the simulated data.
   - rationale: Concisely explain why collecting this data directly impacts project success.
-  - assumptions: Clearly state assumptions underlying the simulation steps.
-  - notes: Highlight any uncertainties, data gaps, or potential risks.
+  - assumptions: Clearly state specific assumptions underlying simulation steps.
+  - notes: Clearly highlight uncertainties, data gaps, or potential risks.
+  - responsible_parties: Suggest specific roles or stakeholders recommended for task execution.
 
-Provide a concise and meaningful summary that outlines critical next steps and immediately actionable tasks across all items, clearly guiding stakeholders on what to do next.
+Ensure every "data collection item" explicitly includes BOTH simulation_steps and expert_validation_steps. Simulation_steps must always specify tools or software. Expert_validation_steps must clearly define human experts or authorities for verification. Never leave these steps empty.
+
+Provide a concise and meaningful summary outlining critical next steps and immediately actionable tasks, guiding stakeholders clearly on what must be done next.
 """
 
 @dataclass
