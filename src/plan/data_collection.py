@@ -24,67 +24,58 @@ from llama_index.core.llms.llm import LLM
 
 logger = logging.getLogger(__name__)
 
-class SuggestionItem(BaseModel):
+class PlannedDataCollectionItem(BaseModel):
     item_index: int = Field(
         description="Enumeration, starting from 1."
     )
-    project_name: str = Field(
-        description="The name of the project."
+    title: str = Field(
+        description="Brief title, such as 'Venue Cost Estimates', 'Sponsorship & Revenue Streams'."
     )
-    project_description: str = Field(
-        description="A description of the project."
+    data_to_collect: list[str] = Field(
+        description="What data to collect"
     )
-    success_metrics: list[str] = Field(
-        description="Indicators of success, challenges encountered, and project outcomes."
+    simulation_steps: list[str] = Field(
+        description="How to simulate the data and what tools to use."
     )
-    risks_and_challenges_faced: list[str] = Field(
-        description="Explain how each project overcame or mitigated these challenges to provide practical guidance."
+    expert_validation_steps: list[str] = Field(
+        description="Human expert validation steps."
     )
-    where_to_find_more_information: list[str] = Field(
-        description="Links to online resources, articles, official documents, or industry reports where more information can be found."
+    rationale: str = Field(
+        description="Explain why this particular data is to be collected."
     )
-    actionable_steps: list[str] = Field(
-        description="Clear instructions on how the user might directly contact key individuals or organizations from those projects, if they desire deeper insights."
+    responsible_parties: list[str] = Field(
+        description="Who specifically should be involved or responsible."
     )
-    rationale_for_suggestion: str = Field(
-        description="Explain why this particular project is suggested."
+    assumptions: list[str] = Field(
+        description="What assumptions are made about data, validation, collection, etc."
+    )
+    notes: list[str] = Field(
+        description="Insights and notes."
     )
 
 class DocumentDetails(BaseModel):
-    suggestion_list: list[SuggestionItem] = Field(
-        description="List of suggestions."
+    data_collection_list: list[PlannedDataCollectionItem] = Field(
+        description="List of data to be collected."
     )
     summary: str = Field(
         description="Providing a high level context."
     )
 
 DATA_COLLECTION_SYSTEM_PROMPT = """
-You are an expert project analyst tasked with recommending highly relevant past or existing projects as references for a user's described project.
+You are an automated project planning assistant generating structured project plans.
 
-Your goal is to always provide at least **three detailed and insightful recommendations**, strictly adhering to the following guidelines:
+Your response must strictly adhere to this structured format:
 
-- **Primary Suggestions (at least 2):**
-  - Must be **real and verifiable past or existing projects**—no hypothetical, fictional, or speculative examples.
-  - Include exhaustive detail:
-    - **Project Name:** Clearly state the official name.
-    - **Project Description:** Concise yet comprehensive description of objectives, scale, timeline, industry, location, and outcomes.
-    - **Rationale for Suggestion:** Explicitly highlight similarities in technology, objectives, operational processes, geographical, economic, or cultural aspects.
-    - **Risks and Challenges Faced:** Explicitly list major challenges and clearly explain how each was overcome or mitigated.
-    - **Success Metrics:** Measurable outcomes such as economic impact, production volume, customer satisfaction, timeline adherence, or technology breakthroughs.
-    - **Where to Find More Information:** Direct and authoritative links (official websites, reputable publications, scholarly articles).
-    - **Actionable Steps:** Clearly specify roles, names, and robust communication channels (emails, LinkedIn, organizational contacts).
+- Clearly number each "data collection item".
+- For each item, explicitly list:
+  - data_to_collect: Specific data points required for informed decisions.
+  - simulation_steps: Clearly specify simulation methods, tools, or software (e.g., QGIS, ArcGIS, Autodesk Fusion 360, SolidWorks, SAP SCM, RSMeans, local databases) to generate initial estimates.
+  - expert_validation_steps: Explicitly state the experts, stakeholders, or authorities that must be consulted to verify and validate simulation results.
+  - rationale: Concisely explain why collecting this data directly impacts project success.
+  - assumptions: Clearly state assumptions underlying the simulation steps.
+  - notes: Highlight any uncertainties, data gaps, or potential risks.
 
-- **Secondary Suggestions (optional but encouraged, at least 1):**
-  - Must also be real projects but may contain fewer details.
-  - Mark explicitly as secondary suggestions.
-
-**Priority for Relevance:**
-- Emphasize geographical or cultural proximity first, but clearly justify including geographically distant examples if necessary.
-- If geographically or culturally similar projects are limited, explicitly state this in the rationale.
-
-**Important:** Avoid any hypothetical, speculative, or fictional suggestions. Only include real, documented projects.
-
-Your recommendations should collectively provide the user with robust insights, actionable guidance, and practical contacts for successful execution.
+Provide a concise and meaningful summary that outlines critical next steps and immediately actionable tasks across all items, clearly guiding stakeholders on what to do next.
 """
 
 @dataclass
@@ -176,23 +167,23 @@ class DataCollection:
         """
         rows = []
 
-        for item_index, suggestion in enumerate(document_details.suggestion_list, start=1):
-            rows.append(f"## Suggestion {item_index} - {suggestion.project_name}\n")
-            rows.append(suggestion.project_description)
+        # for item_index, suggestion in enumerate(document_details.suggestion_list, start=1):
+        #     rows.append(f"## Suggestion {item_index} - {suggestion.project_name}\n")
+        #     rows.append(suggestion.project_description)
 
-            success_metrics = "\n".join(suggestion.success_metrics)
-            rows.append(f"\n### Success Metrics\n\n{success_metrics}")
+        #     success_metrics = "\n".join(suggestion.success_metrics)
+        #     rows.append(f"\n### Success Metrics\n\n{success_metrics}")
 
-            risks_and_challenges_faced = "\n".join(suggestion.risks_and_challenges_faced)
-            rows.append(f"\n### Risks and Challenges Faced\n\n{risks_and_challenges_faced}")
+        #     risks_and_challenges_faced = "\n".join(suggestion.risks_and_challenges_faced)
+        #     rows.append(f"\n### Risks and Challenges Faced\n\n{risks_and_challenges_faced}")
 
-            where_to_find_more_information = "\n".join(suggestion.where_to_find_more_information)
-            rows.append(f"\n### Where to Find More Information\n\n{where_to_find_more_information}")
+        #     where_to_find_more_information = "\n".join(suggestion.where_to_find_more_information)
+        #     rows.append(f"\n### Where to Find More Information\n\n{where_to_find_more_information}")
 
-            actionable_steps = "\n".join(suggestion.actionable_steps)
-            rows.append(f"\n### Actionable Steps\n\n{actionable_steps}")
+        #     actionable_steps = "\n".join(suggestion.actionable_steps)
+        #     rows.append(f"\n### Actionable Steps\n\n{actionable_steps}")
 
-            rows.append(f"\n### Rationale for Suggestion\n\n{suggestion.rationale_for_suggestion}")
+        #     rows.append(f"\n### Rationale for Suggestion\n\n{suggestion.rationale_for_suggestion}")
 
         rows.append(f"\n## Summary\n\n{document_details.summary}")
         return "\n".join(rows)
