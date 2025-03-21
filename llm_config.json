@@ -27,6 +27,20 @@
             "max_retries": 5
         }
     },
+    "openrouter-paid-qwen2.5-32b-instruct": {
+        "comment": "This is medium fast. It's paid, so check the pricing before use.",
+        "class": "OpenRouter",
+        "arguments": {
+            "model": "qwen/qwen2.5-32b-instruct",
+            "api_key": "${OPENROUTER_API_KEY}",
+            "temperature": 0.1,
+            "timeout": 60.0,
+            "is_function_calling_model": false,
+            "is_chat_model": true,
+            "max_tokens": 8192,
+            "max_retries": 5
+        }
+    },
     "ollama-llama3.1": {
         "comment": "This runs on your own computer. It's free. Requires Ollama to be installed.",
         "class": "Ollama",
