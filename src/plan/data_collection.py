@@ -218,7 +218,7 @@ class DataCollection:
         for item_index, data_collection_item in enumerate(document_details.data_collection_list, start=1):
             if item_index > 1:
                 rows.append("\n")
-            rows.append(f"## Item {item_index} - {data_collection_item.title}\n")
+            rows.append(f"## {item_index}. {data_collection_item.title}\n")
             rows.append(data_collection_item.rationale)
 
             data_to_collect = DataCollection._format_bullet_list(data_collection_item.data_to_collect)
