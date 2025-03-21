@@ -1798,15 +1798,6 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
 class ReviewPlanTask(PlanTask):
     """
     Ask questions about the almost finished plan.
-    
-    It depends on:
-      - ConsolidateAssumptionsMarkdownTask: provides the assumptions as Markdown.
-      - ProjectPlanTask: provides the project plan as Markdown.
-      - SWOTAnalysisTask: provides the SWOT analysis as Markdown.
-      - TeamMarkdownTask: provides the team as Markdown.
-      - ConvertPitchToMarkdownTask: provides the pitch as Markdown.
-      - ExpertReviewTask: provides the expert criticism as Markdown.
-      - WBSProjectLevel1AndLevel2AndLevel3Task: provides the table csv file.
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
@@ -1820,6 +1811,7 @@ class ReviewPlanTask(PlanTask):
         return {
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1834,6 +1826,8 @@ class ReviewPlanTask(PlanTask):
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
             project_plan_markdown = f.read()
+        with self.input()['data_collection']['markdown'].open("r") as f:
+            data_collection_markdown = f.read()
         with self.input()['related_resources']['raw'].open("r") as f:
             related_resources_dict = json.load(f)
         with self.input()['swot_analysis']['markdown'].open("r") as f:
@@ -1851,6 +1845,7 @@ class ReviewPlanTask(PlanTask):
         query = (
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
+            f"File 'data-collection.md':\n{data_collection_markdown}\n\n"
             f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}\n\n"
             f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
             f"File 'team.md':\n{team_markdown}\n\n"
@@ -1899,6 +1894,7 @@ class ExecutiveSummaryTask(PlanTask):
         return {
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1914,6 +1910,8 @@ class ExecutiveSummaryTask(PlanTask):
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
             project_plan_markdown = f.read()
+        with self.input()['data_collection']['markdown'].open("r") as f:
+            data_collection_markdown = f.read()
         with self.input()['related_resources']['raw'].open("r") as f:
             related_resources_dict = json.load(f)
         with self.input()['swot_analysis']['markdown'].open("r") as f:
@@ -1933,6 +1931,7 @@ class ExecutiveSummaryTask(PlanTask):
         query = (
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
+            f"File 'data-collection.md':\n{data_collection_markdown}\n\n"
             f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}\n\n"
             f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
             f"File 'team.md':\n{team_markdown}\n\n"
@@ -1981,6 +1980,7 @@ class ReportTask(PlanTask):
             'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1995,6 +1995,7 @@ class ReportTask(PlanTask):
         rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
         rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown']['full'].path)
         rg.append_markdown('Related Resources', self.input()['related_resources']['markdown'].path)
+        rg.append_markdown('Data Collection', self.input()['data_collection']['markdown'].path)
         rg.append_markdown('SWOT Analysis', self.input()['swot_analysis']['markdown'].path)
         rg.append_markdown('Team', self.input()['team_markdown'].path)
         rg.append_markdown('Expert Criticism', self.input()['expert_review'].path)
@@ -2032,6 +2033,7 @@ class FullPlanPipeline(PlanTask):
             'wbs_project12': WBSProjectLevel1AndLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_raw': CreatePitchTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'dependencies': IdentifyTaskDependenciesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'durations': EstimateTaskDurationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level3': CreateWBSLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
