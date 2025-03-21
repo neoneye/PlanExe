@@ -1203,6 +1203,66 @@ class ExpertReviewTask(PlanTask):
         with expert_criticism_markdown_file.open("w") as f:
             f.write(expert_orchestrator.to_markdown())
 
+
+class DataCollectionTask(PlanTask):
+    """
+    Determine what kind of data is to be collected.
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def output(self):
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.DATA_COLLECTION_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.DATA_COLLECTION_MARKDOWN)))
+        }
+    
+    def requires(self):
+        return {
+            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+    
+    def run(self):
+        # Read inputs from required tasks.
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+            assumptions_markdown = f.read()
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
+        with self.input()['related_resources']['raw'].open("r") as f:
+            related_resources_dict = json.load(f)
+        with self.input()['swot_analysis']['markdown'].open("r") as f:
+            swot_analysis_markdown = f.read()
+        with self.input()['team_markdown'].open("r") as f:
+            team_markdown = f.read()
+        with self.input()['expert_review'].open("r") as f:
+            expert_review = f.read()
+
+        # Build the query.
+        query = (
+            f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
+            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
+            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}\n\n"
+            f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
+            f"File 'team.md':\n{team_markdown}\n\n"
+            f"File 'expert-review.md':\n{expert_review}"
+        )
+
+        llm = get_llm(self.llm_model)
+
+        # Invoke the LLM.
+        data_collection = DataCollection.execute(llm, query)
+
+        # Save the results.
+        json_path = self.output()['raw'].path
+        data_collection.save_raw(json_path)
+        markdown_path = self.output()['markdown'].path
+        data_collection.save_markdown(markdown_path)
+
+
 class CreateWBSLevel1Task(PlanTask):
     """
     Creates the Work Breakdown Structure (WBS) Level 1.
@@ -1268,7 +1328,8 @@ class CreateWBSLevel2Task(PlanTask):
     def requires(self):
         return {
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
 
     def output(self):
@@ -1279,18 +1340,20 @@ class CreateWBSLevel2Task(PlanTask):
 
     def run(self):
         logger.info("Creating Work Breakdown Structure (WBS) Level 2...")
-        
-        # Read the project plan from the ProjectPlanTask output.
+
+        # Read inputs from required tasks.
         with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
         
-        # Read the cleaned WBS Level 1 result from the CreateWBSLevel1Task output.
-        # Here we assume the cleaned output is under the 'clean' key.
+        with self.input()['data_collection']['markdown'].open("r") as f:
+            data_collection_markdown = f.read()
+
         with self.input()['wbs_level1']['clean'].open("r") as f:
             wbs_level1_result_json = json.load(f)
         
         # Build the query using CreateWBSLevel2's format_query method.
         query = CreateWBSLevel2.format_query(project_plan_dict, wbs_level1_result_json)
+        query += f"\n\nData collection:\n{data_collection_markdown}"
         
         # Get an LLM instance.
         llm = get_llm(self.llm_model)
@@ -1440,86 +1503,9 @@ class ConvertPitchToMarkdownTask(PlanTask):
         logger.info("Converted raw pitch to markdown.")
 
 
-class DataCollectionTask(PlanTask):
-    """
-    Determine what kind of data is to be collected.
-    
-    It depends on:
-      - ConsolidateAssumptionsMarkdownTask: provides the assumptions as Markdown.
-      - ProjectPlanTask: provides the project plan as Markdown.
-      - SWOTAnalysisTask: provides the SWOT analysis as Markdown.
-      - TeamMarkdownTask: provides the team as Markdown.
-      - ConvertPitchToMarkdownTask: provides the pitch as Markdown.
-      - ExpertReviewTask: provides the expert criticism as Markdown.
-    """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
-    def output(self):
-        return {
-            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.DATA_COLLECTION_RAW))),
-            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.DATA_COLLECTION_MARKDOWN)))
-        }
-    
-    def requires(self):
-        return {
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
-        }
-    
-    def run(self):
-        # Read inputs from required tasks.
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            assumptions_markdown = f.read()
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        with self.input()['related_resources']['raw'].open("r") as f:
-            related_resources_dict = json.load(f)
-        with self.input()['swot_analysis']['markdown'].open("r") as f:
-            swot_analysis_markdown = f.read()
-        with self.input()['team_markdown'].open("r") as f:
-            team_markdown = f.read()
-        with self.input()['pitch_markdown']['markdown'].open("r") as f:
-            pitch_markdown = f.read()
-        with self.input()['expert_review'].open("r") as f:
-            expert_review = f.read()
-
-        # Build the query.
-        query = (
-            f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
-            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}\n\n"
-            f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
-            f"File 'team.md':\n{team_markdown}\n\n"
-            f"File 'pitch.md':\n{pitch_markdown}\n\n"
-            f"File 'expert-review.md':\n{expert_review}"
-        )
-
-        llm = get_llm(self.llm_model)
-
-        # Invoke the LLM.
-        data_collection = DataCollection.execute(llm, query)
-
-        # Save the results.
-        json_path = self.output()['raw'].path
-        data_collection.save_raw(json_path)
-        markdown_path = self.output()['markdown'].path
-        data_collection.save_markdown(markdown_path)
-
-
 class IdentifyTaskDependenciesTask(PlanTask):
     """
     This task identifies the dependencies between WBS tasks.
-    
-    It depends on:
-      - ProjectPlanTask: provides the project plan JSON.
-      - CreateWBSLevel2Task: provides the major phases with subtasks.
-    
-    The raw JSON response is written to the file specified by FilenameEnum.TASK_DEPENDENCIES_RAW.
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
     
@@ -1529,22 +1515,26 @@ class IdentifyTaskDependenciesTask(PlanTask):
     def requires(self):
         return {
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_level2': CreateWBSLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'wbs_level2': CreateWBSLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
     
     def run(self):
         logger.info("Identifying task dependencies...")
         
-        # Read the project plan JSON.
+        # Read inputs from required tasks.
         with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
         
-        # Read the major phases with subtasks from WBS Level 2 output.
+        with self.input()['data_collection']['markdown'].open("r") as f:
+            data_collection_markdown = f.read()
+        
         with self.input()['wbs_level2']['clean'].open("r") as f:
             major_phases_with_subtasks = json.load(f)
         
         # Build the query using the provided format method.
         query = IdentifyWBSTaskDependencies.format_query(project_plan_dict, major_phases_with_subtasks)
+        query += f"\n\nData collection:\n{data_collection_markdown}"
         
         # Get the LLM instance.
         llm = get_llm(self.llm_model)
@@ -1675,19 +1665,23 @@ class CreateWBSLevel3Task(PlanTask):
         return {
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project': WBSProjectLevel1AndLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'task_durations': EstimateTaskDurationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'task_durations': EstimateTaskDurationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
     
     def run(self):
         logger.info("Creating Work Breakdown Structure (WBS) Level 3...")
         
-        # Load the project plan JSON.
+        # Read inputs from required tasks.
         with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
-        
+
         with self.input()['wbs_project'].open("r") as f:
             wbs_project_dict = json.load(f)
         wbs_project = WBSProject.from_dict(wbs_project_dict)
+
+        with self.input()['data_collection']['markdown'].open("r") as f:
+            data_collection_markdown = f.read()
 
         # Load the estimated task durations.
         task_duration_list_path = self.input()['task_durations'].path
@@ -1733,6 +1727,7 @@ class CreateWBSLevel3Task(PlanTask):
             
             query = (
                 f"The project plan:\n{project_plan_str}\n\n"
+                f"Data collection:\n{data_collection_markdown}\n\n"
                 f"Work breakdown structure:\n{wbs_project_str}\n\n"
                 f"Only decompose this task:\n\"{task_id}\""
             )
@@ -2028,12 +2023,12 @@ class FullPlanPipeline(PlanTask):
             'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level2': CreateWBSLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project12': WBSProjectLevel1AndLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_raw': CreatePitchTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'dependencies': IdentifyTaskDependenciesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'durations': EstimateTaskDurationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level3': CreateWBSLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
