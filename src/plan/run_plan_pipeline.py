@@ -26,6 +26,7 @@ from src.assume.review_assumptions import ReviewAssumptions
 from src.assume.shorten_markdown import ShortenMarkdown
 from src.expert.pre_project_assessment import PreProjectAssessment
 from src.plan.project_plan import ProjectPlan
+from src.plan.governance import Governance
 from src.plan.related_resources import RelatedResources
 from src.swot.swot_analysis import SWOTAnalysis
 from src.expert.expert_finder import ExpertFinder
@@ -669,6 +670,53 @@ class ProjectPlanTask(PlanTask):
         project_plan.save_markdown(self.output()['markdown'].path)
 
         logger.info("Project plan created and saved")
+
+
+class GovernanceTask(PlanTask):
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def requires(self):
+        return {
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+
+    def output(self):
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.GOVERNANCE_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.GOVERNANCE_MARKDOWN)))
+        }
+
+    def run(self):
+        # Read inputs from required tasks.
+        with self.input()['setup'].open("r") as f:
+            plan_prompt = f.read()
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+            consolidate_assumptions_markdown = f.read()
+        with self.input()['project_plan']['raw'].open("r") as f:
+            project_plan_dict = json.load(f)
+
+        # Build the query.
+        query = (
+            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
+            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}"
+        )
+
+        # Create LLM instance.
+        llm = get_llm(self.llm_model)
+
+        # Execute.
+        try:
+            governance = Governance.execute(llm, query)
+        except Exception as e:
+            logger.error("Governance failed: %s", e)
+            raise
+
+        # Save the results.
+        governance.save_raw(self.output()['raw'].path)
+        governance.save_markdown(self.output()['markdown'].path)
 
 
 class RelatedResourcesTask(PlanTask):
@@ -2014,6 +2062,7 @@ class FullPlanPipeline(PlanTask):
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pre_project_assessment': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance': GovernanceTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_contract_type': EnrichTeamMembersWithContractTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
