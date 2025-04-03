@@ -27,37 +27,40 @@ class DocumentDetails(BaseModel):
     )
  
 GOVERNANCE_PHASE6_EXTRA_SYSTEM_PROMPT = """
-You are an expert in project governance quality assurance and reporting. Your task is to **critically validate** the previously generated components of the project governance framework and provide key accountability questions and an overall summary.
+You are an expert in project governance quality assurance, risk management, and strategic oversight. Your task is to **critically validate** the previously generated components of the project governance framework, identify **specific areas needing further detail or clarification**, generate insightful accountability questions, and provide an overall summary.
 
 **You will be provided with (as context):**
-1.  The overall project description.
-2.  The defined `internal_governance_bodies` (Stage 2 output).
-3.  The `governance_implementation_plan` (Stage 3 output).
-4.  The `decision_escalation_matrix` (Stage 4 output).
-5.  The `monitoring_progress` plan (Stage 5 output).
-6.  (Potentially) `AuditDetails` (Stage 1 output).
+1.  The overall project description (including objectives, critical factors, risks).
+2.  The defined `internal_governance_bodies` (Stage 2).
+3.  The `governance_implementation_plan` (Stage 3).
+4.  The `decision_escalation_matrix` (Stage 4).
+5.  The `monitoring_progress` plan (Stage 5).
+6.  (Potentially) `AuditDetails` (Stage 1).
 
 **Based on reviewing and VALIDATING ALL the provided governance context, your goal is to generate:**
 
-1.  **`governance_validation_checks`:** (Replaces `governance_assessment_list`)
-    *   Perform a **rigorous consistency and completeness check** on the governance components defined in the previous stages.
-    *   **Point 1: Completeness Confirmation:** State clearly whether all core requested components (Bodies, Implementation Plan, Escalation Matrix, Monitoring Plan) were successfully generated in the input context.
-    *   **Point 2: Internal Consistency Check:** Critically examine if the different components align logically. Identify specific inconsistencies, if any. Examples to check:
-        *   Does the Implementation Plan correctly reference the bodies defined in Stage 2?
-        *   Does the Escalation Matrix use the correct committee names and logical hierarchy defined in Stage 2?
-        *   Do the roles responsible for Monitoring (Stage 5) exist within the bodies defined in Stage 2?
-        *   Do the Audit Procedures (Stage 1) align with the responsibilities of the defined bodies (Stage 2)?
-    *   **Point 3: Potential Gaps Identification:** Based on standard governance practices and the project description, identify any significant remaining gaps or areas lacking sufficient detail in the generated framework. (e.g., "Missing explicit process for Change Management.", "Lack of detail on stakeholder communication protocols beyond meeting minutes.", "Role of Project Sponsor not fully clarified in SteerCo membership/authority.").
-    *   **Be specific in identifying inconsistencies or gaps.** Use point form for clarity. Focus validation on the *generated governance data* provided.
+1.  **`governance_validation_checks`:**
+    *   Perform a **rigorous consistency and completeness check**.
+    *   **Point 1: Completeness Confirmation:** State clearly if all core requested components appear generated.
+    *   **Point 2: Internal Consistency Check:** Verify logical alignment between stages (e.g., Implementation Plan uses correct bodies, Escalation Matrix follows hierarchy, Monitoring roles exist). Briefly confirm consistency or note specific discrepancies found.
+    *   **Point 3: Potential Gaps / Areas for Enhancement:** Critically review the *details* within the generated components. **Identify specific, nuanced gaps or areas where more detail, process definition, or clarification would significantly strengthen the framework.** Examples of areas to scrutinize:
+        *   *Clarity of roles:* Are responsibilities of advisors or independent members clearly defined?
+        *   *Process Depth:* Are key processes (like conflict of interest management, whistleblower investigation, change control) sufficiently detailed or just mentioned?
+        *   *Thresholds/Delegation:* Is delegated authority clear beyond just the main SteerCo/PMO split? Could tactical decisions be delegated further with clear parameters?
+        *   *Integration:* Are related components well-integrated (e.g., audit procedures linked to monitoring or E&C responsibilities)?
+        *   *Specificity:* Are any parts too vague (e.g., escalation paths, adaptation triggers)?
+        **Aim for at least 3-5 specific points identifying areas needing more detail or clarification.**
 
 2.  **`tough_questions`:**
-    *   Generate a list of **at least 5-7 critical, probing questions** for leadership and governance bodies to ask **regularly** for accountability and risk management, reflecting the project's critical factors, risks, and compliance needs.
-    *   Examples: 'What is the variance between actual spend and budget forecast this period?', 'Based on current metrics, what is the projected completion date for [Critical Milestone]?', 'What specific actions resulted from the last [e.g., Ethics Committee] review?', 'Is the [e.g., Sponsorship] pipeline velocity sufficient to meet the target? Show data.'.
+    *   Generate **at least 7 critical, probing questions** for leadership/governance bodies.
+    *   **Focus on questions demanding specific data, evidence, forecasts, contingency plans, or verification of processes.** Frame them to challenge assumptions and ensure proactive management.
+    *   Link questions directly to the project's critical success factors (budget, sponsorship, deadlines), key risks (venue, speakers, GDPR), compliance, and stakeholder management identified in the overall context.
+    *   **Examples of desired style:** 'What is the current probability-weighted forecast for [Critical Target]?', 'Show evidence of [Compliance Action] verification.', 'What are the specific trigger points for activating Contingency Plan B for [Key Risk]?', 'How does the latest [Data Source, e.g., attendee survey] trend compare to the target for [Metric]?'.
 
 3.  **`summary`:**
-    *   Write a brief, high-level concluding paragraph (2-4 sentences) summarizing the overall approach and key features of the established governance framework.
+    *   Write a brief, high-level concluding paragraph summarizing the overall governance approach and its key strengths or focus areas (e.g., structure, monitoring, compliance focus).
 
-Focus *only* on generating `governance_validation_checks`, `tough_questions`, and `summary`. Base your validation and questions on the governance details provided in the input context.
+Focus *only* on generating `governance_validation_checks`, `tough_questions`, and `summary`. Base validation and questions on the governance details provided.
 
 Ensure your output strictly adheres to the provided Pydantic schema `DocumentDetails` containing *only* `governance_validation_checks`, `tough_questions`, and `summary`.
 """
