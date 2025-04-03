@@ -241,8 +241,72 @@ class Governance:
         Convert the raw document details to markdown.
         """
         rows = []
-
-        rows.append(f"\n## Governance Summary\n{document_details.summary}")
+        
+        # Add audit details section
+        rows.append("\n## Audit - Corruption Risks\n")
+        for item in document_details.audit_details.corruption_list:
+            rows.append(f"- {item}")
+            
+        rows.append("\n## Audit - Misallocation Risks\n")
+        for item in document_details.audit_details.misallocation_list:
+            rows.append(f"- {item}")
+            
+        rows.append("\n## Audit - Procedures\n")
+        for item in document_details.audit_details.audit_procedures:
+            rows.append(f"- {item}")
+            
+        rows.append("\n## Audit - Transparency Measures\n")
+        for item in document_details.audit_details.transparency_measures:
+            rows.append(f"- {item}")
+        
+        # Add governance bodies section
+        rows.append("\n## Governance Bodies")
+        for i, body in enumerate(document_details.governance_bodies, 1):
+            if i == 1:
+                rows.append("")
+            rows.append(f"\n### {i}. {body.name}")
+            rows.append(f"\n**Responsibilities:**")
+            for resp in body.responsibilities:
+                rows.append(f"- {resp}")
+                
+            rows.append(f"\n**Membership:**")
+            for member in body.membership:
+                rows.append(f"- {member}")
+                
+            rows.append(f"\n**Decision Rights:** {body.decision_rights}")
+            rows.append(f"\n**Meeting Cadence:** {body.meeting_cadence}")
+            rows.append(f"\n**Escalation Path:** {body.escalation_path}")
+        
+        # Add decision escalation matrix section
+        rows.append("\n## Decision Escalation Matrix")
+        for i, escalation in enumerate(document_details.decision_escalation_matrix, 1):
+            if i == 1:
+                rows.append("")
+            rows.append(f"\n### {i}. {escalation.issue_type}")
+            rows.append(f"\n**Escalation Level:** {escalation.escalation_level}")
+            rows.append(f"\n**Approval Process:** {escalation.approval_process}")
+            rows.append(f"\n**Rationale:** {escalation.rationale}")
+            rows.append(f"\n**Negative Consequences:** {escalation.negative_consequences}")
+        
+        # Add monitoring progress section
+        rows.append("\n## Monitoring Progress")
+        for i, monitoring in enumerate(document_details.monitoring_progress, 1):
+            if i == 1:
+                rows.append("")
+            rows.append(f"\n### {i}. {monitoring.approach}")
+            rows.append(f"\n**Frequency:** {monitoring.frequency}")
+            rows.append(f"\n**Responsible Role:** {monitoring.responsible_role}")
+            rows.append(f"\n**Adaptation Process:** {monitoring.adaptation_process}")
+        
+        # Add tough questions section
+        rows.append("\n## Tough Questions")
+        for i, question in enumerate(document_details.tough_questions, 1):
+            if i == 1:
+                rows.append("")
+            rows.append(f"{i}. {question}")
+        
+        rows.append(f"\n## Summary\n{document_details.summary}")
+        
         return "\n".join(rows)
 
     def save_markdown(self, output_file_path: str):
