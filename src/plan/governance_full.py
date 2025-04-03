@@ -157,7 +157,7 @@ Analyze the provided project description and provide specific, actionable recomm
 """
 
 @dataclass
-class Governance:
+class GovernanceFull:
     """
     Take a look at the almost finished plan and propose a governance structure.
     """
@@ -168,7 +168,7 @@ class Governance:
     markdown: str
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'Governance':
+    def execute(cls, llm: LLM, user_prompt: str) -> 'GovernanceFull':
         """
         Invoke LLM with the project description.
         """
@@ -215,7 +215,7 @@ class Governance:
 
         markdown = cls.convert_to_markdown(chat_response.raw)
 
-        result = Governance(
+        result = GovernanceFull(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
@@ -361,7 +361,7 @@ if __name__ == "__main__":
     )
     print(f"Query: {query}")
 
-    result = Governance.execute(llm, query)
+    result = GovernanceFull.execute(llm, query)
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))

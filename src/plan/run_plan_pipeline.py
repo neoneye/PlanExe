@@ -26,7 +26,7 @@ from src.assume.review_assumptions import ReviewAssumptions
 from src.assume.shorten_markdown import ShortenMarkdown
 from src.expert.pre_project_assessment import PreProjectAssessment
 from src.plan.project_plan import ProjectPlan
-from src.plan.governance import Governance
+from src.plan.governance_full import GovernanceFull
 from src.plan.governance_phase1_audit import GovernancePhase1Audit
 from src.plan.related_resources import RelatedResources
 from src.swot.swot_analysis import SWOTAnalysis
@@ -761,7 +761,7 @@ class GovernanceTask(PlanTask):
 
         # Execute.
         try:
-            governance = Governance.execute(llm, query)
+            governance = GovernanceFull.execute(llm, query)
         except Exception as e:
             logger.error("Governance failed: %s", e)
             raise
