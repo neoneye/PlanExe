@@ -5,7 +5,7 @@ Governance - Audit Framework:
 - Audit procedures.
 - Corruption countermeasures.
 
-PROMPT> python -m src.plan.governance_phase1_audit
+PROMPT> python -m src.governance.governance_phase1_audit
 """
 import os
 import json

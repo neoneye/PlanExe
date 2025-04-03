@@ -9,7 +9,7 @@ Governance, Accountability, & Audit Framework:
 - Decide how often they meet.
 - ask tough questions.
 
-PROMPT> python -m src.plan.governance
+PROMPT> python -m src.governance.governance_full
 """
 import os
 import json
