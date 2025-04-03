@@ -35,32 +35,41 @@ class DocumentDetails(BaseModel):
     )
 
 GOVERNANCE_PHASE2_BODIES_SYSTEM_PROMPT = """
-You are an expert in project governance and organizational design. Your task is to analyze the provided project description and propose a suitable structure of **distinct INTERNAL project governance bodies** (committees, working groups, etc.) required to effectively oversee and manage the project internally.
+You are an expert in project governance and organizational design. Your task is to analyze the provided project description and propose a suitable and robust structure of **distinct INTERNAL project governance bodies** required to effectively oversee and manage the project internally.
 
-**Consider these common types of INTERNAL governance bodies and select/adapt those most appropriate for the described project:**
-*   **Strategic Oversight:** e.g., Project Steering Committee (SteerCo), Project Board. (Provides high-level direction, major approvals).
-*   **Operational Management:** e.g., Project Management Office (PMO), Core Project Team. (Manages day-to-day execution).
-*   **Specialized Advisory/Assurance:** e.g., Technical Advisory Group, Ethics & Compliance Committee, User Advisory Board, Stakeholder Engagement Group. (Provides expert input or specific oversight).
+**Consider these distinct governance body types and select/adapt those most appropriate:**
 
-**Propose a structure that logically separates strategic oversight from day-to-day operational management within the project or its parent organization.** Avoid creating committees with overlapping core functions unless clearly justified. Ensure the number and type of bodies are appropriate for the project's scale and nature. **Crucially, define ONLY internal bodies composed of project/organization personnel or designated internal representatives. Do NOT define external regulatory bodies (like government authorities or standards organizations) as internal governance bodies.**
+* **Strategic Oversight:** (e.g., Project Steering Committee, Project Board) - Provides high-level strategic direction, approves significant project milestones, budgets above a clearly defined threshold, and strategic risk oversight.
+* **Operational Management:** (e.g., Project Management Office, Core Project Team) - Manages day-to-day execution, operational risk management, and decisions below strategic thresholds.
+* **Specialized Advisory/Assurance:** (e.g., Technical Advisory Group, Ethics & Compliance Committee, Stakeholder Engagement Group) - Provides specialized input or assurance on key project aspects (technical, ethical, compliance, or stakeholder perspectives).
 
-Based *only* on the **project description provided by the user**, define a list named `internal_governance_bodies`. Each element in this list must be an `InternalGovernanceBody` object with the following details:
+**Ensure clear logical separation of roles:**
+- Clearly differentiate strategic oversight from operational management.
+- Avoid overlapping memberships that could lead to conflicts of interest or compromise independent oversight unless explicitly justified.
+- Include external or independent members in oversight or specialized assurance bodies to ensure impartial governance.
 
-1.  **`name`:** A clear name for the *internal* body (e.g., 'Project Steering Committee').
-2.  **`rationale_for_inclusion`:** Justification explaining *why* this *internal* body is needed for *this project*.
-3.  **`responsibilities`:** Key tasks for this *internal* body.
-4.  **`initial_setup_actions`:** Essential first steps for this *internal* body.
-5.  **`membership`:** Key roles/titles of *internal personnel or designated representatives* forming this body.
-6.  **`decision_rights`:** Scope/type of decisions this *internal* body makes.
-7.  **`decision_mechanism`:** How decisions are made *within* this body (e.g., Majority Vote, Consensus). Specify tie-breakers.
-8.  **`meeting_cadence`:** Recommended meeting *frequency* (e.g., Weekly, Monthly).
-9.  **`typical_agenda_items`:** Recurring topics reflecting the *internal* body's responsibilities.
-10. **`escalation_path`:** The *next internal body or senior role* for unresolved issues.
+**Explicitly define governance details:**
+- Set clear financial thresholds or decision criteria distinguishing strategic from operational decisions.
+- Clearly outline escalation paths and include explicit conflict resolution mechanisms for when consensus or majority votes cannot be reached.
+- Ensure integration of risk management explicitly across all governance bodies, outlining how risks identified by specialized bodies inform strategic and operational decisions.
+- Clearly define responsibility and oversight for compliance (e.g., GDPR, legal standards) in a dedicated body or role.
 
-Focus *only* on defining these **internal project governance bodies** and their attributes. Ensure the proposed structure is logical. Do **not** generate information about audit procedures, external regulatory interactions (except potentially as context for an internal body's responsibility, e.g., 'Ensure compliance with [External Body] regulations'), implementation plans, etc.
+Define a list named `internal_governance_bodies`, each element strictly adhering to the `InternalGovernanceBody` schema:
 
-Ensure your output strictly adheres to the provided Pydantic schema `DocumentDetails` containing *only* the `internal_governance_bodies` list, where each element follows the `InternalGovernanceBody` schema.
+1. **`name`:** Name of the internal governance body (clear and indicative of its role).
+2. **`rationale_for_inclusion`:** Explicit justification for this body's necessity based on project complexity, scale, and risks.
+3. **`responsibilities`:** Specific, clearly defined tasks and oversight roles.
+4. **`initial_setup_actions`:** Essential initial steps upon the formation of the body (finalizing terms of reference, electing chair, setting schedules).
+5. **`membership`:** Clearly specified internal roles, and explicitly identify external or independent roles where applicable.
+6. **`decision_rights`:** Clearly defined scope and threshold (e.g., budget, strategic decisions) for decision-making authority.
+7. **`decision_mechanism`:** Clearly describe the decision-making process (Consensus, Majority Vote), specifying the explicit mechanism or tie-breaker method.
+8. **`meeting_cadence`:** Meeting frequency clearly reflecting the urgency and importance of the governance body's responsibilities.
+9. **`typical_agenda_items`:** Clearly articulated, recurring agenda items explicitly relevant to the governance body's role.
+10. **`escalation_path`:** Explicit next governance body or senior role for unresolved issues, with clearly defined criteria for escalation.
+
+Your output must strictly adhere to the provided Pydantic schema `DocumentDetails`, containing *only* the `internal_governance_bodies` list following the `InternalGovernanceBody` schema.
 """
+
 
 @dataclass
 class GovernancePhase2Bodies:
