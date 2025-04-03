@@ -30,6 +30,7 @@ from src.governance.governance_full import GovernanceFull
 from src.governance.governance_phase1_audit import GovernancePhase1Audit
 from src.governance.governance_phase2_bodies import GovernancePhase2Bodies
 from src.governance.governance_phase3_impl_plan import GovernancePhase3ImplPlan
+from src.governance.governance_phase4_decision_escalation_matrix import GovernancePhase4DecisionEscalationMatrix
 from src.plan.related_resources import RelatedResources
 from src.swot.swot_analysis import SWOTAnalysis
 from src.expert.expert_finder import ExpertFinder
@@ -823,6 +824,60 @@ class GovernancePhase3ImplPlanTask(PlanTask):
         governance_phase3_impl_plan.save_raw(self.output()['raw'].path)
         governance_phase3_impl_plan.save_markdown(self.output()['markdown'].path)
 
+class GovernancePhase4DecisionEscalationMatrixTask(PlanTask):
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def requires(self):
+        return {
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance_phase2_bodies': GovernancePhase2BodiesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance_phase3_impl_plan': GovernancePhase3ImplPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+
+    def output(self):
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.GOVERNANCE_PHASE4_DECISION_ESCALATION_MATRIX_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.GOVERNANCE_PHASE4_DECISION_ESCALATION_MATRIX_MARKDOWN)))
+        }
+
+    def run(self):
+        # Read inputs from required tasks.  
+        with self.input()['setup'].open("r") as f:
+            plan_prompt = f.read()
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+            consolidate_assumptions_markdown = f.read()
+        with self.input()['project_plan']['raw'].open("r") as f:
+            project_plan_dict = json.load(f)
+        with self.input()['governance_phase2_bodies']['raw'].open("r") as f:
+            governance_phase2_bodies_dict = json.load(f)
+        with self.input()['governance_phase3_impl_plan']['raw'].open("r") as f:
+            governance_phase3_impl_plan_dict = json.load(f)
+
+        # Build the query.
+        query = (
+            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
+            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'governance-phase2-bodies.json':\n{format_json_for_use_in_query(governance_phase2_bodies_dict)}\n\n"
+            f"File 'governance-phase3-impl-plan.json':\n{format_json_for_use_in_query(governance_phase3_impl_plan_dict)}"
+        )
+
+        # Create LLM instance.
+        llm = get_llm(self.llm_model)
+
+        # Execute.
+        try:
+            governance_phase4_decision_escalation_matrix = GovernancePhase4DecisionEscalationMatrix.execute(llm, query)
+        except Exception as e:
+            logger.error("GovernancePhase4DecisionEscalationMatrix failed: %s", e)
+            raise
+
+        # Save the results.
+        governance_phase4_decision_escalation_matrix.save_raw(self.output()['raw'].path)
+        governance_phase4_decision_escalation_matrix.save_markdown(self.output()['markdown'].path)
+
 class GovernanceTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
@@ -833,7 +888,8 @@ class GovernanceTask(PlanTask):
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase1_audit': GovernancePhase1AuditTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase2_bodies': GovernancePhase2BodiesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase3_impl_plan': GovernancePhase3ImplPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'governance_phase3_impl_plan': GovernancePhase3ImplPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance_phase4_decision_escalation_matrix': GovernancePhase4DecisionEscalationMatrixTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
     def output(self):
@@ -856,6 +912,8 @@ class GovernanceTask(PlanTask):
             governance_phase2_bodies_dict = json.load(f)
         with self.input()['governance_phase3_impl_plan']['raw'].open("r") as f:
             governance_phase3_impl_plan_dict = json.load(f)
+        with self.input()['governance_phase4_decision_escalation_matrix']['raw'].open("r") as f:
+            governance_phase4_decision_escalation_matrix_dict = json.load(f)
 
         # Build the query.
         query = (
@@ -864,7 +922,8 @@ class GovernanceTask(PlanTask):
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"File 'governance-phase1-audit.json':\n{format_json_for_use_in_query(governance_phase1_audit_dict)}\n\n"
             f"File 'governance-phase2-bodies.json':\n{format_json_for_use_in_query(governance_phase2_bodies_dict)}\n\n"
-            f"File 'governance-phase3-impl-plan.json':\n{format_json_for_use_in_query(governance_phase3_impl_plan_dict)}"
+            f"File 'governance-phase3-impl-plan.json':\n{format_json_for_use_in_query(governance_phase3_impl_plan_dict)}\n\n"
+            f"File 'governance-phase4-decision-escalation-matrix.json':\n{format_json_for_use_in_query(governance_phase4_decision_escalation_matrix_dict)}"
         )
 
         # Create LLM instance.
@@ -2178,6 +2237,7 @@ class ReportTask(PlanTask):
             'governance_phase1_audit': GovernancePhase1AuditTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase2_bodies': GovernancePhase2BodiesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase3_impl_plan': GovernancePhase3ImplPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance_phase4_decision_escalation_matrix': GovernancePhase4DecisionEscalationMatrixTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance': GovernanceTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -2198,6 +2258,7 @@ class ReportTask(PlanTask):
         rg.append_markdown('Governance Phase 1 Audit', self.input()['governance_phase1_audit']['markdown'].path)
         rg.append_markdown('Governance Phase 2 Bodies', self.input()['governance_phase2_bodies']['markdown'].path)
         rg.append_markdown('Governance Phase 3 Implementation Plan', self.input()['governance_phase3_impl_plan']['markdown'].path)
+        rg.append_markdown('Governance Phase 4 Decision Escalation Matrix', self.input()['governance_phase4_decision_escalation_matrix']['markdown'].path)
         rg.append_markdown('Governance', self.input()['governance']['markdown'].path)
         rg.append_markdown('Related Resources', self.input()['related_resources']['markdown'].path)
         rg.append_markdown('Data Collection', self.input()['data_collection']['markdown'].path)
@@ -2227,6 +2288,7 @@ class FullPlanPipeline(PlanTask):
             'governance_phase1_audit': GovernancePhase1AuditTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase2_bodies': GovernancePhase2BodiesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase3_impl_plan': GovernancePhase3ImplPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance_phase4_decision_escalation_matrix': GovernancePhase4DecisionEscalationMatrixTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance': GovernanceTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
