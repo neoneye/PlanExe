@@ -17,6 +17,9 @@ logger = logging.getLogger(__name__)
 
 class GovernanceBody(BaseModel):
     name: str = Field(description="Name of the governance body.")
+    rationale_for_inclusion: str = Field(
+        description="Brief justification explaining *why* this specific type of governance body (e.g., Steering Committee, PMO, Ethics Committee) is necessary or appropriate for *this particular project*, based on its description, scale, or key challenges."
+    )
     responsibilities: list[str] = Field(description="Key tasks or responsibilities of this body.")
     initial_setup_actions: list[str] = Field(description="Key initial actions this body needs to take upon formation (e.g., 'Finalize Terms of Reference', 'Elect Chair', 'Set meeting schedule').")
     membership: list[str] = Field(description="Roles or titles of individuals in this governance body.")
@@ -32,23 +35,31 @@ class DocumentDetails(BaseModel):
     )
 
 GOVERNANCE_PHASE2_BODIES_SYSTEM_PROMPT = """
-You are an expert in project governance and organizational design. Your task is to analyze the provided project description and propose a suitable structure of governance bodies (committees, working groups, etc.) required to effectively oversee and manage the project.
+You are an expert in project governance and organizational design. Your task is to analyze the provided project description and propose a suitable structure of **distinct internal project governance bodies** required to effectively oversee and manage the project.
 
-Based *only* on the **project description provided by the user**, define a list of `governance_bodies`. For each body, provide the following details:
+**Consider these common types of governance bodies and select/adapt those most appropriate for the described project:**
+*   **Strategic Oversight:** e.g., Project Steering Committee (SteerCo), Project Board. (Provides high-level direction, major approvals).
+*   **Operational Management:** e.g., Project Management Office (PMO), Core Project Team. (Manages day-to-day execution).
+*   **Specialized Advisory/Assurance:** e.g., Technical Advisory Group, Ethics & Compliance Committee, User Advisory Board, Stakeholder Engagement Group. (Provides expert input or specific oversight).
 
-1.  **`name`:** A clear and descriptive name for the governance body (e.g., Steering Committee, Technical Working Group, Project Management Office).
-2.  **`responsibilities`:** List the key tasks, oversight functions, or areas of accountability for this specific body, relevant to the described project.
-3.  **`initial_setup_actions`:** List the essential first steps this body must take upon its formation to become operational (e.g., Finalize Terms of Reference, Elect Chair, Set meeting schedule, Define reporting needs).
-4.  **`membership`:** Specify the key roles or titles of individuals who should be members of this body, ensuring necessary expertise and representation for the project's context.
-5.  **`decision_rights`:** Clearly describe the scope and type of decisions this body is empowered to make (e.g., Strategic approvals, Budget sign-off > £X, Operational prioritization, Technical standard setting).
-6.  **`decision_mechanism`:** Specify how decisions are typically made within this body (e.g., Majority Vote, Consensus, Chair Decision after consultation). Include details on handling tie-breakers or disagreements if applicable.
-7.  **`meeting_cadence`:** Recommend an appropriate frequency for this body's meetings (e.g., Weekly, Monthly, Quarterly, Ad-hoc), considering the project phase and the body's function.
-8.  **`typical_agenda_items`:** List examples of recurring topics or standard items likely to be discussed in this body's regular meetings, reflecting its responsibilities.
-9.  **`escalation_path`:** Define where or to which other body or role issues should be escalated if they exceed this body's authority or cannot be resolved internally.
+**Propose a structure that logically separates strategic oversight from day-to-day operational management.** Avoid creating committees with overlapping core functions unless clearly justified. Ensure the number and type of bodies are appropriate for the project's scale and nature (e.g., smaller projects may only need a SteerCo and a PMO). **Do not define external regulatory bodies (like government authorities) as internal governance bodies.**
 
-Focus *only* on defining these governance bodies and their attributes as listed above. Do **not** generate information about audit procedures, transparency measures, a detailed implementation plan for setting up these bodies, a decision escalation matrix based on scenarios, monitoring progress details, or tough questions. These will be handled separately. Ensure the number and type of bodies proposed are appropriate for the scale and nature of the project described.
+Based *only* on the **project description provided by the user**, define a list of `governance_bodies`. For each body you propose:
 
-Ensure your output strictly adheres to the provided Pydantic schema `DocumentDetails` containing *only* the `governance_bodies` list, where each element follows the `GovernanceBody` schema.
+1.  **`name`:** A clear and descriptive name (e.g., 'Project Steering Committee', 'Operational Project Team (PMO)').
+2.  **`rationale_for_inclusion`:** **Crucially, provide a brief justification explaining *why* this specific type of body is needed for *this project*. Link it to the project's goals, risks, scale, or specific requirements mentioned in the user's description.** (e.g., 'A Steering Committee is needed for strategic sign-offs and sponsor accountability given the £20k budget and external sponsorship goal.', 'An Ethics Committee is needed due to GDPR compliance requirements and community engagement aspects.').
+3.  **`responsibilities`:** List key tasks, ensuring alignment with the body's level and distinction from others.
+4.  **`initial_setup_actions`:** List essential first steps for the body to become operational. Be specific.
+5.  **`membership`:** Specify key roles/titles, ensuring appropriate expertise and avoiding identical small groups across multiple committees.
+6.  **`decision_rights`:** Describe the specific scope and type of decisions this body makes.
+7.  **`decision_mechanism`:** Specify ONE primary method (e.g., Majority Vote, Consensus) and optionally, tie-breakers.
+8.  **`meeting_cadence`:** Recommend a frequency (e.g., Weekly, Monthly).
+9.  **`typical_agenda_items`:** List recurring topics reflecting the body's responsibilities.
+10. **`escalation_path`:** Define the specific next level body or role for unresolved issues, ensuring a logical hierarchy.
+
+Focus *only* on defining these internal project governance bodies and their attributes as listed above. Ensure the proposed structure is logical. Do **not** generate information about audit procedures, external regulatory interactions, implementation plans, etc.
+
+Ensure your output strictly adheres to the provided Pydantic schema `DocumentDetails` containing *only* the `governance_bodies` list, where each element follows the `GovernanceBody` schema, including the new `rationale_for_inclusion` field.
 """
 
 @dataclass
@@ -144,6 +155,7 @@ class GovernancePhase2Bodies:
             if i == 1:
                 rows.append("")
             rows.append(f"\n### {i}. {body.name}")
+            rows.append(f"\n**Rationale for Inclusion:** {body.rationale_for_inclusion}")
             rows.append(f"\n**Responsibilities:**")
             for resp in body.responsibilities:
                 rows.append(f"- {resp}")
