@@ -3,6 +3,9 @@ Monitoring Progress
 
 To define how project progress (especially concerning governance effectiveness and overall health) is tracked and how accountability is maintained.
 
+Gemini 2.5's opinion about llama 3.1:
+"it appears Llama 3.1 is not suitable for Monitoring Progress. The conceptual errors are too significant."
+
 PROMPT> python -m src.governance.governance_phase5_monitoring_progress
 """
 import os
