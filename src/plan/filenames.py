@@ -35,6 +35,7 @@ class FilenameEnum(str, Enum):
     GOVERNANCE_PHASE5_MONITORING_PROGRESS_MARKDOWN = "005-12-governance_phase5_monitoring_progress.md"
     GOVERNANCE_PHASE6_EXTRA_RAW = "005-13-governance_phase6_extra_raw.json"
     GOVERNANCE_PHASE6_EXTRA_MARKDOWN = "005-14-governance_phase6_extra.md"
+    CONSOLIDATE_GOVERNANCE_MARKDOWN = "005-15-consolidate_governance.md"
     RELATED_RESOURCES_RAW = "005-5-related_resources_raw.json"
     RELATED_RESOURCES_MARKDOWN = "005-6-related_resources.md"
     FIND_TEAM_MEMBERS_RAW = "006-1-find_team_members_raw.json"

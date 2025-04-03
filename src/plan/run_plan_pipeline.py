@@ -1003,6 +1003,50 @@ class GovernancePhase6ExtraTask(PlanTask):
         governance_phase6_extra.save_raw(self.output()['raw'].path)
         governance_phase6_extra.save_markdown(self.output()['markdown'].path)
 
+class ConsolidateGovernanceTask(PlanTask):
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def requires(self):
+        return {
+            'governance_phase1_audit': GovernancePhase1AuditTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance_phase2_bodies': GovernancePhase2BodiesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance_phase3_impl_plan': GovernancePhase3ImplPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance_phase4_decision_escalation_matrix': GovernancePhase4DecisionEscalationMatrixTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance_phase5_monitoring_progress': GovernancePhase5MonitoringProgressTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance_phase6_extra': GovernancePhase6ExtraTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+
+    def output(self):
+        return luigi.LocalTarget(str(self.file_path(FilenameEnum.CONSOLIDATE_GOVERNANCE_MARKDOWN)))
+
+    def run(self):
+        # Read inputs from required tasks.
+        with self.input()['governance_phase1_audit']['markdown'].open("r") as f:
+            governance_phase1_audit_markdown = f.read()
+        with self.input()['governance_phase2_bodies']['markdown'].open("r") as f:
+            governance_phase2_bodies_markdown = f.read()
+        with self.input()['governance_phase3_impl_plan']['markdown'].open("r") as f:
+            governance_phase3_impl_plan_markdown = f.read()
+        with self.input()['governance_phase4_decision_escalation_matrix']['markdown'].open("r") as f:
+            governance_phase4_decision_escalation_matrix_markdown = f.read()
+        with self.input()['governance_phase5_monitoring_progress']['markdown'].open("r") as f:
+            governance_phase5_monitoring_progress_markdown = f.read()
+        with self.input()['governance_phase6_extra']['markdown'].open("r") as f:
+            governance_phase6_extra_markdown = f.read()
+
+        # Build the document.
+        markdown = []
+        markdown.append(f"# Governance Audit\n\n{governance_phase1_audit_markdown}")
+        markdown.append(f"# Internal Governance Bodies\n\n{governance_phase2_bodies_markdown}")
+        markdown.append(f"# Governance Implementation Plan\n\n{governance_phase3_impl_plan_markdown}")
+        markdown.append(f"# Decision Escalation Matrix\n\n{governance_phase4_decision_escalation_matrix_markdown}")
+        markdown.append(f"# Monitoring Progress\n\n{governance_phase5_monitoring_progress_markdown}")
+        markdown.append(f"# Governance Extra\n\n{governance_phase6_extra_markdown}")
+
+        content = "\n\n".join(markdown)
+
+        with self.output().open("w") as f:
+            f.write(content)
 
 class RelatedResourcesTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
@@ -2297,12 +2341,7 @@ class ReportTask(PlanTask):
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase1_audit': GovernancePhase1AuditTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase2_bodies': GovernancePhase2BodiesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase3_impl_plan': GovernancePhase3ImplPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase4_decision_escalation_matrix': GovernancePhase4DecisionEscalationMatrixTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase5_monitoring_progress': GovernancePhase5MonitoringProgressTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase6_extra': GovernancePhase6ExtraTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'consolidate_governance': ConsolidateGovernanceTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -2319,12 +2358,7 @@ class ReportTask(PlanTask):
         rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
         rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
         rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown']['full'].path)
-        rg.append_markdown('Governance Phase 1 Audit', self.input()['governance_phase1_audit']['markdown'].path)
-        rg.append_markdown('Governance Phase 2 Bodies', self.input()['governance_phase2_bodies']['markdown'].path)
-        rg.append_markdown('Governance Phase 3 Implementation Plan', self.input()['governance_phase3_impl_plan']['markdown'].path)
-        rg.append_markdown('Governance Phase 4 Decision Escalation Matrix', self.input()['governance_phase4_decision_escalation_matrix']['markdown'].path)
-        rg.append_markdown('Governance Phase 5 Monitoring Progress', self.input()['governance_phase5_monitoring_progress']['markdown'].path)
-        rg.append_markdown('Governance Phase 6 Extra', self.input()['governance_phase6_extra']['markdown'].path)
+        rg.append_markdown('Governance', self.input()['consolidate_governance'].path)
         rg.append_markdown('Related Resources', self.input()['related_resources']['markdown'].path)
         rg.append_markdown('Data Collection', self.input()['data_collection']['markdown'].path)
         rg.append_markdown('SWOT Analysis', self.input()['swot_analysis']['markdown'].path)
@@ -2356,6 +2390,7 @@ class FullPlanPipeline(PlanTask):
             'governance_phase4_decision_escalation_matrix': GovernancePhase4DecisionEscalationMatrixTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase5_monitoring_progress': GovernancePhase5MonitoringProgressTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase6_extra': GovernancePhase6ExtraTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'consolidate_governance': ConsolidateGovernanceTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_contract_type': EnrichTeamMembersWithContractTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
