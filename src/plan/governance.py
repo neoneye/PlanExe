@@ -38,24 +38,15 @@ class AuditDetails(BaseModel):
     )
 
 class GovernanceBody(BaseModel):
-    name: str = Field(
-        description="Name of the governance body (e.g., Steering Committee)."
-    )
-    responsibilities: list[str] = Field(
-        description="Key tasks or responsibilities of this body (e.g., high-level oversight)."
-    )
-    membership: list[str] = Field(
-        description="Roles or titles of individuals in this governance body (e.g., CFO, Program Director)."
-    )
-    decision_rights: str = Field(
-        description="Explain the type and scope of decisions this body can make (e.g., strategic approvals, budget sign-off)."
-    )
-    meeting_cadence: str = Field(
-        description="How often this body meets (e.g., monthly)."
-    )
-    escalation_path: str = Field(
-        description="If issues exceed this body's authority, where or to whom do they escalate?"
-    )
+    name: str = Field(description="Name of the governance body.")
+    responsibilities: list[str] = Field(description="Key tasks or responsibilities of this body.")
+    initial_setup_actions: list[str] = Field(description="Key initial actions this body needs to take upon formation (e.g., 'Finalize Terms of Reference', 'Elect Chair', 'Set meeting schedule').")
+    membership: list[str] = Field(description="Roles or titles of individuals in this governance body.")
+    decision_rights: str = Field(description="Type and scope of decisions this body can make.")
+    decision_mechanism: str = Field(description="How decisions are typically made (e.g., 'Majority Vote', 'Consensus', 'Chair Decision'). Specify tie-breaker if applicable.")
+    meeting_cadence: str = Field(description="How often this body meets.")
+    typical_agenda_items: list[str] = Field(description="Example recurring items for this body's meetings.")
+    escalation_path: str = Field(description="Where or to whom issues exceeding authority are escalated.")
 
 class DecisionEscalation(BaseModel):
     issue_type: str = Field(
@@ -74,19 +65,21 @@ class DecisionEscalation(BaseModel):
         description="Describes the potential adverse outcomes or risks if this issue remains unresolved or is not escalated in a timely manner."
     )
 
+
+class ImplementationStep(BaseModel):
+    step_description: str = Field(description="Specific action required to set up or implement a governance component (e.g., 'Draft Steering Committee ToR', 'Select External Auditor').")
+    responsible_body_or_role: str = Field(description="The committee or role primarily responsible for executing or overseeing this step.")
+    suggested_timeframe: str = Field(description="A suggested target for completing this step, relative to project start (e.g., 'Within 1 week of kickoff', 'By end of Month 1', 'Ongoing Quarterly').")
+    key_outputs_deliverables: list[str] = Field(description="Tangible outputs resulting from this step (e.g., 'Approved Terms of Reference', 'Signed Audit Contract', 'Published Dashboard').")
+    dependencies: list[str] = Field(description="Prerequisite steps or decisions needed before this step can be effectively started or completed.")
+
 class MonitoringProgress(BaseModel):
-    approach: str = Field(
-        description="General approach to monitoring progress (e.g., KPI tracking, data dashboards)."
-    )
-    frequency: str = Field(
-        description="How often progress is reviewed (e.g., weekly project reports, monthly progress reviews)."
-    )
-    responsible_role: str = Field(
-        description="Role or group responsible for collecting/analyzing data (e.g., Program Management Office)."
-    )
-    adaptation_process: str = Field(
-        description="How plan changes are made once data shows a need (e.g., formal change-request process)."
-    )
+    approach: str = Field(description="General approach to monitoring progress.")
+    monitoring_tools_platforms: list[str] = Field(description="Specific tools or platforms used for monitoring (e.g., 'Asana dashboard', 'Shared KPI Spreadsheet', 'Monthly Report Template').")
+    frequency: str = Field(description="How often progress is reviewed.")
+    responsible_role: str = Field(description="Role or group responsible for collecting/analyzing data.")
+    adaptation_process: str = Field(description="How plan changes are made based on monitoring data.")
+    adaptation_trigger: str = Field(description="What specifically triggers the adaptation process (e.g., 'KPI deviation > 10%', 'Steering Committee review').")
 
 class DocumentDetails(BaseModel):
     audit_details: AuditDetails = Field(
@@ -94,6 +87,9 @@ class DocumentDetails(BaseModel):
     )
     governance_bodies: list[GovernanceBody] = Field(
         description="List of all governance bodies with roles, responsibilities, and membership."
+    )
+    governance_implementation_plan: list[ImplementationStep] = Field(
+        description="Actionable steps required to establish and operationalize the described governance framework."
     )
     decision_escalation_matrix: list[DecisionEscalation] = Field(
         description="Clear escalation paths for various issues."
@@ -112,45 +108,52 @@ GOVERNANCE_SYSTEM_PROMPT = """
 You are a governance and project management expert. Your role is to analyze project plans and provide detailed recommendations for establishing robust governance frameworks. Focus on:
 
 1. GOVERNANCE STRUCTURE
-- Recommend clear roles and responsibilities
-- Define reporting lines and accountability measures
-- Outline key governance bodies (steering committees, working groups, etc.)
+ - Recommend clear roles and responsibilities
+ - Define reporting lines and accountability measures
+ - Outline key governance bodies (steering committees, working groups, etc.)
+ - For each body, specify key **initial setup actions** required upon formation.
 
 2. DECISION-MAKING PROCESSES
-- Establish clear decision rights and delegation frameworks
-- Define escalation paths for different types of issues
-- Outline approval processes for key decisions
-- Indicate whether each governance body makes decisions by consensus, majority vote, or other mechanisms.
-- Specify how tie-breakers or disagreements are handled.
+ - Establish clear decision rights and delegation frameworks
+ - Define escalation paths for different types of issues
+ - Outline approval processes for key decisions
+ - Indicate whether each governance body makes decisions by consensus, majority vote, or other mechanisms. **Specify the primary `decision_mechanism` and how tie-breakers or disagreements are handled.**
+ - Provide example agenda items for each governance body's regular meetings (e.g., progress review, budget status, risk discussion). **List these as `typical_agenda_items`.**
+ - Outline how meeting outputs (decisions, actions) are documented and shared.
 
 3. MEETING CADENCE & OVERSIGHT
-- Recommend appropriate meeting frequency for different governance bodies
-- Define standard agenda items and review cycles
-- Outline monitoring and reporting requirements
-- Provide example agenda items for each governance body’s regular meetings (e.g., progress review, budget status, risk discussion).
-- Outline how meeting outputs (decisions, actions) are documented and shared.
+ - Recommend appropriate meeting frequency for different governance bodies
+ - Define standard agenda items and review cycles
+ - Outline monitoring and reporting requirements
 
 4. RISK MANAGEMENT & CONTROLS
-- Identify potential governance risks and mitigation strategies
-- Recommend control mechanisms and audit procedures
-- Outline transparency and stakeholder communication approaches
-- Identify how each governance body will interact with local stakeholders in each participating country.
-- Provide sample standard agenda items for Steering Committee vs. PMO vs. Ethics & Compliance meetings.
-- Elaborate on procedures to measure governance effectiveness (e.g., periodic governance reviews, stakeholder surveys).
-- Suggest a mechanism for rotating membership or leadership roles to avoid stagnation or conflicts of interest.
-- Outline how local stakeholder groups should coordinate with national governments and the PMO.
-- Recommend how community members are selected or rotated to ensure representation and continuity.
-- Provide additional detail on how the Ethics & Compliance Committee coordinates with local groups to address moral or social concerns.
-- Suggest how to measure environmental impacts under the program’s sustainability standards.
+ - Identify potential governance risks and mitigation strategies
+ - Recommend control mechanisms and audit procedures
+ - Outline transparency and stakeholder communication approaches
+ - Identify how each governance body will interact with local stakeholders in each participating country.
+ - Provide sample standard agenda items for Steering Committee vs. PMO vs. Ethics & Compliance meetings.
+ - Elaborate on procedures to measure governance effectiveness (e.g., periodic governance reviews, stakeholder surveys).
+ - Suggest a mechanism for rotating membership or leadership roles to avoid stagnation or conflicts of interest.
+ - Outline how local stakeholder groups should coordinate with national governments and the PMO.
+ - Recommend how community members are selected or rotated to ensure representation and continuity.
+ - Provide additional detail on how the Ethics & Compliance Committee coordinates with local groups to address moral or social concerns.
+ - Suggest how to measure environmental impacts under the program's sustainability standards.
+ - Where relevant, suggest specific **`monitoring_tools_platforms`** (e.g., specific software, templates) to support monitoring.
+ - Define clear **`adaptation_trigger`** points for plan changes based on monitoring.
 
 5. CONTINUOUS IMPROVEMENT
-- Suggest mechanisms for governance framework review
-- Outline processes for incorporating lessons learned
-- Recommend metrics for measuring governance effectiveness
-- Describe the workflow of a change request from identification to approval.
-- Outline how change requests are documented, analyzed for impact, and tracked in the project plan.
+ - Suggest mechanisms for governance framework review
+ - Outline processes for incorporating lessons learned
+ - Recommend metrics for measuring governance effectiveness
+ - Describe the workflow of a change request from identification to approval.
+ - Outline how change requests are documented, analyzed for impact, and tracked in the project plan.
 
-Analyze the provided project description and provide specific, actionable recommendations for each of these areas. Focus on practical, implementable solutions that balance oversight with operational efficiency.
+6. IMPLEMENTATION PLAN
+ - **Crucially, generate a `governance_implementation_plan`. This should be a list of specific, actionable steps required to set up the governance framework you are recommending.**
+ - For each step (`ImplementationStep`), define the `step_description`, the `responsible_body_or_role`, a `suggested_timeframe` (relative to project start, e.g., 'Week 1', 'Month 1'), any critical `dependencies`, and the tangible `key_outputs_deliverables`.
+ - Ensure this plan covers the formation of committees, establishment of procedures (audit, communication), and setup of tools (dashboards, reporting templates).
+
+Analyze the provided project description and provide specific, actionable recommendations for each of these areas. Focus on practical, implementable solutions that balance oversight with operational efficiency. Ensure the output strictly adheres to the Pydantic schema provided.
 """
 
 @dataclass
@@ -269,13 +272,40 @@ class Governance:
             for resp in body.responsibilities:
                 rows.append(f"- {resp}")
                 
+            rows.append(f"\n**Initial Setup Actions:**")
+            for action in body.initial_setup_actions:
+                rows.append(f"- {action}")
+                
             rows.append(f"\n**Membership:**")
             for member in body.membership:
                 rows.append(f"- {member}")
                 
             rows.append(f"\n**Decision Rights:** {body.decision_rights}")
+            rows.append(f"\n**Decision Mechanism:** {body.decision_mechanism}")
             rows.append(f"\n**Meeting Cadence:** {body.meeting_cadence}")
+            
+            rows.append(f"\n**Typical Agenda Items:**")
+            for item in body.typical_agenda_items:
+                rows.append(f"- {item}")
+                
             rows.append(f"\n**Escalation Path:** {body.escalation_path}")
+        
+        # Add governance implementation plan section
+        rows.append("\n## Governance Implementation Plan")
+        for i, step in enumerate(document_details.governance_implementation_plan, 1):
+            if i == 1:
+                rows.append("")
+            rows.append(f"\n### {i}. {step.step_description}")
+            rows.append(f"\n**Responsible Body/Role:** {step.responsible_body_or_role}")
+            rows.append(f"\n**Suggested Timeframe:** {step.suggested_timeframe}")
+            
+            rows.append(f"\n**Key Outputs/Deliverables:**")
+            for output in step.key_outputs_deliverables:
+                rows.append(f"- {output}")
+                
+            rows.append(f"\n**Dependencies:**")
+            for dependency in step.dependencies:
+                rows.append(f"- {dependency}")
         
         # Add decision escalation matrix section
         rows.append("\n## Decision Escalation Matrix")
@@ -294,9 +324,13 @@ class Governance:
             if i == 1:
                 rows.append("")
             rows.append(f"\n### {i}. {monitoring.approach}")
+            rows.append(f"\n**Monitoring Tools/Platforms:**")
+            for tool in monitoring.monitoring_tools_platforms:
+                rows.append(f"- {tool}")
             rows.append(f"\n**Frequency:** {monitoring.frequency}")
             rows.append(f"\n**Responsible Role:** {monitoring.responsible_role}")
             rows.append(f"\n**Adaptation Process:** {monitoring.adaptation_process}")
+            rows.append(f"\n**Adaptation Trigger:** {monitoring.adaptation_trigger}")
         
         # Add tough questions section
         rows.append("\n## Tough Questions")
