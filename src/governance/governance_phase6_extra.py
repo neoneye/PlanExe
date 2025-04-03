@@ -44,23 +44,21 @@ You are an expert in project governance quality assurance, risk management, and 
     *   **Point 1: Completeness Confirmation:** State clearly if all core requested components appear generated.
     *   **Point 2: Internal Consistency Check:** Verify logical alignment between stages (e.g., Implementation Plan uses correct bodies, Escalation Matrix follows hierarchy, Monitoring roles exist). Briefly confirm consistency or note specific discrepancies found.
     *   **Point 3: Potential Gaps / Areas for Enhancement:** Critically review the *details* within the generated components. **Identify specific, nuanced gaps or areas where more detail, process definition, or clarification would significantly strengthen the framework.** Examples of areas to scrutinize:
-        *   *Clarity of roles:* Are responsibilities of advisors or independent members clearly defined?
-        *   *Process Depth:* Are key processes (like conflict of interest management, whistleblower investigation, change control) sufficiently detailed or just mentioned?
-        *   *Thresholds/Delegation:* Is delegated authority clear beyond just the main SteerCo/PMO split? Could tactical decisions be delegated further with clear parameters?
-        *   *Integration:* Are related components well-integrated (e.g., audit procedures linked to monitoring or E&C responsibilities)?
-        *   *Specificity:* Are any parts too vague (e.g., escalation paths, adaptation triggers)?
+        *   *Clarity of roles:* Are responsibilities and expected contributions of **all members, especially advisors or independent roles,** clearly defined? Is the role/authority of the ultimate **Project Sponsor** clear within the structure?
+        *   *Process Depth:* Are key operational or ethical processes (like **conflict of interest management, whistleblower investigation, change control, stakeholder communication protocols**) sufficiently detailed or just mentioned at a high level?
+        *   *Thresholds/Delegation:* Is delegated authority clear and practical? Are there opportunities for **more granular delegation** below the main committee levels (e.g., for specific coordinators) with defined parameters?
+        *   *Integration:* Are related components well-integrated (e.g., audit procedures linked to monitoring or E&C responsibilities)? Is the flow of information between committees clear?
+        *   *Specificity:* Are any parts too vague (e.g., **escalation path endpoints like 'Senior Management'**, adaptation triggers, membership criteria)?
         **Aim for at least 3-5 specific points identifying areas needing more detail or clarification.**
 
 2.  **`tough_questions`:**
-    *   Generate **at least 7 critical, probing questions** for leadership/governance bodies.
-    *   **Focus on questions demanding specific data, evidence, forecasts, contingency plans, or verification of processes.** Frame them to challenge assumptions and ensure proactive management.
-    *   Link questions directly to the project's critical success factors (budget, sponsorship, deadlines), key risks (venue, speakers, GDPR), compliance, and stakeholder management identified in the overall context.
-    *   **Examples of desired style:** 'What is the current probability-weighted forecast for [Critical Target]?', 'Show evidence of [Compliance Action] verification.', 'What are the specific trigger points for activating Contingency Plan B for [Key Risk]?', 'How does the latest [Data Source, e.g., attendee survey] trend compare to the target for [Metric]?'.
+    *   Generate **at least 7 critical, probing questions** demanding specific data, evidence, forecasts, contingency plans, or verification of processes. Frame them to challenge assumptions and ensure proactive management. Link questions directly to the project's critical factors, risks, and compliance needs.
+    *   *(Provide specific examples here if desired, e.g., 'What is the current probability-weighted forecast for [Critical Target]?', 'Show evidence of [Compliance Action] verification.', etc.)*
 
 3.  **`summary`:**
-    *   Write a brief, high-level concluding paragraph summarizing the overall governance approach and its key strengths or focus areas (e.g., structure, monitoring, compliance focus).
+    *   Write a brief, high-level concluding paragraph summarizing the overall governance approach and its key strengths or focus areas.
 
-Focus *only* on generating `governance_validation_checks`, `tough_questions`, and `summary`. Base validation and questions on the governance details provided.
+Focus *only* on generating `governance_validation_checks`, `tough_questions`, and `summary`. Base your validation and questions on the governance details provided.
 
 Ensure your output strictly adheres to the provided Pydantic schema `DocumentDetails` containing *only* `governance_validation_checks`, `tough_questions`, and `summary`.
 """
