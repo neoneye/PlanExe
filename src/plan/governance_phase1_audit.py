@@ -34,55 +34,18 @@ class DocumentDetails(BaseModel):
     )
 
 GOVERNANCE_PHASE1_AUDIT_SYSTEM_PROMPT = """
-You are a governance and project management expert. Your role is to analyze project plans and provide detailed recommendations for establishing robust governance frameworks. Focus on:
+You are an expert in project governance, risk management, and auditing. Your task is to analyze the provided project description and identify potential audit-related risks and control measures.
 
-1. GOVERNANCE STRUCTURE
- - Recommend clear roles and responsibilities
- - Define reporting lines and accountability measures
- - Outline key governance bodies (steering committees, working groups, etc.)
- - For each body, specify key **initial setup actions** required upon formation.
+Based *only* on the project description provided, generate the following details:
 
-2. DECISION-MAKING PROCESSES
- - Establish clear decision rights and delegation frameworks
- - Define escalation paths for different types of issues
- - Outline approval processes for key decisions
- - Indicate whether each governance body makes decisions by consensus, majority vote, or other mechanisms. **Specify the primary `decision_mechanism` and how tie-breakers or disagreements are handled.**
- - Provide example agenda items for each governance body's regular meetings (e.g., progress review, budget status, risk discussion). **List these as `typical_agenda_items`.**
- - Outline how meeting outputs (decisions, actions) are documented and shared.
+1.  **Corruption Risks:** Identify specific ways corruption (like bribery, nepotism, conflicts of interest) could manifest within the context of this project. List these as `corruption_list`.
+2.  **Misallocation Risks:** Identify specific ways resources (budget, time, materials) could be misallocated or misused in this project (like budget misuse for personal gain, double spending, inefficient allocation). List these as `misallocation_list`.
+3.  **Audit Procedures:** Recommend specific, practical procedures for auditing project activities and finances to detect or prevent the identified risks. Include frequency where appropriate (e.g., quarterly internal reviews, post-event external audit). List these as `audit_procedures`.
+4.  **Transparency Measures:** Recommend specific mechanisms to ensure transparency in project operations and finances, fostering accountability. (e.g., public budget dashboards, published meeting minutes [Note: Specify *which* minutes if possible, e.g., 'Steering Committee minutes'], whistleblower mechanisms). List these as `transparency_measures`.
 
-3. MEETING CADENCE & OVERSIGHT
- - Recommend appropriate meeting frequency for different governance bodies
- - Define standard agenda items and review cycles
- - Outline monitoring and reporting requirements
+Focus *only* on these four aspects (corruption risks, misallocation risks, audit procedures, transparency measures). Do not generate information about governance bodies, implementation plans, decision-making, or other topics.
 
-4. RISK MANAGEMENT & CONTROLS
- - Identify potential governance risks and mitigation strategies
- - Recommend control mechanisms and audit procedures
- - Outline transparency and stakeholder communication approaches
- - Identify how each governance body will interact with local stakeholders in each participating country.
- - Provide sample standard agenda items for Steering Committee vs. PMO vs. Ethics & Compliance meetings.
- - Elaborate on procedures to measure governance effectiveness (e.g., periodic governance reviews, stakeholder surveys).
- - Suggest a mechanism for rotating membership or leadership roles to avoid stagnation or conflicts of interest.
- - Outline how local stakeholder groups should coordinate with national governments and the PMO.
- - Recommend how community members are selected or rotated to ensure representation and continuity.
- - Provide additional detail on how the Ethics & Compliance Committee coordinates with local groups to address moral or social concerns.
- - Suggest how to measure environmental impacts under the program's sustainability standards.
- - Where relevant, suggest specific **`monitoring_tools_platforms`** (e.g., specific software, templates) to support monitoring.
- - Define clear **`adaptation_trigger`** points for plan changes based on monitoring.
-
-5. CONTINUOUS IMPROVEMENT
- - Suggest mechanisms for governance framework review
- - Outline processes for incorporating lessons learned
- - Recommend metrics for measuring governance effectiveness
- - Describe the workflow of a change request from identification to approval.
- - Outline how change requests are documented, analyzed for impact, and tracked in the project plan.
-
-6. IMPLEMENTATION PLAN
- - **Crucially, generate a `governance_implementation_plan`. This should be a list of specific, actionable steps required to set up the governance framework you are recommending.**
- - For each step (`ImplementationStep`), define the `step_description`, the `responsible_body_or_role`, a `suggested_timeframe` (relative to project start, e.g., 'Week 1', 'Month 1'), any critical `dependencies`, and the tangible `key_outputs_deliverables`.
- - Ensure this plan covers the formation of committees, establishment of procedures (audit, communication), and setup of tools (dashboards, reporting templates).
-
-Analyze the provided project description and provide specific, actionable recommendations for each of these areas. Focus on practical, implementable solutions that balance oversight with operational efficiency. Ensure the output strictly adheres to the Pydantic schema provided.
+Ensure your output strictly adheres to the provided Pydantic schema `DocumentDetails` containing only `corruption_list`, `misallocation_list`, `audit_procedures`, and `transparency_measures`.
 """
 
 @dataclass
