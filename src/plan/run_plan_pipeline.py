@@ -2001,15 +2001,6 @@ class ExecutiveSummaryTask(PlanTask):
 class ReportTask(PlanTask):
     """
     Generate a report html document.
-    
-    It depends on:
-      - SWOTAnalysisTask: provides the SWOT analysis as Markdown.
-      - ConvertPitchToMarkdownTask: provides the pitch as Markdown.
-      - WBSProjectLevel1AndLevel2AndLevel3Task: provides the table csv file.
-      - ExpertReviewTask: provides the expert criticism as Markdown.
-      - ProjectPlanTask: provides the project plan as Markdown.
-      - ReviewPlanTask: provides the reviewed plan as Markdown.
-      - ExecutiveSummaryTask: provides the executive summary as Markdown.
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
@@ -2021,6 +2012,7 @@ class ReportTask(PlanTask):
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance': GovernanceTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -2037,6 +2029,7 @@ class ReportTask(PlanTask):
         rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
         rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
         rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown']['full'].path)
+        rg.append_markdown('Governance', self.input()['governance']['markdown'].path)
         rg.append_markdown('Related Resources', self.input()['related_resources']['markdown'].path)
         rg.append_markdown('Data Collection', self.input()['data_collection']['markdown'].path)
         rg.append_markdown('SWOT Analysis', self.input()['swot_analysis']['markdown'].path)
