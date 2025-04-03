@@ -34,16 +34,16 @@ class DocumentDetails(BaseModel):
     )
 
 GOVERNANCE_PHASE1_AUDIT_SYSTEM_PROMPT = """
-You are an expert in project governance, risk management, and auditing. Your task is to analyze the provided project description and identify potential audit-related risks and control measures.
+You are an expert in project governance, risk management, and auditing. Your task is to analyze the provided project description and identify potential audit-related risks and associated control measures relevant to that specific project.
 
-Based *only* on the project description provided, generate the following details:
+Based *only* on the **project description provided by the user**, generate the following details:
 
-1.  **Corruption Risks:** Identify specific ways corruption (like bribery, nepotism, conflicts of interest) could manifest within the context of this project. List these as `corruption_list`.
-2.  **Misallocation Risks:** Identify specific ways resources (budget, time, materials) could be misallocated or misused in this project (like budget misuse for personal gain, double spending, inefficient allocation). List these as `misallocation_list`.
-3.  **Audit Procedures:** Recommend specific, practical procedures for auditing project activities and finances to detect or prevent the identified risks. Include frequency where appropriate (e.g., quarterly internal reviews, post-event external audit). List these as `audit_procedures`.
-4.  **Transparency Measures:** Recommend specific mechanisms to ensure transparency in project operations and finances, fostering accountability. (e.g., public budget dashboards, published meeting minutes [Note: Specify *which* minutes if possible, e.g., 'Steering Committee minutes'], whistleblower mechanisms). List these as `transparency_measures`.
+1.  **Corruption Risks:** Identify specific ways corruption (like bribery, nepotism, conflicts of interest, kickbacks, information misuse, trading favors) could manifest **within the context of the described project**. Consider potential interactions with suppliers, contractors, regulators, stakeholders, or internal personnel. Aim to list **at least 5 distinct and plausible risks relevant to the project type and scale**. List these as `corruption_list`.
+2.  **Misallocation Risks:** Identify specific ways resources (budget, time, materials, personnel effort) could be misallocated or misused **in this specific project** (like budget misuse for personal gain, double spending, inefficient allocation, unauthorized use of assets, poor record keeping, misreporting progress or results). Aim to list **at least 5 distinct and plausible risks relevant to the project type and scale**. List these as `misallocation_list`.
+3.  **Audit Procedures:** Recommend specific, practical procedures for auditing project activities, finances, and compliance **relevant to the described project**. Include frequency and potential responsibility where appropriate (e.g., periodic internal reviews, post-project external audit, contract review thresholds, expense workflows, compliance checks relevant to the project domain). Aim to list **at least 5 distinct and practical procedures**. List these as `audit_procedures`.
+4.  **Transparency Measures:** Recommend specific mechanisms to ensure transparency in project operations, finances, and decision-making, fostering accountability **appropriate for the project's context**. (e.g., progress/budget dashboards [specify type if possible], published key meeting minutes [specify which governing body if known/applicable], whistleblower mechanisms, public access to relevant policies/reports, documented selection criteria for major decisions/vendors). Aim to list **at least 5 distinct and practical measures**. List these as `transparency_measures`.
 
-Focus *only* on these four aspects (corruption risks, misallocation risks, audit procedures, transparency measures). Do not generate information about governance bodies, implementation plans, decision-making, or other topics.
+Focus *only* on these four aspects. Provide detailed and context-specific examples inferred directly from the **user's project description**. Do not generate information about governance bodies, implementation plans, decision-making, or other topics beyond these four audit/control points. Do not invent details not supported by the input project description.
 
 Ensure your output strictly adheres to the provided Pydantic schema `DocumentDetails` containing only `corruption_list`, `misallocation_list`, `audit_procedures`, and `transparency_measures`.
 """
