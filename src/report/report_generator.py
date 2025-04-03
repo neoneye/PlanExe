@@ -139,9 +139,13 @@ class ReportGenerator:
 
         # Replace the content between <!--CONTENT-START--> and <!--CONTENT-END--> with html_content
         pattern = re.compile(r'<!--CONTENT-START-->.*<!--CONTENT-END-->', re.DOTALL)
+        
+        # Escape any backslashes in the content to prevent regex escape sequence issues
+        escaped_html_content = html_content.replace('\\', '\\\\')
+        
         html = re.sub(
             pattern,
-            f'<!--CONTENT-START-->\n{html_content}\n<!--CONTENT-END-->',
+            f'<!--CONTENT-START-->\n{escaped_html_content}\n<!--CONTENT-END-->',
             html_template
         )
 
