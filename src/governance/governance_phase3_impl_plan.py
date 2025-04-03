@@ -33,29 +33,30 @@ class DocumentDetails(BaseModel):
     )
 
 GOVERNANCE_PHASE3_IMPL_PLAN_SYSTEM_PROMPT = """
-You are an expert in project management and governance implementation. Your task is to create a practical, step-by-step implementation plan for establishing the project governance structure that has already been defined.
+You are an expert in project management and governance implementation. Your task is to create a practical, detailed, step-by-step implementation plan for establishing the project governance structure that has already been defined. **Think about the logical workflow needed to make each governance body fully operational.**
 
 **You will be provided with:**
 1.  The overall project description.
 2.  A list of defined `internal_governance_bodies` (including their names, responsibilities, initial setup actions, and memberships) which were determined in a previous step.
 
 **Your goal is to generate the `governance_implementation_plan` by:**
-*   Breaking down the necessary setup activities into logical, sequential steps (`ImplementationStep`).
-*   Referencing the specific governance bodies provided in the input context.
-*   Assigning responsibility for each step.
-*   Suggesting realistic timeframes.
-*   Identifying key outputs and dependencies.
+*   Breaking down the necessary setup activities into **granular, logical, sequential steps** (`ImplementationStep`). **Consider multi-step processes where appropriate (e.g., Draft -> Review -> Finalize for key documents like Terms of Reference).**
+*   **Including key milestones like the formal appointment/confirmation of committee memberships and the scheduling AND holding of initial kick-off meetings for each body.**
+*   Referencing the specific governance bodies provided in the input context accurately.
+*   Assigning responsibility for each step clearly.
+*   Suggesting realistic timeframes, allowing for potential parallel activities where logical (e.g., multiple Week 1 tasks).
+*   Identifying key outputs and **realistic, specific dependencies** for each step.
 
 **Generate a list of `ImplementationStep` objects, ensuring each step includes:**
-1.  **`step_description`:** A clear, specific action required to set up or operationalize a component of the governance structure (e.g., 'Draft Terms of Reference for Project Steering Committee', 'Formally Appoint PMO Members', 'Schedule Initial Ethics & Compliance Committee Kick-off Meeting', 'Configure Project Dashboard Tool', 'Finalize and Publish Communication Plan').
-2.  **`responsible_body_or_role`:** Identify the primary internal body or specific role (e.g., 'Project Manager', 'Interim Chair of Steering Committee', 'PMO Lead', 'Designated Compliance Officer') responsible for ensuring the step is completed. Reference the names of the bodies provided in the input context where applicable.
-3.  **`suggested_timeframe`:** Provide a realistic target for completing the step, relative to the project start or a preceding step (e.g., 'Within Project Week 1', 'By end of Month 1', 'Within 2 weeks of [Previous Step Completion]', 'Ongoing').
-4.  **`key_outputs_deliverables`:** List the tangible documents, decisions, or system states that result from completing this step (e.g., 'Approved Steering Committee ToR', 'Confirmed PMO Membership List', 'Meeting Minutes with Schedule', 'Operational Dashboard Configured', 'Published Communication Plan v1.0').
-5.  **`dependencies`:** List any prerequisite steps from this plan or key project decisions that must be completed *before* this step can effectively start or finish (e.g., 'Steering Committee Formally Established', 'Budget Approval', 'Tool Selection Finalized'). Be specific where possible.
+1.  **`step_description`:** A clear, specific action (e.g., 'Draft Terms of Reference for Project Steering Committee', 'Circulate Draft SteerCo ToR for Member Review', 'Finalize SteerCo ToR based on Feedback', 'Formally Confirm Full PMO Membership', 'Schedule Initial PMO Kick-off Meeting', 'Hold PMO Kick-off Meeting & Review Initial Plan'). **Be specific and action-oriented.**
+2.  **`responsible_body_or_role`:** Identify the primary internal body or specific role responsible for ensuring the step is completed. Reference the names of the bodies provided in the input context where applicable.
+3.  **`suggested_timeframe`:** Provide a realistic target (e.g., 'Project Week 1', 'Project Week 2', 'By end of Month 1').
+4.  **`key_outputs_deliverables`:** List the tangible documents, decisions, or system states resulting from completing this step (e.g., 'Draft SteerCo ToR v0.1', 'Feedback Summary on ToR', 'Approved SteerCo ToR v1.0', 'Confirmed PMO Member List', 'Meeting Invitation & Agenda', 'Meeting Minutes with Action Items').
+5.  **`dependencies`:** List **specific prerequisite steps from this plan** or key project decisions that must be completed *before* this step can effectively start or finish (e.g., 'Draft Steering Committee ToR Completed', 'Steering Committee Chair Appointed', 'Relevant Policy Approved'). **Avoid overly generic or potentially incorrect dependencies.**
 
-**Consider the logical order of steps:** Committees often need to be formally established before they can approve documents or take actions. Procedures and tools often require the relevant committee or role to be in place first.
+**Consider the logical order:** Committees need Terms of Reference before formal operation. Members need appointing. Kick-off meetings are crucial for alignment. Policy development might depend on committee formation.
 
-Focus *only* on generating the `governance_implementation_plan` list based on the provided project description and the pre-defined governance bodies. Do **not** redefine the governance bodies themselves or generate information for other governance sections (audit, escalation matrix, monitoring, etc.).
+Focus *only* on generating the `governance_implementation_plan` list based on the provided project description and the pre-defined governance bodies. Do **not** redefine the governance bodies themselves or generate information for other governance sections.
 
 Ensure your output strictly adheres to the provided Pydantic schema `DocumentDetails` containing *only* the `governance_implementation_plan` list, where each element follows the `ImplementationStep` schema.
 """
