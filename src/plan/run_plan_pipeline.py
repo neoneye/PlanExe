@@ -27,6 +27,7 @@ from src.assume.shorten_markdown import ShortenMarkdown
 from src.expert.pre_project_assessment import PreProjectAssessment
 from src.plan.project_plan import ProjectPlan
 from src.plan.governance import Governance
+from src.plan.governance_phase1_audit import GovernancePhase1Audit
 from src.plan.related_resources import RelatedResources
 from src.swot.swot_analysis import SWOTAnalysis
 from src.expert.expert_finder import ExpertFinder
@@ -672,7 +673,7 @@ class ProjectPlanTask(PlanTask):
         logger.info("Project plan created and saved")
 
 
-class GovernanceTask(PlanTask):
+class GovernancePhase1AuditTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
     def requires(self):
@@ -684,8 +685,8 @@ class GovernanceTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.GOVERNANCE_RAW))),
-            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.GOVERNANCE_MARKDOWN)))
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.GOVERNANCE_PHASE1_AUDIT_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.GOVERNANCE_PHASE1_AUDIT_MARKDOWN)))
         }
 
     def run(self):
@@ -702,6 +703,57 @@ class GovernanceTask(PlanTask):
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}"
+        )
+
+        # Create LLM instance.
+        llm = get_llm(self.llm_model)
+
+        # Execute.
+        try:
+            governance_phase1_audit = GovernancePhase1Audit.execute(llm, query)
+        except Exception as e:
+            logger.error("GovernancePhase1Audit failed: %s", e)
+            raise
+
+        # Save the results.
+        governance_phase1_audit.save_raw(self.output()['raw'].path)
+        governance_phase1_audit.save_markdown(self.output()['markdown'].path)
+
+
+class GovernanceTask(PlanTask):
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def requires(self):
+        return {
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance_phase1_audit': GovernancePhase1AuditTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+
+    def output(self):
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.GOVERNANCE_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.GOVERNANCE_MARKDOWN)))
+        }
+
+    def run(self):
+        # Read inputs from required tasks.
+        with self.input()['setup'].open("r") as f:
+            plan_prompt = f.read()
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+            consolidate_assumptions_markdown = f.read()
+        with self.input()['project_plan']['raw'].open("r") as f:
+            project_plan_dict = json.load(f)
+        with self.input()['governance_phase1_audit']['raw'].open("r") as f:
+            governance_phase1_audit_dict = json.load(f)
+
+        # Build the query.
+        query = (
+            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
+            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'governance-phase1-audit.json':\n{format_json_for_use_in_query(governance_phase1_audit_dict)}"
         )
 
         # Create LLM instance.
@@ -2012,6 +2064,7 @@ class ReportTask(PlanTask):
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance_phase1_audit': GovernancePhase1AuditTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance': GovernanceTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -2029,6 +2082,7 @@ class ReportTask(PlanTask):
         rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
         rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
         rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown']['full'].path)
+        rg.append_markdown('Governance Phase 1 Audit', self.input()['governance_phase1_audit']['markdown'].path)
         rg.append_markdown('Governance', self.input()['governance']['markdown'].path)
         rg.append_markdown('Related Resources', self.input()['related_resources']['markdown'].path)
         rg.append_markdown('Data Collection', self.input()['data_collection']['markdown'].path)
@@ -2055,6 +2109,7 @@ class FullPlanPipeline(PlanTask):
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pre_project_assessment': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance_phase1_audit': GovernancePhase1AuditTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance': GovernanceTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -2144,8 +2199,8 @@ if __name__ == '__main__':
         logger.critical("This is a critical message.")
 
     model = DEFAULT_LLM_MODEL # works
-    model = "openrouter-paid-gemini-2.0-flash-001" # works
-    # model = "openrouter-paid-openai-gpt-4o-mini" # often fails, I think it's not good at structured output
+    # model = "openrouter-paid-gemini-2.0-flash-001" # works
+    model = "openrouter-paid-openai-gpt-4o-mini" # often fails, I think it's not good at structured output
 
     if "LLM_MODEL" in os.environ:
         model = os.environ["LLM_MODEL"]
