@@ -163,9 +163,7 @@ class GovernancePhase2Bodies:
         rows = []
         
         for i, body in enumerate(document_details.internal_governance_bodies, 1):
-            if i == 1:
-                rows.append("")
-            rows.append(f"\n### {i}. {body.name}")
+            rows.append(f"### {i}. {body.name}")
             rows.append(f"\n**Rationale for Inclusion:** {body.rationale_for_inclusion}")
             rows.append(f"\n**Responsibilities:**\n")
             for resp in body.responsibilities:
