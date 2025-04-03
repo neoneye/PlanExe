@@ -15,51 +15,51 @@ from llama_index.core.llms.llm import LLM
 
 logger = logging.getLogger(__name__)
 
-class GovernanceBody(BaseModel):
-    name: str = Field(description="Name of the governance body.")
+class InternalGovernanceBody(BaseModel):
+    name: str = Field(description="Name of the internal governance body.")
     rationale_for_inclusion: str = Field(
-        description="Brief justification explaining *why* this specific type of governance body (e.g., Steering Committee, PMO, Ethics Committee) is necessary or appropriate for *this particular project*, based on its description, scale, or key challenges."
+        description="Brief justification explaining *why* this specific type of internal governance body (e.g., Steering Committee, PMO, Ethics Committee) is necessary or appropriate for *this particular project*, based on its description, scale, or key challenges."
     )
-    responsibilities: list[str] = Field(description="Key tasks or responsibilities of this body.")
+    responsibilities: list[str] = Field(description="Key tasks or responsibilities of this internal body.")
     initial_setup_actions: list[str] = Field(description="Key initial actions this body needs to take upon formation (e.g., 'Finalize Terms of Reference', 'Elect Chair', 'Set meeting schedule').")
-    membership: list[str] = Field(description="Roles or titles of individuals in this governance body.")
-    decision_rights: str = Field(description="Type and scope of decisions this body can make.")
-    decision_mechanism: str = Field(description="How decisions are typically made (e.g., 'Majority Vote', 'Consensus', 'Chair Decision'). Specify tie-breaker if applicable.")
-    meeting_cadence: str = Field(description="How often this body meets.")
-    typical_agenda_items: list[str] = Field(description="Example recurring items for this body's meetings.")
-    escalation_path: str = Field(description="Where or to whom issues exceeding authority are escalated.")
+    membership: list[str] = Field(description="Roles or titles of individuals *within the project/organization* forming this internal body.")
+    decision_rights: str = Field(description="Type and scope of decisions this internal body is empowered to make.")
+    decision_mechanism: str = Field(description="How decisions are typically made within this internal body. Specify tie-breaker if applicable.")
+    meeting_cadence: str = Field(description="How often this internal body meets.")
+    typical_agenda_items: list[str] = Field(description="Example recurring items for this internal body's meetings.")
+    escalation_path: str = Field(description="Where or to which *other internal body or senior project/organization role* issues exceeding authority are escalated.")
 
 class DocumentDetails(BaseModel):
-    governance_bodies: list[GovernanceBody] = Field(
-        description="List of all governance bodies with roles, responsibilities, and membership."
+    internal_governance_bodies: list[InternalGovernanceBody] = Field(
+        description="List of all internal governance bodies with roles, responsibilities, and membership."
     )
 
 GOVERNANCE_PHASE2_BODIES_SYSTEM_PROMPT = """
-You are an expert in project governance and organizational design. Your task is to analyze the provided project description and propose a suitable structure of **distinct internal project governance bodies** required to effectively oversee and manage the project.
+You are an expert in project governance and organizational design. Your task is to analyze the provided project description and propose a suitable structure of **distinct INTERNAL project governance bodies** (committees, working groups, etc.) required to effectively oversee and manage the project internally.
 
-**Consider these common types of governance bodies and select/adapt those most appropriate for the described project:**
+**Consider these common types of INTERNAL governance bodies and select/adapt those most appropriate for the described project:**
 *   **Strategic Oversight:** e.g., Project Steering Committee (SteerCo), Project Board. (Provides high-level direction, major approvals).
 *   **Operational Management:** e.g., Project Management Office (PMO), Core Project Team. (Manages day-to-day execution).
 *   **Specialized Advisory/Assurance:** e.g., Technical Advisory Group, Ethics & Compliance Committee, User Advisory Board, Stakeholder Engagement Group. (Provides expert input or specific oversight).
 
-**Propose a structure that logically separates strategic oversight from day-to-day operational management.** Avoid creating committees with overlapping core functions unless clearly justified. Ensure the number and type of bodies are appropriate for the project's scale and nature (e.g., smaller projects may only need a SteerCo and a PMO). **Do not define external regulatory bodies (like government authorities) as internal governance bodies.**
+**Propose a structure that logically separates strategic oversight from day-to-day operational management within the project or its parent organization.** Avoid creating committees with overlapping core functions unless clearly justified. Ensure the number and type of bodies are appropriate for the project's scale and nature. **Crucially, define ONLY internal bodies composed of project/organization personnel or designated internal representatives. Do NOT define external regulatory bodies (like government authorities or standards organizations) as internal governance bodies.**
 
-Based *only* on the **project description provided by the user**, define a list of `governance_bodies`. For each body you propose:
+Based *only* on the **project description provided by the user**, define a list named `internal_governance_bodies`. Each element in this list must be an `InternalGovernanceBody` object with the following details:
 
-1.  **`name`:** A clear and descriptive name (e.g., 'Project Steering Committee', 'Operational Project Team (PMO)').
-2.  **`rationale_for_inclusion`:** **Crucially, provide a brief justification explaining *why* this specific type of body is needed for *this project*. Link it to the project's goals, risks, scale, or specific requirements mentioned in the user's description.** (e.g., 'A Steering Committee is needed for strategic sign-offs and sponsor accountability given the £20k budget and external sponsorship goal.', 'An Ethics Committee is needed due to GDPR compliance requirements and community engagement aspects.').
-3.  **`responsibilities`:** List key tasks, ensuring alignment with the body's level and distinction from others.
-4.  **`initial_setup_actions`:** List essential first steps for the body to become operational. Be specific.
-5.  **`membership`:** Specify key roles/titles, ensuring appropriate expertise and avoiding identical small groups across multiple committees.
-6.  **`decision_rights`:** Describe the specific scope and type of decisions this body makes.
-7.  **`decision_mechanism`:** Specify ONE primary method (e.g., Majority Vote, Consensus) and optionally, tie-breakers.
-8.  **`meeting_cadence`:** Recommend a frequency (e.g., Weekly, Monthly).
-9.  **`typical_agenda_items`:** List recurring topics reflecting the body's responsibilities.
-10. **`escalation_path`:** Define the specific next level body or role for unresolved issues, ensuring a logical hierarchy.
+1.  **`name`:** A clear name for the *internal* body (e.g., 'Project Steering Committee').
+2.  **`rationale_for_inclusion`:** Justification explaining *why* this *internal* body is needed for *this project*.
+3.  **`responsibilities`:** Key tasks for this *internal* body.
+4.  **`initial_setup_actions`:** Essential first steps for this *internal* body.
+5.  **`membership`:** Key roles/titles of *internal personnel or designated representatives* forming this body.
+6.  **`decision_rights`:** Scope/type of decisions this *internal* body makes.
+7.  **`decision_mechanism`:** How decisions are made *within* this body (e.g., Majority Vote, Consensus). Specify tie-breakers.
+8.  **`meeting_cadence`:** Recommended meeting *frequency* (e.g., Weekly, Monthly).
+9.  **`typical_agenda_items`:** Recurring topics reflecting the *internal* body's responsibilities.
+10. **`escalation_path`:** The *next internal body or senior role* for unresolved issues.
 
-Focus *only* on defining these internal project governance bodies and their attributes as listed above. Ensure the proposed structure is logical. Do **not** generate information about audit procedures, external regulatory interactions, implementation plans, etc.
+Focus *only* on defining these **internal project governance bodies** and their attributes. Ensure the proposed structure is logical. Do **not** generate information about audit procedures, external regulatory interactions (except potentially as context for an internal body's responsibility, e.g., 'Ensure compliance with [External Body] regulations'), implementation plans, etc.
 
-Ensure your output strictly adheres to the provided Pydantic schema `DocumentDetails` containing *only* the `governance_bodies` list, where each element follows the `GovernanceBody` schema, including the new `rationale_for_inclusion` field.
+Ensure your output strictly adheres to the provided Pydantic schema `DocumentDetails` containing *only* the `internal_governance_bodies` list, where each element follows the `InternalGovernanceBody` schema.
 """
 
 @dataclass
@@ -151,7 +151,7 @@ class GovernancePhase2Bodies:
         """
         rows = []
         
-        for i, body in enumerate(document_details.governance_bodies, 1):
+        for i, body in enumerate(document_details.internal_governance_bodies, 1):
             if i == 1:
                 rows.append("")
             rows.append(f"\n### {i}. {body.name}")
