@@ -1,5 +1,5 @@
 """
-Governance bodies: 
+Internal Governance Bodies: 
 
 PROMPT> python -m src.governance.governance_phase2_bodies
 """
@@ -156,15 +156,15 @@ class GovernancePhase2Bodies:
                 rows.append("")
             rows.append(f"\n### {i}. {body.name}")
             rows.append(f"\n**Rationale for Inclusion:** {body.rationale_for_inclusion}")
-            rows.append(f"\n**Responsibilities:**")
+            rows.append(f"\n**Responsibilities:**\n")
             for resp in body.responsibilities:
                 rows.append(f"- {resp}")
                 
-            rows.append(f"\n**Initial Setup Actions:**")
+            rows.append(f"\n**Initial Setup Actions:**\n")
             for action in body.initial_setup_actions:
                 rows.append(f"- {action}")
                 
-            rows.append(f"\n**Membership:**")
+            rows.append(f"\n**Membership:**\n")
             for member in body.membership:
                 rows.append(f"- {member}")
                 
@@ -172,12 +172,12 @@ class GovernancePhase2Bodies:
             rows.append(f"\n**Decision Mechanism:** {body.decision_mechanism}")
             rows.append(f"\n**Meeting Cadence:** {body.meeting_cadence}")
             
-            rows.append(f"\n**Typical Agenda Items:**")
+            rows.append(f"\n**Typical Agenda Items:**\n")
             for item in body.typical_agenda_items:
                 rows.append(f"- {item}")
                 
             rows.append(f"\n**Escalation Path:** {body.escalation_path}")
-        
+
         return "\n".join(rows)
 
     def save_markdown(self, output_file_path: str):
