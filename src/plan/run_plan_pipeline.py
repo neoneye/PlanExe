@@ -26,12 +26,12 @@ from src.assume.review_assumptions import ReviewAssumptions
 from src.assume.shorten_markdown import ShortenMarkdown
 from src.expert.pre_project_assessment import PreProjectAssessment
 from src.plan.project_plan import ProjectPlan
-from src.governance.governance_full import GovernanceFull
 from src.governance.governance_phase1_audit import GovernancePhase1Audit
 from src.governance.governance_phase2_bodies import GovernancePhase2Bodies
 from src.governance.governance_phase3_impl_plan import GovernancePhase3ImplPlan
 from src.governance.governance_phase4_decision_escalation_matrix import GovernancePhase4DecisionEscalationMatrix
 from src.governance.governance_phase5_monitoring_progress import GovernancePhase5MonitoringProgress
+from src.governance.governance_phase6_extra import GovernancePhase6Extra
 from src.plan.related_resources import RelatedResources
 from src.swot.swot_analysis import SWOTAnalysis
 from src.expert.expert_finder import ExpertFinder
@@ -937,7 +937,7 @@ class GovernancePhase5MonitoringProgressTask(PlanTask):
         governance_phase5_monitoring_progress.save_raw(self.output()['raw'].path)
         governance_phase5_monitoring_progress.save_markdown(self.output()['markdown'].path)
 
-class GovernanceTask(PlanTask):
+class GovernancePhase6ExtraTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
     def requires(self):
@@ -954,8 +954,8 @@ class GovernanceTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.GOVERNANCE_RAW))),
-            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.GOVERNANCE_MARKDOWN)))
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.GOVERNANCE_PHASE6_EXTRA_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.GOVERNANCE_PHASE6_EXTRA_MARKDOWN)))
         }
 
     def run(self):
@@ -994,14 +994,14 @@ class GovernanceTask(PlanTask):
 
         # Execute.
         try:
-            governance = GovernanceFull.execute(llm, query)
+            governance_phase6_extra = GovernancePhase6Extra.execute(llm, query)
         except Exception as e:
-            logger.error("Governance failed: %s", e)
+            logger.error("GovernancePhase6Extra failed: %s", e)
             raise
 
         # Save the results.
-        governance.save_raw(self.output()['raw'].path)
-        governance.save_markdown(self.output()['markdown'].path)
+        governance_phase6_extra.save_raw(self.output()['raw'].path)
+        governance_phase6_extra.save_markdown(self.output()['markdown'].path)
 
 
 class RelatedResourcesTask(PlanTask):
@@ -2302,7 +2302,7 @@ class ReportTask(PlanTask):
             'governance_phase3_impl_plan': GovernancePhase3ImplPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase4_decision_escalation_matrix': GovernancePhase4DecisionEscalationMatrixTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase5_monitoring_progress': GovernancePhase5MonitoringProgressTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance': GovernanceTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance_phase6_extra': GovernancePhase6ExtraTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -2324,7 +2324,7 @@ class ReportTask(PlanTask):
         rg.append_markdown('Governance Phase 3 Implementation Plan', self.input()['governance_phase3_impl_plan']['markdown'].path)
         rg.append_markdown('Governance Phase 4 Decision Escalation Matrix', self.input()['governance_phase4_decision_escalation_matrix']['markdown'].path)
         rg.append_markdown('Governance Phase 5 Monitoring Progress', self.input()['governance_phase5_monitoring_progress']['markdown'].path)
-        rg.append_markdown('Governance', self.input()['governance']['markdown'].path)
+        rg.append_markdown('Governance Phase 6 Extra', self.input()['governance_phase6_extra']['markdown'].path)
         rg.append_markdown('Related Resources', self.input()['related_resources']['markdown'].path)
         rg.append_markdown('Data Collection', self.input()['data_collection']['markdown'].path)
         rg.append_markdown('SWOT Analysis', self.input()['swot_analysis']['markdown'].path)
@@ -2355,7 +2355,7 @@ class FullPlanPipeline(PlanTask):
             'governance_phase3_impl_plan': GovernancePhase3ImplPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase4_decision_escalation_matrix': GovernancePhase4DecisionEscalationMatrixTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase5_monitoring_progress': GovernancePhase5MonitoringProgressTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance': GovernanceTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'governance_phase6_extra': GovernancePhase6ExtraTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'enrich_team_members_with_contract_type': EnrichTeamMembersWithContractTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
