@@ -4,6 +4,10 @@ Decision Escalation Matrix
 To define how specific types of important issues or decisions are escalated beyond the body or role 
 where they initially arise or cannot be resolved. This provides clarity and prevents bottlenecks.
 
+Gemini 2.5 doesn't like the response from Llama 3.1.
+"This confirms definitively that Llama 3.1 is unsuitable for generating a Decision Escalation Matrix based on the provided inputs and prompting strategies attempted. 
+It demonstrates a fundamental inability to distinguish between project setup activities and issue escalation scenarios, regardless of how the prompt is structured or simplified."
+
 PROMPT> python -m src.governance.governance_phase4_decision_escalation_matrix
 """
 import os
@@ -41,33 +45,29 @@ class DocumentDetails(BaseModel):
     )
 
 GOVERNANCE_PHASE4_DECISION_ESCALATION_MATRIX_SYSTEM_PROMPT = """
-You are an expert in project governance and risk management. Your task is to create a Decision Escalation Matrix for the described project, outlining how specific types of significant issues or decisions are escalated through the pre-defined governance structure. **This matrix defines what happens when specific PROBLEMS, DISAGREEMENTS, or DECISIONS requiring higher authority occur DURING project execution.** It is NOT about the steps to set up the committees themselves.
+You are an expert in project governance. Your task is to create a Decision Escalation Matrix. **This matrix describes what happens when specific PROBLEMS occur or when DECISIONS exceed the authority of a lower level.**
 
 **You will be provided with:**
-1.  The overall project description (which may contain budget information in a specific currency).
-2.  A list of defined `internal_governance_bodies` (including their names and typical hierarchy, e.g., PMO reports to Steering Committee) which were determined in a previous stage.
+1.  The overall project description.
+2.  A list of defined `internal_governance_bodies` (e.g., PMO, Project Steering Committee, Executive Sponsor) showing their typical hierarchy.
 
-**Your goal is to generate the `decision_escalation_matrix` list.** You must identify **at least 5 distinct scenarios representing potential PROBLEMS or critical DECISIONS** that might arise *during the project* and would require escalation beyond the initial team or committee level.
+**Your goal is to generate the `decision_escalation_matrix` list.** Identify **at least 5 different SCENARIOS** where a problem or decision needs to move to a higher level.
 
-**DO NOT use project setup tasks (like 'Draft ToR', 'Hold Kick-off Meeting', 'Appoint Chair') as the `issue_type`.** The `issue_type` must be a **problem or decision scenario** encountered during project execution.
+**Think about triggers:** What specific event causes the escalation?
+    *   **Trigger Example 1:** A budget request is *too large* for the PMO to approve alone.
+    *   **Trigger Example 2:** A *critical risk* happens that the PMO cannot handle with existing resources.
+    *   **Trigger Example 3:** The PMO *cannot agree* on a key operational decision.
+    *   **Trigger Example 4:** A *major change* to the project scope is proposed.
+    *   **Trigger Example 5:** An *ethical violation* is reported.
 
-**Examples of VALID `issue_type` scenarios:**
-*   'Budget Overrun Exceeding [Specific Threshold, e.g., 10% or a defined monetary value like "10,000 units"]' *(Use a relevant threshold based on project context if possible, otherwise state '% threshold')*
-*   'Major Proposed Scope Change with Significant Impact'
-*   'Critical Risk Materializes (e.g., Key Supplier Fails, Venue Unavailable)'
-*   'Serious Ethical Concern Reported (e.g., Data Privacy Violation)'
-*   'Unresolvable Resource Conflict Between Teams'
-*   'Steering Committee Deadlock on Strategic Decision'
-*   'Significant Deviation from Approved Timeline (>X weeks/months)'
+**For each scenario (`DecisionEscalationItem`), fill in these details:**
+1.  **`issue_type`:** Describe the **specific problem or decision trigger** requiring escalation. Use the examples above as a guide. (e.g., 'Budget Request Exceeding PMO Authority', 'Critical Risk Materialization', 'PMO Deadlock on Vendor Selection', 'Proposed Major Scope Change', 'Reported Ethical Concern'). **DO NOT list routine tasks like 'Vendor Selection' or setup steps.**
+2.  **`escalation_level`:** State the **specific name** of the *next higher* `InternalGovernanceBody` or senior role (from the provided structure) that handles this escalated issue.
+3.  **`approval_process`:** Briefly describe how the decision is likely made *at that higher level* (e.g., 'Steering Committee Vote', 'Sponsor Approval', 'Ethics Committee Investigation & Recommendation').
+4.  **`rationale`:** Briefly explain *why* this **trigger** requires escalation (e.g., 'Exceeds financial limit', 'Strategic impact', 'Needs independent review', 'Requires higher authority').
+5.  **`negative_consequences`:** Briefly state the risk if the **escalated issue** is not resolved properly (e.g., 'Budget overrun', 'Project failure', 'Legal penalty', 'Reputational damage').
 
-**For each scenario (`DecisionEscalationItem`) you identify in the matrix, provide:**
-1.  **`issue_type`:** A clear description of the **specific PROBLEM or DECISION scenario** requiring escalation. **Must NOT be a setup task.** If referencing a budget threshold, state it clearly (e.g., 'Exceeding 10% budget variance' or 'Expenditure request over [Value] units').
-2.  **`escalation_level`:** Identify the **specific name** of the `InternalGovernanceBody` or senior role (e.g., 'Project Steering Committee', 'Executive Sponsor') from the provided governance structure where this problem/decision goes **NEXT** for resolution. **This must be a higher level in the hierarchy.**
-3.  **`approval_process`:** Briefly outline how the escalated problem/decision is typically handled **at that higher level** (e.g., 'Steering Committee reviews options and votes', 'Sponsor makes final call', 'Formal change request process invoked').
-4.  **`rationale`:** Explain *why* this specific **problem/decision scenario** needs to be escalated (e.g., 'Impacts strategic goals', 'Exceeds delegated financial authority', 'Requires resources beyond project budget', 'Potential legal ramifications').
-5.  **`negative_consequences`:** Describe the likely adverse outcomes if this specific **problem/decision scenario** is *not* escalated or resolved effectively (e.g., 'Project failure', 'Major financial loss', 'Reputational crisis', 'Legal action').
-
-Focus *only* on generating the `decision_escalation_matrix` list containing **problem/decision scenarios** and their escalation paths based on the provided project description and the pre-defined governance bodies. Do **not** generate information for other governance sections. Ensure the escalation paths defined are logical and move upwards in the defined hierarchy.
+Focus *only* on generating the `decision_escalation_matrix` list based on the provided project description and governance bodies. Ensure the scenarios represent **escalations due to exceeding limits, disagreements, or critical events.**
 
 Ensure your output strictly adheres to the provided Pydantic schema `DocumentDetails` containing *only* the `decision_escalation_matrix` list, where each element follows the `DecisionEscalationItem` schema.
 """
