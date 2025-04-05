@@ -1,11 +1,16 @@
 """
+What's missing or underdeveloped in the plan.
+
 Considering the knowledge cut off date with the current date, what topics may have been changed since then?
 A small LLM may have domains where it has less knowledge than a larger LLM that have been trained on more data.
 Take a look at the proposed plan and identify areas where the LLM may have less knowledge.
 
+IDEA: Remove explicit review/critique sections from the source document before sending it to the LLM if you want the highest chance of a truly independent PM-based assessment. LLMs, even with strong negative constraints ("Do NOT simply extract..."), can be significantly influenced by explicit critique or review sections already present in the input text. Causing the LLM to echo the critique sections in its response, without adding any new critical insights.
+
 PROMPT> python -m src.plan.knowledge_gap
 """
 from datetime import datetime
+from enum import Enum
 import os
 import json
 import time
@@ -18,40 +23,54 @@ from llama_index.core.llms.llm import LLM
 
 logger = logging.getLogger(__name__)
 
-class KnowledgeGapItem(BaseModel):
-    """Represents a single identified knowledge gap in the project plan."""
-    issue_title: str = Field(description="Brief, descriptive title of the knowledge gap (e.g., 'Unclear Budget Allocation for Marketing', 'Missing Contingency for Speaker Cancellation').")
-    issue_description: str = Field(description="Detailed description of *what* specific information is missing, unclear, assumed without basis, or potentially overlooked in the plan text. Be specific about the section or topic.")
-    issue_impact: str = Field(description="Potential impact or consequence if this knowledge gap is not addressed (e.g., 'Could lead to budget overruns', 'Risks low event attendance', 'May cause project delays').")
-    issue_recommendation: str = Field(description="A concise recommendation on *how* to address this gap (e.g., 'Develop a detailed marketing budget breakdown', 'Create a backup speaker list', 'Conduct a specific risk assessment for X').")
+class IssueCategory(str, Enum):
+    COMPLETENESS_CLARITY = "Completeness & Clarity" # missing info, unclear, inconsistent, vague
+    TIME_SENSITIVITY = "Time Sensitivity / Knowledge Cutoff" # volatile data, changing regulations, shifting market conditions, geopolitical risks
 
-class DocumentDetails(BaseModel):
-    """Container for all identified knowledge gaps within the analyzed document."""
-    knowledge_gaps: list[KnowledgeGapItem] = Field(
-        description="A comprehensive list of knowledge gaps identified in the project plan. Aim for distinct, actionable gaps."
+class PlanIssueItem(BaseModel):
+    """Represents a single identified issue or area for improvement in the project plan."""
+    category: IssueCategory = Field(description="The category of the identified issue.")
+    issue_title: str = Field(description="Brief, descriptive title of the issue (e.g., 'Unclear Budget Allocation', 'Outdated Exchange Rate Assumption', 'Missing Regulatory Compliance Check').")
+    issue_description: str = Field(description="Detailed description of the issue. For 'Completeness & Clarity', describe what's missing/unclear in the plan. For 'Time Sensitivity', explain *why* the referenced information (e.g., specific rate, regulation, technology, market condition) is likely outdated due to the time elapsed since common knowledge cutoffs and today's date, referencing the specific part of the plan.")
+    issue_impact: str = Field(description="Potential impact or consequence if this issue is not addressed (e.g., 'Budget inaccuracy', 'Non-compliance risk', 'Project delays due to unforeseen market shifts').")
+    issue_recommendation: str = Field(description="A concise recommendation. For 'Completeness & Clarity', suggest how to improve the *plan*. For 'Time Sensitivity', recommend **actions or tools** to get *current, real-world data* to validate or update the plan's assumption (e.g., 'Use real-time currency converter API', 'Check current government regulations website', 'Conduct fresh market analysis').")
+
+class PlanAnalysisReport(BaseModel):
+    """Container for all identified critical issues within the analyzed document."""
+    identified_issues: list[PlanIssueItem] = Field(
+        description="A prioritized list of critical issues identified in the project plan, including both structural gaps and time-sensitive vulnerabilities. Aim for the ~3-7 most critical issues overall."
     )
 
 KNOWLEDGE_GAP_SYSTEM_PROMPT = """
-You are an expert project management consultant and critical reviewer. Your primary task is to analyze the provided project plan text (`plan_text`) and, through your **independent assessment** based on standard project management principles, identify the **most critical 'knowledge gaps'**. Apply the Pareto principle (80/20 rule) to focus on the vital few gaps (~3-7) whose resolution would most significantly improve the plan's robustness and likelihood of success.
+You are an expert project management consultant and critical reviewer. Your primary task is to analyze the provided project plan text (`plan_text`) and, through your **independent assessment**, identify the **most critical 'plan issues'**. Apply the Pareto principle (80/20 rule) to focus on the vital few issues (~3-7) whose resolution would most significantly improve the plan's robustness and likelihood of success. These issues fall into two main categories:
 
-A 'knowledge gap' is defined as:
-1.  **Missing Critical Information:** Essential details required for effective planning, execution, or control are absent (e.g., unclear funding sources/sustainability, lack of measurable success metrics, missing risk mitigation details for high-impact risks, undefined scope boundaries, absent resource planning).
-2.  **High-Impact Unclear Assumptions:** Assumptions underpinning core aspects of the plan lack justification, clarity, impact assessment, or validation plans, posing significant risk if incorrect.
-3.  **Overlooked Foundational Steps/Risks:** Standard, essential project management processes (e.g., change management, quality assurance, stakeholder communication planning) or significant, common risks for this type of project are missing or underdeveloped, based on PM best practice.
-4.  **Major Inconsistencies:** Significant contradictions or misalignments between core plan components (scope, budget, timeline, resources) that threaten project feasibility.
-5.  **Critical Lack of Specificity:** Core objectives, strategies, or actions are described too vaguely to be actionable, trackable, or verifiable, particularly where high risk or high investment is involved.
+1.  **Completeness & Clarity Gaps:** Issues related to the plan's internal structure, detail, and coherence based on standard project management principles.
+2.  **Time Sensitivity / Knowledge Cutoff Vulnerabilities:** Issues where the plan relies on information or assumptions likely outdated due to the time elapsed between common LLM knowledge cutoff dates (generally 2022-2023) and today's date.
+
+**Definitions of Issues:**
+
+*   **Category: Completeness & Clarity**
+    *   **Missing Critical Information:** Essential planning details absent (e.g., detailed budgets, specific metrics, risk mitigation details, scope boundaries, resource plans).
+    *   **High-Impact Unclear Assumptions:** Core assumptions lack justification, clarity, impact assessment, or validation plans.
+    *   **Overlooked Foundational Steps/Risks:** Standard PM processes or significant risks missing/underdeveloped.
+    *   **Major Inconsistencies:** Significant contradictions between core plan components.
+    *   **Critical Lack of Specificity:** Core objectives/strategies too vague to be actionable or trackable.
+*   **Category: Time Sensitivity / Knowledge Cutoff**
+    *   **Potentially Outdated Data/Rates:** Plan references specific data points highly prone to change (e.g., currency exchange rates, market statistics, specific technology costs/performance).
+    *   **Obsolete Regulations/Policies:** Plan relies on compliance with regulations or policies known to evolve frequently (e.g., environmental laws, data privacy rules, trade agreements).
+    *   **Shifting Market/Tech Landscape:** Plan assumptions about market conditions, competitor positions, or the state of relevant technology may no longer hold true.
+    *   **Geopolitical/Economic Instability:** Plan implicitly assumes stability in regions known for volatility affecting factors like supply chains or currency (e.g., referencing a specific unstable currency rate).
 
 **Instructions:**
-- **Independent PM Evaluation:** Your primary role is to evaluate the plan's quality against established project management best practices. Identify gaps based on what a robust plan *should* contain but critically lacks or handles poorly in the provided text.
-- **De-prioritize Existing Critiques:** While reading the entire `plan_text`, **actively avoid** simply extracting or rephrasing the main points from any sections explicitly labeled as 'review', 'assessment', 'issues', or similar self-critiques within the input. Your value is in adding *new* critical insights based on your PM expertise, not summarizing the plan's own findings. If a critical gap identified through your PM lens happens to overlap with a point mentioned in a review section, ensure your description provides significant additional context, impact analysis, or a more concrete recommendation than what was already stated in the input's review. Prioritize gaps *not* already comprehensively addressed in such sections.
-- **Prioritize for Impact:** Focus **only** on the gaps posing the **greatest potential threat** to the project's core objectives, financial viability, timeline feasibility, legal/compliance standing, or fundamental quality. **Ignore minor omissions or stylistic issues.**
-- **Anchor to Provided Text:** Ground your findings in specific evidence (or lack thereof) from the `plan_text`.
-- **Evaluate Omissions Critically:** Identify significant omissions by comparing the plan against the components expected in a thorough plan for an initiative of its described scale/type. Only highlight missing elements if their absence is critical.
-- **External Knowledge Constraint:** Do NOT introduce external domain-specific facts (e.g., real-world market share data for specific competitors if analyzing a product launch plan, detailed engineering specifications for a component not described in a manufacturing plan, current scientific consensus on a research topic not mentioned in the plan) *unless* it's essential context to highlight a major internal inconsistency or feasibility issue *stated within the plan itself*. Your evaluation standard is good project management practice applied to the plan's content.
-- **Focus on the Plan:** Critique the *plan's* lack of information, clarity, foresight, or coherence. Critique feasibility *as presented in the plan* (e.g., ambitious goals vs. stated resources), but not the inherent value of the project's goal.
-- **Actionable Output:** For each identified critical gap: provide a clear title, a detailed description referencing the plan's content (or lack thereof), the potential significant impact, and a concrete recommendation for improving the *plan*.
+- **Perform an Independent Assessment:** Evaluate the plan's quality against established PM best practices AND assess its vulnerability to real-world changes since typical knowledge cutoffs.
+- **Identify Both Types of Issues:** Look for both structural plan gaps (`Completeness & Clarity`) AND potential issues arising from outdated information (`Time Sensitivity`).
+- **De-prioritize Existing Critiques:** **Actively avoid** simply extracting or rephrasing the main points from any sections explicitly labeled as 'review', 'assessment', 'issues', etc., within the input. Focus on adding *new* critical insights or identifying time-sensitive vulnerabilities. If an issue overlaps with a review point, ensure significant additional context or impact analysis is provided.
+- **Prioritize for Impact:** Focus **only** on the ~3-7 issues posing the **greatest potential threat** overall (considering both categories) to the project's core objectives, financial viability, timeline, legal standing, or quality. Ignore minor omissions.
+- **Anchor to Provided Text:** Ground your findings in specific evidence (or lack thereof) from the `plan_text`. For time-sensitive issues, clearly state *what* element in the plan is potentially outdated.
+- **External Knowledge Constraint (Clarified):** Do NOT introduce specific *current* external facts (e.g., "The *current* DKK/USD rate is X"). Instead, identify *that* a rate mentioned in the plan *is likely outdated* and recommend *how to check* the current rate. Your benchmark is general knowledge about what *types* of information change frequently.
+- **Focus on the Plan & Actionability:** Critique the *plan's* issues. For `Completeness & Clarity`, recommend improving the *plan*. For `Time Sensitivity`, recommend **actions or tools** to get *current, real-world data* to validate or update the plan's assumption (e.g., 'Use real-time currency converter API/website', 'Check current official government regulation database', 'Conduct fresh market analysis survey', 'Consult recent geopolitical risk reports').
 - **Maintain Tone:** Professional, critical, constructive.
-- **Strict Schema Adherence:** Your response **MUST** strictly adhere to the provided Pydantic JSON schema (`DocumentDetails` containing a list of `KnowledgeGapItem`). No extra text outside the JSON structure.
+- **Strict Schema Adherence:** Your response **MUST** strictly adhere to the provided Pydantic JSON schema (`PlanAnalysisReport` containing a list of `PlanIssueItem`). Ensure the `category` field is correctly assigned. No extra text outside the JSON structure.
 
 Today's date is TODAYS_DATE.
 """
@@ -95,7 +114,7 @@ class KnowledgeGap:
             )
         ]
 
-        sllm = llm.as_structured_llm(DocumentDetails)
+        sllm = llm.as_structured_llm(PlanAnalysisReport)
         start_time = time.perf_counter()
         try:
             chat_response = sllm.chat(chat_message_list)
@@ -142,18 +161,19 @@ class KnowledgeGap:
             f.write(json.dumps(self.to_dict(), indent=2))
 
     @staticmethod
-    def convert_to_markdown(document_details: DocumentDetails) -> str:
+    def convert_to_markdown(document_details: PlanAnalysisReport) -> str:
         """
         Convert the raw document details to markdown.
         """
         rows = []
-        for i, knowledge_gap in enumerate(document_details.knowledge_gaps, start=1):
+        for i, identified_issue in enumerate(document_details.identified_issues, start=1):
             if i > 1:
                 rows.append("")
-            rows.append(f"## {i}. {knowledge_gap.issue_title}")
-            rows.append(knowledge_gap.issue_description)
-            rows.append(f"\n### Impact\n{knowledge_gap.issue_impact}")
-            rows.append(f"\n### Recommendation\n{knowledge_gap.issue_recommendation}")
+            rows.append(f"## {i}. {identified_issue.issue_title}\n")
+            rows.append(identified_issue.issue_description)
+            rows.append(f"\n**Category:** {identified_issue.category.value}")
+            rows.append(f"\n**Impact:** {identified_issue.issue_impact}")
+            rows.append(f"\n**Recommendation:** {identified_issue.issue_recommendation}")
         return "\n".join(rows)
 
     def save_markdown(self, output_file_path: str):
@@ -165,8 +185,10 @@ if __name__ == "__main__":
 
     # llm = get_llm("ollama-llama3.1")
     llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
+    # llm = get_llm("openrouter-paid-openai-gpt-4o-mini")
 
     path = os.path.join(os.path.dirname(__file__), 'test_data', "deadfish_assumptions.md")
+    # path = os.path.join(os.path.dirname(__file__), 'test_data', "solarfarm_consolidate_assumptions_short.md")
     with open(path, 'r', encoding='utf-8') as f:
         assumptions_markdown = f.read()
 
