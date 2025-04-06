@@ -26,8 +26,12 @@ class CreateDocumentItem(BaseModel):
     document_name: str = Field(
         description="The specific name of the document to be created (e.g., 'Project Charter', 'Detailed Financial Model', 'Stakeholder Communication Plan')."
     )
-    document_purpose: str = Field(
-        description="The purpose of the document and its intended primary audience(s) (e.g., 'To formally authorize the project and define high-level objectives for the Project Sponsor and Senior Management.')."
+    description: str = Field(
+        description=(
+            "A concise yet comprehensive description of the document, "
+            "including its purpose, document type (e.g., 'Policy Framework', 'International Agreement', 'Project Charter'), "
+            "the intended primary audience(s), and any special notes such as specific context, constraints, or approvals needed."
+        )
     )
     responsible_role_type: Optional[str] = Field(
         default=None,
@@ -44,14 +48,22 @@ class CreateDocumentItem(BaseModel):
     steps_to_create: list[str] = Field(
         description="High-level steps required to create this document, based on its purpose and the project context. Mention if key stakeholder input or signatures are typically needed."
     )
+    approval_authorities: Optional[str] = Field(
+        default=None,
+        description="Specify roles or entities required to formally approve or sign off on this document (e.g., 'Legal Counsel', 'Heads of State', 'Ministry of Finance')."
+    )
 
 class FindDocumentItem(BaseModel):
     """A document that is to be found online or in a physical location, such as existing data, reports, contracts, permits, etc."""
     document_name: str = Field(
         description="The specific name or type of document/data to be found (e.g., 'Participating Nations GDP Data', 'Existing Childcare Support Program Reports', 'Local Zoning Regulations', 'Grid Connection Capacity Study')."
     )
-    document_purpose: str = Field(
-        description="Why this document/data is needed for planning and its intended audience(s) (e.g., 'To determine funding contributions for Finance Team and Project Sponsor.', 'To inform the Financial Burden Reduction Plan for the Program Team.')."
+    description: str = Field(
+        description=(
+            "A clear description of the existing document or data, "
+            "including its type or nature (e.g., 'National GDP statistics', 'Mental Health Policy reports'), "
+            "its purpose within the project context, intended audience, and any relevant constraints such as recency or regulatory considerations."
+        )
     )
     recency_requirement: Optional[str] = Field(
         default=None,
@@ -85,16 +97,17 @@ class DocumentDetails(BaseModel):
 class CleanedupCreateDocumentItem(BaseModel):
     id: str
     document_name: str
-    document_purpose: str
+    description: str
     responsible_role_type: Optional[str]
     document_template_primary: Optional[str]
     document_template_secondary: Optional[str]
     steps_to_create: list[str]
+    approval_authorities: Optional[str]
 
 class CleanedupFindDocumentItem(BaseModel):
     id: str
     document_name: str
-    document_purpose: str
+    description: str
     recency_requirement: Optional[str]
     responsible_role_type: Optional[str]
     steps_to_find: list[str]
@@ -114,7 +127,7 @@ Based *only* on the **project description provided by the user**, generate the f
     *   Also include standard project management documents typically required for a project of this nature and scale (e.g., Project Charter, Risk Register, Stakeholder Communication Plan, Change Management Plan, Detailed Budget, Detailed Schedule, M&E Framework), ensuring they are relevant to the context provided.
     *   For each document, provide:
         *   `document_name`
-        *   `document_purpose` (including audience)
+        *   `description` (including audience)
         *   `responsible_role_type`: Infer the typical functional role or primary skill type (e.g., 'Project Manager', 'Financial Analyst', 'Legal Counsel') needed to lead the creation.
         *   `document_template_primary` / `document_template_secondary`: Suggest standard template names or sources (e.g., 'PMI', 'World Bank') if widely applicable. **If suggesting a generic template, explicitly note that country-specific or industry-specific versions may be required and should be checked.** If no standard template is common, state 'None Applicable' or leave null.
         *   `steps_to_create`: High-level steps, mentioning key inputs or approvals.
@@ -124,7 +137,7 @@ Based *only* on the **project description provided by the user**, generate the f
     *   **Consolidate similar data requirements** (e.g., list 'National GDP Data' once, even if needed for multiple purposes or nations, rather than repeating).
     *   For each document/data set, provide:
         *   `document_name`
-        *   `document_purpose` (including audience)
+        *   `description` (including audience)
         *   `recency_requirement`: Infer guidance on how recent the information should ideally be (e.g., 'Most recent available', 'Last 2 years').
         *   `responsible_role_type`: Infer the typical functional role or skill type (e.g., 'Research Analyst', 'Regulatory Liaison') responsible for finding/verifying it.
         *   `steps_to_find`
@@ -135,7 +148,7 @@ Based *only* on the **project description provided by the user**, generate the f
 - When suggesting standard PM documents, briefly tailor their purpose to the specific project context.
 - When inferring roles, suggest a functional type (e.g., 'Legal', 'Technical', 'Finance') rather than a specific job title if appropriate.
 - Focus *only* on identifying these necessary prerequisite documents/data. Do not generate implementation plans, execution strategies, or other topics.
-- Ensure all specified fields (`document_name`, `document_purpose`, `responsible_role_type`, `recency_requirement`, `steps_to_find`, `access_difficulty`, `document_template_primary`, `document_template_secondary`, `steps_to_create`) are populated for every item where applicable.
+- Ensure all specified fields (`document_name`, `description`, `responsible_role_type`, `recency_requirement`, `steps_to_find`, `access_difficulty`, `document_template_primary`, `document_template_secondary`, `steps_to_create`) are populated for every item where applicable.
 - Ensure your output strictly adheres to the provided Pydantic schema `DocumentDetails` containing only `documents_to_create` and `documents_to_find`.
 """
 
@@ -238,11 +251,12 @@ class IdentifyDocuments:
             document = CleanedupCreateDocumentItem(
                 id=str(uuid4()),
                 document_name=item.document_name,
-                document_purpose=item.document_purpose,
+                description=item.description,
                 responsible_role_type=item.responsible_role_type,
                 document_template_primary=item.document_template_primary,
                 document_template_secondary=item.document_template_secondary,
                 steps_to_create=item.steps_to_create,
+                approval_authorities=item.approval_authorities,
             )
             cleanedup_documents_to_create.append(document)
 
@@ -252,7 +266,7 @@ class IdentifyDocuments:
             document = CleanedupFindDocumentItem(
                 id=str(uuid4()),
                 document_name=item.document_name,
-                document_purpose=item.document_purpose,
+                description=item.description,
                 recency_requirement=item.recency_requirement,
                 responsible_role_type=item.responsible_role_type,
                 steps_to_find=item.steps_to_find,
@@ -280,7 +294,7 @@ class IdentifyDocuments:
                     rows.append("")
                 rows.append(f"### {i}. {item.document_name}")
                 rows.append(f"**ID:** {item.id}")
-                rows.append(f"**Purpose:** {item.document_purpose}")
+                rows.append(f"**Description:** {item.description}")
                 if item.responsible_role_type:
                     rows.append(f"**Responsible Role Type:** {item.responsible_role_type}")
                 if item.document_template_primary:
@@ -292,7 +306,9 @@ class IdentifyDocuments:
                     for step in item.steps_to_create:
                         rows.append(f"- {step}")
                 else:
-                    rows.append("- *(No steps provided)*")            
+                    rows.append("- *(No steps provided)*")
+                if item.approval_authorities:
+                    rows.append(f"**Approval Authorities:** {item.approval_authorities}")
         else:
             rows.append("*No documents identified to create.*")
 
@@ -304,7 +320,7 @@ class IdentifyDocuments:
                     rows.append("")
                 rows.append(f"### {i}. {item.document_name}")
                 rows.append(f"**ID:** {item.id}")
-                rows.append(f"**Purpose:** {item.document_purpose}")
+                rows.append(f"**Description:** {item.description}")
                 if item.recency_requirement:
                     rows.append(f"**Recency Requirement:** {item.recency_requirement}")
                 if item.responsible_role_type:
