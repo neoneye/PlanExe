@@ -120,34 +120,36 @@ You are an expert in project planning and documentation. Your task is to analyze
 
 Based *only* on the **project description provided by the user**, generate the following details:
 
-1. **Documents to Create:** Clearly identify each document to be drafted during the planning phase:
-    * Include documents explicitly mentioned or implied by the project description (e.g., charters, agreements, strategic plans).
-    * Include standard project management documents typically required (e.g., Project Charter, Risk Register, Communication Plan, Change Management Plan, Detailed Budget, Schedule, M&E Framework), explicitly tailored to the provided context.
-    * For every document identified, explicitly and always include:
-        - `document_name`: Concise, descriptive title.
-        - `description`: Clearly specify the document type (e.g., Charter, Roadmap, Agreement), purpose, intended audience, and special considerations or constraints.
-        - `responsible_role_type`: Clearly identify the specific functional role responsible for creating the document (e.g., 'Project Manager', 'Financial Analyst', 'Legal Counsel', 'Communication Specialist'). **This field is mandatory for every document identified and must never be omitted.**
-        - `document_template_primary` / `document_template_secondary`: Suggest standard templates (e.g., 'PMI', 'World Bank') if applicable. Clearly state if no standard template applies ('None Applicable').
-        - `steps_to_create`: Outline key steps required to create the document, including inputs, consultations, and approvals.
-        - `approval_authorities`: Specify roles or committees responsible for formally approving the document (e.g., 'Global Steering Committee', 'Legal Counsel', 'Finance Committee').
+1.  **Documents to Create:** Clearly identify each document to be drafted during the planning phase:
+    *   Include documents explicitly mentioned or implied by the project description (e.g., charters, agreements, strategic plans).
+    *   **Ensure a dedicated document (e.g., a 'Plan', 'Strategy', or 'Report') is created for each major intervention area identified in the user prompt (e.g., reversing declining fertility rates, reducing financial burden of children, improving housing affordability, streamlining education/job access, improving social well-being/mental health).** If the user prompt contains potential typos or counter-intuitive goals like 'Reduce housing affordability', interpret them logically in the context of the overall project aims – in this case, likely meaning 'Improve housing affordability' – and generate documents accordingly.
+    *   Suggest creating an initial baseline assessment or report relevant to the core problem (e.g., 'Current Fertility Rate Analysis Report').
+    *   Include standard project management documents typically required (e.g., Project Charter, Risk Register, Communication Plan, Stakeholder Engagement Plan, Change Management Plan, Detailed Budget, Funding Agreement Structure/Template, Schedule/Timeline, M&E Framework), explicitly tailored to the provided context.
+    *   For every document identified, explicitly and always include:
+        *   `document_name`: Concise, descriptive title.
+        *   `description`: Clearly specify the document type (e.g., Charter, Strategic Plan, Policy Report, Agreement Template), purpose, intended primary audience(s), and special considerations or constraints.
+        *   `responsible_role_type`: Clearly identify the specific functional role responsible for creating the document. **Use specific functional roles reflecting the required expertise (e.g., 'Urban Planner' for housing, 'Social Worker' for social well-being, 'Education Specialist' for education/jobs) where appropriate, alongside general roles like 'Project Manager' or 'Financial Analyst'.** This field is mandatory for every document identified and must never be omitted.
+        *   `document_template_primary` / `document_template_secondary`: Suggest standard templates (e.g., 'PMI', 'World Bank') if applicable. Clearly state if no standard template applies ('None Applicable').
+        *   `steps_to_create`: Outline key steps required to create the document, including inputs, consultations, and approvals.
+        *   `approval_authorities`: Specify roles or committees responsible for formally approving the document (e.g., 'Global Steering Committee', 'Participating Nation Representatives', 'Legal Counsel').
 
-2. **Documents to Find:** Identify existing documents, datasets, or information crucial for planning:
-    * Derive directly from project description (e.g., GDP data, existing policies).
-    * Consolidate similar data/document requirements clearly.
-    * For every document or dataset identified, explicitly and always include:
-        - `document_name`: Clear and specific title.
-        - `description`: Clearly specify the type of data/document, purpose, intended audience, and contextual details.
-        - `recency_requirement`: Specify how recent the information must be ('Most recent available', 'Within last 2 years').
-        - `responsible_role_type`: Clearly identify the specific functional role responsible for obtaining or verifying this document or dataset (e.g., 'Research Analyst', 'Financial Analyst', 'Legal Counsel'). **This field is mandatory for every document identified and must never be omitted.**
-        - `steps_to_find`: Outline steps needed to obtain the document or dataset (e.g., contacting national statistical offices).
-        - `access_difficulty`: Assess clearly as Easy, Medium, or Hard, with brief justification.
+2.  **Documents to Find:** Identify existing documents, datasets, or information crucial for planning:
+    *   Derive directly from project description needs (e.g., GDP data, existing policies/programs related to interventions).
+    *   **Consolidate requirements for similar existing data or documents.** For instance, if data is needed initially and then updated periodically, specify this within the `recency_requirement` (e.g., 'Most recent available, with plan for annual updates') or `description` of a *single* item, rather than creating duplicate entries for the same core data type.
+    *   For every document or dataset identified, explicitly and always include:
+        *   `document_name`: Clear and specific title (e.g., 'Participating Nations GDP Data', 'Existing National Childcare Support Policies & Programs Review').
+        *   `description`: Clearly specify the type of data/document, its purpose for planning, intended audience for analysis, and contextual details.
+        *   `recency_requirement`: Specify how recent the information must be ('Most recent available', 'Published within last 2 years', 'Current regulations essential').
+        *   `responsible_role_type`: Clearly identify the specific functional role responsible for obtaining or verifying this document or dataset (e.g., 'Research Analyst', 'Financial Analyst', 'Legal Counsel'). **This field is mandatory for every document identified and must never be omitted.**
+        *   `steps_to_find`: Outline likely steps needed to obtain the document or dataset (e.g., contacting national statistical offices, searching specific databases, liaising with ministries).
+        *   `access_difficulty`: Assess clearly as Easy, Medium, or Hard, with brief justification.
 
 **Instructions:**
 - Firmly ground your analysis in the provided project description. Do not invent unsupported details.
 - Explicitly and consistently include the mandatory `responsible_role_type` for every document identified.
-- Use general functional roles rather than specific individual job titles.
-- Focus exclusively on prerequisite documents/data. Avoid implementation or execution strategies.
-- Ensure strict adherence to the provided Pydantic schema `DocumentDetails`, containing only `documents_to_create` and `documents_to_find`, and ensure all required fields are explicitly populated.
+- Ensure dedicated documents are created for each key intervention area mentioned by the user.
+- Focus exclusively on prerequisite documents/data needed for planning. Avoid implementation or execution strategies within this task.
+- Ensure strict adherence to the provided Pydantic schema `DocumentDetails`, containing only `documents_to_create` and `documents_to_find`, and ensure all required fields are explicitly populated. Only use the fields defined in the `CreateDocumentItem` and `FindDocumentItem` models.
 """
 
 @dataclass
