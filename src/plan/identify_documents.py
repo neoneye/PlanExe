@@ -33,9 +33,8 @@ class CreateDocumentItem(BaseModel):
             "the intended primary audience(s), and any special notes such as specific context, constraints, or approvals needed."
         )
     )
-    responsible_role_type: Optional[str] = Field(
-        default=None,
-        description="The typical functional role or primary skill type needed to create or lead the creation of this document (e.g., 'Project Manager', 'Finance Team Lead', 'Legal Counsel', 'Environmental Scientist', 'Lead Engineer'). Suggest a role type, not a specific person."
+    responsible_role_type: str = Field(
+        description="The specific functional role or primary skill type responsible for creating or obtaining this document (e.g., 'Project Manager', 'Financial Analyst', 'Legal Counsel', 'Communication Specialist'). This field is mandatory."
     )
     document_template_primary: Optional[str] = Field(
         default=None,
@@ -69,9 +68,8 @@ class FindDocumentItem(BaseModel):
         default=None,
         description="Guidance on how recent the document or data should ideally be, based on its type and purpose (e.g., 'Most recent available year', 'Published within last 2 years', 'Historical data acceptable', 'Current regulations essential')."
     )
-    responsible_role_type: Optional[str] = Field(
-        default=None,
-        description="The typical functional role or primary skill type responsible for finding, requesting, or verifying this document/data (e.g., 'Research Analyst', 'Financial Analyst', 'Regulatory Liaison', 'Legal Assistant', 'Permitting Specialist'). Suggest a role type."
+    responsible_role_type: str = Field(
+        description="The specific functional role or primary skill type responsible for creating or obtaining this document (e.g., 'Project Manager', 'Financial Analyst', 'Legal Counsel', 'Communication Specialist'). This field is mandatory."
     )
     steps_to_find: list[str] = Field(
         description="Likely steps to find the document/data (e.g., 'Contact national statistical offices', 'Search World Bank Open Data', 'Check local municipality website', 'Submit formal request to agency')."
@@ -98,7 +96,7 @@ class CleanedupCreateDocumentItem(BaseModel):
     id: str
     document_name: str
     description: str
-    responsible_role_type: Optional[str]
+    responsible_role_type: str
     document_template_primary: Optional[str]
     document_template_secondary: Optional[str]
     steps_to_create: list[str]
@@ -109,7 +107,7 @@ class CleanedupFindDocumentItem(BaseModel):
     document_name: str
     description: str
     recency_requirement: Optional[str]
-    responsible_role_type: Optional[str]
+    responsible_role_type: str
     steps_to_find: list[str]
     access_difficulty: str
 
@@ -118,38 +116,38 @@ class CleanedupDocumentDetails(BaseModel):
     documents_to_find: list[CleanedupFindDocumentItem]
 
 IDENTIFY_DOCUMENTS_SYSTEM_PROMPT = """
-You are an expert in project planning and documentation. Your task is to analyze the provided project description and identify the necessary documents (both to create and to find) that are essential *before* a comprehensive operational plan can be effectively developed.
+You are an expert in project planning and documentation. Your task is to analyze the provided project description and identify essential documents (both to create and to find) required *before* a comprehensive operational plan can be effectively developed.
 
 Based *only* on the **project description provided by the user**, generate the following details:
 
-1.  **Documents to Create:** Identify specific documents that must be drafted or created as part of the planning phase.
-    *   Include documents directly implied by the project description (e.g., specific reports, plans mentioned).
-    *   Also include standard project management documents typically required for a project of this nature and scale (e.g., Project Charter, Risk Register, Stakeholder Communication Plan, Change Management Plan, Detailed Budget, Detailed Schedule, M&E Framework), ensuring they are relevant to the context provided.
-    *   For each document, provide:
-        *   `document_name`
-        *   `description` (including audience)
-        *   `responsible_role_type`: Infer the typical functional role or primary skill type (e.g., 'Project Manager', 'Financial Analyst', 'Legal Counsel') needed to lead the creation.
-        *   `document_template_primary` / `document_template_secondary`: Suggest standard template names or sources (e.g., 'PMI', 'World Bank') if widely applicable. **If suggesting a generic template, explicitly note that country-specific or industry-specific versions may be required and should be checked.** If no standard template is common, state 'None Applicable' or leave null.
-        *   `steps_to_create`: High-level steps, mentioning key inputs or approvals.
+1. **Documents to Create:** Clearly identify each document to be drafted during the planning phase:
+    * Include documents explicitly mentioned or implied by the project description (e.g., charters, agreements, strategic plans).
+    * Include standard project management documents typically required (e.g., Project Charter, Risk Register, Communication Plan, Change Management Plan, Detailed Budget, Schedule, M&E Framework), explicitly tailored to the provided context.
+    * For every document identified, explicitly and always include:
+        - `document_name`: Concise, descriptive title.
+        - `description`: Clearly specify the document type (e.g., Charter, Roadmap, Agreement), purpose, intended audience, and special considerations or constraints.
+        - `responsible_role_type`: Clearly identify the specific functional role responsible for creating the document (e.g., 'Project Manager', 'Financial Analyst', 'Legal Counsel', 'Communication Specialist'). **This field is mandatory for every document identified and must never be omitted.**
+        - `document_template_primary` / `document_template_secondary`: Suggest standard templates (e.g., 'PMI', 'World Bank') if applicable. Clearly state if no standard template applies ('None Applicable').
+        - `steps_to_create`: Outline key steps required to create the document, including inputs, consultations, and approvals.
+        - `approval_authorities`: Specify roles or committees responsible for formally approving the document (e.g., 'Global Steering Committee', 'Legal Counsel', 'Finance Committee').
 
-2.  **Documents to Find:** Identify specific existing documents, data sets, or information that must be obtained or located to inform the planning process.
-    *   Infer these from the project description's requirements (e.g., needing funding implies finding GDP data, needing specific regulations implies finding legal texts).
-    *   **Consolidate similar data requirements** (e.g., list 'National GDP Data' once, even if needed for multiple purposes or nations, rather than repeating).
-    *   For each document/data set, provide:
-        *   `document_name`
-        *   `description` (including audience)
-        *   `recency_requirement`: Infer guidance on how recent the information should ideally be (e.g., 'Most recent available', 'Last 2 years').
-        *   `responsible_role_type`: Infer the typical functional role or skill type (e.g., 'Research Analyst', 'Regulatory Liaison') responsible for finding/verifying it.
-        *   `steps_to_find`
-        *   `access_difficulty`: Assess as Easy/Medium/Hard with brief justification.
+2. **Documents to Find:** Identify existing documents, datasets, or information crucial for planning:
+    * Derive directly from project description (e.g., GDP data, existing policies).
+    * Consolidate similar data/document requirements clearly.
+    * For every document or dataset identified, explicitly and always include:
+        - `document_name`: Clear and specific title.
+        - `description`: Clearly specify the type of data/document, purpose, intended audience, and contextual details.
+        - `recency_requirement`: Specify how recent the information must be ('Most recent available', 'Within last 2 years').
+        - `responsible_role_type`: Clearly identify the specific functional role responsible for obtaining or verifying this document or dataset (e.g., 'Research Analyst', 'Financial Analyst', 'Legal Counsel'). **This field is mandatory for every document identified and must never be omitted.**
+        - `steps_to_find`: Outline steps needed to obtain the document or dataset (e.g., contacting national statistical offices).
+        - `access_difficulty`: Assess clearly as Easy, Medium, or Hard, with brief justification.
 
 **Instructions:**
-- Ground your analysis firmly in the **user's project description**. Do not invent details or requirements not supported by the input.
-- When suggesting standard PM documents, briefly tailor their purpose to the specific project context.
-- When inferring roles, suggest a functional type (e.g., 'Legal', 'Technical', 'Finance') rather than a specific job title if appropriate.
-- Focus *only* on identifying these necessary prerequisite documents/data. Do not generate implementation plans, execution strategies, or other topics.
-- Ensure all specified fields (`document_name`, `description`, `responsible_role_type`, `recency_requirement`, `steps_to_find`, `access_difficulty`, `document_template_primary`, `document_template_secondary`, `steps_to_create`) are populated for every item where applicable.
-- Ensure your output strictly adheres to the provided Pydantic schema `DocumentDetails` containing only `documents_to_create` and `documents_to_find`.
+- Firmly ground your analysis in the provided project description. Do not invent unsupported details.
+- Explicitly and consistently include the mandatory `responsible_role_type` for every document identified.
+- Use general functional roles rather than specific individual job titles.
+- Focus exclusively on prerequisite documents/data. Avoid implementation or execution strategies.
+- Ensure strict adherence to the provided Pydantic schema `DocumentDetails`, containing only `documents_to_create` and `documents_to_find`, and ensure all required fields are explicitly populated.
 """
 
 @dataclass
@@ -295,8 +293,7 @@ class IdentifyDocuments:
                 rows.append(f"### {i}. {item.document_name}")
                 rows.append(f"**ID:** {item.id}")
                 rows.append(f"**Description:** {item.description}")
-                if item.responsible_role_type:
-                    rows.append(f"**Responsible Role Type:** {item.responsible_role_type}")
+                rows.append(f"**Responsible Role Type:** {item.responsible_role_type}")
                 if item.document_template_primary:
                     rows.append(f"**Primary Template:** {item.document_template_primary}")
                 if item.document_template_secondary:
@@ -323,8 +320,7 @@ class IdentifyDocuments:
                 rows.append(f"**Description:** {item.description}")
                 if item.recency_requirement:
                     rows.append(f"**Recency Requirement:** {item.recency_requirement}")
-                if item.responsible_role_type:
-                    rows.append(f"**Responsible Role Type:** {item.responsible_role_type}")
+                rows.append(f"**Responsible Role Type:** {item.responsible_role_type}")
                 rows.append(f"**Access Difficulty:** {item.access_difficulty}")
                 rows.append("**Steps:**\n")
                 if item.steps_to_find:
