@@ -278,7 +278,8 @@ class IdentifyDocuments:
             for i, item in enumerate(document_details.documents_to_create, start=1):
                 if i > 1:
                     rows.append("")
-                rows.append(f"### {i}. {item.document_name}, ID: {item.id}")
+                rows.append(f"### {i}. {item.document_name}")
+                rows.append(f"**ID:** {item.id}")
                 rows.append(f"**Purpose:** {item.document_purpose}")
                 if item.responsible_role_type:
                     rows.append(f"**Responsible Role Type:** {item.responsible_role_type}")
@@ -301,7 +302,8 @@ class IdentifyDocuments:
             for i, item in enumerate(document_details.documents_to_find, start=1):
                 if i > 1:
                     rows.append("")
-                rows.append(f"### {i}. {item.document_name}, ID: {item.id}")
+                rows.append(f"### {i}. {item.document_name}")
+                rows.append(f"**ID:** {item.id}")
                 rows.append(f"**Purpose:** {item.document_purpose}")
                 if item.recency_requirement:
                     rows.append(f"**Recency Requirement:** {item.recency_requirement}")
