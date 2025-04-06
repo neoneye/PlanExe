@@ -299,23 +299,23 @@ class IdentifyDocuments:
                 if i > 1:
                     rows.append("")
                 rows.append(f"### {i}. {item.document_name}")
-                rows.append(f"**ID:** {item.id}")
-                rows.append(f"**Description:** {item.description}")
-                rows.append(f"**Responsible Role Type:** {item.responsible_role_type}")
+                rows.append(f"\n**ID:** {item.id}")
+                rows.append(f"\n**Description:** {item.description}")
+                rows.append(f"\n**Responsible Role Type:** {item.responsible_role_type}")
                 if item.document_template_primary:
-                    rows.append(f"**Primary Template:** {item.document_template_primary}")
+                    rows.append(f"\n**Primary Template:** {item.document_template_primary}")
                 if item.document_template_secondary:
-                    rows.append(f"**Secondary Template:** {item.document_template_secondary}")
-                rows.append("**Steps:**\n")
+                    rows.append(f"\n**Secondary Template:** {item.document_template_secondary}")
+                rows.append("\n**Steps:**\n")
                 if item.steps_to_create:
                     for step in item.steps_to_create:
                         rows.append(f"- {step}")
                 else:
                     rows.append("- *(No steps provided)*")
                 if item.approval_authorities:
-                    rows.append(f"**Approval Authorities:** {item.approval_authorities}")
+                    rows.append(f"\n**Approval Authorities:** {item.approval_authorities}")
         else:
-            rows.append("*No documents identified to create.*")
+            rows.append("\n*No documents identified to create.*")
 
         # Add documents to find section
         rows.append("\n## Documents to Find\n")
@@ -324,20 +324,20 @@ class IdentifyDocuments:
                 if i > 1:
                     rows.append("")
                 rows.append(f"### {i}. {item.document_name}")
-                rows.append(f"**ID:** {item.id}")
-                rows.append(f"**Description:** {item.description}")
+                rows.append(f"\n**ID:** {item.id}")
+                rows.append(f"\n**Description:** {item.description}")
                 if item.recency_requirement:
-                    rows.append(f"**Recency Requirement:** {item.recency_requirement}")
-                rows.append(f"**Responsible Role Type:** {item.responsible_role_type}")
-                rows.append(f"**Access Difficulty:** {item.access_difficulty}")
-                rows.append("**Steps:**\n")
+                    rows.append(f"\n**Recency Requirement:** {item.recency_requirement}")
+                rows.append(f"\n**Responsible Role Type:** {item.responsible_role_type}")
+                rows.append(f"\n**Access Difficulty:** {item.access_difficulty}")
+                rows.append("\n**Steps:**\n")
                 if item.steps_to_find:
                     for step in item.steps_to_find:
                         rows.append(f"- {step}")
                 else:
                     rows.append("- *(No steps provided)*")
         else:
-            rows.append("*No documents identified to find.*")
+            rows.append("\n*No documents identified to find.*")
                 
         return "\n".join(rows)
 
