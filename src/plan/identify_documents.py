@@ -12,6 +12,7 @@ import os
 import json
 import time
 import logging
+from uuid import uuid4
 from math import ceil
 from dataclasses import dataclass
 from typing import Optional
@@ -81,6 +82,28 @@ class DocumentDetails(BaseModel):
         description="Documents that are to be found online or in a physical location, that for some reason were not identified in the first pass. Do not repeat documents already identified in the first pass."
     )
 
+class CleanedupCreateDocumentItem(BaseModel):
+    id: str
+    document_name: str
+    document_purpose: str
+    responsible_role_type: Optional[str]
+    document_template_primary: Optional[str]
+    document_template_secondary: Optional[str]
+    steps_to_create: list[str]
+
+class CleanedupFindDocumentItem(BaseModel):
+    id: str
+    document_name: str
+    document_purpose: str
+    recency_requirement: Optional[str]
+    responsible_role_type: Optional[str]
+    steps_to_find: list[str]
+    access_difficulty: str
+
+class CleanedupDocumentDetails(BaseModel):
+    documents_to_create: list[CleanedupCreateDocumentItem]
+    documents_to_find: list[CleanedupFindDocumentItem]
+
 IDENTIFY_DOCUMENTS_SYSTEM_PROMPT = """
 You are an expert in project planning and documentation. Your task is to analyze the provided project description and identify the necessary documents (both to create and to find) that are essential *before* a comprehensive operational plan can be effectively developed.
 
@@ -124,6 +147,7 @@ class IdentifyDocuments:
     system_prompt: str
     user_prompt: str
     response: dict
+    cleanedup_document_details: CleanedupDocumentDetails
     metadata: dict
     markdown: str
 
@@ -173,12 +197,15 @@ class IdentifyDocuments:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
-        markdown = cls.convert_to_markdown(chat_response.raw)
+        cleanedup_document_details = cls.cleanup(chat_response.raw)
+
+        markdown = cls.convert_to_markdown(cleanedup_document_details)
 
         result = IdentifyDocuments(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
+            cleanedup_document_details=cleanedup_document_details,
             metadata=metadata,
             markdown=markdown
         )
@@ -199,7 +226,47 @@ class IdentifyDocuments:
             f.write(json.dumps(self.to_dict(), indent=2))
 
     @staticmethod
-    def convert_to_markdown(document_details: DocumentDetails) -> str:
+    def cleanup(document_details: DocumentDetails) -> CleanedupDocumentDetails:
+        """
+        Cleanup the document details.
+        - Combine part1 and part2.
+        - Assign a unique id to each document.
+        """
+        cleanedup_documents_to_create = []
+        documents_to_create = document_details.documents_to_create + document_details.documents_to_create_part2
+        for item in documents_to_create:
+            document = CleanedupCreateDocumentItem(
+                id=str(uuid4()),
+                document_name=item.document_name,
+                document_purpose=item.document_purpose,
+                responsible_role_type=item.responsible_role_type,
+                document_template_primary=item.document_template_primary,
+                document_template_secondary=item.document_template_secondary,
+                steps_to_create=item.steps_to_create,
+            )
+            cleanedup_documents_to_create.append(document)
+
+        cleanedup_documents_to_find = []
+        documents_to_find = document_details.documents_to_find + document_details.documents_to_find_part2
+        for item in documents_to_find:
+            document = CleanedupFindDocumentItem(
+                id=str(uuid4()),
+                document_name=item.document_name,
+                document_purpose=item.document_purpose,
+                recency_requirement=item.recency_requirement,
+                responsible_role_type=item.responsible_role_type,
+                steps_to_find=item.steps_to_find,
+                access_difficulty=item.access_difficulty,
+            )
+            cleanedup_documents_to_find.append(document)
+
+        return CleanedupDocumentDetails(
+            documents_to_create=cleanedup_documents_to_create,
+            documents_to_find=cleanedup_documents_to_find
+        )
+
+    @staticmethod
+    def convert_to_markdown(document_details: CleanedupDocumentDetails) -> str:
         """
         Convert the raw document details to markdown.
         """
@@ -207,12 +274,11 @@ class IdentifyDocuments:
         
         # Add documents to create section
         rows.append("\n## Documents to Create\n")
-        documents_to_create = document_details.documents_to_create + document_details.documents_to_create_part2
-        if len(documents_to_create) > 0:
-            for i, item in enumerate(documents_to_create, start=1):
+        if len(document_details.documents_to_create) > 0:
+            for i, item in enumerate(document_details.documents_to_create, start=1):
                 if i > 1:
                     rows.append("")
-                rows.append(f"### {i}. {item.document_name}")
+                rows.append(f"### {i}. {item.document_name}, ID: {item.id}")
                 rows.append(f"**Purpose:** {item.document_purpose}")
                 if item.responsible_role_type:
                     rows.append(f"**Responsible Role Type:** {item.responsible_role_type}")
@@ -231,12 +297,11 @@ class IdentifyDocuments:
 
         # Add documents to find section
         rows.append("\n## Documents to Find\n")
-        documents_to_find = document_details.documents_to_find + document_details.documents_to_find_part2
-        if len(documents_to_find) > 0:
-            for i, item in enumerate(documents_to_find, start=1):
+        if len(document_details.documents_to_find) > 0:
+            for i, item in enumerate(document_details.documents_to_find, start=1):
                 if i > 1:
                     rows.append("")
-                rows.append(f"### {i}. {item.document_name}")
+                rows.append(f"### {i}. {item.document_name}, ID: {item.id}")
                 rows.append(f"**Purpose:** {item.document_purpose}")
                 if item.recency_requirement:
                     rows.append(f"**Recency Requirement:** {item.recency_requirement}")
