@@ -122,37 +122,40 @@ Based *only* on the **project description provided by the user**, generate the f
 
 1.  **Documents to Create:** Clearly identify each document to be drafted during the *initial planning and strategy development phase*:
     *   Include documents explicitly mentioned or implied by the project description (e.g., charters, agreements, strategic plans).
-    *   **Ensure a dedicated high-level document (e.g., a 'Plan', 'Strategy', or initial 'Framework') is created for each major intervention area identified in the user prompt (e.g., reversing declining fertility rates, reducing financial burden of children, improving housing affordability, streamlining education/job access, improving social well-being/mental health).** If the user prompt contains potential typos or counter-intuitive goals like 'Reduce housing affordability', interpret them logically in the context of the overall project aims – likely meaning 'Improve housing affordability' – and generate documents accordingly.
-    *   Suggest creating an initial baseline assessment or report relevant to the core problem (e.g., 'Current Fertility Rate Analysis Report').
+    *   Ensure a dedicated high-level document (e.g., a 'Plan', 'Strategy', or initial 'Framework') is created for each major intervention area identified in the user prompt (e.g., reversing declining fertility rates, reducing financial burden of children, improving housing affordability, streamlining education/job access, improving social well-being/mental health). Interpret potential user prompt ambiguities logically (e.g., treat 'Reduce housing affordability' as 'Improve housing affordability').
+    *   Suggest creating an initial baseline assessment or report relevant to the core problem (e.g., 'Current State Assessment of Fertility Trends').
     *   Include standard project management documents typically required *at the outset* (e.g., Project Charter, Risk Register, Communication Plan, Stakeholder Engagement Plan, Change Management Plan, High-Level Budget/Funding Framework, Funding Agreement Structure/Template, Initial High-Level Schedule/Timeline, M&E Framework), explicitly tailored to the provided context.
-    *   **IMPORTANT SCOPE NOTE:** Ensure these documents represent high-level strategies, frameworks, or foundational plans needed *before* detailed operational planning. **Do NOT include detailed implementation plans or detailed execution timelines for specific interventions at this prerequisite stage.** The *creation* of these strategy/plan documents will often *involve* analyzing data found elsewhere; do not list separate 'Analysis Reports' to be *created* if the analysis is simply a core part of developing the main strategy document itself.
-    *   For every document identified, explicitly and always include:
-        *   `document_name`: Concise, descriptive title.
-        *   `description`: Clearly specify the document type (e.g., Charter, Strategic Plan, Policy Framework, Agreement Template), purpose, intended primary audience(s), and special considerations or constraints.
-        *   `responsible_role_type`: Clearly identify the specific functional role responsible. Use specific functional roles reflecting the required expertise (e.g., 'Urban Planner' for housing, 'Social Worker' for social well-being) where appropriate. **This field is mandatory.**
-        *   `document_template_primary` / `document_template_secondary`: Suggest standard templates if applicable. State 'None Applicable' otherwise.
-        *   `steps_to_create`: Outline *key initial* steps required (e.g., 'Gather input from stakeholders', 'Analyze found data', 'Draft initial framework').
-        *   `approval_authorities`: Specify roles or committees for formal approval.
+    *   **SCOPE:** Ensure these documents represent high-level strategies, frameworks, or foundational plans needed *before* detailed operational planning. **Do NOT include detailed implementation plans.** Analysis of found data is part of creating these documents, not a separate document *to create* unless specifically a 'Baseline Assessment'.
+    *   For every document identified, include all required fields: `document_name`, `description`, `responsible_role_type` (use specific functional roles where appropriate, mandatory), `document_template_primary` / `document_template_secondary`, `steps_to_create` (key initial steps), `approval_authorities`.
 
-2.  **Documents to Find:** Identify **existing** documents, datasets, or information sources crucial for planning:
-    *   Derive directly from project description needs (e.g., GDP data, existing policies/programs related to interventions).
-    *   **IMPORTANT SCOPE NOTE:** This section must list only **existing** documents or datasets that need to be located and reviewed. Focus on identifying the **raw data** (e.g., 'National GDP Statistics', 'Housing Price Index Data') or **existing policy documents/reports** (e.g., 'Current National Childcare Laws', 'Previous Government Reports on Social Cohesion'). **Do NOT list reports or analyses that need to be *performed* as items 'to find'.**
-    *   **Consolidate requirements for similar existing data or documents.** Use fields like `recency_requirement` or `description` for nuances, rather than creating duplicate entries for the same core data type.
-    *   For every document or dataset identified, explicitly and always include:
-        *   `document_name`: Clear and specific title (e.g., 'Participating Nations GDP Data', 'Existing National Childcare Policies Review').
-        *   `description`: Clearly specify the type of data/document, its purpose for planning, intended audience for analysis, and contextual details.
-        *   `recency_requirement`: Specify how recent the information must be ('Most recent available', 'Published within last 2 years'). **This field is mandatory and MUST always be populated.**
-        *   `responsible_role_type`: Clearly identify the specific functional role responsible for obtaining or verifying this information. **This field is mandatory.**
-        *   `steps_to_find`: Outline likely steps needed (e.g., contacting statistical offices, searching databases).
-        *   `access_difficulty`: Assess clearly as Easy, Medium, or Hard, with brief justification.
+2.  **Documents to Find:** Identify **existing source materials** (datasets, official government documents, existing legislation, statistical databases, etc.) crucial for performing the analysis needed to create the planning documents listed above.
+    *   Derive directly from the information needs implied by the 'Documents to Create'.
+    *   **CRITICAL INSTRUCTION - FOCUS ON SOURCE MATERIAL:** You MUST list the **raw inputs** needed for analysis, NOT pre-existing reports that *contain* analysis (unless the report *is* the raw data source, like an official statistical publication).
+        *   **Think: What raw data or official text does the team need to *look at* to write their strategy/plan?**
+        *   **EXAMPLE MAPPING:**
+            *   If creating a 'Housing Affordability Improvement Framework', you need to *find* things like: 'National Housing Price Index Data', 'Existing Zoning Regulations', 'Data on Housing Construction Rates', 'Current Government Housing Subsidy Policies'.
+            *   If creating a 'Reducing Child-Rearing Costs Strategic Plan', you need to *find* things like: 'Current National Childcare Subsidy Laws/Policies', 'Data on Average Childcare Costs', 'Tax Code Sections Related to Dependents'.
+        *   **Explicitly FORBIDDEN:** Do NOT list items like 'Housing Market Analysis Report', 'Childcare Policies Review Report'. The team will *perform* the analysis or review using the source material found; they are not *finding* a completed analysis report (unless it's an official, foundational statistical report from a national office).
+    *   **NAMING CONVENTION:** Use names that clearly reflect the raw source material type. Prefer names like:
+        *   `[Region/Scope] [Topic] Statistical Data` (e.g., 'Participating Nations Fertility Rate Data')
+        *   `Existing [Region/Scope] [Topic] Policies/Laws/Regulations` (e.g., 'Existing National Childcare Subsidy Policies')
+        *   `Official [Region/Scope] [Topic] Survey Results/Data` (e.g., 'Official National Mental Health Survey Data')
+        *   `[Region/Scope] Economic Indicators` (e.g., 'Participating Nations GDP Data', 'National Housing Price Indices')
+    *   Consolidate similar source requirements where logical.
+    *   For every source material identified, explicitly and always include **ALL** required fields:
+        *   `document_name`: Clear title following the naming convention above (focus on data/policy type).
+        *   `description`: Specify the type of source material, its purpose (input for which analysis/plan), intended audience *for analysis*, context.
+        *   `recency_requirement`: Specify how recent it must be. **Mandatory field.**
+        *   `responsible_role_type`: Role responsible for obtaining/verifying. **Mandatory field.**
+        *   `steps_to_find`: Likely steps (e.g., contacting statistical offices, searching government legislative portals, accessing specific databases).
+        *   `access_difficulty`: Assess clearly (Easy, Medium, Hard) with brief justification.
 
-**Instructions:**
-- Firmly ground your analysis in the provided project description.
-- Think logically about the planning flow: find existing information first, then use it to create the necessary high-level plans and strategies.
-- Explicitly and consistently include the mandatory `responsible_role_type` for every item.
-- Ensure the mandatory `recency_requirement` is included for every item in the "Documents to Find" section.
-- Focus exclusively on prerequisite documents/data needed for *initial* planning. Avoid implementation details.
-- Ensure strict adherence to the provided Pydantic schema `DocumentDetails`, containing only `documents_to_create` and `documents_to_find`, and ensure all required fields are explicitly populated. Only use the fields defined in the `CreateDocumentItem` and `FindDocumentItem` models.
+**Instructions Recap:**
+- Ground analysis in the user prompt.
+- "Create" section: High-level plans/strategies & initial PM docs. No implementation plans.
+- "Find" section: **EXISTING SOURCE MATERIAL ONLY (Data, Policies, Laws, Stats).** Use specified naming convention. **NO PRE-EXISTING ANALYSIS REPORTS.**
+- Ensure ALL mandatory fields (`responsible_role_type` everywhere, `recency_requirement` in Find) are populated.
+- Adhere strictly to the Pydantic schema and field definitions.
 """
 
 @dataclass
