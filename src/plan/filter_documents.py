@@ -92,6 +92,8 @@ class FilterDocuments:
     enrichment_result: DocumentEnrichmentResult
     metadata: dict
     markdown: str
+    ids_to_keep: set[str]
+    ids_to_remove: set[str]
 
     @classmethod
     def execute(cls, llm: LLM, user_prompt: str) -> 'FilterDocuments':
@@ -142,6 +144,7 @@ class FilterDocuments:
         enrichment_result = chat_response.raw
 
         markdown = cls.convert_to_markdown(enrichment_result)
+        ids_to_keep, ids_to_remove = cls.extract_ids_to_keep_remove(enrichment_result)
 
         result = FilterDocuments(
             system_prompt=system_prompt,
@@ -149,7 +152,9 @@ class FilterDocuments:
             response=json_response,
             enrichment_result=enrichment_result,
             metadata=metadata,
-            markdown=markdown
+            markdown=markdown,
+            ids_to_keep=ids_to_keep,
+            ids_to_remove=ids_to_remove
         )
         return result
     
@@ -166,6 +171,23 @@ class FilterDocuments:
     def save_raw(self, file_path: str) -> None:
         with open(file_path, 'w') as f:
             f.write(json.dumps(self.to_dict(), indent=2))
+
+    @staticmethod
+    def extract_ids_to_keep_remove(result: DocumentEnrichmentResult) -> tuple[set[str], set[str]]:
+        """
+        Convert the enrichment result to a set of document IDs to keep and remove.
+        """
+        ids_to_keep = set()
+        ids_to_remove = set()
+        for item in result.document_enrichment_list:
+            if item.keep_remove == KeepRemove.remove:
+                ids_to_remove.add(item.document_id)
+            elif item.keep_remove == KeepRemove.keep:
+                ids_to_keep.add(item.document_id)
+            else:
+                ids_to_remove.add(item.document_id)
+                logger.error(f"Invalid keep_remove value: {item.keep_remove}, document_id: {item.document_id}. Removing the document.")
+        return ids_to_keep, ids_to_remove
 
     @staticmethod
     def convert_to_markdown(result: DocumentEnrichmentResult) -> str:
@@ -221,4 +243,5 @@ if __name__ == "__main__":
     print(json.dumps(json_response, indent=2))
 
     print(f"\n\nMarkdown:\n{result.markdown}")
-    
+    print(f"\n\nIDs to keep:\n{result.ids_to_keep}")
+    print(f"\n\nIDs to remove:\n{result.ids_to_remove}")
