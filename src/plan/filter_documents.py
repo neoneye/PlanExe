@@ -1,5 +1,5 @@
 """
-Enriches document lists by identifying duplicates and irrelevant documents.
+Filter documents by identifying duplicates and irrelevant documents.
 
 This module analyzes document lists to identify:
 - Duplicate documents (near identical or similar documents)
@@ -8,7 +8,7 @@ This module analyzes document lists to identify:
 
 The result is a cleaner, more focused list of essential documents.
 
-PROMPT> python -m src.plan.enrich_documents
+PROMPT> python -m src.plan.filter_documents
 """
 import os
 import json
@@ -62,7 +62,7 @@ class DocumentEnrichmentResult(BaseModel):
         description="A summary of the enrichment decisions."
     )
 
-ENRICH_DOCUMENTS_SYSTEM_PROMPT = """
+FILTER_DOCUMENTS_SYSTEM_PROMPT = """
 You are an expert in project planning and documentation. Your task is to analyze the provided document lists and identify:
 1. Duplicate or near-identical documents
 2. Irrelevant documents that don't align with the project goals
@@ -82,7 +82,7 @@ Your analysis should result in a cleaner, more focused list of essential documen
 """
 
 @dataclass
-class EnrichDocuments:
+class FilterDocuments:
     """
     Analyzes document lists to identify duplicates and irrelevant documents.
     """
@@ -94,7 +94,7 @@ class EnrichDocuments:
     markdown: str
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'EnrichDocuments':
+    def execute(cls, llm: LLM, user_prompt: str) -> 'FilterDocuments':
         """
         Invoke LLM with the document details to analyze.
         """
@@ -105,7 +105,7 @@ class EnrichDocuments:
 
         logger.debug(f"User Prompt:\n{user_prompt}")
 
-        system_prompt = ENRICH_DOCUMENTS_SYSTEM_PROMPT.strip()
+        system_prompt = FILTER_DOCUMENTS_SYSTEM_PROMPT.strip()
 
         chat_message_list = [
             ChatMessage(
@@ -143,7 +143,7 @@ class EnrichDocuments:
 
         markdown = cls.convert_to_markdown(enrichment_result)
 
-        result = EnrichDocuments(
+        result = FilterDocuments(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
@@ -168,15 +168,15 @@ class EnrichDocuments:
             f.write(json.dumps(self.to_dict(), indent=2))
 
     @staticmethod
-    def convert_to_markdown(enrichment_result: DocumentEnrichmentResult) -> str:
+    def convert_to_markdown(result: DocumentEnrichmentResult) -> str:
         """
         Convert the enrichment result to markdown.
         """
         rows = []
         
         rows.append("## Document Enrichments\n")
-        if len(enrichment_result.document_enrichment_list) > 0:
-            for i, item in enumerate(enrichment_result.document_enrichment_list, start=1):
+        if len(result.document_enrichment_list) > 0:
+            for i, item in enumerate(result.document_enrichment_list, start=1):
                 if i > 1:
                     rows.append("")
                 rows.append(f"### {i}. {item.document_name}")
@@ -192,7 +192,7 @@ class EnrichDocuments:
         else:
             rows.append("\n*No documents identified.*")
 
-        rows.append(f"\n**Summary:** {enrichment_result.summary}")
+        rows.append(f"\n**Summary:** {result.summary}")
 
         return "\n".join(rows)
 
@@ -215,7 +215,7 @@ if __name__ == "__main__":
     )
     print(f"Query:\n{query}\n\n")
 
-    result = EnrichDocuments.execute(llm, query)
+    result = FilterDocuments.execute(llm, query)
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
