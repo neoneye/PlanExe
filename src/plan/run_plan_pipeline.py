@@ -1643,8 +1643,6 @@ class DataCollectionTask(PlanTask):
 class IdentifyDocumentsTask(PlanTask):
     """
     Identify documents that need to be created or found for the project.
-    Depends on:
-      - DataCollectionTask: provides the data collection plan
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
