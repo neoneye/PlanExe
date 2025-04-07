@@ -34,6 +34,7 @@ from src.governance.governance_phase5_monitoring_progress import GovernancePhase
 from src.governance.governance_phase6_extra import GovernancePhase6Extra
 from src.plan.related_resources import RelatedResources
 from src.plan.identify_documents import IdentifyDocuments
+from src.plan.filter_documents import FilterDocuments
 from src.swot.swot_analysis import SWOTAnalysis
 from src.expert.expert_finder import ExpertFinder
 from src.expert.expert_criticism import ExpertCriticism
@@ -1700,6 +1701,79 @@ class IdentifyDocumentsTask(PlanTask):
         identify_documents.save_raw(self.output()["raw"].path)
         identify_documents.save_markdown(self.output()["markdown"].path)
 
+class FilterDocumentsTask(PlanTask):
+    """
+    Deduplicate and filter the documents.
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def output(self):
+        return {
+            "response_raw": luigi.LocalTarget(self.file_path(FilenameEnum.FILTER_DOCUMENTS_RESPONSE_RAW)),
+            "raw": luigi.LocalTarget(self.file_path(FilenameEnum.FILTERED_DOCUMENTS_RAW)),
+            # "markdown": luigi.LocalTarget(self.file_path(FilenameEnum.FILTERED_DOCUMENTS_MARKDOWN)),
+        }
+
+    def requires(self):
+        return {
+            'identified_documents': IdentifyDocumentsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+        }
+    
+    def run(self):
+        # Read inputs from required tasks.
+        with self.input()['identified_documents']['raw'].open("r") as f:
+            identified_documents_raw = json.load(f)
+        with self.input()['identified_documents']['markdown'].open("r") as f:
+            identified_documents_markdown = f.read()
+
+        # Build the query.
+        query = (
+            f"File 'documents.md':\n{identified_documents_markdown}"
+        )
+
+        # Get an LLM instance.
+        llm = get_llm(self.llm_model)
+        
+        # Invoke the LLM.
+        filter_documents = FilterDocuments.execute(
+            llm=llm,
+            user_prompt=query,
+        )
+
+        # Save the results.
+        filter_documents.save_raw(self.output()["response_raw"].path)
+
+        ids_to_remove = filter_documents.ids_to_remove
+
+        unfiltered_documents_to_create = identified_documents_raw.get('documents_to_create', [])
+        unfiltered_documents_to_find = identified_documents_raw.get('documents_to_find', [])
+
+        documents_to_create = []
+        documents_to_find = []
+
+        for document in unfiltered_documents_to_create:
+            id = document.get('id', '')
+            if id in ids_to_remove:
+                continue
+            documents_to_create.append(document)
+
+        for document in unfiltered_documents_to_find:
+            id = document.get('id', '')
+            if id in ids_to_remove:
+                continue
+            documents_to_find.append(document)
+
+        filtered_documents_raw = {
+            'documents_to_create': documents_to_create,
+            'documents_to_find': documents_to_find
+        }
+
+        with self.output()['raw'].open("w") as f:
+            json.dump(filtered_documents_raw, f, indent=2)
+
+        # IDEA: IdentifyDocuments.convert_to_markdown() with the filtered documents.
+
+
 class CreateWBSLevel1Task(PlanTask):
     """
     Creates the Work Breakdown Structure (WBS) Level 1.
@@ -2464,6 +2538,7 @@ class FullPlanPipeline(PlanTask):
             'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'identified_documents': IdentifyDocumentsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            # 'filter_documents': FilterDocumentsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level2': CreateWBSLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project12': WBSProjectLevel1AndLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
