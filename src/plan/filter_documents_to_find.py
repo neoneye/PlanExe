@@ -1,10 +1,9 @@
 """
-Filter documents by identifying duplicates and irrelevant documents.
+Filter "documents-to-find" by identifying the most relevant documents and removing the rest (duplicates and irrelevant documents).
 
 This module analyzes document lists to identify:
 - Duplicate documents (near identical or similar documents)
 - Irrelevant documents (documents that don't align with project goals)
-- Documents that can be consolidated
 
 The result is a cleaner, more focused list of essential documents.
 
@@ -24,65 +23,69 @@ from llama_index.core.llms.llm import LLM
 
 logger = logging.getLogger(__name__)
 
-class KeepRemove(str, Enum):
-    """Enum to indicate whether a document should be kept or removed."""
-    keep = 'keep'
-    remove = 'remove'
+class DocumentImpact(str, Enum):
+    """Enum to indicate the assessed impact of a document for the initial project phase."""
+    critical = 'Critical' # Absolutely essential for project viability/start, major risk mitigation
+    high = 'High'         # Very important for key decisions/planning steps/risk reduction
+    medium = 'Medium'     # Useful for context or less critical initial tasks
+    low = 'Low'           # Minor relevance for the initial phase or needed much later
 
 class DocumentItem(BaseModel):
     id: int = Field(
         description="The ID of the document being evaluated."
     )
     rationale: str = Field(
-        description="The reason for the keep/remove decision."
+        description="The reason justifying the assigned impact rating, linked to the project plan's critical goals, risks, or initial tasks."
     )
-    keep_remove: KeepRemove = Field(
-        description="Whether the document should be kept or removed."
+    impact_rating: DocumentImpact = Field(
+        description="The assessed impact level of the document for the initial project phase, based on the 80/20 principle."
     )
 
-class DocumentEnrichmentResult(BaseModel):
-    """The result of enriching a list of documents."""
+class DocumentImpactAssessmentResult(BaseModel):
+    """The result of assessing the impact of a list of documents."""
     document_list: List[DocumentItem] = Field(
-        description="List of documents with the decision to keep or remove."
+        description="List of documents with their assessed impact rating for the initial phase."
     )
     summary: str = Field(
-        description="A summary of the enrichment decisions."
+        description="A summary highlighting the critical and high impact documents identified as most vital for the project start (80/20)."
     )
 
 FILTER_DOCUMENTS_TO_FIND_SYSTEM_PROMPT = """
-You are an expert AI assistant for project planning documentation. Your task is to analyze a list of potential documents (from user input) against a provided project plan (also from user input). Evaluate each document for the *initial planning phase* ONLY. The initial phase typically involves defining the core business model, assessing high-level feasibility (including major risks and market context), understanding primary compliance categories (like basic EU-level requirements), and securing initial resources, *before* detailed operational planning, country-specific implementation, or in-depth logistics setup begins. Determine if each document should be kept or removed based on relevance, duplication, and timeliness *relative to the project plan*.
+You are an expert AI assistant specializing in project planning documentation prioritization, applying the 80/20 principle (Pareto principle). Your task is to analyze a list of potential documents (from user input) against a provided project plan (also from user input). Evaluate each document's **impact** on the **critical initial phase** of the project.
 
-**CRITICAL OUTPUT REQUIREMENTS:**
-- Respond with a JSON object matching the `DocumentEnrichmentResult` schema.
-- The `keep_remove` field must be 'keep' or 'remove'.
-- The `rationale` field **MUST BE AN EXPLANATORY SENTENCE OR TWO**.
+**Goal:** Identify the vital few documents (the '20%') that will provide the most value (the '80%') right at the project's start. This means focusing on documents essential for:
+1.  **Establishing Core Feasibility:** Can the project fundamentally work?
+2.  **Defining Core Strategy/Scope:** What are we *actually* doing initially?
+3.  **Addressing Major Risks:** Mitigating the highest-priority risks identified *in the plan*.
+4.  **Meeting Non-Negotiable Prerequisites:** Fulfilling mandatory requirements to even begin (e.g., foundational compliance, key data for planning).
 
-**ABSOLUTELY FORBIDDEN RATIONALES:**
-- Single words: 'keep', 'remove', 'relevant', 'irrelevant', 'duplicate'.
-- Short phrases: 'remove due to irrelevance', 'remove due to duplication', 'keep for relevance'.
-- **Any rationale that does not explain *WHY* based on the project plan is INCORRECT.**
+**Output Format:**
+Respond with a JSON object matching the `DocumentImpactAssessmentResult` schema. For each document:
+- Provide its original `id`.
+- Assign an `impact_rating` using the `DocumentImpact` enum ('Critical', 'High', 'Medium', 'Low').
+- Provide a detailed `rationale` explaining *why* that specific impact rating was chosen. **The rationale MUST link the document's content directly to critical project goals, major risks, key decisions, essential analyses, or uncertainties mentioned in the provided project plan for the initial phase.**
 
-**HOW TO WRITE THE RATIONALE (MANDATORY):**
-1.  State the decision implicitly or explicitly.
-2.  **Connect the decision DIRECTLY to a specific aspect, goal, requirement, or phase mentioned in the USER-PROVIDED PROJECT PLAN.**
-3.  If removing for duplication or significant overlap, clearly state **WHICH other document ID** it duplicates/overlaps with and why keeping both is redundant for the *initial phase needs*.
+**Impact Rating Definitions (Assign ONE per document):**
+- **Critical:** Absolutely essential for the initial phase. Project cannot realistically start, core feasibility cannot be assessed, or a top-tier risk (per the plan) cannot be addressed without this. Represents a non-negotiable prerequisite. (This is the core of the 80/20 focus).
+- **High:** Very important for the initial phase. Significantly clarifies major uncertainties mentioned in the plan, enables core strategic decisions, provides essential data for key initial analyses, or addresses a significant risk.
+- **Medium:** Useful context for the initial phase. Supports secondary planning tasks, provides background information, or addresses lower-priority risks/tasks. Helpful but not strictly required for the *most critical* initial decisions/actions.
+- **Low:** Minor relevance for the *initial phase*. Might be useful much later, provides tangential information, or is superseded by higher-impact documents.
 
-**EXAMPLES OF CORRECT RATIONALES (Use this style):**
-- **Keep Example:** "Keep: This document provides the specific [XYZ regulations] required for the compliance checks outlined in the project plan's initial phase."
-- **Keep Example:** "Keep: Essential market statistics needed to perform the market analysis task defined in the project plan's initial feasibility assessment."
-- **Remove (Irrelevant) Example:** "Remove: Details operational procedures for year 2, which is outside the scope of the defined initial planning phase focused on business model and feasibility."
-- **Remove (Irrelevant) Example:** "Remove: Focuses on [Unrelated Topic], which is not mentioned as a requirement or goal in the provided project plan for the initial stage."
-- **Remove (Duplicate) Example:** "Remove: Duplicates the core compliance information found in document ID [Number]. Keeping both is redundant for the initial assessment needed by the plan."
-- **Remove (Duplicate) Example:** "Remove: Provides similar market trend overview as ID [Number]; ID [Number] is sufficient for the high-level market context analysis required by the plan's initial phase."
+**Rationale Requirements (MANDATORY):**
+- **MUST** justify the assigned `impact_rating`.
+- **MUST** explicitly reference elements from the **user-provided project plan** (e.g., "Needed to address Risk #1 identified in the plan," "Provides data for the market analysis step mentioned," "Required for the 'Regulatory Compliance Assessment' goal").
+- **Consider Overlap:** If two documents provide similar high-impact information, assign the highest rating to the most comprehensive or foundational one. Note the overlap in the rationale of the lower-rated document (e.g., "High: Provides important context, though some overlaps with ID [X]'s critical data."). Avoid assigning 'Critical' to multiple highly overlapping documents unless truly distinct aspects are covered.
 
-**Document Evaluation Criteria (Use these to inform your rationale):**
-1.  **Relevance to Plan:** Does it directly support a task/goal in the *provided plan's initial phase*?
-2.  **Uniqueness:** Does it offer unique info not in other listed docs relevant to the initial phase?
-3.  **Duplication:** Is it functionally identical or does it have significant content overlap with another listed doc, making one redundant for the *initial phase needs*?
-4.  **Timeliness for Plan:** Is it needed for the *initial phase* described in the plan, or specifically for later stages?
+**Forbidden Rationales:** Single words or generic phrases without linkage to the plan.
 
 **Final Output:**
-Produce a single JSON object containing `document_list` (with **detailed, compliant rationales**) and a `summary`. The summary should briefly recap the decisions and **mention any potential consolidations** for similar documents (even if both were kept initially). Strictly adhere to the `DocumentEnrichmentResult` schema and the rationale instructions above.
+Produce a single JSON object containing `document_list` (with impact ratings and detailed, plan-linked rationales) and a `summary`.
+
+The `summary` MUST provide a qualitative assessment based on the impact ratings you assigned:
+1.  **Relevance Distribution:** Characterize the overall list. Were most documents low impact ('Low'/'Medium'), indicating the initial list was broad or unfocused? Or were many documents assessed as 'High' or 'Critical', suggesting the list was generally relevant to the initial phase?
+2.  **Prioritization Clarity:** Comment on how easy it was to apply the 80/20 rule. Was there a clear distinction with only a few 'Critical'/'High' impact documents standing out? Or were there many documents clustered in the 'High'/'Medium' categories, making it difficult to isolate the truly vital few? **Do NOT simply list the documents in the summary.**
+
+Strictly adhere to the schema and instructions, especially for the `rationale` and the new `summary` requirements.
 """
 
 @dataclass
@@ -93,7 +96,7 @@ class FilterDocumentsToFind:
     system_prompt: str
     user_prompt: str
     response: dict
-    enrichment_result: DocumentEnrichmentResult
+    assessment_result: DocumentImpactAssessmentResult
     metadata: dict
     markdown: str
     ids_to_keep: set[str]
@@ -127,11 +130,11 @@ class FilterDocumentsToFind:
             current_index = len(process_documents)
 
             name = f"{document_name}\n{document_description}"
-            dict = {
+            dict_item = {
                 'id': current_index,
                 'name': name
             }
-            process_documents.append(dict)
+            process_documents.append(dict_item)
             integer_id_to_document_uuid[current_index] = document_id
 
         return process_documents, integer_id_to_document_uuid
@@ -161,7 +164,7 @@ class FilterDocumentsToFind:
             )
         ]
 
-        sllm = llm.as_structured_llm(DocumentEnrichmentResult)
+        sllm = llm.as_structured_llm(DocumentImpactAssessmentResult)
         start_time = time.perf_counter()
         try:
             chat_response = sllm.chat(chat_message_list)
@@ -182,16 +185,16 @@ class FilterDocumentsToFind:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
-        enrichment_result = chat_response.raw
+        assessment_result = chat_response.raw
 
-        markdown = cls.convert_to_markdown(enrichment_result)
-        ids_to_keep, ids_to_remove = cls.extract_ids_to_keep_remove(enrichment_result)
+        markdown = cls.convert_to_markdown(assessment_result)
+        ids_to_keep, ids_to_remove = cls.extract_ids_to_keep_remove(assessment_result)
 
         result = FilterDocumentsToFind(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
-            enrichment_result=enrichment_result,
+            assessment_result=assessment_result,
             metadata=metadata,
             markdown=markdown,
             ids_to_keep=ids_to_keep,
@@ -214,24 +217,44 @@ class FilterDocumentsToFind:
             f.write(json.dumps(self.to_dict(), indent=2))
 
     @staticmethod
-    def extract_ids_to_keep_remove(result: DocumentEnrichmentResult) -> tuple[set[int], set[int]]:
+    def extract_ids_to_keep_remove(result: DocumentImpactAssessmentResult) -> tuple[set[int], set[int]]:
         """
-        Convert the enrichment result to a set of document IDs to keep and remove.
+        Extract the most important documents from the result.
         """
-        ids_to_keep = set()
-        ids_to_remove = set()
+        all_ids = set()
         for item in result.document_list:
-            if item.keep_remove == KeepRemove.remove:
-                ids_to_remove.add(item.id)
-            elif item.keep_remove == KeepRemove.keep:
-                ids_to_keep.add(item.id)
+            all_ids.add(item.id)
+
+        ids_to_critical = set()
+        ids_to_high = set()
+        ids_to_medium = set()
+        ids_to_low = set()
+        for item in result.document_list:
+            if item.impact_rating == DocumentImpact.critical:
+                ids_to_critical.add(item.id)
+            elif item.impact_rating == DocumentImpact.high:
+                ids_to_high.add(item.id)
+            elif item.impact_rating == DocumentImpact.medium:
+                ids_to_medium.add(item.id)
+            elif item.impact_rating == DocumentImpact.low:
+                ids_to_low.add(item.id)
             else:
-                ids_to_remove.add(item.id)
-                logger.error(f"Invalid keep_remove value: {item.keep_remove}, document_id: {item.id}. Removing the document.")
+                logger.error(f"Invalid impact_rating value: {item.impact_rating}, document_id: {item.id}. Removing the document.")
+        
+        ids_to_keep = set()
+        ids_to_keep.update(ids_to_critical)
+        if len(ids_to_keep) < 5:
+            ids_to_keep.update(ids_to_high)
+        if len(ids_to_keep) < 5:
+            ids_to_keep.update(ids_to_medium)
+        if len(ids_to_keep) < 5:
+            ids_to_keep.update(ids_to_low)
+
+        ids_to_remove = all_ids - ids_to_keep
         return ids_to_keep, ids_to_remove
 
     @staticmethod
-    def convert_to_markdown(result: DocumentEnrichmentResult) -> str:
+    def convert_to_markdown(result: DocumentImpactAssessmentResult) -> str:
         """
         Convert the enrichment result to markdown.
         """
@@ -243,7 +266,7 @@ class FilterDocumentsToFind:
                 if i > 1:
                     rows.append("")
                 rows.append(f"### ID {item.id}")
-                rows.append(f"\n**Decision:** {item.keep_remove.value}")
+                rows.append(f"\n**Impact Rating:** {item.impact_rating.value}")
                 rows.append(f"\n**Rationale:** {item.rationale}")
         else:
             rows.append("\n*No documents identified.*")
@@ -284,6 +307,6 @@ if __name__ == "__main__":
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
 
-    print(f"\n\nMarkdown:\n{result.markdown}")
-    print(f"\n\nIDs to keep:\n{result.ids_to_keep}")
-    print(f"\n\nIDs to remove:\n{result.ids_to_remove}")
+    # print(f"\n\nMarkdown:\n{result.markdown}")
+    # print(f"\n\nIDs to keep:\n{result.ids_to_keep}")
+    # print(f"\n\nIDs to remove:\n{result.ids_to_remove}")
