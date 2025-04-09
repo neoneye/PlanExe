@@ -241,6 +241,9 @@ class FilterDocumentsToFind:
 
 if __name__ == "__main__":
     from src.llm_factory import get_llm
+    from src.plan.find_plan_prompt import find_plan_prompt
+
+    plan_prompt = find_plan_prompt("5c4b4fee-267a-409b-842f-4833d86aa215")
 
     llm = get_llm("ollama-llama3.1")
     # llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
@@ -254,6 +257,7 @@ if __name__ == "__main__":
     print(f"integer_id_to_document_uuid: {integer_id_to_document_uuid}")
 
     query = (
+        f"File 'plan.txt':\n{plan_prompt}\n\n"
         f"File 'documents.json':\n{process_documents}"
     )
     print(f"Query:\n{query}\n\n")
