@@ -14,7 +14,6 @@ import os
 import json
 import time
 import logging
-from uuid import uuid4
 from math import ceil
 from enum import Enum
 from dataclasses import dataclass
@@ -94,6 +93,43 @@ class FilterDocumentsToFind:
     markdown: str
     ids_to_keep: set[str]
     ids_to_remove: set[str]
+
+    @staticmethod
+    def process_documents_and_integer_ids(identified_documents_raw_json: list[dict]) -> tuple[list[dict], dict[int, str]]:
+        """
+        Prepare the documents for processing by the LLM.
+
+        Reduce the number of fields in the documents to just the document name and the document description.
+        Avoid using the uuid as the id, since it trend to confuses the LLM.
+        Instead of uuid, use an integer id.
+        """
+        if not isinstance(identified_documents_raw_json, list):
+            raise ValueError("identified_documents_raw_json is not a list.")
+
+        # Only keep the 'document_name' and 'description' from each document and remove the rest.
+        # Enumerate the documents with an integer id.
+        process_documents = []
+        integer_id_to_document_uuid = {}
+        for doc in identified_documents_raw_json:
+            if 'document_name' not in doc or 'description' not in doc or 'id' not in doc:
+                logger.error(f"Document is missing required keys: {doc}")
+                continue
+
+            document_name = doc.get('document_name', '')
+            document_description = doc.get('description', '')
+            document_id = doc.get('id', '')
+
+            current_index = len(process_documents)
+
+            name = f"{document_name}\n{document_description}"
+            dict = {
+                'id': current_index,
+                'name': name
+            }
+            process_documents.append(dict)
+            integer_id_to_document_uuid[current_index] = document_id
+
+        return process_documents, integer_id_to_document_uuid
 
     @classmethod
     def execute(cls, llm: LLM, user_prompt: str) -> 'FilterDocumentsToFind':
@@ -228,12 +264,16 @@ if __name__ == "__main__":
     llm = get_llm("ollama-llama3.1")
     # llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
 
-    path = os.path.join(os.path.dirname(__file__), 'test_data', "silo_identified_documents.md")
+    path = os.path.join(os.path.dirname(__file__), 'test_data', "eu_prep_identified_documents_to_find.json")
     with open(path, 'r', encoding='utf-8') as f:
-        identified_documents_markdown = f.read()
+        identified_documents_raw_json = json.load(f)
+
+    process_documents, integer_id_to_document_uuid = FilterDocumentsToFind.process_documents_and_integer_ids(identified_documents_raw_json)
+
+    print(f"integer_id_to_document_uuid: {integer_id_to_document_uuid}")
 
     query = (
-        f"File 'documents.md':\n{identified_documents_markdown}"
+        f"File 'documents.json':\n{process_documents}"
     )
     print(f"Query:\n{query}\n\n")
 
