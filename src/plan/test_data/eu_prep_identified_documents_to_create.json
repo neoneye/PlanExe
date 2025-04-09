@@ -1,0 +1,143 @@
+[
+  {
+    "id": "f231ac1a-6396-4ce0-b45a-9246a61e4d59",
+    "document_name": "Project Charter",
+    "description": "A foundational document that outlines the project's objectives, scope, stakeholders, and overall framework for establishing a business selling emergency preparedness products across Europe.",
+    "responsible_role_type": "Project Manager",
+    "document_template_primary": "PMI Project Charter Template",
+    "document_template_secondary": null,
+    "steps_to_create": [
+      "Define project objectives and scope.",
+      "Identify key stakeholders and their roles.",
+      "Outline project timeline and milestones.",
+      "Establish communication protocols."
+    ],
+    "approval_authorities": "CEO, Board of Directors"
+  },
+  {
+    "id": "6de39d85-b7d1-4492-b4e0-a8ac65a98975",
+    "document_name": "Current State Assessment of Supply Chain Risks",
+    "description": "An assessment report detailing the current supply chain landscape, including potential risks and mitigation strategies for sourcing and logistics in Europe.",
+    "responsible_role_type": "Supply Chain & Logistics Coordinator",
+    "document_template_primary": null,
+    "document_template_secondary": null,
+    "steps_to_create": [
+      "Gather data on current suppliers and logistics partners.",
+      "Identify potential supply chain disruptions.",
+      "Analyze existing risk mitigation strategies."
+    ],
+    "approval_authorities": "CEO, Regulatory Compliance Specialist"
+  },
+  {
+    "id": "97614f37-f061-4aff-a2d8-bff30b48eaef",
+    "document_name": "Regulatory Compliance Framework",
+    "description": "A framework outlining the necessary regulatory requirements for selling emergency preparedness products in various European countries, including CE marking and food safety regulations.",
+    "responsible_role_type": "Regulatory Compliance Specialist",
+    "document_template_primary": null,
+    "document_template_secondary": null,
+    "steps_to_create": [
+      "Research regulatory requirements for each product category.",
+      "Compile a checklist of necessary certifications and licenses.",
+      "Engage with regulatory bodies for guidance."
+    ],
+    "approval_authorities": "CEO, Legal Counsel"
+  },
+  {
+    "id": "d814a905-624c-4ff8-80d9-0bf481bc248e",
+    "document_name": "Market Research Strategy",
+    "description": "A strategic plan for conducting market research to assess demand for emergency preparedness products across different European countries.",
+    "responsible_role_type": "Market Research Analyst",
+    "document_template_primary": null,
+    "document_template_secondary": null,
+    "steps_to_create": [
+      "Identify target markets and customer segments.",
+      "Develop research methodologies and tools.",
+      "Outline data collection and analysis processes."
+    ],
+    "approval_authorities": "CEO, Sales/Marketing Team"
+  },
+  {
+    "id": "3b7912a0-6739-4aab-8a49-f61665a87d55",
+    "document_name": "Financial Feasibility Assessment",
+    "description": "An assessment report evaluating the financial viability of the project, including initial capital requirements, funding sources, and projected cash flows.",
+    "responsible_role_type": "Financial Risk Manager",
+    "document_template_primary": null,
+    "document_template_secondary": null,
+    "steps_to_create": [
+      "Analyze initial capital requirements and funding sources.",
+      "Project cash flows and profitability timelines.",
+      "Identify potential financial risks and mitigation strategies."
+    ],
+    "approval_authorities": "CEO, Board of Directors"
+  },
+  {
+    "id": "764cf24e-ab8c-4589-8260-c8d02b93de84",
+    "document_name": "Risk Register",
+    "description": "A comprehensive register documenting identified risks, their likelihood, impact, and mitigation strategies related to the project.",
+    "responsible_role_type": "Project Manager",
+    "document_template_primary": "PMI Risk Register Template",
+    "document_template_secondary": null,
+    "steps_to_create": [
+      "Identify and categorize project risks.",
+      "Assess the likelihood and impact of each risk.",
+      "Develop mitigation strategies for high-priority risks."
+    ],
+    "approval_authorities": "CEO, Project Team"
+  },
+  {
+    "id": "d00763e4-9d9f-47e6-b811-ab9187b8a658",
+    "document_name": "Stakeholder Engagement Plan",
+    "description": "A plan outlining strategies for engaging with stakeholders throughout the project lifecycle, ensuring their needs and concerns are addressed.",
+    "responsible_role_type": "Ethical Marketing & PR Manager",
+    "document_template_primary": null,
+    "document_template_secondary": null,
+    "steps_to_create": [
+      "Identify key stakeholders and their interests.",
+      "Develop engagement strategies and communication channels.",
+      "Establish feedback mechanisms for stakeholder input."
+    ],
+    "approval_authorities": "CEO, Project Team"
+  },
+  {
+    "id": "be048c95-168b-4109-a507-542f4ab727f5",
+    "document_name": "High-Level Budget/Funding Framework",
+    "description": "A preliminary budget outlining expected costs, funding sources, and financial projections for the project.",
+    "responsible_role_type": "Financial Risk Manager",
+    "document_template_primary": null,
+    "document_template_secondary": null,
+    "steps_to_create": [
+      "Estimate costs for initial setup, operations, and marketing.",
+      "Identify potential funding sources and financial partners.",
+      "Outline financial projections and funding requirements."
+    ],
+    "approval_authorities": "CEO, Board of Directors"
+  },
+  {
+    "id": "96ed0c43-2cd0-49da-93a0-991b7dd09a5d",
+    "document_name": "Initial High-Level Schedule/Timeline",
+    "description": "A high-level timeline outlining key milestones and deliverables for the project, including regulatory compliance, supplier agreements, and product launch.",
+    "responsible_role_type": "Project Manager",
+    "document_template_primary": null,
+    "document_template_secondary": null,
+    "steps_to_create": [
+      "Identify key project milestones and deliverables.",
+      "Estimate timelines for each phase of the project.",
+      "Develop a Gantt chart or similar visual representation."
+    ],
+    "approval_authorities": "CEO, Project Team"
+  },
+  {
+    "id": "ea3f02da-42b3-4398-84bd-c229d13c6ae5",
+    "document_name": "Monitoring & Evaluation Framework",
+    "description": "A framework for monitoring project progress and evaluating outcomes against established objectives and success metrics.",
+    "responsible_role_type": "Project Manager",
+    "document_template_primary": null,
+    "document_template_secondary": null,
+    "steps_to_create": [
+      "Define key performance indicators (KPIs) for the project.",
+      "Establish data collection and reporting processes.",
+      "Outline evaluation methodologies and timelines."
+    ],
+    "approval_authorities": "CEO, Project Team"
+  }
+]

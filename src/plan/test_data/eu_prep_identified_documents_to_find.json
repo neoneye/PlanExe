@@ -1,0 +1,119 @@
+[
+  {
+    "id": "48f89493-22a2-49b2-8f8c-d644b69fac9b",
+    "document_name": "EU Product Safety Regulations",
+    "description": "Official regulations governing product safety standards applicable to emergency preparedness products sold in the EU, necessary for compliance.",
+    "recency_requirement": "Most recent available version",
+    "responsible_role_type": "Regulatory Compliance Specialist",
+    "steps_to_find": [
+      "Access the European Commission's website.",
+      "Search for product safety regulations relevant to emergency preparedness.",
+      "Download and review the latest regulations."
+    ],
+    "access_difficulty": "Easy"
+  },
+  {
+    "id": "bc47461f-cc66-431f-8393-a8d1eaa36c39",
+    "document_name": "National Food Safety Regulations",
+    "description": "Existing food safety regulations in target countries (Germany, Netherlands, Poland) that apply to food products included in emergency kits.",
+    "recency_requirement": "Most recent available version",
+    "responsible_role_type": "Regulatory Compliance Specialist",
+    "steps_to_find": [
+      "Visit the official government websites of each target country.",
+      "Search for food safety regulations and guidelines.",
+      "Compile relevant documents for analysis."
+    ],
+    "access_difficulty": "Medium"
+  },
+  {
+    "id": "ac778d82-6fad-4ef6-9470-1cb91a108deb",
+    "document_name": "CE Marking Guidelines",
+    "description": "Guidelines detailing the requirements and processes for obtaining CE marking for products sold in the EU, essential for compliance.",
+    "recency_requirement": "Most recent available version",
+    "responsible_role_type": "Regulatory Compliance Specialist",
+    "steps_to_find": [
+      "Access the European Commission's website.",
+      "Search for CE marking guidelines and documentation.",
+      "Download and review the latest guidelines."
+    ],
+    "access_difficulty": "Easy"
+  },
+  {
+    "id": "008bd51c-96a3-42dc-ab85-c65f1ab773f0",
+    "document_name": "Market Demand Data for Emergency Preparedness Products",
+    "description": "Statistical data on market demand for emergency preparedness products across Europe, necessary for market research analysis.",
+    "recency_requirement": "Published within last 2 years",
+    "responsible_role_type": "Market Research Analyst",
+    "steps_to_find": [
+      "Access market research databases (e.g., Statista, Euromonitor).",
+      "Search for reports on emergency preparedness product demand.",
+      "Compile relevant data for analysis."
+    ],
+    "access_difficulty": "Medium"
+  },
+  {
+    "id": "c7fe3336-5923-4eea-83f7-e4e0d3ef4c7c",
+    "document_name": "Existing EU Environmental Regulations",
+    "description": "Current environmental regulations applicable to packaging and product safety in the EU, necessary for compliance.",
+    "recency_requirement": "Most recent available version",
+    "responsible_role_type": "Sustainability & Environmental Compliance Officer",
+    "steps_to_find": [
+      "Visit the European Environment Agency's website.",
+      "Search for environmental regulations related to product packaging.",
+      "Download and review the latest regulations."
+    ],
+    "access_difficulty": "Easy"
+  },
+  {
+    "id": "9e6df6ae-2d55-458d-b77a-cdd622ad1535",
+    "document_name": "Currency Exchange Rate Data (EUR vs. PLN)",
+    "description": "Historical and current data on currency exchange rates between EUR and PLN, necessary for financial risk assessment.",
+    "recency_requirement": "Most recent available data",
+    "responsible_role_type": "Financial Risk Manager",
+    "steps_to_find": [
+      "Access financial data platforms (e.g., Bloomberg, XE.com).",
+      "Search for EUR/PLN exchange rate data.",
+      "Compile relevant data for analysis."
+    ],
+    "access_difficulty": "Easy"
+  },
+  {
+    "id": "9935b542-8370-4f1b-984b-e5b355236e30",
+    "document_name": "Competitor Analysis Reports for Emergency Preparedness Products",
+    "description": "Data on existing competitors in the emergency preparedness market across Europe, necessary for market research.",
+    "recency_requirement": "Published within last 2 years",
+    "responsible_role_type": "Market Research Analyst",
+    "steps_to_find": [
+      "Access market research databases (e.g., IBISWorld, MarketLine).",
+      "Search for competitor analysis reports in the emergency preparedness sector.",
+      "Compile relevant data for analysis."
+    ],
+    "access_difficulty": "Medium"
+  },
+  {
+    "id": "ed82a536-441d-4e11-9f4d-4753f9ca0d24",
+    "document_name": "Logistics and Transportation Regulations in Europe",
+    "description": "Existing regulations governing logistics and transportation of goods across European borders, necessary for compliance.",
+    "recency_requirement": "Most recent available version",
+    "responsible_role_type": "Supply Chain & Logistics Coordinator",
+    "steps_to_find": [
+      "Visit the European Commission's website.",
+      "Search for logistics and transportation regulations.",
+      "Download and review the latest regulations."
+    ],
+    "access_difficulty": "Medium"
+  },
+  {
+    "id": "7743a489-c9cc-40ca-8112-9e487c820efd",
+    "document_name": "Emergency Preparedness Market Trends Reports",
+    "description": "Reports detailing current trends in the emergency preparedness market, including consumer preferences and purchasing behavior.",
+    "recency_requirement": "Published within last 2 years",
+    "responsible_role_type": "Market Research Analyst",
+    "steps_to_find": [
+      "Access industry publications and market research databases.",
+      "Search for reports on emergency preparedness market trends.",
+      "Compile relevant data for analysis."
+    ],
+    "access_difficulty": "Medium"
+  }
+]
