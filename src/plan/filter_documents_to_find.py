@@ -50,22 +50,39 @@ class DocumentEnrichmentResult(BaseModel):
     )
 
 FILTER_DOCUMENTS_TO_FIND_SYSTEM_PROMPT = """
-You are an expert in project planning and documentation. These documents have to be obtained before the project can start. Your task is to analyze the provided document lists and identify:
-1. Duplicate or near-identical documents
-2. Irrelevant documents that don't align with the project goals
-3. Documents that aren't immediately relevant to the project, but may be relevant later in the project.
+You are an expert AI assistant for project planning documentation. Your task is to analyze a list of potential documents (from user input) against a provided project plan (also from user input). Evaluate each document for the *initial planning phase* ONLY. The initial phase typically involves defining the core business model, assessing high-level feasibility (including major risks and market context), understanding primary compliance categories (like basic EU-level requirements), and securing initial resources, *before* detailed operational planning, country-specific implementation, or in-depth logistics setup begins. Determine if each document should be kept or removed based on relevance, duplication, and timeliness *relative to the project plan*.
 
-For each document in the provided lists, determine whether it should be kept or removed, and provide a clear reason for your decision.
+**CRITICAL OUTPUT REQUIREMENTS:**
+- Respond with a JSON object matching the `DocumentEnrichmentResult` schema.
+- The `keep_remove` field must be 'keep' or 'remove'.
+- The `rationale` field **MUST BE AN EXPLANATORY SENTENCE OR TWO**.
 
-When evaluating documents:
-- Consider the document name, description
-- Look for semantic similarity between documents
-- Assess the relevance to the project goals
-- Consider whether the document adds unique value to the project
+**ABSOLUTELY FORBIDDEN RATIONALES:**
+- Single words: 'keep', 'remove', 'relevant', 'irrelevant', 'duplicate'.
+- Short phrases: 'remove due to irrelevance', 'remove due to duplication', 'keep for relevance'.
+- **Any rationale that does not explain *WHY* based on the project plan is INCORRECT.**
 
-For documents that are similar but not identical, suggest how they could be consolidated.
+**HOW TO WRITE THE RATIONALE (MANDATORY):**
+1.  State the decision implicitly or explicitly.
+2.  **Connect the decision DIRECTLY to a specific aspect, goal, requirement, or phase mentioned in the USER-PROVIDED PROJECT PLAN.**
+3.  If removing for duplication or significant overlap, clearly state **WHICH other document ID** it duplicates/overlaps with and why keeping both is redundant for the *initial phase needs*.
 
-Your analysis should result in a cleaner, more focused list of essential documents that will be most valuable for the project planning process.
+**EXAMPLES OF CORRECT RATIONALES (Use this style):**
+- **Keep Example:** "Keep: This document provides the specific [XYZ regulations] required for the compliance checks outlined in the project plan's initial phase."
+- **Keep Example:** "Keep: Essential market statistics needed to perform the market analysis task defined in the project plan's initial feasibility assessment."
+- **Remove (Irrelevant) Example:** "Remove: Details operational procedures for year 2, which is outside the scope of the defined initial planning phase focused on business model and feasibility."
+- **Remove (Irrelevant) Example:** "Remove: Focuses on [Unrelated Topic], which is not mentioned as a requirement or goal in the provided project plan for the initial stage."
+- **Remove (Duplicate) Example:** "Remove: Duplicates the core compliance information found in document ID [Number]. Keeping both is redundant for the initial assessment needed by the plan."
+- **Remove (Duplicate) Example:** "Remove: Provides similar market trend overview as ID [Number]; ID [Number] is sufficient for the high-level market context analysis required by the plan's initial phase."
+
+**Document Evaluation Criteria (Use these to inform your rationale):**
+1.  **Relevance to Plan:** Does it directly support a task/goal in the *provided plan's initial phase*?
+2.  **Uniqueness:** Does it offer unique info not in other listed docs relevant to the initial phase?
+3.  **Duplication:** Is it functionally identical or does it have significant content overlap with another listed doc, making one redundant for the *initial phase needs*?
+4.  **Timeliness for Plan:** Is it needed for the *initial phase* described in the plan, or specifically for later stages?
+
+**Final Output:**
+Produce a single JSON object containing `document_list` (with **detailed, compliant rationales**) and a `summary`. The summary should briefly recap the decisions and **mention any potential consolidations** for similar documents (even if both were kept initially). Strictly adhere to the `DocumentEnrichmentResult` schema and the rationale instructions above.
 """
 
 @dataclass
