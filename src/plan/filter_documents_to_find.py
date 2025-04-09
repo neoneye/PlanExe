@@ -29,48 +29,36 @@ class KeepRemove(str, Enum):
     keep = 'keep'
     remove = 'remove'
 
-class DocumentEnrichment(BaseModel):
-    """Represents the enrichment decision for a document."""
-    document_id: str = Field(
+class DocumentItem(BaseModel):
+    id: int = Field(
         description="The ID of the document being evaluated."
     )
-    document_name: str = Field(
-        description="The name of the document being evaluated."
+    rationale: str = Field(
+        description="The reason for the keep/remove decision."
     )
     keep_remove: KeepRemove = Field(
         description="Whether the document should be kept or removed."
     )
-    keep_remove_reason: str = Field(
-        description="The reason for the keep/remove decision."
-    )
-    similar_document_ids: Optional[List[str]] = Field(
-        default=None,
-        description="IDs of documents that are similar to this one, if any."
-    )
-    consolidation_suggestion: Optional[str] = Field(
-        default=None,
-        description="Suggestion for how to consolidate this document with others, if applicable."
-    )
 
 class DocumentEnrichmentResult(BaseModel):
     """The result of enriching a list of documents."""
-    document_enrichment_list: List[DocumentEnrichment] = Field(
-        description="Enrichment decisions for documents."
+    document_list: List[DocumentItem] = Field(
+        description="List of documents with the decision to keep or remove."
     )
     summary: str = Field(
         description="A summary of the enrichment decisions."
     )
 
 FILTER_DOCUMENTS_TO_FIND_SYSTEM_PROMPT = """
-You are an expert in project planning and documentation. Your task is to analyze the provided document lists and identify:
+You are an expert in project planning and documentation. These documents have to be obtained before the project can start. Your task is to analyze the provided document lists and identify:
 1. Duplicate or near-identical documents
 2. Irrelevant documents that don't align with the project goals
-3. Documents that could be consolidated
+3. Documents that aren't immediately relevant to the project, but may be relevant later in the project.
 
 For each document in the provided lists, determine whether it should be kept or removed, and provide a clear reason for your decision.
 
 When evaluating documents:
-- Consider the document name, description, and purpose
+- Consider the document name, description
 - Look for semantic similarity between documents
 - Assess the relevance to the project goals
 - Consider whether the document adds unique value to the project
@@ -209,20 +197,20 @@ class FilterDocumentsToFind:
             f.write(json.dumps(self.to_dict(), indent=2))
 
     @staticmethod
-    def extract_ids_to_keep_remove(result: DocumentEnrichmentResult) -> tuple[set[str], set[str]]:
+    def extract_ids_to_keep_remove(result: DocumentEnrichmentResult) -> tuple[set[int], set[int]]:
         """
         Convert the enrichment result to a set of document IDs to keep and remove.
         """
         ids_to_keep = set()
         ids_to_remove = set()
-        for item in result.document_enrichment_list:
+        for item in result.document_list:
             if item.keep_remove == KeepRemove.remove:
-                ids_to_remove.add(item.document_id)
+                ids_to_remove.add(item.id)
             elif item.keep_remove == KeepRemove.keep:
-                ids_to_keep.add(item.document_id)
+                ids_to_keep.add(item.id)
             else:
-                ids_to_remove.add(item.document_id)
-                logger.error(f"Invalid keep_remove value: {item.keep_remove}, document_id: {item.document_id}. Removing the document.")
+                ids_to_remove.add(item.id)
+                logger.error(f"Invalid keep_remove value: {item.keep_remove}, document_id: {item.id}. Removing the document.")
         return ids_to_keep, ids_to_remove
 
     @staticmethod
@@ -232,21 +220,14 @@ class FilterDocumentsToFind:
         """
         rows = []
         
-        rows.append("## Document Enrichments\n")
-        if len(result.document_enrichment_list) > 0:
-            for i, item in enumerate(result.document_enrichment_list, start=1):
+        rows.append("## Documents\n")
+        if len(result.document_list) > 0:
+            for i, item in enumerate(result.document_list, start=1):
                 if i > 1:
                     rows.append("")
-                rows.append(f"### {i}. {item.document_name}")
-                rows.append(f"\n**ID:** {item.document_id}")
+                rows.append(f"### ID {item.id}")
                 rows.append(f"\n**Decision:** {item.keep_remove.value}")
-                rows.append(f"\n**Reason:** {item.keep_remove_reason}")
-                if item.similar_document_ids:
-                    rows.append("\n**Similar Documents:**")
-                    for doc_id in item.similar_document_ids:
-                        rows.append(f"- {doc_id}")
-                if item.consolidation_suggestion:
-                    rows.append(f"\n**Consolidation Suggestion:** {item.consolidation_suggestion}")
+                rows.append(f"\n**Rationale:** {item.rationale}")
         else:
             rows.append("\n*No documents identified.*")
 
