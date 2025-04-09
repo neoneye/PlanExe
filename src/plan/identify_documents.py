@@ -167,6 +167,8 @@ class IdentifyDocuments:
     user_prompt: str
     response: dict
     cleanedup_document_details: CleanedupDocumentDetails
+    json_documents_to_create: list[dict]
+    json_documents_to_find: list[dict]
     metadata: dict
     markdown: str
 
@@ -217,6 +219,8 @@ class IdentifyDocuments:
         metadata["response_byte_count"] = response_byte_count
 
         cleanedup_document_details = cls.cleanup(chat_response.raw)
+        json_documents_to_create = [doc.model_dump() for doc in cleanedup_document_details.documents_to_create]
+        json_documents_to_find = [doc.model_dump() for doc in cleanedup_document_details.documents_to_find]
 
         markdown = cls.convert_to_markdown(cleanedup_document_details)
 
@@ -225,6 +229,8 @@ class IdentifyDocuments:
             user_prompt=user_prompt,
             response=json_response,
             cleanedup_document_details=cleanedup_document_details,
+            json_documents_to_create=json_documents_to_create,
+            json_documents_to_find=json_documents_to_find,
             metadata=metadata,
             markdown=markdown
         )
@@ -344,6 +350,14 @@ class IdentifyDocuments:
     def save_markdown(self, output_file_path: str):
         with open(output_file_path, 'w', encoding='utf-8') as out_f:
             out_f.write(self.markdown)
+
+    def save_json_documents_to_create(self, output_file_path: str):
+        with open(output_file_path, 'w', encoding='utf-8') as out_f:
+            out_f.write(json.dumps(self.json_documents_to_create, indent=2))
+
+    def save_json_documents_to_find(self, output_file_path: str):
+        with open(output_file_path, 'w', encoding='utf-8') as out_f:
+            out_f.write(json.dumps(self.json_documents_to_find, indent=2))
 
 if __name__ == "__main__":
     from src.llm_factory import get_llm
