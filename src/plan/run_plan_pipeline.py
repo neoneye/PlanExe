@@ -34,7 +34,7 @@ from src.governance.governance_phase5_monitoring_progress import GovernancePhase
 from src.governance.governance_phase6_extra import GovernancePhase6Extra
 from src.plan.related_resources import RelatedResources
 from src.plan.identify_documents import IdentifyDocuments
-from src.plan.filter_documents import FilterDocuments
+from src.plan.filter_documents_to_find import FilterDocumentsToFind
 from src.swot.swot_analysis import SWOTAnalysis
 from src.expert.expert_finder import ExpertFinder
 from src.expert.expert_criticism import ExpertCriticism
@@ -1705,9 +1705,9 @@ class IdentifyDocumentsTask(PlanTask):
         identify_documents.save_json_documents_to_create(self.output()["documents_to_create"].path)
         identify_documents.save_json_documents_to_find(self.output()["documents_to_find"].path)
 
-class FilterDocumentsTask(PlanTask):
+class FilterDocumentsToFindTask(PlanTask):
     """
-    Deduplicate and filter the documents.
+    The "documents to find" may contain irrelevant documents or duplicates, this task purpose is to remove them.
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
@@ -1739,7 +1739,7 @@ class FilterDocumentsTask(PlanTask):
         llm = get_llm(self.llm_model)
         
         # Invoke the LLM.
-        filter_documents = FilterDocuments.execute(
+        filter_documents = FilterDocumentsToFind.execute(
             llm=llm,
             user_prompt=query,
         )
@@ -2542,7 +2542,7 @@ class FullPlanPipeline(PlanTask):
             'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'identified_documents': IdentifyDocumentsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            # 'filter_documents': FilterDocumentsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            # 'filter_documents_to_find': FilterDocumentsToFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level2': CreateWBSLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project12': WBSProjectLevel1AndLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),

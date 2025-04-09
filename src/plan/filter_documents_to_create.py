@@ -8,7 +8,7 @@ This module analyzes document lists to identify:
 
 The result is a cleaner, more focused list of essential documents.
 
-PROMPT> python -m src.plan.filter_documents
+PROMPT> python -m src.plan.filter_documents_to_create
 """
 import os
 import json
@@ -62,7 +62,7 @@ class DocumentEnrichmentResult(BaseModel):
         description="A summary of the enrichment decisions."
     )
 
-FILTER_DOCUMENTS_SYSTEM_PROMPT = """
+FILTER_DOCUMENTS_TO_CREATE_SYSTEM_PROMPT = """
 You are an expert in project planning and documentation. Your task is to analyze the provided document lists and identify:
 1. Duplicate or near-identical documents
 2. Irrelevant documents that don't align with the project goals
@@ -82,7 +82,7 @@ Your analysis should result in a cleaner, more focused list of essential documen
 """
 
 @dataclass
-class FilterDocuments:
+class FilterDocumentsToCreate:
     """
     Analyzes document lists to identify duplicates and irrelevant documents.
     """
@@ -96,7 +96,7 @@ class FilterDocuments:
     ids_to_remove: set[str]
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'FilterDocuments':
+    def execute(cls, llm: LLM, user_prompt: str) -> 'FilterDocumentsToCreate':
         """
         Invoke LLM with the document details to analyze.
         """
@@ -107,7 +107,7 @@ class FilterDocuments:
 
         logger.debug(f"User Prompt:\n{user_prompt}")
 
-        system_prompt = FILTER_DOCUMENTS_SYSTEM_PROMPT.strip()
+        system_prompt = FILTER_DOCUMENTS_TO_CREATE_SYSTEM_PROMPT.strip()
 
         chat_message_list = [
             ChatMessage(
@@ -146,7 +146,7 @@ class FilterDocuments:
         markdown = cls.convert_to_markdown(enrichment_result)
         ids_to_keep, ids_to_remove = cls.extract_ids_to_keep_remove(enrichment_result)
 
-        result = FilterDocuments(
+        result = FilterDocumentsToCreate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
@@ -237,7 +237,7 @@ if __name__ == "__main__":
     )
     print(f"Query:\n{query}\n\n")
 
-    result = FilterDocuments.execute(llm, query)
+    result = FilterDocumentsToCreate.execute(llm, query)
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
