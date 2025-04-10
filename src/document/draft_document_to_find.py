@@ -1,7 +1,7 @@
 """
 Based on a short description, draft the content of a document to find.
 
-PROMPT> python -m src.plan.draft_document_to_find
+PROMPT> python -m src.document.draft_document_to_find
 """
 import json
 import time

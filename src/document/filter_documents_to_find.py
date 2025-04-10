@@ -9,7 +9,7 @@ This module analyzes document lists to identify:
 
 The result is a cleaner, more focused list of essential documents.
 
-PROMPT> python -m src.plan.filter_documents_to_find
+PROMPT> python -m src.document.filter_documents_to_find
 """
 import os
 import json

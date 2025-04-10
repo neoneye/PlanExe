@@ -12,7 +12,6 @@ import json
 import luigi
 from pathlib import Path
 
-from src.plan.draft_document_to_create import DraftDocumentToCreate
 from src.plan.filenames import FilenameEnum
 from src.plan.speedvsdetail import SpeedVsDetailEnum
 from src.plan.plan_file import PlanFile
@@ -27,6 +26,11 @@ from src.assume.review_assumptions import ReviewAssumptions
 from src.assume.shorten_markdown import ShortenMarkdown
 from src.expert.pre_project_assessment import PreProjectAssessment
 from src.plan.project_plan import ProjectPlan
+from src.document.identify_documents import IdentifyDocuments
+from src.document.filter_documents_to_find import FilterDocumentsToFind
+from src.document.filter_documents_to_create import FilterDocumentsToCreate
+from src.document.draft_document_to_find import DraftDocumentToFind
+from src.document.draft_document_to_create import DraftDocumentToCreate
 from src.governance.governance_phase1_audit import GovernancePhase1Audit
 from src.governance.governance_phase2_bodies import GovernancePhase2Bodies
 from src.governance.governance_phase3_impl_plan import GovernancePhase3ImplPlan
@@ -34,10 +38,6 @@ from src.governance.governance_phase4_decision_escalation_matrix import Governan
 from src.governance.governance_phase5_monitoring_progress import GovernancePhase5MonitoringProgress
 from src.governance.governance_phase6_extra import GovernancePhase6Extra
 from src.plan.related_resources import RelatedResources
-from src.plan.identify_documents import IdentifyDocuments
-from src.plan.filter_documents_to_find import FilterDocumentsToFind
-from src.plan.filter_documents_to_create import FilterDocumentsToCreate
-from src.plan.draft_document_to_find import DraftDocumentToFind
 from src.swot.swot_analysis import SWOTAnalysis
 from src.expert.expert_finder import ExpertFinder
 from src.expert.expert_criticism import ExpertCriticism

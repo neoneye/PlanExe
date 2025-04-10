@@ -1,7 +1,7 @@
 """
 Based on a short description, draft the content of a document to create.
 
-PROMPT> python -m src.plan.draft_document_to_create
+PROMPT> python -m src.document.draft_document_to_create
 """
 import json
 import time

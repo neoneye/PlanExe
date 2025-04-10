@@ -6,7 +6,7 @@ Interpret the project goals and suggest:
 - Data/Information to locate (e.g., Market Data, Regulations, Existing Studies).
 - Standard Project Management documents.
 
-PROMPT> python -m src.plan.identify_documents
+PROMPT> python -m src.document.identify_documents
 """
 import os
 import json
