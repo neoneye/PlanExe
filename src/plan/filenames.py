@@ -62,6 +62,8 @@ class FilenameEnum(str, Enum):
     IDENTIFIED_DOCUMENTS_TO_FIND_JSON = "017-6-identified_documents_to_find.json"
     FILTER_DOCUMENTS_TO_FIND_RAW = "017-7-filter_documents_to_find_raw.json"
     FILTER_DOCUMENTS_TO_FIND_CLEAN = "017-8-filter_documents_to_find_clean.json"
+    FILTER_DOCUMENTS_TO_CREATE_RAW = "017-9-filter_documents_to_create_raw.json"
+    FILTER_DOCUMENTS_TO_CREATE_CLEAN = "017-10-filter_documents_to_create_clean.json"
     WBS_LEVEL1_RAW = "018-1-wbs_level1_raw.json"
     WBS_LEVEL1 = "018-2-wbs_level1.json"
     WBS_LEVEL2_RAW = "018-2-wbs_level2_raw.json"

@@ -35,6 +35,7 @@ from src.governance.governance_phase6_extra import GovernancePhase6Extra
 from src.plan.related_resources import RelatedResources
 from src.plan.identify_documents import IdentifyDocuments
 from src.plan.filter_documents_to_find import FilterDocumentsToFind
+from src.plan.filter_documents_to_create import FilterDocumentsToCreate
 from src.swot.swot_analysis import SWOTAnalysis
 from src.expert.expert_finder import ExpertFinder
 from src.expert.expert_criticism import ExpertCriticism
@@ -1757,6 +1758,57 @@ class FilterDocumentsToFindTask(PlanTask):
         filter_documents.save_raw(self.output()["raw"].path)
         filter_documents.save_filtered_documents(self.output()["clean"].path)
 
+class FilterDocumentsToCreateTask(PlanTask):
+    """
+    The "documents to create" may be a long list of documents, some duplicates, irrelevant, not needed at an early stage of the project.
+    This task narrows down to a handful of relevant documents.
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def output(self):
+        return {
+            "raw": luigi.LocalTarget(self.file_path(FilenameEnum.FILTER_DOCUMENTS_TO_CREATE_RAW)),
+            "clean": luigi.LocalTarget(self.file_path(FilenameEnum.FILTER_DOCUMENTS_TO_CREATE_CLEAN))
+        }
+
+    def requires(self):
+        return {
+            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'identified_documents': IdentifyDocumentsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+        }
+    
+    def run(self):
+        # Read inputs from required tasks.
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+            assumptions_markdown = f.read()
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
+        with self.input()['identified_documents']['documents_to_create'].open("r") as f:
+            documents_to_create = json.load(f)
+
+        # Build the query.
+        process_documents, integer_id_to_document_uuid = FilterDocumentsToCreate.process_documents_and_integer_ids(documents_to_create)
+        query = (
+            f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
+            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
+            f"File 'documents.json':\n{process_documents}"
+        )
+
+        # Get an LLM instance.
+        llm = get_llm(self.llm_model)
+        
+        # Invoke the LLM.
+        filter_documents = FilterDocumentsToCreate.execute(
+            llm=llm,
+            user_prompt=query,
+            identified_documents_raw_json=documents_to_create,
+            integer_id_to_document_uuid=integer_id_to_document_uuid
+        )
+
+        # Save the results.
+        filter_documents.save_raw(self.output()["raw"].path)
+        filter_documents.save_filtered_documents(self.output()["clean"].path)
 
 class CreateWBSLevel1Task(PlanTask):
     """
@@ -2522,7 +2574,8 @@ class FullPlanPipeline(PlanTask):
             'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'identified_documents': IdentifyDocumentsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            # 'filter_documents_to_find': FilterDocumentsToFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'filter_documents_to_find': FilterDocumentsToFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'filter_documents_to_create': FilterDocumentsToCreateTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level2': CreateWBSLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project12': WBSProjectLevel1AndLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
