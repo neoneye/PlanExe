@@ -1839,6 +1839,7 @@ class DraftDocumentsToFindTask(PlanTask):
         # Get an LLM instance.
         llm = get_llm(self.llm_model)
         
+        accumulated_documents = []
         for index, document in enumerate(documents_to_find, start=1):
             logger.info(f"Document-to-find: Drafting document {index} of {len(documents_to_find)}...")
 
@@ -1858,7 +1859,15 @@ class DraftDocumentsToFindTask(PlanTask):
             with open(raw_chunk_path, 'w') as f:
                 json.dump(json_response, f, indent=2)
 
-            raise Exception("Not implemented")
+            # Merge the draft document into the original document.
+            document_updated = document.copy()
+            for key in draft_document.response.keys():
+                document_updated[key] = draft_document.response[key]
+            accumulated_documents.append(document_updated)
+
+        # Write the accumulated documents to the output file.
+        with self.output().open("w") as f:
+            json.dump(accumulated_documents, f, indent=2)
 
 
 class CreateWBSLevel1Task(PlanTask):
