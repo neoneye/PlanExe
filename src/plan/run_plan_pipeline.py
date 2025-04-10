@@ -1956,15 +1956,15 @@ class MarkdownWithDocumentsToCreateAndFindTask(PlanTask):
 
     def requires(self):
         return {
-            'filter_documents_to_create': FilterDocumentsToCreateTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'filter_documents_to_find': FilterDocumentsToFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'draft_documents_to_create': DraftDocumentsToCreateTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'draft_documents_to_find': DraftDocumentsToFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
     
     def run(self):
         # Read inputs from required tasks.
-        with self.input()['filter_documents_to_create']['clean'].open("r") as f:
+        with self.input()['draft_documents_to_create'].open("r") as f:
             documents_to_create = json.load(f)
-        with self.input()['filter_documents_to_find']['clean'].open("r") as f:
+        with self.input()['draft_documents_to_find'].open("r") as f:
             documents_to_find = json.load(f)
 
         accumulated_rows = []
