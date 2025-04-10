@@ -97,6 +97,7 @@ class FilterDocumentsToFind:
     """
     system_prompt: str
     user_prompt: str
+    integer_id_to_document_uuid: dict[int, str]
     response: dict
     assessment_result: DocumentImpactAssessmentResult
     metadata: dict
@@ -142,7 +143,7 @@ class FilterDocumentsToFind:
         return process_documents, integer_id_to_document_uuid
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'FilterDocumentsToFind':
+    def execute(cls, llm: LLM, user_prompt: str, integer_id_to_document_uuid: dict[int, str]) -> 'FilterDocumentsToFind':
         """
         Invoke LLM with the document details to analyze.
         """
@@ -195,6 +196,7 @@ class FilterDocumentsToFind:
         result = FilterDocumentsToFind(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
+            integer_id_to_document_uuid=integer_id_to_document_uuid,
             response=json_response,
             assessment_result=assessment_result,
             metadata=metadata,
@@ -203,6 +205,14 @@ class FilterDocumentsToFind:
             ids_to_remove=ids_to_remove
         )
         return result
+
+    def remove_unwanted_documents(self, identified_documents_raw_json: list[dict]) -> list[dict]:
+        """
+        Remove the documents that are not in the ids_to_keep.
+        """
+        uuids_to_keep = [self.integer_id_to_document_uuid[integer_id] for integer_id in self.ids_to_keep]
+
+        return [doc for doc in identified_documents_raw_json if doc['id'] in uuids_to_keep]
     
     def to_dict(self, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
         d = self.response.copy()
@@ -304,10 +314,14 @@ if __name__ == "__main__":
     )
     print(f"Query:\n{query}\n\n")
 
-    result = FilterDocumentsToFind.execute(llm, query)
+    result = FilterDocumentsToFind.execute(llm, query, integer_id_to_document_uuid)
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
+
+    filtered_documents = result.remove_unwanted_documents(identified_documents_raw_json)
+    print(f"\n\nFiltered documents:")
+    print(json.dumps(filtered_documents, indent=2))
 
     # print(f"\n\nMarkdown:\n{result.markdown}")
     # print(f"\n\nIDs to keep:\n{result.ids_to_keep}")

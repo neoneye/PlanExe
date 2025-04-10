@@ -1750,6 +1750,7 @@ class FilterDocumentsToFindTask(PlanTask):
         filter_documents = FilterDocumentsToFind.execute(
             llm=llm,
             user_prompt=query,
+            integer_id_to_document_uuid=integer_id_to_document_uuid
         )
 
         # Save the results.
