@@ -103,12 +103,14 @@ class FilterDocumentsToFind:
     """
     system_prompt: str
     user_prompt: str
+    identified_documents_raw_json: list[dict]
     integer_id_to_document_uuid: dict[int, str]
     response: dict
     assessment_result: DocumentImpactAssessmentResult
     metadata: dict
     ids_to_keep: set[int]
     uuids_to_keep: set[str]
+    filtered_documents_raw_json: list[dict]
 
     @staticmethod
     def process_documents_and_integer_ids(identified_documents_raw_json: list[dict]) -> tuple[list[dict], dict[int, str]]:
@@ -148,7 +150,7 @@ class FilterDocumentsToFind:
         return process_documents, integer_id_to_document_uuid
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str, integer_id_to_document_uuid: dict[int, str]) -> 'FilterDocumentsToFind':
+    def execute(cls, llm: LLM, user_prompt: str, identified_documents_raw_json: list[dict], integer_id_to_document_uuid: dict[int, str]) -> 'FilterDocumentsToFind':
         """
         Invoke LLM with the document details to analyze.
         """
@@ -199,24 +201,30 @@ class FilterDocumentsToFind:
         uuids_to_keep_list = [integer_id_to_document_uuid[integer_id] for integer_id in ids_to_keep]
         uuids_to_keep = set(uuids_to_keep_list)
 
+        # remove the documents that are not in the uuids_to_keep
+        filtered_documents_raw_json = [doc for doc in identified_documents_raw_json if doc['id'] in uuids_to_keep]
+
+        logger.info(f"IDs to keep: {ids_to_keep}")
+        logger.info(f"UUIDs to keep: {uuids_to_keep}")
+        logger.info(f"Filtered documents raw json length: {len(filtered_documents_raw_json)}")
+
+        if len(filtered_documents_raw_json) != len(ids_to_keep):
+            logger.error(f"Filtered documents raw json length ({len(filtered_documents_raw_json)}) does not match ids_to_keep length ({len(ids_to_keep)}).")
+
         result = FilterDocumentsToFind(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
+            identified_documents_raw_json=identified_documents_raw_json,
             integer_id_to_document_uuid=integer_id_to_document_uuid,
             response=json_response,
             assessment_result=assessment_result,
             metadata=metadata,
             ids_to_keep=ids_to_keep,
-            uuids_to_keep=uuids_to_keep
+            uuids_to_keep=uuids_to_keep,
+            filtered_documents_raw_json=filtered_documents_raw_json
         )
         return result
 
-    def remove_unwanted_documents(self, identified_documents_raw_json: list[dict]) -> list[dict]:
-        """
-        Remove the documents that are not in the uuids_to_keep.
-        """
-        return [doc for doc in identified_documents_raw_json if doc['id'] in self.uuids_to_keep]
-    
     def to_dict(self, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
         d = self.response.copy()
         if include_metadata:
@@ -230,6 +238,10 @@ class FilterDocumentsToFind:
     def save_raw(self, file_path: str) -> None:
         with open(file_path, 'w') as f:
             f.write(json.dumps(self.to_dict(), indent=2))
+
+    def save_filtered_documents(self, file_path: str) -> None:
+        with open(file_path, 'w') as f:
+            f.write(json.dumps(self.filtered_documents_raw_json, indent=2))
 
     @staticmethod
     def extract_integer_ids_to_keep(result: DocumentImpactAssessmentResult) -> set[int]:
@@ -289,7 +301,7 @@ if __name__ == "__main__":
     )
     print(f"Query:\n{query}\n\n")
 
-    result = FilterDocumentsToFind.execute(llm, query, integer_id_to_document_uuid)
+    result = FilterDocumentsToFind.execute(llm, query, identified_documents_raw_json, integer_id_to_document_uuid)
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
@@ -297,6 +309,5 @@ if __name__ == "__main__":
     print(f"\n\nIDs to keep:\n{result.ids_to_keep}")
     print(f"\n\nUUIDs to keep:\n{result.uuids_to_keep}")
 
-    filtered_documents = result.remove_unwanted_documents(identified_documents_raw_json)
     print(f"\n\nFiltered documents:")
-    print(json.dumps(filtered_documents, indent=2))
+    print(json.dumps(result.filtered_documents_raw_json, indent=2))

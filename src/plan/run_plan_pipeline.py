@@ -1707,15 +1707,15 @@ class IdentifyDocumentsTask(PlanTask):
 
 class FilterDocumentsToFindTask(PlanTask):
     """
-    The "documents to find" may contain irrelevant documents or duplicates, this task purpose is to remove them.
+    The "documents to find" may be a long list of documents, some duplicates, irrelevant, not needed at an early stage of the project.
+    This task narrows down to a handful of relevant documents.
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
     def output(self):
         return {
-            "response_raw": luigi.LocalTarget(self.file_path(FilenameEnum.FILTER_DOCUMENTS_RESPONSE_RAW)),
-            # "raw": luigi.LocalTarget(self.file_path(FilenameEnum.FILTERED_DOCUMENTS_RAW)),
-            # "markdown": luigi.LocalTarget(self.file_path(FilenameEnum.FILTERED_DOCUMENTS_MARKDOWN)),
+            "raw": luigi.LocalTarget(self.file_path(FilenameEnum.FILTER_DOCUMENTS_TO_FIND_RAW)),
+            "clean": luigi.LocalTarget(self.file_path(FilenameEnum.FILTER_DOCUMENTS_TO_FIND_CLEAN))
         }
 
     def requires(self):
@@ -1736,7 +1736,6 @@ class FilterDocumentsToFindTask(PlanTask):
 
         # Build the query.
         process_documents, integer_id_to_document_uuid = FilterDocumentsToFind.process_documents_and_integer_ids(documents_to_find)
-
         query = (
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
@@ -1750,43 +1749,13 @@ class FilterDocumentsToFindTask(PlanTask):
         filter_documents = FilterDocumentsToFind.execute(
             llm=llm,
             user_prompt=query,
+            identified_documents_raw_json=process_documents,
             integer_id_to_document_uuid=integer_id_to_document_uuid
         )
 
         # Save the results.
-        filter_documents.save_raw(self.output()["response_raw"].path)
-
-        return
-
-        ids_to_remove = filter_documents.ids_to_remove
-
-        unfiltered_documents_to_create = identified_documents_raw.get('documents_to_create', [])
-        unfiltered_documents_to_find = identified_documents_raw.get('documents_to_find', [])
-
-        documents_to_create = []
-        documents_to_find = []
-
-        for document in unfiltered_documents_to_create:
-            id = document.get('id', '')
-            if id in ids_to_remove:
-                continue
-            documents_to_create.append(document)
-
-        for document in unfiltered_documents_to_find:
-            id = document.get('id', '')
-            if id in ids_to_remove:
-                continue
-            documents_to_find.append(document)
-
-        filtered_documents_raw = {
-            'documents_to_create': documents_to_create,
-            'documents_to_find': documents_to_find
-        }
-
-        with self.output()['raw'].open("w") as f:
-            json.dump(filtered_documents_raw, f, indent=2)
-
-        # IDEA: IdentifyDocuments.convert_to_markdown() with the filtered documents.
+        filter_documents.save_raw(self.output()["raw"].path)
+        filter_documents.save_filtered_documents(self.output()["clean"].path)
 
 
 class CreateWBSLevel1Task(PlanTask):
