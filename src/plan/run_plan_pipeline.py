@@ -1714,25 +1714,33 @@ class FilterDocumentsToFindTask(PlanTask):
     def output(self):
         return {
             "response_raw": luigi.LocalTarget(self.file_path(FilenameEnum.FILTER_DOCUMENTS_RESPONSE_RAW)),
-            "raw": luigi.LocalTarget(self.file_path(FilenameEnum.FILTERED_DOCUMENTS_RAW)),
+            # "raw": luigi.LocalTarget(self.file_path(FilenameEnum.FILTERED_DOCUMENTS_RAW)),
             # "markdown": luigi.LocalTarget(self.file_path(FilenameEnum.FILTERED_DOCUMENTS_MARKDOWN)),
         }
 
     def requires(self):
         return {
+            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'identified_documents': IdentifyDocumentsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
     
     def run(self):
         # Read inputs from required tasks.
-        with self.input()['identified_documents']['raw'].open("r") as f:
-            identified_documents_raw = json.load(f)
-        with self.input()['identified_documents']['markdown'].open("r") as f:
-            identified_documents_markdown = f.read()
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+            assumptions_markdown = f.read()
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
+        with self.input()['identified_documents']['documents_to_find'].open("r") as f:
+            documents_to_find = json.load(f)
 
         # Build the query.
+        process_documents, integer_id_to_document_uuid = FilterDocumentsToFind.process_documents_and_integer_ids(documents_to_find)
+
         query = (
-            f"File 'documents.md':\n{identified_documents_markdown}"
+            f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
+            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
+            f"File 'documents.json':\n{process_documents}"
         )
 
         # Get an LLM instance.
@@ -1746,6 +1754,8 @@ class FilterDocumentsToFindTask(PlanTask):
 
         # Save the results.
         filter_documents.save_raw(self.output()["response_raw"].path)
+
+        return
 
         ids_to_remove = filter_documents.ids_to_remove
 
