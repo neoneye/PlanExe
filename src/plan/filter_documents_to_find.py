@@ -25,6 +25,12 @@ from llama_index.core.llms.llm import LLM
 
 logger = logging.getLogger(__name__)
 
+# The number of documents to keep. It may be less or greater than this number
+# Ideally we don't want to throw away any documents.
+# There can be +50 documents and then it can be overwhelming to keep an overview.
+# Thus only focus a handful of the most important documents.
+PREFERRED_DOCUMENT_COUNT = 5
+
 class DocumentImpact(str, Enum):
     """Enum to indicate the assessed impact of a document for the initial project phase."""
     critical = 'Critical' # Absolutely essential for project viability/start, major risk mitigation
@@ -101,8 +107,8 @@ class FilterDocumentsToFind:
     response: dict
     assessment_result: DocumentImpactAssessmentResult
     metadata: dict
-    ids_to_keep: set[str]
-    ids_to_remove: set[str]
+    ids_to_keep: set[int]
+    uuids_to_keep: set[str]
 
     @staticmethod
     def process_documents_and_integer_ids(identified_documents_raw_json: list[dict]) -> tuple[list[dict], dict[int, str]]:
@@ -189,7 +195,9 @@ class FilterDocumentsToFind:
 
         assessment_result = chat_response.raw
 
-        ids_to_keep, ids_to_remove = cls.extract_ids_to_keep_remove(assessment_result)
+        ids_to_keep = cls.extract_integer_ids_to_keep(assessment_result)
+        uuids_to_keep_list = [integer_id_to_document_uuid[integer_id] for integer_id in ids_to_keep]
+        uuids_to_keep = set(uuids_to_keep_list)
 
         result = FilterDocumentsToFind(
             system_prompt=system_prompt,
@@ -199,17 +207,15 @@ class FilterDocumentsToFind:
             assessment_result=assessment_result,
             metadata=metadata,
             ids_to_keep=ids_to_keep,
-            ids_to_remove=ids_to_remove
+            uuids_to_keep=uuids_to_keep
         )
         return result
 
     def remove_unwanted_documents(self, identified_documents_raw_json: list[dict]) -> list[dict]:
         """
-        Remove the documents that are not in the ids_to_keep.
+        Remove the documents that are not in the uuids_to_keep.
         """
-        uuids_to_keep = [self.integer_id_to_document_uuid[integer_id] for integer_id in self.ids_to_keep]
-
-        return [doc for doc in identified_documents_raw_json if doc['id'] in uuids_to_keep]
+        return [doc for doc in identified_documents_raw_json if doc['id'] in self.uuids_to_keep]
     
     def to_dict(self, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
         d = self.response.copy()
@@ -226,14 +232,10 @@ class FilterDocumentsToFind:
             f.write(json.dumps(self.to_dict(), indent=2))
 
     @staticmethod
-    def extract_ids_to_keep_remove(result: DocumentImpactAssessmentResult) -> tuple[set[int], set[int]]:
+    def extract_integer_ids_to_keep(result: DocumentImpactAssessmentResult) -> set[int]:
         """
         Extract the most important documents from the result.
         """
-        all_ids = set()
-        for item in result.document_list:
-            all_ids.add(item.id)
-
         ids_to_critical = set()
         ids_to_high = set()
         ids_to_medium = set()
@@ -252,15 +254,17 @@ class FilterDocumentsToFind:
         
         ids_to_keep = set()
         ids_to_keep.update(ids_to_critical)
-        if len(ids_to_keep) < 5:
+        if len(ids_to_keep) < PREFERRED_DOCUMENT_COUNT:
             ids_to_keep.update(ids_to_high)
-        if len(ids_to_keep) < 5:
+        if len(ids_to_keep) < PREFERRED_DOCUMENT_COUNT:
             ids_to_keep.update(ids_to_medium)
-        if len(ids_to_keep) < 5:
+        if len(ids_to_keep) < PREFERRED_DOCUMENT_COUNT:
             ids_to_keep.update(ids_to_low)
 
-        ids_to_remove = all_ids - ids_to_keep
-        return ids_to_keep, ids_to_remove
+        if len(ids_to_keep) < PREFERRED_DOCUMENT_COUNT:
+            logger.info(f"Fewer documents to keep than the desired count. Only {len(ids_to_keep)} documents found.")
+
+        return ids_to_keep
 
 if __name__ == "__main__":
     from src.llm_factory import get_llm
@@ -290,8 +294,8 @@ if __name__ == "__main__":
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
 
-    # print(f"\n\nIDs to keep:\n{result.ids_to_keep}")
-    # print(f"\n\nIDs to remove:\n{result.ids_to_remove}")
+    print(f"\n\nIDs to keep:\n{result.ids_to_keep}")
+    print(f"\n\nUUIDs to keep:\n{result.uuids_to_keep}")
 
     filtered_documents = result.remove_unwanted_documents(identified_documents_raw_json)
     print(f"\n\nFiltered documents:")
