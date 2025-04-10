@@ -28,7 +28,7 @@ def markdown_rows_with_document_to_create(section_index: int, document_json: dic
     
     # Steps to Create (list)
     steps_to_create = document_json.get('steps_to_create')
-    if steps_to_create and isinstance(steps_to_create, list):
+    if steps_to_create is not None and isinstance(steps_to_create, list):
         rows.append("\n**Steps to Create**:\n")
         for step in steps_to_create:
             rows.append(f"- {step}")
@@ -41,7 +41,7 @@ def markdown_rows_with_document_to_create(section_index: int, document_json: dic
     
     # Essential Information (list)
     essential_information = document_json.get('essential_information')
-    if essential_information and isinstance(essential_information, list):
+    if essential_information is not None and isinstance(essential_information, list):
         rows.append("\n**Essential Information**:\n")
         for info in essential_information:
             rows.append(f"- {info}")
@@ -50,7 +50,7 @@ def markdown_rows_with_document_to_create(section_index: int, document_json: dic
     
     # Risks of Poor Quality (list)
     risks_of_poor_quality = document_json.get('risks_of_poor_quality')
-    if risks_of_poor_quality and isinstance(risks_of_poor_quality, list):
+    if risks_of_poor_quality is not None and isinstance(risks_of_poor_quality, list):
         rows.append("\n**Risks of Poor Quality**:\n")
         for risk in risks_of_poor_quality:
             rows.append(f"- {risk}")
@@ -67,7 +67,7 @@ def markdown_rows_with_document_to_create(section_index: int, document_json: dic
     
     # Fallback Alternative Approaches (list)
     fallback_alternative_approaches = document_json.get('fallback_alternative_approaches')
-    if fallback_alternative_approaches and isinstance(fallback_alternative_approaches, list):
+    if fallback_alternative_approaches is not None and isinstance(fallback_alternative_approaches, list):
         rows.append("\n**Fallback Alternative Approaches**:\n")
         for approach in fallback_alternative_approaches:
             rows.append(f"- {approach}")
@@ -101,7 +101,7 @@ def markdown_rows_with_document_to_find(section_index: int, document_json: dict)
     
     # Steps to Find (list)
     steps_to_find = document_json.get('steps_to_find')
-    if steps_to_find and isinstance(steps_to_find, list):
+    if steps_to_find is not None and isinstance(steps_to_find, list):
         rows.append("\n**Steps to Find**:\n")
         for step in steps_to_find:
             rows.append(f"- {step}")
@@ -114,7 +114,7 @@ def markdown_rows_with_document_to_find(section_index: int, document_json: dict)
     
     # Essential Information (list)
     essential_information = document_json.get('essential_information')
-    if essential_information and isinstance(essential_information, list):
+    if essential_information is not None and isinstance(essential_information, list):
         rows.append("\n**Essential Information**:\n")
         for info in essential_information:
             rows.append(f"- {info}")
@@ -123,7 +123,7 @@ def markdown_rows_with_document_to_find(section_index: int, document_json: dict)
     
     # Risks of Poor Quality (list)
     risks_of_poor_quality = document_json.get('risks_of_poor_quality')
-    if risks_of_poor_quality and isinstance(risks_of_poor_quality, list):
+    if risks_of_poor_quality is not None and isinstance(risks_of_poor_quality, list):
         rows.append("\n**Risks of Poor Quality**:\n")
         for risk in risks_of_poor_quality:
             rows.append(f"- {risk}")
@@ -140,7 +140,7 @@ def markdown_rows_with_document_to_find(section_index: int, document_json: dict)
     
     # Fallback Alternative Approaches (list)
     fallback_alternative_approaches = document_json.get('fallback_alternative_approaches')
-    if fallback_alternative_approaches and isinstance(fallback_alternative_approaches, list):
+    if fallback_alternative_approaches is not None and isinstance(fallback_alternative_approaches, list):
         rows.append("\n**Fallback Alternative Approaches**:\n")
         for approach in fallback_alternative_approaches:
             rows.append(f"- {approach}")
