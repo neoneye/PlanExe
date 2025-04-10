@@ -12,6 +12,7 @@ import json
 import luigi
 from pathlib import Path
 
+from src.plan.draft_document_to_create import DraftDocumentToCreate
 from src.plan.filenames import FilenameEnum
 from src.plan.speedvsdetail import SpeedVsDetailEnum
 from src.plan.plan_file import PlanFile
@@ -1877,6 +1878,71 @@ class DraftDocumentsToFindTask(PlanTask):
         with self.output().open("w") as f:
             json.dump(accumulated_documents, f, indent=2)
 
+class DraftDocumentsToCreateTask(PlanTask):
+    """
+    The "documents to create". Write bullet points to what each document roughly should contain.
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def output(self):
+        return luigi.LocalTarget(self.file_path(FilenameEnum.DRAFT_DOCUMENTS_TO_CREATE_CONSOLIDATED))
+
+    def requires(self):
+        return {
+            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'filter_documents_to_create': FilterDocumentsToCreateTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+        }
+    
+    def run(self):
+        # Read inputs from required tasks.
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+            assumptions_markdown = f.read()
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
+        with self.input()['filter_documents_to_create']['clean'].open("r") as f:
+            documents_to_create = json.load(f)
+
+        # Get an LLM instance.
+        llm = get_llm(self.llm_model)
+
+        accumulated_documents = documents_to_create.copy()
+
+        logger.info(f"DraftDocumentsToCreateTask.speedvsdetail: {self.speedvsdetail}")
+        if self.speedvsdetail == SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS:
+            logger.info("FAST_BUT_SKIP_DETAILS mode, truncating to 2 chunks for testing.")
+            documents_to_create = documents_to_create[:2]
+        else:
+            logger.info("Processing all chunks.")
+
+        for index, document in enumerate(documents_to_create):
+            logger.info(f"Document-to-create: Drafting document {index+1} of {len(documents_to_create)}...")
+
+            # Build the query.
+            query = (
+                f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
+                f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
+                f"File 'document.json':\n{document}"
+            )
+
+            draft_document = DraftDocumentToCreate.execute(llm, query)
+            json_response = draft_document.to_dict()
+
+            # Write the raw JSON for this document using the FilenameEnum template.
+            raw_filename = FilenameEnum.DRAFT_DOCUMENTS_TO_CREATE_RAW_TEMPLATE.value.format(index+1)
+            raw_chunk_path = self.run_dir / raw_filename
+            with open(raw_chunk_path, 'w') as f:
+                json.dump(json_response, f, indent=2)
+
+            # Merge the draft document into the original document.
+            document_updated = document.copy()
+            for key in draft_document.response.keys():
+                document_updated[key] = draft_document.response[key]
+            accumulated_documents[index] = document_updated
+
+        # Write the accumulated documents to the output file.
+        with self.output().open("w") as f:
+            json.dump(accumulated_documents, f, indent=2)
 
 class CreateWBSLevel1Task(PlanTask):
     """
@@ -2645,6 +2711,7 @@ class FullPlanPipeline(PlanTask):
             'filter_documents_to_find': FilterDocumentsToFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'filter_documents_to_create': FilterDocumentsToCreateTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'draft_documents_to_find': DraftDocumentsToFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'draft_documents_to_create': DraftDocumentsToCreateTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             # 'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             # 'wbs_level2': CreateWBSLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             # 'wbs_project12': WBSProjectLevel1AndLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
