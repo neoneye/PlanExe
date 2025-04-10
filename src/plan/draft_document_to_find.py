@@ -15,20 +15,36 @@ from llama_index.core.llms.llm import LLM
 
 logger = logging.getLogger(__name__)
 
-class DocumentDraft(BaseModel):
-    title: str = Field(description="Title of the document")
-    purpose: str = Field(description="Main purpose or objective of the document")
-    key_points: list[str] = Field(description="Main points that should be covered")
-    structure: list[str] = Field(description="Proposed structure/sections of the document")
-    target_audience: str = Field(description="Intended audience for the document")
-    tone: str = Field(description="Desired tone of the document")
-    key_terms: list[str] = Field(description="Important terms or concepts to include")
-    references: list[str] = Field(description="Potential references or sources to cite")
-    constraints: list[str] = Field(description="Any constraints or requirements to consider")
-    draft_content: str = Field(description="Initial draft of the document content")
+class DocumentItem(BaseModel):
+    essential_information: list[str] = Field(
+        description="Bullet points describing the crucial information, key points, sections, data, or answers this document must provide."
+    )
+    risks_of_poor_quality: list[str] = Field(
+        description="Specific negative consequences or project impacts if the document is incomplete, inaccurate, outdated, unclear, or misleading."
+    )
+    worst_case_scenario: str = Field(
+        description="The most severe potential consequence or project risk (e.g., compliance failure, financial loss, major delays, misinformation) if the document is deficient or incorrect."
+    )
+    best_case_scenario: str = Field(
+        description="The ideal outcome or positive impact if the document fully meets or exceeds expectations (e.g., accelerated decisions, reduced risk, competitive advantage)."
+    )
+    fallback_alternative_approaches: list[str] = Field(
+        description="Alternative actions or pathways if the desired document/information cannot be found or created to meet the criteria."
+    )
 
 DRAFT_DOCUMENT_TO_FIND_SYSTEM_PROMPT = """
-You are a document drafting assistant that helps create structured documents based on short descriptions.
+You are an AI assistant for the PlanExe planning system. Your task is to analyze a request for a specific document needed for a project. This document might need to be created or found.
+
+Based on the user's request (which should include the document name and its purpose), generate a structured JSON object using the 'DocumentItem' schema.
+
+Focus on clearly defining:
+1. `essential_information`: What critical content, data, or answers MUST be in the document.
+2. `risks_of_poor_quality`: The specific problems caused by a bad version of this document.
+3. `worst_case_scenario`: The most severe potential negative outcome related to this document.
+4. `best_case_scenario`: The ideal positive outcome enabled by a good version of this document.
+5. `fallback_alternative_approaches`: What to do if the ideal document/information isn't attainable.
+
+Be concise and focus on the document's role and impact within the project context provided by the user.
 """
 
 @dataclass
@@ -66,11 +82,11 @@ class DraftDocumentToFind:
 
         start_time = time.perf_counter()
 
-        sllm = llm.as_structured_llm(DocumentDraft)
+        sllm = llm.as_structured_llm(DocumentItem)
         try:
             chat_response = sllm.chat(chat_message_list)
         except Exception as e:
-            logger.error(f"DocumentDraftWriter failed to chat with LLM: {e}")
+            logger.error(f"DocumentItem failed to chat with LLM: {e}")
             raise ValueError(f"Failed to chat with LLM: {e}")
         json_response = json.loads(chat_response.message.content)
 
