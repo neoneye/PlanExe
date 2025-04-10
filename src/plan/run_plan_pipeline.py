@@ -31,6 +31,7 @@ from src.document.filter_documents_to_find import FilterDocumentsToFind
 from src.document.filter_documents_to_create import FilterDocumentsToCreate
 from src.document.draft_document_to_find import DraftDocumentToFind
 from src.document.draft_document_to_create import DraftDocumentToCreate
+from src.document.markdown_with_document import markdown_rows_with_document_to_create, markdown_rows_with_document_to_find
 from src.governance.governance_phase1_audit import GovernancePhase1Audit
 from src.governance.governance_phase2_bodies import GovernancePhase2Bodies
 from src.governance.governance_phase3_impl_plan import GovernancePhase3ImplPlan
@@ -1944,6 +1945,46 @@ class DraftDocumentsToCreateTask(PlanTask):
         with self.output().open("w") as f:
             json.dump(accumulated_documents, f, indent=2)
 
+class MarkdownWithDocumentsToCreateAndFindTask(PlanTask):
+    """
+    Create markdown with the "documents to create and find"
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def output(self):
+        return luigi.LocalTarget(self.file_path(FilenameEnum.DOCUMENTS_TO_CREATE_AND_FIND_MARKDOWN))
+
+    def requires(self):
+        return {
+            'filter_documents_to_create': FilterDocumentsToCreateTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'filter_documents_to_find': FilterDocumentsToFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+        }
+    
+    def run(self):
+        # Read inputs from required tasks.
+        with self.input()['filter_documents_to_create']['clean'].open("r") as f:
+            documents_to_create = json.load(f)
+        with self.input()['filter_documents_to_find']['clean'].open("r") as f:
+            documents_to_find = json.load(f)
+
+        accumulated_rows = []
+        accumulated_rows.append("# Documents to Create")
+        for index, document in enumerate(documents_to_create, start=1):
+            rows = markdown_rows_with_document_to_create(index, document)
+            accumulated_rows.extend(rows)
+
+        accumulated_rows.append("\n\n# Documents to Find")
+        for index, document in enumerate(documents_to_find, start=1):
+            rows = markdown_rows_with_document_to_find(index, document)
+            accumulated_rows.extend(rows)
+
+        markdown_representation = "\n".join(accumulated_rows)
+
+        # Write the markdown to the output file.
+        output_file_path = self.output().path
+        with open(output_file_path, 'w', encoding='utf-8') as f:
+            f.write(markdown_representation)
+
 class CreateWBSLevel1Task(PlanTask):
     """
     Creates the Work Breakdown Structure (WBS) Level 1.
@@ -2712,6 +2753,7 @@ class FullPlanPipeline(PlanTask):
             'filter_documents_to_create': FilterDocumentsToCreateTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'draft_documents_to_find': DraftDocumentsToFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'draft_documents_to_create': DraftDocumentsToCreateTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'documents_to_create_and_find': MarkdownWithDocumentsToCreateAndFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             # 'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             # 'wbs_level2': CreateWBSLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             # 'wbs_project12': WBSProjectLevel1AndLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
