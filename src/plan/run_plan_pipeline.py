@@ -36,6 +36,7 @@ from src.plan.related_resources import RelatedResources
 from src.plan.identify_documents import IdentifyDocuments
 from src.plan.filter_documents_to_find import FilterDocumentsToFind
 from src.plan.filter_documents_to_create import FilterDocumentsToCreate
+from src.plan.draft_document_to_find import DraftDocumentToFind
 from src.swot.swot_analysis import SWOTAnalysis
 from src.expert.expert_finder import ExpertFinder
 from src.expert.expert_criticism import ExpertCriticism
@@ -1847,6 +1848,15 @@ class DraftDocumentsToFindTask(PlanTask):
                 f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
                 f"File 'document.json':\n{document}"
             )
+
+            draft_document = DraftDocumentToFind.execute(llm, query)
+            json_response = draft_document.to_dict()
+
+            # Write the raw JSON for this document using the FilenameEnum template.
+            raw_filename = FilenameEnum.DRAFT_DOCUMENTS_TO_FIND_RAW_TEMPLATE.value.format(index)
+            raw_chunk_path = self.run_dir / raw_filename
+            with open(raw_chunk_path, 'w') as f:
+                json.dump(json_response, f, indent=2)
 
             raise Exception("Not implemented")
 
