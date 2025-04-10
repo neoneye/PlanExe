@@ -1,5 +1,7 @@
 """
-Filter "documents-to-find" by identifying the most relevant documents and removing the rest (duplicates and irrelevant documents).
+Narrow down what documents to find by identifying the most relevant documents and removing the rest (duplicates and irrelevant documents).
+
+https://en.wikipedia.org/wiki/Pareto_principle
 
 This module analyzes document lists to identify:
 - Duplicate documents (near identical or similar documents)
