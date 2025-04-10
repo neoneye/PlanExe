@@ -1838,10 +1838,18 @@ class DraftDocumentsToFindTask(PlanTask):
 
         # Get an LLM instance.
         llm = get_llm(self.llm_model)
-        
-        accumulated_documents = []
-        for index, document in enumerate(documents_to_find, start=1):
-            logger.info(f"Document-to-find: Drafting document {index} of {len(documents_to_find)}...")
+
+        accumulated_documents = documents_to_find.copy()
+
+        logger.info(f"DraftDocumentsToFindTask.speedvsdetail: {self.speedvsdetail}")
+        if self.speedvsdetail == SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS:
+            logger.info("FAST_BUT_SKIP_DETAILS mode, truncating to 2 chunks for testing.")
+            documents_to_find = documents_to_find[:2]
+        else:
+            logger.info("Processing all chunks.")
+
+        for index, document in enumerate(documents_to_find):
+            logger.info(f"Document-to-find: Drafting document {index+1} of {len(documents_to_find)}...")
 
             # Build the query.
             query = (
@@ -1854,7 +1862,7 @@ class DraftDocumentsToFindTask(PlanTask):
             json_response = draft_document.to_dict()
 
             # Write the raw JSON for this document using the FilenameEnum template.
-            raw_filename = FilenameEnum.DRAFT_DOCUMENTS_TO_FIND_RAW_TEMPLATE.value.format(index)
+            raw_filename = FilenameEnum.DRAFT_DOCUMENTS_TO_FIND_RAW_TEMPLATE.value.format(index+1)
             raw_chunk_path = self.run_dir / raw_filename
             with open(raw_chunk_path, 'w') as f:
                 json.dump(json_response, f, indent=2)
@@ -1863,7 +1871,7 @@ class DraftDocumentsToFindTask(PlanTask):
             document_updated = document.copy()
             for key in draft_document.response.keys():
                 document_updated[key] = draft_document.response[key]
-            accumulated_documents.append(document_updated)
+            accumulated_documents[index] = document_updated
 
         # Write the accumulated documents to the output file.
         with self.output().open("w") as f:
