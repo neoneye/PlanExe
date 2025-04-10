@@ -101,7 +101,6 @@ class FilterDocumentsToFind:
     response: dict
     assessment_result: DocumentImpactAssessmentResult
     metadata: dict
-    markdown: str
     ids_to_keep: set[str]
     ids_to_remove: set[str]
 
@@ -190,7 +189,6 @@ class FilterDocumentsToFind:
 
         assessment_result = chat_response.raw
 
-        markdown = cls.convert_to_markdown(assessment_result)
         ids_to_keep, ids_to_remove = cls.extract_ids_to_keep_remove(assessment_result)
 
         result = FilterDocumentsToFind(
@@ -200,7 +198,6 @@ class FilterDocumentsToFind:
             response=json_response,
             assessment_result=assessment_result,
             metadata=metadata,
-            markdown=markdown,
             ids_to_keep=ids_to_keep,
             ids_to_remove=ids_to_remove
         )
@@ -265,32 +262,6 @@ class FilterDocumentsToFind:
         ids_to_remove = all_ids - ids_to_keep
         return ids_to_keep, ids_to_remove
 
-    @staticmethod
-    def convert_to_markdown(result: DocumentImpactAssessmentResult) -> str:
-        """
-        Convert the enrichment result to markdown.
-        """
-        rows = []
-        
-        rows.append("## Documents\n")
-        if len(result.document_list) > 0:
-            for i, item in enumerate(result.document_list, start=1):
-                if i > 1:
-                    rows.append("")
-                rows.append(f"### ID {item.id}")
-                rows.append(f"\n**Impact Rating:** {item.impact_rating.value}")
-                rows.append(f"\n**Rationale:** {item.rationale}")
-        else:
-            rows.append("\n*No documents identified.*")
-
-        rows.append(f"\n**Summary:** {result.summary}")
-
-        return "\n".join(rows)
-
-    def save_markdown(self, output_file_path: str):
-        with open(output_file_path, 'w', encoding='utf-8') as out_f:
-            out_f.write(self.markdown)
-
 if __name__ == "__main__":
     from src.llm_factory import get_llm
     from src.plan.find_plan_prompt import find_plan_prompt
@@ -319,10 +290,9 @@ if __name__ == "__main__":
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
 
+    # print(f"\n\nIDs to keep:\n{result.ids_to_keep}")
+    # print(f"\n\nIDs to remove:\n{result.ids_to_remove}")
+
     filtered_documents = result.remove_unwanted_documents(identified_documents_raw_json)
     print(f"\n\nFiltered documents:")
     print(json.dumps(filtered_documents, indent=2))
-
-    # print(f"\n\nMarkdown:\n{result.markdown}")
-    # print(f"\n\nIDs to keep:\n{result.ids_to_keep}")
-    # print(f"\n\nIDs to remove:\n{result.ids_to_remove}")
