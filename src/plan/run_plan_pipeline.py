@@ -1749,7 +1749,7 @@ class FilterDocumentsToFindTask(PlanTask):
         filter_documents = FilterDocumentsToFind.execute(
             llm=llm,
             user_prompt=query,
-            identified_documents_raw_json=process_documents,
+            identified_documents_raw_json=documents_to_find,
             integer_id_to_document_uuid=integer_id_to_document_uuid
         )
 

@@ -209,8 +209,10 @@ class FilterDocumentsToFind:
         logger.info(f"Filtered documents raw json length: {len(filtered_documents_raw_json)}")
 
         if len(filtered_documents_raw_json) != len(ids_to_keep):
+            logger.info(f"identified_documents_raw_json: {json.dumps(identified_documents_raw_json, indent=2)}")
             logger.error(f"Filtered documents raw json length ({len(filtered_documents_raw_json)}) does not match ids_to_keep length ({len(ids_to_keep)}).")
-
+            raise ValueError("Filtered documents raw json length does not match ids_to_keep length.")
+    
         result = FilterDocumentsToFind(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
