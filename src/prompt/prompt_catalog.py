@@ -87,3 +87,8 @@ class PromptCatalog:
         """Load example SWOT prompts from a JSONL file."""
         filepath = os.path.join(os.path.dirname(__file__), 'data', 'example_swot_prompt.jsonl')
         self.load(filepath)
+    
+    def load_simple_plan_prompts(self) -> None:
+        """Load simple plan prompts from a JSONL file."""
+        filepath = os.path.join(os.path.dirname(__file__), 'data', 'simple_plan_prompts.jsonl')
+        self.load(filepath)

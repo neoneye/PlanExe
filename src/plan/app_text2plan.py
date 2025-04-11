@@ -91,7 +91,7 @@ RUN_DIR = "run"
 
 # Load prompt catalog and examples.
 prompt_catalog = PromptCatalog()
-prompt_catalog.load(os.path.join(os.path.dirname(__file__), 'data', 'simple_plan_prompts.jsonl'))
+prompt_catalog.load_simple_plan_prompts()
 
 # Prefill the input box with the default prompt
 default_prompt_item = prompt_catalog.find(DEFAULT_PROMPT_UUID)
