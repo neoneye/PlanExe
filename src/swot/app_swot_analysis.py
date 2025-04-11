@@ -22,7 +22,7 @@ logging.basicConfig(
 DEFAULT_PROMPT_UUID = "427e5163-cefa-46e8-b1d0-eb12be270e19"
 
 prompt_catalog = PromptCatalog()
-prompt_catalog.load(os.path.join(os.path.dirname(__file__), 'data', 'example_swot_prompt.jsonl'))
+prompt_catalog.load_example_swot_prompts()
 
 # Show all prompts in the catalog as examples
 all_prompts = prompt_catalog.all()

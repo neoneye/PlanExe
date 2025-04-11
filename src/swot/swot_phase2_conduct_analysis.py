@@ -254,7 +254,7 @@ if __name__ == "__main__":
         raise ValueError(f"Invalid SWOT analysis type: {swot_type}")
         
     prompt_catalog = PromptCatalog()
-    prompt_catalog.load(os.path.join(os.path.dirname(__file__), 'data', 'example_swot_prompt.jsonl'))
+    prompt_catalog.load_example_swot_prompts()
     prompt_item = prompt_catalog.find("427e5163-cefa-46e8-b1d0-eb12be270e19")
     if not prompt_item:
         raise ValueError("Prompt item not found.")

@@ -122,7 +122,7 @@ if __name__ == "__main__":
     llm = get_llm("ollama-llama3.1", temperature=0.0)
 
     prompt_catalog = PromptCatalog()
-    prompt_catalog.load(os.path.join(os.path.dirname(__file__), 'data', 'example_swot_prompt.jsonl'))
+    prompt_catalog.load_example_swot_prompts()
     prompt_items = prompt_catalog.all()
 
     # Limit the number of prompt items to process

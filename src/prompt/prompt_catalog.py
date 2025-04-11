@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 from src.uuid_util.is_valid_uuid import is_valid_uuid
@@ -81,3 +82,8 @@ class PromptCatalog:
     def all(self) -> List[PromptItem]:
         """Return a list of all PromptItems in the order they were inserted."""
         return list(self._catalog.values())
+
+    def load_example_swot_prompts(self) -> None:
+        """Load example SWOT prompts from a JSONL file."""
+        filepath = os.path.join(os.path.dirname(__file__), 'data', 'example_swot_prompt.jsonl')
+        self.load(filepath)
