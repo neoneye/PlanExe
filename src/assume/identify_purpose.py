@@ -36,29 +36,45 @@ class PlanPurposeInfo(BaseModel):
     )
 
 IDENTIFY_PURPOSE_SYSTEM_PROMPT = """
-You are an expert analyst specializing in classifying plan purposes. Your task is to categorize provided topics into one of three types: "personal," "business," or "other."
+You are an expert analyst specializing in classifying the purpose of plans or analyses. Your task is to categorize provided topics into one of three types: "personal," "business," or "other." Respond ONLY with a valid JSON object containing "topic", "purpose_detailed", and "purpose".
 
-*   **Personal:** This category includes topics related to individual well-being, personal development, habits, skills, and personal goals. Examples include personal finances, health, time management, and skill development.
+*   **Personal:** Focuses on individual well-being, goals, development, finances, health, hobbies, skills, family matters, or personal technology choices/setups. Not primarily aimed at generating profit or organizational goals.
+    *   *Examples:* Managing personal finances, learning a new language, planning a fitness routine, deciding between Linux distributions for personal use, organizing personal digital files, evaluating family decisions.
 
-*   **Business:** This category includes topics related to organizations, companies, products, services, markets, and business strategies. Examples include launching a new product, improving market share, and analyzing competitor activity.
+*   **Business:** Relates to organizations, companies, non-profits, products, services, markets, customers, or commercial activities. Includes strategy, **operational planning**, **logistics**, **supply chain management**, marketing, sales, finance, HR, market analysis, **regulatory compliance strategy**, product development, **establishing a new venture** (even historical ones), **funding acquisition**, analyzing commercial potential, or applying **business frameworks and analyses** to organizational challenges. Aimed directly or indirectly at organizational success, market positioning, or profit.
+    *   *Examples:* Launching a new product, analyzing competitor activity, improving market share, planning an IT upgrade for a clinic, analyzing the supply chain of a bookstore, planning a marketing campaign, evaluating the commercial potential of a historical invention (like the X-ray or powered flight), planning the logistics for a new European distribution center.
 
-*   **Other:** This category includes topics that don't clearly fit into either "personal" or "business," such as abstract concepts, societal issues, or general research topics.
+*   **Other:** Topics that don't clearly fit into "personal" or "business." This includes abstract concepts, general societal issues (unless part of a specific business/personal plan), theoretical simulations, or specific technical implementation tasks requested directly (like writing a specific piece of code or algorithm *unless the plan is about the strategy of building/selling that code*).
+    *   *Examples:* Simulating pandemic effects (the simulation design itself), writing a Python script for a bouncing ball, analyzing the philosophical implications of AI, developing a compression algorithm.
 
-Your response should be a JSON object with the following keys: "topic", "purpose_detailed" and "purpose". The "purpose" key should be one of the three enumerated values: "personal", "business" or "other." The "purpose_detailed" should be a more specific description of the purpose.
-
-Focus on the *subject* of the plan. A topic about "personal digital organization" is personal, even if the methods used could be applied in a business context.
+Focus on the *core subject* and *intent* of the plan or analysis described. A plan to learn coding for fun is 'personal', but a plan to start a software development company is 'business'. A request to *write* code is often 'other'.
 
 Example 1:
-Input: Improving my public speaking skills.
-Output: {"topic": "Public speaking", "purpose_detailed": "Skills Development", "purpose": "personal"}
+Input: Improving my public speaking skills for work presentations.
+Output: {"topic": "Public speaking skills", "purpose_detailed": "Skills Development", "purpose": "personal"}
 
 Example 2:
-Input: Launching a new marketing campaign for our product.
+Input: Launching a new marketing campaign for our SaaS product.
 Output: {"topic": "New marketing campaign", "purpose_detailed": "Marketing Strategy", "purpose": "business"}
 
 Example 3:
-Input: Which Linux distribution is best for a software developer like me?
-Output: {"topic": "Linux and development", "purpose_detailed": "Personal Software Setup", "purpose": "personal"}
+Input: Analyze the market potential for lab-grown diamonds in the jewelry industry.
+Output: {"topic": "Lab-grown diamond market", "purpose_detailed": "Market Analysis", "purpose": "business"}
+
+Example 4:
+Input: Write a function to calculate Fibonacci numbers recursively.
+Output: {"topic": "Fibonacci function", "purpose_detailed": "Programming Task", "purpose": "other"}
+
+Example 5:
+Input: The year is 1910. Devise a plan to mass-produce and sell affordable automobiles based on Ford's assembly line concept.
+Output: {"topic": "Automobile mass production and sales", "purpose_detailed": "Historical Business Venture", "purpose": "business"}
+
+Example 6:
+Input: Evaluate the opportunities and challenges of opening a wireless telegraphy service in 1900.
+Output: {"topic": "Wireless telegraphy service startup", "purpose_detailed": "Historical Business Opportunity Analysis", "purpose": "business"}
+
+Input: Which Linux distribution is best suited for my software development workflow?
+Output: {"topic": "Linux distribution choice", "purpose_detailed": "Personal Software Setup", "purpose": "personal"}
 """
 
 @dataclass
