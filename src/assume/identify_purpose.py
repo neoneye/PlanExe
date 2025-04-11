@@ -188,20 +188,30 @@ if __name__ == "__main__":
     prompt_items = prompt_items[:3]
 
     # Create a DataFrame to store the results
-    df = DataFrame(columns=['data', 'purpose', 'purpose_detail', 'topic', 'duration', 'error'])
+    df = DataFrame(columns=['data', 'expected', 'purpose', 'purpose_detail', 'topic', 'duration', 'error', 'status'])
     for prompt_item in prompt_items:
+        expected = 'other'
+        if 'business' in prompt_item.tags:
+            expected = 'business'
+        elif 'personal' in prompt_item.tags:
+            expected = 'personal'
         new_row = {
             "data": prompt_item.prompt,
+            "expected": expected,
             "purpose": None,
             "purpose_detail": None,
             "topic": None,
             "duration": None,
-            "error": False
+            "error": False,
+            "status": "pending"
         }
         # Append row to the dataframe
         df.loc[len(df)] = new_row        
 
     # Invoke the LLM for each prompt
+    count_correct = 0
+    count_incorrect = 0
+    count_error = 0
     for index, row in tqdm(df.iterrows(), total=df.shape[0]):
         data = row['data']
         try:
@@ -211,9 +221,22 @@ if __name__ == "__main__":
             df.at[index, 'purpose_detail'] = json_response['purpose_detailed']
             df.at[index, 'topic'] = json_response['topic']
             df.at[index, 'duration'] = json_response['metadata']['duration']
+
+            if row['expected'] == json_response['purpose']:
+                status = "correct"
+                count_correct += 1
+            else:
+                status = "incorrect"
+                count_incorrect += 1
+            df.at[index, 'status'] = status
         except Exception as e:
             print(f"Error at index {index}: {e}")
             df.at[index, 'error'] = True
-
+            df.at[index, 'status'] = "error"
+            count_error += 1
     print(df)
     df.to_csv('plan_purpose.csv', index=False) 
+
+    print(f"count correct: {count_correct}")
+    print(f"count incorrect: {count_incorrect}")
+    print(f"count error: {count_error}")
