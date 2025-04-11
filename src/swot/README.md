@@ -2,6 +2,11 @@
 
 https://en.wikipedia.org/wiki/SWOT_analysis
 
+Within PlanExe, there are different kinds of SWOT analysis that can be conducted.
+- **Business:** Profit-Driven, aimed at generating profit.
+- **Personal:** Personal stuff, not aimed at generating profit.
+- **Other:** Doesn't fit into the above categories.
+
 
 ## Gradio app: SWOT analysis
 

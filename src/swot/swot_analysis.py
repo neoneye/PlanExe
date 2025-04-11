@@ -1,7 +1,7 @@
 """
 Perform a full SWOT analysis
 
-Phase 1 - Determining what kind of SWOT analysis to perform
+Phase 1 - IdentifyPurpose, classify if this is this going to be a business/personal/other SWOT analysis
 Phase 2 - Conduct the SWOT Analysis
 
 PROMPT> python -m src.swot.swot_analysis
@@ -11,7 +11,7 @@ import time
 import logging
 from math import ceil
 from dataclasses import dataclass, asdict
-from src.swot.swot_phase1_determine_type import swot_phase1_determine_type
+from src.assume.identify_purpose import IdentifyPurpose
 from src.swot.swot_phase2_conduct_analysis import (
     swot_phase2_conduct_analysis, 
     CONDUCT_SWOT_ANALYSIS_BUSINESS_SYSTEM_PROMPT, 
@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 class SWOTAnalysis:
     query: str
     topic: str
-    swot_type_id: str
-    swot_type_verbose: str
+    purpose: str
+    purpose_detailed: str
     response_type: dict
     response_conduct: dict
     metadata: dict
@@ -46,25 +46,26 @@ class SWOTAnalysis:
 
         logging.debug("Determining SWOT analysis type...")
 
-        json_response_type = swot_phase1_determine_type(llm, query)
-        logging.debug("swot_phase1_determine_type json " + json.dumps(json_response_type, indent=2))
+        identify_purpose = IdentifyPurpose.execute(llm, query)
+        json_response_type = identify_purpose.to_dict()
+        logging.debug("IdentifyPurpose json " + json.dumps(json_response_type, indent=2))
 
-        type_id = json_response_type['swot_analysis_type']
-        type_detailed = json_response_type['swot_analysis_type_detailed']
+        purpose = json_response_type['purpose']
+        purpose_detailed = json_response_type['purpose_detailed']
         topic = json_response_type['topic']
 
-        if type_id == 'business':
+        if purpose == 'business':
             system_prompt = CONDUCT_SWOT_ANALYSIS_BUSINESS_SYSTEM_PROMPT
-        elif type_id == 'personal':
+        elif purpose == 'personal':
             system_prompt = CONDUCT_SWOT_ANALYSIS_PERSONAL_SYSTEM_PROMPT
-        elif type_id == 'other':
+        elif purpose == 'other':
             system_prompt = CONDUCT_SWOT_ANALYSIS_OTHER_SYSTEM_PROMPT
             system_prompt = system_prompt.replace("INSERT_USER_TOPIC_HERE", topic)
-            system_prompt = system_prompt.replace("INSERT_USER_SWOTTYPEDETAILED_HERE", type_detailed)
+            system_prompt = system_prompt.replace("INSERT_USER_SWOTTYPEDETAILED_HERE", purpose_detailed)
         else:
-            raise ValueError(f"Invalid SWOT analysis type_id: {type_id}")
+            raise ValueError(f"Invalid purpose: {purpose}")
         
-        logging.debug(f"Conducting SWOT analysis... type_id: {type_id}")
+        logging.debug(f"Conducting SWOT analysis... purpose: {purpose}")
         json_response_conduct = swot_phase2_conduct_analysis(llm, query, system_prompt.strip())
 
         end_time = time.perf_counter()
@@ -78,9 +79,9 @@ class SWOTAnalysis:
 
         result = SWOTAnalysis(
             query=query,
-            topic=json_response_type.get('topic', ''),
-            swot_type_id=type_id,
-            swot_type_verbose=json_response_type.get('swot_analysis_type_detailed', ''),
+            topic=topic,
+            purpose=purpose,
+            purpose_detailed=purpose_detailed,
             response_type=json_response_type,
             response_conduct=json_response_conduct,
             metadata=metadata,
@@ -96,11 +97,11 @@ class SWOTAnalysis:
         rows.append(f"\n## Topic")
         rows.append(f"{self.topic}")
 
-        rows.append(f"\n## Type")
-        rows.append(f"{self.swot_type_id}")
+        rows.append(f"\n## Purpose")
+        rows.append(f"{self.purpose}")
 
-        rows.append(f"\n## Type detailed")
-        rows.append(f"{self.swot_type_verbose}")
+        rows.append(f"\n## Purpose detailed")
+        rows.append(f"{self.purpose_detailed}")
 
         rows.append(f"\n## Strengths 👍💪🦾")
         for item in self.response_conduct.get('strengths', []):
