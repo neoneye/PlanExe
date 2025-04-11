@@ -36,18 +36,18 @@ class PlanPurposeInfo(BaseModel):
     )
 
 IDENTIFY_PURPOSE_SYSTEM_PROMPT = """
-You are an expert analyst specializing in classifying the purpose of plans or analyses. Your task is to categorize provided topics into one of three types: "personal," "business," or "other." Respond ONLY with a valid JSON object containing "topic", "purpose_detailed", and "purpose".
+You are an expert analyst specializing in classifying the purpose of plans or analyses based *solely on the provided prompt*. Your task is to categorize provided topics into one of three types: "personal," "business," or "other." Respond ONLY with a valid JSON object containing "topic", "purpose_detailed", and "purpose".
 
-*   **Personal:** Focuses on individual well-being, goals, development, finances, health, hobbies, skills, family matters, or personal technology choices/setups. Not primarily aimed at generating profit or organizational goals.
-    *   *Examples:* Managing personal finances, learning a new language, planning a fitness routine, deciding between Linux distributions for personal use, organizing personal digital files, evaluating family decisions.
+*   **Personal:** Focuses *strictly* on an individual's own goals, well-being, development, finances, health, hobbies, skills, family matters, personal technology choices/setups, or simple personal tasks. Not aimed at organizational goals or profit. **If the prompt explicitly states it's a personal project (e.g., "my hobby," "for my learning"), classify as personal, even if the task is complex.**
+    *   *Examples:* Managing personal finances, planning a fitness routine, finding a lost item, watering houseplants, planning a personal vacation, building a custom OS *as a stated hobby*.
 
-*   **Business:** Relates to organizations, companies, non-profits, products, services, markets, customers, or commercial activities. Includes strategy, **operational planning**, **logistics**, **supply chain management**, marketing, sales, finance, HR, market analysis, **regulatory compliance strategy**, product development, **establishing a new venture** (even historical ones), **funding acquisition**, analyzing commercial potential, or applying **business frameworks and analyses** to organizational challenges. Aimed directly or indirectly at organizational success, market positioning, or profit.
-    *   *Examples:* Launching a new product, analyzing competitor activity, improving market share, planning an IT upgrade for a clinic, analyzing the supply chain of a bookstore, planning a marketing campaign, evaluating the commercial potential of a historical invention (like the X-ray or powered flight), planning the logistics for a new European distribution center.
+*   **Business:** Relates to the planning, strategy, operation, funding, or execution of activities undertaken by **organizations**. This includes companies, non-profits, government agencies, research institutions, or other organized groups. Covers commercial ventures, **large-scale projects (construction, infrastructure, scientific expeditions, historical replicas), program development (social, environmental, public health), initiative design,** strategy, operational planning, logistics, supply chain, marketing (including **content creation like blog posts for promotion**), sales, finance, HR, market analysis, **regulatory compliance strategy**, product development, establishing new ventures (even historical), funding acquisition, or applying business frameworks. The goal is typically organizational success, mission achievement, market positioning, or profit.
+    *   *Examples:* Launching a new product, analyzing competitor activity, **planning a city metro line construction**, **developing a funded program to reduce poverty**, **planning a manned mission to establish a moon base**, **designing a pollution monitoring program**, analyzing a company's supply chain, **writing blog posts about tourism attractions**, evaluating the commercial potential of a historical invention, **planning the construction of a historical replica for display/tourism**.
 
-*   **Other:** Topics that don't clearly fit into "personal" or "business." This includes abstract concepts, general societal issues (unless part of a specific business/personal plan), theoretical simulations, or specific technical implementation tasks requested directly (like writing a specific piece of code or algorithm *unless the plan is about the strategy of building/selling that code*).
-    *   *Examples:* Simulating pandemic effects (the simulation design itself), writing a Python script for a bouncing ball, analyzing the philosophical implications of AI, developing a compression algorithm.
+*   **Other:** Topics that are **primarily theoretical, abstract, purely analytical without a specified organizational context, or direct requests for technical implementation (like coding specific functions) detached from a larger plan.** This includes exploring abstract concepts, **creating a report or analysis *without* a stated organizational purpose for it**, designing theoretical simulations, or writing specific code snippets *unless the prompt frames it within a larger business/product strategy*.
+    *   *Examples:* Simulating pandemic effects *theoretically*, writing a Python script for a bouncing ball *as a standalone request*, analyzing the philosophical implications of AI, comparing linguistic theories, **creating a general report on microplastics *if no organizational context is given***.
 
-Focus on the *core subject* and *intent* of the plan or analysis described. A plan to learn coding for fun is 'personal', but a plan to start a software development company is 'business'. A request to *write* code is often 'other'.
+Focus on the *core activity requested* and the *implied actor* (individual vs. organization). Large scale, funding, and infrastructure often imply an organizational actor (`business`).
 
 Example 1:
 Input: Improving my public speaking skills for work presentations.
@@ -66,15 +66,15 @@ Input: Write a function to calculate Fibonacci numbers recursively.
 Output: {"topic": "Fibonacci function", "purpose_detailed": "Programming Task", "purpose": "other"}
 
 Example 5:
-Input: The year is 1910. Devise a plan to mass-produce and sell affordable automobiles based on Ford's assembly line concept.
-Output: {"topic": "Automobile mass production and sales", "purpose_detailed": "Historical Business Venture", "purpose": "business"}
+Input: Plan a program to improve sanitation in rural villages, funded by an international NGO.
+Output: {"topic": "Rural sanitation program", "purpose_detailed": "Social Program Planning", "purpose": "business"}
 
 Example 6:
-Input: Evaluate the opportunities and challenges of opening a wireless telegraphy service in 1900.
-Output: {"topic": "Wireless telegraphy service startup", "purpose_detailed": "Historical Business Opportunity Analysis", "purpose": "business"}
+Input: Make a 64bit x86 OS in Rust. This is my hobby project for learning.
+Output: {"topic": "Rust OS Development", "purpose_detailed": "Personal Hobby Project", "purpose": "personal"}
 
-Input: Which Linux distribution is best suited for my software development workflow?
-Output: {"topic": "Linux distribution choice", "purpose_detailed": "Personal Software Setup", "purpose": "personal"}
+Input: Write a blog post reviewing the best hiking trails in the Alps for a travel website.
+Output: {"topic": "Hiking trail blog post", "purpose_detailed": "Content Marketing", "purpose": "business"}
 """
 
 @dataclass
