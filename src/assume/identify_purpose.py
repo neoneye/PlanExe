@@ -11,6 +11,7 @@ from math import ceil
 import logging
 from typing import Optional
 from enum import Enum
+from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
@@ -60,56 +61,114 @@ Input: Which Linux distribution is best for a software developer like me?
 Output: {"topic": "Linux and development", "purpose_detailed": "Personal Software Setup", "purpose": "personal"}
 """
 
-def identify_purpose(llm: LLM, user_prompt: str) -> dict:
+@dataclass
+class IdentifyPurpose:
     """
-    Invoke LLM to identify the purpose of the plan to be conducted.
+    Take a look at the vague description of an idea and determine its purpose.
     """
-    if not isinstance(llm, LLM):
-        raise ValueError("Invalid LLM instance.")
-    if not isinstance(user_prompt, str):
-        raise ValueError("Invalid user_prompt.")
+    system_prompt: str
+    user_prompt: str
+    response: dict
+    metadata: dict
+    markdown: str
 
-    system_prompt = IDENTIFY_PURPOSE_SYSTEM_PROMPT.strip()
+    @classmethod
+    def execute(cls, llm: LLM, user_prompt: str) -> 'IdentifyPurpose':
+        """
+        Invoke LLM with the project description.
+        """
+        if not isinstance(llm, LLM):
+            raise ValueError("Invalid LLM instance.")
+        if not isinstance(user_prompt, str):
+            raise ValueError("Invalid user_prompt.")
 
-    logger.debug(f"System Prompt:\n{system_prompt}")
-    logger.debug(f"User Prompt:\n{user_prompt}")
+        logger.debug(f"User Prompt:\n{user_prompt}")
 
-    chat_message_list = [
-        ChatMessage(
-            role=MessageRole.SYSTEM,
-            content=system_prompt,
-        ),
-        ChatMessage(
-            role=MessageRole.USER,
-            content=user_prompt,
+        system_prompt = IDENTIFY_PURPOSE_SYSTEM_PROMPT.strip()
+
+        chat_message_list = [
+            ChatMessage(
+                role=MessageRole.SYSTEM,
+                content=system_prompt,
+            ),
+            ChatMessage(
+                role=MessageRole.USER,
+                content=user_prompt,
+            )
+        ]
+
+        sllm = llm.as_structured_llm(PlanPurposeInfo)
+        start_time = time.perf_counter()
+        try:
+            chat_response = sllm.chat(chat_message_list)
+        except Exception as e:
+            logger.debug(f"LLM chat interaction failed: {e}")
+            logger.error("LLM chat interaction failed.", exc_info=True)
+            raise ValueError("LLM chat interaction failed.") from e
+
+        end_time = time.perf_counter()
+        duration = int(ceil(end_time - start_time))
+        response_byte_count = len(chat_response.message.content.encode('utf-8'))
+        logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
+
+        plan_purpose_instance: PlanPurposeInfo = chat_response.raw
+        json_response = plan_purpose_instance.model_dump()
+        purpose_value = plan_purpose_instance.purpose.value
+        json_response['purpose'] = purpose_value
+
+        metadata = dict(llm.metadata)
+        metadata["llm_classname"] = llm.class_name()
+        metadata["duration"] = duration
+        metadata["response_byte_count"] = response_byte_count
+
+        markdown = cls.convert_to_markdown(plan_purpose_instance)
+
+        result = IdentifyPurpose(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            response=json_response,
+            metadata=metadata,
+            markdown=markdown
         )
-    ]
+        return result
+    
+    def to_dict(self, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
+        d = self.response.copy()
+        if include_metadata:
+            d['metadata'] = self.metadata
+        if include_system_prompt:
+            d['system_prompt'] = self.system_prompt
+        if include_user_prompt:
+            d['user_prompt'] = self.user_prompt
+        return d
 
-    sllm = llm.as_structured_llm(PlanPurposeInfo)
-    start_time = time.perf_counter()
-    try:
-        chat_response = sllm.chat(chat_message_list)
-    except Exception as e:
-        logger.debug(f"LLM chat interaction failed: {e}")
-        logger.error("LLM chat interaction failed.", exc_info=True)
-        raise ValueError("LLM chat interaction failed.") from e
+    def save_raw(self, file_path: str) -> None:
+        with open(file_path, 'w') as f:
+            f.write(json.dumps(self.to_dict(), indent=2))
 
-    end_time = time.perf_counter()
-    duration = int(ceil(end_time - start_time))
-    response_byte_count = len(chat_response.message.content.encode('utf-8'))
-    logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
+    @staticmethod
+    def convert_to_markdown(plan_purpose_info: PlanPurposeInfo) -> str:
+        """
+        Convert the raw document details to markdown.
+        """
+        rows = []
 
-    plan_purpose_instance: PlanPurposeInfo = chat_response.raw
-    json_response = plan_purpose_instance.model_dump()
-    purpose_value = plan_purpose_instance.purpose.value
-    json_response['purpose'] = purpose_value
+        if plan_purpose_info.purpose == PlanPurpose.personal:
+            rows.append("This is a personal plan, focused on individual well-being and development.")
+        elif plan_purpose_info.purpose == PlanPurpose.business:
+            rows.append("This is a business plan, focused on organizational or commercial objectives.")
+        elif plan_purpose_info.purpose == PlanPurpose.other:
+            rows.append("This plan doesn't clearly fit into personal or business categories.")
+        else:
+            rows.append(f"Invalid plan purpose. {plan_purpose_info.purpose}")
 
-    metadata = dict(llm.metadata)
-    metadata["llm_classname"] = llm.class_name()
-    metadata["duration"] = duration
-    metadata["response_byte_count"] = response_byte_count
-    json_response['metadata'] = metadata
-    return json_response
+        rows.append(f"\n**Topic:** {plan_purpose_info.topic}")
+        rows.append(f"\n**Detailed Purpose:** {plan_purpose_info.purpose_detailed}")
+        return "\n".join(rows)
+
+    def save_markdown(self, output_file_path: str):
+        with open(output_file_path, 'w', encoding='utf-8') as out_f:
+            out_f.write(self.markdown)
 
 if __name__ == "__main__":
     from src.prompt.prompt_catalog import PromptCatalog
@@ -146,8 +205,8 @@ if __name__ == "__main__":
     for index, row in tqdm(df.iterrows(), total=df.shape[0]):
         data = row['data']
         try:
-            json_response = identify_purpose(llm, data)
-            # print(json.dumps(json_response, indent=2))
+            identify_purpose = IdentifyPurpose.execute(llm, data)
+            json_response = identify_purpose.to_dict(include_metadata=True, include_system_prompt=False, include_user_prompt=False)
             df.at[index, 'purpose'] = json_response['purpose']
             df.at[index, 'purpose_detail'] = json_response['purpose_detailed']
             df.at[index, 'topic'] = json_response['topic']
