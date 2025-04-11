@@ -198,6 +198,7 @@ if __name__ == "__main__":
 
     prompt_catalog = PromptCatalog()
     prompt_catalog.load_example_swot_prompts()
+    # prompt_catalog.load_simple_plan_prompts()
     prompt_items = prompt_catalog.all()
 
     # Limit the number of prompt items to process
