@@ -451,18 +451,12 @@ class DistillAssumptionsTask(PlanTask):
 class ReviewAssumptionsTask(PlanTask):
     """
     Find issues with the assumptions.
-    Depends on:
-      - PlanTypeTask
-      - PhysicalLocationsTask
-      - CurrencyStrategyTask
-      - IdentifyRisksTask
-      - MakeAssumptionsTask
-      - DistillAssumptionsTask
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
     def requires(self):
         return {
+            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'currency_strategy': CurrencyStrategyTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -480,6 +474,7 @@ class ReviewAssumptionsTask(PlanTask):
     def run(self):
         # Define the list of (title, path) tuples
         title_path_list = [
+            ('Purpose', self.input()['identify_purpose']['markdown'].path),
             ('Plan Type', self.input()['plan_type']['markdown'].path),
             ('Physical Locations', self.input()['physical_locations']['markdown'].path),
             ('Currency Strategy', self.input()['currency_strategy']['markdown'].path),
