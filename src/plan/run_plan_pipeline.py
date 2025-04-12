@@ -403,15 +403,13 @@ class MakeAssumptionsTask(PlanTask):
 class DistillAssumptionsTask(PlanTask):
     """
     Distill raw assumption data.
-    Depends on:
-      - SetupTask (for the initial plan)
-      - MakeAssumptionsTask (for the draft assumptions)
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
     def requires(self):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'make_assumptions': MakeAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
@@ -424,12 +422,11 @@ class DistillAssumptionsTask(PlanTask):
     def run(self):
         logger.info("Distilling assumptions...")
 
-        # Read the plan prompt from SetupTask's output.
-        setup_target = self.input()['setup']
-        with setup_target.open("r") as f:
+        # Read inputs from required tasks.
+        with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-
-        # Read the assumptions from MakeAssumptionsTask's output.
+        with self.input()['identify_purpose']['raw'].open("r") as f:
+            identify_purpose_dict = json.load(f)
         make_assumptions_target = self.input()['make_assumptions']['clean']
         with make_assumptions_target.open("r") as f:
             assumptions_raw_data = json.load(f)
@@ -437,8 +434,9 @@ class DistillAssumptionsTask(PlanTask):
         llm = get_llm(self.llm_model)
 
         query = (
-            f"{plan_prompt}\n\n"
-            f"assumption.json:\n{assumptions_raw_data}"
+            f"File 'plan.txt':\n{plan_prompt}\n\n"
+            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
+            f"File 'assumptions.json':\n{format_json_for_use_in_query(assumptions_raw_data)}"
         )
 
         distill_assumptions = DistillAssumptions.execute(llm, query)
