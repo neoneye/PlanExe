@@ -9,6 +9,7 @@ PROMPT> python -m src.assume.identify_purpose
 import time
 from math import ceil
 import logging
+import json
 from typing import Optional
 from enum import Enum
 from dataclasses import dataclass
@@ -170,16 +171,16 @@ class IdentifyPurpose:
         rows = []
 
         if plan_purpose_info.purpose == PlanPurpose.personal:
-            rows.append("This is a personal plan, focused on individual well-being and development.")
+            rows.append("**Purpose:** personal")
         elif plan_purpose_info.purpose == PlanPurpose.business:
-            rows.append("This is a business plan, focused on organizational or commercial objectives.")
+            rows.append("**Purpose:** business")
         elif plan_purpose_info.purpose == PlanPurpose.other:
-            rows.append("This plan doesn't clearly fit into personal or business categories.")
+            rows.append("**Purpose:** other. This plan doesn't clearly fit into personal or business categories.")
         else:
             rows.append(f"Invalid plan purpose. {plan_purpose_info.purpose}")
 
+        rows.append(f"\n**Purpose Detailed:** {plan_purpose_info.purpose_detailed}")
         rows.append(f"\n**Topic:** {plan_purpose_info.topic}")
-        rows.append(f"\n**Detailed Purpose:** {plan_purpose_info.purpose_detailed}")
         return "\n".join(rows)
 
     def save_markdown(self, output_file_path: str):
