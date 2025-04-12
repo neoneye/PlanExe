@@ -16,6 +16,7 @@ from src.plan.filenames import FilenameEnum
 from src.plan.speedvsdetail import SpeedVsDetailEnum
 from src.plan.plan_file import PlanFile
 from src.plan.find_plan_prompt import find_plan_prompt
+from src.assume.identify_purpose import IdentifyPurpose
 from src.assume.identify_plan_type import IdentifyPlanType
 from src.assume.physical_locations import PhysicalLocations
 from src.assume.currency_strategy import CurrencyStrategy
@@ -98,11 +99,41 @@ class SetupTask(PlanTask):
         plan_file = PlanFile.create(plan_prompt)
         plan_file.save(self.output().path)
 
+
+class IdentifyPurposeTask(PlanTask):
+    """
+    Determine if this is this going to be a business/personal/other plan.
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def requires(self):
+        return SetupTask(run_id=self.run_id)
+
+    def output(self):
+        return {
+            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.IDENTIFY_PURPOSE_RAW)),
+            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.IDENTIFY_PURPOSE_MARKDOWN))
+        }
+
+    def run(self):
+        # Read inputs from required tasks.
+        with self.input().open("r") as f:
+            plan_prompt = f.read()
+
+        llm = get_llm(self.llm_model)
+
+        identify_purpose = IdentifyPurpose.execute(llm, plan_prompt)
+
+        # Write the result to disk.
+        output_raw_path = self.output()['raw'].path
+        identify_purpose.save_raw(output_raw_path)
+        output_markdown_path = self.output()['markdown'].path
+        identify_purpose.save_markdown(output_markdown_path)
+
+
 class PlanTypeTask(PlanTask):
     """
     Determine if the plan is purely digital or requires physical locations.
-    Depends on:
-      - SetupTask (for the initial plan)
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
@@ -116,8 +147,6 @@ class PlanTypeTask(PlanTask):
         }
 
     def run(self):
-        logger.info("Identifying PlanType of the plan...")
-
         # Read inputs from required tasks.
         with self.input().open("r") as f:
             plan_prompt = f.read()
@@ -2721,6 +2750,7 @@ class FullPlanPipeline(PlanTask):
     def requires(self):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'currency_strategy': CurrencyStrategyTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
