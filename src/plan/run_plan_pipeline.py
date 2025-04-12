@@ -175,15 +175,13 @@ class PlanTypeTask(PlanTask):
 class PhysicalLocationsTask(PlanTask):
     """
     Identify/suggest physical locations for the plan.
-    Depends on:
-      - SetupTask (for the initial plan)
-      - PlanTypeTask (for the plan type)
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
     def requires(self):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
@@ -199,7 +197,8 @@ class PhysicalLocationsTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-
+        with self.input()['identify_purpose']['raw'].open("r") as f:
+            identify_purpose_dict = json.load(f)
         with self.input()['plan_type']['raw'].open("r") as f:
             plan_type_dict = json.load(f)
 
@@ -212,6 +211,7 @@ class PhysicalLocationsTask(PlanTask):
         if plan_type == "physical":
             query = (
                 f"File 'plan.txt':\n{plan_prompt}\n\n"
+                f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
                 f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}"
             )
 
