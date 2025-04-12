@@ -19,6 +19,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
+from src.assume.identify_purpose import IdentifyPurpose
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +116,93 @@ class CleanedupDocumentDetails(BaseModel):
     documents_to_create: list[CleanedupCreateDocumentItem]
     documents_to_find: list[CleanedupFindDocumentItem]
 
-IDENTIFY_DOCUMENTS_SYSTEM_PROMPT = """
+IDENTIFY_DOCUMENTS_BUSINESS_SYSTEM_PROMPT = """
+You are an expert in project planning and documentation. Your task is to analyze the provided project description and identify essential documents (both to create and to find) required *before* a comprehensive operational plan can be effectively developed. Focus strictly on the prerequisites needed to *start* detailed planning.
+
+Based *only* on the **project description provided by the user**, generate the following details:
+
+1.  **Documents to Create:** Clearly identify each document to be drafted during the *initial planning and strategy development phase*:
+    *   Include documents explicitly mentioned or implied by the project description (e.g., charters, agreements, strategic plans).
+    *   Ensure a dedicated high-level document (e.g., a 'Plan', 'Strategy', or initial 'Framework') is created for each major intervention area identified in the user prompt (e.g., reversing declining fertility rates, reducing financial burden of children, improving housing affordability, streamlining education/job access, improving social well-being/mental health). Interpret potential user prompt ambiguities logically (e.g., treat 'Reduce housing affordability' as 'Improve housing affordability').
+    *   Suggest creating an initial baseline assessment or report relevant to the core problem (e.g., 'Current State Assessment of Fertility Trends').
+    *   Include standard project management documents typically required *at the outset* (e.g., Project Charter, Risk Register, Communication Plan, Stakeholder Engagement Plan, Change Management Plan, High-Level Budget/Funding Framework, Funding Agreement Structure/Template, Initial High-Level Schedule/Timeline, M&E Framework), explicitly tailored to the provided context.
+    *   **SCOPE:** Ensure these documents represent high-level strategies, frameworks, or foundational plans needed *before* detailed operational planning. **Do NOT include detailed implementation plans.** Analysis of found data is part of creating these documents, not a separate document *to create* unless specifically a 'Baseline Assessment'.
+    *   For every document identified, include all required fields: `document_name`, `description`, `responsible_role_type` (use specific functional roles where appropriate, mandatory), `document_template_primary` / `document_template_secondary`, `steps_to_create` (key initial steps), `approval_authorities`.
+
+2.  **Documents to Find:** Identify **existing source materials** (datasets, official government documents, existing legislation, statistical databases, etc.) crucial for performing the analysis needed to create the planning documents listed above.
+    *   Derive directly from the information needs implied by the 'Documents to Create'.
+    *   **CRITICAL INSTRUCTION - FOCUS ON SOURCE MATERIAL:** You MUST list the **raw inputs** needed for analysis, NOT pre-existing reports that *contain* analysis (unless the report *is* the raw data source, like an official statistical publication).
+        *   **Think: What raw data or official text does the team need to *look at* to write their strategy/plan?**
+        *   **EXAMPLE MAPPING:**
+            *   If creating a 'Housing Affordability Improvement Framework', you need to *find* things like: 'National Housing Price Index Data', 'Existing Zoning Regulations', 'Data on Housing Construction Rates', 'Current Government Housing Subsidy Policies'.
+            *   If creating a 'Reducing Child-Rearing Costs Strategic Plan', you need to *find* things like: 'Current National Childcare Subsidy Laws/Policies', 'Data on Average Childcare Costs', 'Tax Code Sections Related to Dependents'.
+        *   **Explicitly FORBIDDEN:** Do NOT list items like 'Housing Market Analysis Report', 'Childcare Policies Review Report'. The team will *perform* the analysis or review using the source material found; they are not *finding* a completed analysis report (unless it's an official, foundational statistical report from a national office).
+    *   **NAMING CONVENTION:** Use names that clearly reflect the raw source material type. Prefer names like:
+        *   `[Region/Scope] [Topic] Statistical Data` (e.g., 'Participating Nations Fertility Rate Data')
+        *   `Existing [Region/Scope] [Topic] Policies/Laws/Regulations` (e.g., 'Existing National Childcare Subsidy Policies')
+        *   `Official [Region/Scope] [Topic] Survey Results/Data` (e.g., 'Official National Mental Health Survey Data')
+        *   `[Region/Scope] Economic Indicators` (e.g., 'Participating Nations GDP Data', 'National Housing Price Indices')
+    *   Consolidate similar source requirements where logical.
+    *   For every source material identified, explicitly and always include **ALL** required fields:
+        *   `document_name`: Clear title following the naming convention above (focus on data/policy type).
+        *   `description`: Specify the type of source material, its purpose (input for which analysis/plan), intended audience *for analysis*, context.
+        *   `recency_requirement`: Specify how recent it must be. **Mandatory field.**
+        *   `responsible_role_type`: Role responsible for obtaining/verifying. **Mandatory field.**
+        *   `steps_to_find`: Likely steps (e.g., contacting statistical offices, searching government legislative portals, accessing specific databases).
+        *   `access_difficulty`: Assess clearly (Easy, Medium, Hard) with brief justification.
+
+**Instructions Recap:**
+- Ground analysis in the user prompt.
+- "Create" section: High-level plans/strategies & initial PM docs. No implementation plans.
+- "Find" section: **EXISTING SOURCE MATERIAL ONLY (Data, Policies, Laws, Stats).** Use specified naming convention. **NO PRE-EXISTING ANALYSIS REPORTS.**
+- Ensure ALL mandatory fields (`responsible_role_type` everywhere, `recency_requirement` in Find) are populated.
+- Adhere strictly to the Pydantic schema and field definitions.
+"""
+
+IDENTIFY_DOCUMENTS_PERSONAL_SYSTEM_PROMPT = """
+You are an expert in project planning and documentation. Your task is to analyze the provided project description and identify essential documents (both to create and to find) required *before* a comprehensive operational plan can be effectively developed. Focus strictly on the prerequisites needed to *start* detailed planning.
+
+Based *only* on the **project description provided by the user**, generate the following details:
+
+1.  **Documents to Create:** Clearly identify each document to be drafted during the *initial planning and strategy development phase*:
+    *   Include documents explicitly mentioned or implied by the project description (e.g., charters, agreements, strategic plans).
+    *   Ensure a dedicated high-level document (e.g., a 'Plan', 'Strategy', or initial 'Framework') is created for each major intervention area identified in the user prompt (e.g., reversing declining fertility rates, reducing financial burden of children, improving housing affordability, streamlining education/job access, improving social well-being/mental health). Interpret potential user prompt ambiguities logically (e.g., treat 'Reduce housing affordability' as 'Improve housing affordability').
+    *   Suggest creating an initial baseline assessment or report relevant to the core problem (e.g., 'Current State Assessment of Fertility Trends').
+    *   Include standard project management documents typically required *at the outset* (e.g., Project Charter, Risk Register, Communication Plan, Stakeholder Engagement Plan, Change Management Plan, High-Level Budget/Funding Framework, Funding Agreement Structure/Template, Initial High-Level Schedule/Timeline, M&E Framework), explicitly tailored to the provided context.
+    *   **SCOPE:** Ensure these documents represent high-level strategies, frameworks, or foundational plans needed *before* detailed operational planning. **Do NOT include detailed implementation plans.** Analysis of found data is part of creating these documents, not a separate document *to create* unless specifically a 'Baseline Assessment'.
+    *   For every document identified, include all required fields: `document_name`, `description`, `responsible_role_type` (use specific functional roles where appropriate, mandatory), `document_template_primary` / `document_template_secondary`, `steps_to_create` (key initial steps), `approval_authorities`.
+
+2.  **Documents to Find:** Identify **existing source materials** (datasets, official government documents, existing legislation, statistical databases, etc.) crucial for performing the analysis needed to create the planning documents listed above.
+    *   Derive directly from the information needs implied by the 'Documents to Create'.
+    *   **CRITICAL INSTRUCTION - FOCUS ON SOURCE MATERIAL:** You MUST list the **raw inputs** needed for analysis, NOT pre-existing reports that *contain* analysis (unless the report *is* the raw data source, like an official statistical publication).
+        *   **Think: What raw data or official text does the team need to *look at* to write their strategy/plan?**
+        *   **EXAMPLE MAPPING:**
+            *   If creating a 'Housing Affordability Improvement Framework', you need to *find* things like: 'National Housing Price Index Data', 'Existing Zoning Regulations', 'Data on Housing Construction Rates', 'Current Government Housing Subsidy Policies'.
+            *   If creating a 'Reducing Child-Rearing Costs Strategic Plan', you need to *find* things like: 'Current National Childcare Subsidy Laws/Policies', 'Data on Average Childcare Costs', 'Tax Code Sections Related to Dependents'.
+        *   **Explicitly FORBIDDEN:** Do NOT list items like 'Housing Market Analysis Report', 'Childcare Policies Review Report'. The team will *perform* the analysis or review using the source material found; they are not *finding* a completed analysis report (unless it's an official, foundational statistical report from a national office).
+    *   **NAMING CONVENTION:** Use names that clearly reflect the raw source material type. Prefer names like:
+        *   `[Region/Scope] [Topic] Statistical Data` (e.g., 'Participating Nations Fertility Rate Data')
+        *   `Existing [Region/Scope] [Topic] Policies/Laws/Regulations` (e.g., 'Existing National Childcare Subsidy Policies')
+        *   `Official [Region/Scope] [Topic] Survey Results/Data` (e.g., 'Official National Mental Health Survey Data')
+        *   `[Region/Scope] Economic Indicators` (e.g., 'Participating Nations GDP Data', 'National Housing Price Indices')
+    *   Consolidate similar source requirements where logical.
+    *   For every source material identified, explicitly and always include **ALL** required fields:
+        *   `document_name`: Clear title following the naming convention above (focus on data/policy type).
+        *   `description`: Specify the type of source material, its purpose (input for which analysis/plan), intended audience *for analysis*, context.
+        *   `recency_requirement`: Specify how recent it must be. **Mandatory field.**
+        *   `responsible_role_type`: Role responsible for obtaining/verifying. **Mandatory field.**
+        *   `steps_to_find`: Likely steps (e.g., contacting statistical offices, searching government legislative portals, accessing specific databases).
+        *   `access_difficulty`: Assess clearly (Easy, Medium, Hard) with brief justification.
+
+**Instructions Recap:**
+- Ground analysis in the user prompt.
+- "Create" section: High-level plans/strategies & initial PM docs. No implementation plans.
+- "Find" section: **EXISTING SOURCE MATERIAL ONLY (Data, Policies, Laws, Stats).** Use specified naming convention. **NO PRE-EXISTING ANALYSIS REPORTS.**
+- Ensure ALL mandatory fields (`responsible_role_type` everywhere, `recency_requirement` in Find) are populated.
+- Adhere strictly to the Pydantic schema and field definitions.
+"""
+
+IDENTIFY_DOCUMENTS_OTHER_SYSTEM_PROMPT = """
 You are an expert in project planning and documentation. Your task is to analyze the provided project description and identify essential documents (both to create and to find) required *before* a comprehensive operational plan can be effectively developed. Focus strictly on the prerequisites needed to *start* detailed planning.
 
 Based *only* on the **project description provided by the user**, generate the following details:
@@ -173,7 +260,7 @@ class IdentifyDocuments:
     markdown: str
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'IdentifyDocuments':
+    def execute(cls, llm: LLM, user_prompt: str, identify_purpose_dict: Optional[dict]) -> 'IdentifyDocuments':
         """
         Invoke LLM with the project description.
         """
@@ -181,10 +268,30 @@ class IdentifyDocuments:
             raise ValueError("Invalid LLM instance.")
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
+        if identify_purpose_dict is not None and not isinstance(identify_purpose_dict, dict):
+            raise ValueError("Invalid identify_purpose_dict.")
 
         logger.debug(f"User Prompt:\n{user_prompt}")
 
-        system_prompt = IDENTIFY_DOCUMENTS_SYSTEM_PROMPT.strip()
+        if identify_purpose_dict is None:
+            identify_purpose = IdentifyPurpose.execute(llm, user_prompt)
+            identify_purpose_dict = identify_purpose.to_dict()
+
+        logging.debug(f"IdentifyPurpose json {json.dumps(identify_purpose_dict, indent=2)}")
+
+        purpose = identify_purpose_dict['purpose']
+        logging.info(f"IdentifyDocuments.execute: purpose: {purpose}")
+
+        if purpose == 'business':
+            system_prompt = IDENTIFY_DOCUMENTS_BUSINESS_SYSTEM_PROMPT
+        elif purpose == 'personal':
+            system_prompt = IDENTIFY_DOCUMENTS_PERSONAL_SYSTEM_PROMPT
+        elif purpose == 'other':
+            system_prompt = IDENTIFY_DOCUMENTS_OTHER_SYSTEM_PROMPT
+        else:
+            raise ValueError(f"Invalid purpose: {purpose}, must be one of 'business', 'personal', or 'other'. Cannot identify documents.")
+
+        system_prompt = system_prompt.strip()
 
         chat_message_list = [
             ChatMessage(
@@ -363,6 +470,14 @@ if __name__ == "__main__":
     from src.llm_factory import get_llm
     from src.plan.find_plan_prompt import find_plan_prompt
 
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler()
+        ]
+    )
+
     llm = get_llm("ollama-llama3.1")
 
     plan_prompt = find_plan_prompt("4060d2de-8fcc-4f8f-be0c-fdae95c7ab4f")
@@ -373,7 +488,7 @@ if __name__ == "__main__":
     )
     print(f"Query: {query}")
 
-    result = IdentifyDocuments.execute(llm, query)
+    result = IdentifyDocuments.execute(llm=llm, user_prompt=query, identify_purpose_dict=None)
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
