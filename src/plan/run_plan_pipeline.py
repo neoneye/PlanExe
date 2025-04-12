@@ -1470,6 +1470,7 @@ class SWOTAnalysisTask(PlanTask):
     def requires(self):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1486,6 +1487,8 @@ class SWOTAnalysisTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
+        with self.input()['identify_purpose']['raw'].open("r") as f:
+            identify_purpose_dict = json.load(f)
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
         with self.input()['preproject']['clean'].open("r") as f:
@@ -1508,15 +1511,16 @@ class SWOTAnalysisTask(PlanTask):
         llm = get_llm(self.llm_model)
 
         # Execute the SWOT analysis.
+        # Send the identify_purpose_dict to SWOTAnalysis, and use business/personal/other to select the system prompt
         try:
-            swot_analysis = SWOTAnalysis.execute(llm, query)
+            swot_analysis = SWOTAnalysis.execute(llm=llm, query=query, identify_purpose_dict=identify_purpose_dict)
         except Exception as e:
             logger.error("SWOT analysis failed: %s", e)
             raise
 
         # Convert the SWOT analysis to a dict and markdown.
         swot_raw_dict = swot_analysis.to_dict()
-        swot_markdown = swot_analysis.to_markdown(include_metadata=False)
+        swot_markdown = swot_analysis.to_markdown(include_metadata=False, include_purpose=False)
 
         # Write the raw SWOT JSON.
         with self.output()['raw'].open("w") as f:

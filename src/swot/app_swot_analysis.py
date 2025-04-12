@@ -55,7 +55,7 @@ def make_swot(prompt_description, model_id, model_temperature):
 
     llm = get_llm(model_id, temperature=temperature_float)
     
-    result = SWOTAnalysis.execute(llm, prompt_description)
+    result = SWOTAnalysis.execute(llm=llm, query=prompt_description, identify_purpose_dict=None)
     markdown = result.to_markdown()
     return markdown
 

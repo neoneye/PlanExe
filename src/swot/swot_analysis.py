@@ -11,6 +11,7 @@ import time
 import logging
 from math import ceil
 from dataclasses import dataclass, asdict
+from typing import Optional
 from src.assume.identify_purpose import IdentifyPurpose
 from src.swot.swot_phase2_conduct_analysis import (
     swot_phase2_conduct_analysis, 
@@ -28,31 +29,37 @@ class SWOTAnalysis:
     topic: str
     purpose: str
     purpose_detailed: str
-    response_type: dict
+    response_purpose: dict
     response_conduct: dict
     metadata: dict
 
     @classmethod
-    def execute(cls, llm: LLM, query: str) -> 'SWOTAnalysis':
+    def execute(cls, llm: LLM, query: str, identify_purpose_dict: Optional[dict]) -> 'SWOTAnalysis':
         """
         Invoke LLM to a full SWOT analysis of the provided query.
+
+        Allow identify_purpose_dict to be None, and we will use IdentifyPurpose to get it
         """
         if not isinstance(llm, LLM):
             raise ValueError("Invalid llm instance.")
         if not isinstance(query, str):
             raise ValueError("Invalid query.")
+        if identify_purpose_dict is not None and not isinstance(identify_purpose_dict, dict):
+            raise ValueError("Invalid identify_purpose_dict.")
 
         start_time = time.perf_counter()
 
         logging.debug("Determining SWOT analysis type...")
 
-        identify_purpose = IdentifyPurpose.execute(llm, query)
-        json_response_type = identify_purpose.to_dict()
-        logging.debug("IdentifyPurpose json " + json.dumps(json_response_type, indent=2))
+        if identify_purpose_dict is None:
+            identify_purpose = IdentifyPurpose.execute(llm, query)
+            identify_purpose_dict = identify_purpose.to_dict()
 
-        purpose = json_response_type['purpose']
-        purpose_detailed = json_response_type['purpose_detailed']
-        topic = json_response_type['topic']
+        logging.debug("IdentifyPurpose json " + json.dumps(identify_purpose_dict, indent=2))
+
+        purpose = identify_purpose_dict['purpose']
+        purpose_detailed = identify_purpose_dict['purpose_detailed']
+        topic = identify_purpose_dict['topic']
 
         if purpose == 'business':
             system_prompt = CONDUCT_SWOT_ANALYSIS_BUSINESS_SYSTEM_PROMPT
@@ -82,7 +89,7 @@ class SWOTAnalysis:
             topic=topic,
             purpose=purpose,
             purpose_detailed=purpose_detailed,
-            response_type=json_response_type,
+            response_purpose=identify_purpose_dict,
             response_conduct=json_response_conduct,
             metadata=metadata,
         )
@@ -92,16 +99,12 @@ class SWOTAnalysis:
     def to_dict(self) -> dict:
         return asdict(self)
 
-    def to_markdown(self, include_metadata=True) -> str:
+    def to_markdown(self, include_metadata=True, include_purpose=True) -> str:
         rows = []
-        rows.append(f"\n## Topic")
-        rows.append(f"{self.topic}")
-
-        rows.append(f"\n## Purpose")
-        rows.append(f"{self.purpose}")
-
-        rows.append(f"\n## Purpose detailed")
-        rows.append(f"{self.purpose_detailed}")
+        if include_purpose:
+            rows.append(f"\n## Topic\n{self.topic}")
+            rows.append(f"\n## Purpose\n{self.purpose}")
+            rows.append(f"\n## Purpose detailed\n{self.purpose_detailed}")
 
         rows.append(f"\n## Strengths 👍💪🦾")
         for item in self.response_conduct.get('strengths', []):
@@ -143,7 +146,7 @@ class SWOTAnalysis:
             rows.append(f"\n## Metadata 📊🔧💾")
             rows.append("```json")
             json_dict = self.metadata.copy()
-            json_dict['duration_response_type'] = self.response_type['metadata']['duration']
+            json_dict['duration_response_type'] = self.response_purpose['metadata']['duration']
             json_dict['duration_response_conduct'] = self.response_conduct['metadata']['duration']
             rows.append(json.dumps(json_dict, indent=2))
             rows.append("```")
@@ -173,7 +176,7 @@ if __name__ == "__main__":
     llm = get_llm("ollama-llama3.1")
 
     print(f"Query: {query}")
-    result = SWOTAnalysis.execute(llm, query)
+    result = SWOTAnalysis.execute(llm=llm, query=query, identify_purpose_dict=None)
 
     print("\nJSON:")
     print(json.dumps(asdict(result), indent=2))
