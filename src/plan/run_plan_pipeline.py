@@ -341,18 +341,13 @@ class IdentifyRisksTask(PlanTask):
 class MakeAssumptionsTask(PlanTask):
     """
     Make assumptions about the plan.
-    Depends on:
-      - SetupTask (for the initial plan)
-      - PlanTypeTask (for the plan type)
-      - PhysicalLocationsTask (for the physical locations)
-      - CurrencyStrategy (for the currency strategy)
-      - IdentifyRisksTask (for the identified risks)
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
     def requires(self):
         return {
             'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'currency_strategy': CurrencyStrategyTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -372,21 +367,20 @@ class MakeAssumptionsTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-
+        with self.input()['identify_purpose']['raw'].open("r") as f:
+            identify_purpose_dict = json.load(f)
         with self.input()['plan_type']['raw'].open("r") as f:
             plan_type_dict = json.load(f)
-
         with self.input()['physical_locations']['raw'].open("r") as f:
             physical_locations_dict = json.load(f)
-
         with self.input()['currency_strategy']['raw'].open("r") as f:
             currency_strategy_dict = json.load(f)
-
         with self.input()['identify_risks']['raw'].open("r") as f:
             identify_risks_dict = json.load(f)
 
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
+            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
             f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
             f"File 'physical_locations.json':\n{format_json_for_use_in_query(physical_locations_dict)}\n\n"
             f"File 'currency_strategy.json':\n{format_json_for_use_in_query(currency_strategy_dict)}\n\n"
