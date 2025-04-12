@@ -138,7 +138,10 @@ class PlanTypeTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
     def requires(self):
-        return SetupTask(run_id=self.run_id)
+        return {
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
 
     def output(self):
         return {
@@ -148,12 +151,19 @@ class PlanTypeTask(PlanTask):
 
     def run(self):
         # Read inputs from required tasks.
-        with self.input().open("r") as f:
+        with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
+        with self.input()['identify_purpose']['raw'].open("r") as f:
+            identify_purpose_dict = json.load(f)
+
+        query = (
+            f"File 'plan.txt':\n{plan_prompt}\n\n"
+            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}"
+        )
 
         llm = get_llm(self.llm_model)
 
-        identify_plan_type = IdentifyPlanType.execute(llm, plan_prompt)
+        identify_plan_type = IdentifyPlanType.execute(llm, query)
 
         # Write the result to disk.
         output_raw_path = self.output()['raw'].path
