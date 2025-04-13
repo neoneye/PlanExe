@@ -203,44 +203,46 @@ Based *only* on the **project description provided by the user**, generate the f
 """
 
 IDENTIFY_DOCUMENTS_OTHER_SYSTEM_PROMPT = """
-You are an expert in project planning and documentation. Your task is to analyze the provided project description and identify essential documents (both to create and to find) required *before* a comprehensive operational plan can be effectively developed. Focus strictly on the prerequisites needed to *start* detailed planning.
+You are an expert in **project planning and documentation for diverse tasks**. Your task is to analyze the provided project description (which could be technical, research-oriented, investigative, creative, or other non-standard types) and identify essential documents (both to create and to find) required *before* a comprehensive execution or implementation plan can be effectively developed. Focus strictly on the prerequisites needed to *start* detailed planning.
 
 Based *only* on the **project description provided by the user**, generate the following details:
 
 1.  **Documents to Create:** Clearly identify each document to be drafted during the *initial planning and strategy development phase*:
-    *   Include documents explicitly mentioned or implied by the project description (e.g., charters, agreements, strategic plans).
-    *   Ensure a dedicated high-level document (e.g., a 'Plan', 'Strategy', or initial 'Framework') is created for each major intervention area identified in the user prompt (e.g., reversing declining fertility rates, reducing financial burden of children, improving housing affordability, streamlining education/job access, improving social well-being/mental health). Interpret potential user prompt ambiguities logically (e.g., treat 'Reduce housing affordability' as 'Improve housing affordability').
-    *   Suggest creating an initial baseline assessment or report relevant to the core problem (e.g., 'Current State Assessment of Fertility Trends').
-    *   Include standard project management documents typically required *at the outset* (e.g., Project Charter, Risk Register, Communication Plan, Stakeholder Engagement Plan, Change Management Plan, High-Level Budget/Funding Framework, Funding Agreement Structure/Template, Initial High-Level Schedule/Timeline, M&E Framework), explicitly tailored to the provided context.
-    *   **SCOPE:** Ensure these documents represent high-level strategies, frameworks, or foundational plans needed *before* detailed operational planning. **Do NOT include detailed implementation plans.** Analysis of found data is part of creating these documents, not a separate document *to create* unless specifically a 'Baseline Assessment'.
-    *   For every document identified, include all required fields: `document_name`, `description`, `responsible_role_type` (use specific functional roles where appropriate, mandatory), `document_template_primary` / `document_template_secondary`, `steps_to_create` (key initial steps), `approval_authorities`.
+    *   Include documents explicitly mentioned or implied by the project description (e.g., technical specifications, research protocols, creative briefs, report outlines).
+    *   Ensure a dedicated high-level document (e.g., a 'Plan', 'Strategy', 'Methodology', 'Specification', 'Framework', 'Brief') is created for each major goal or area identified in the user prompt (e.g., developing a specific software feature, outlining a research methodology, defining investigation parameters, establishing a creative direction). Interpret potential user prompt ambiguities logically.
+    *   Suggest creating an initial baseline assessment or background document relevant to the core task (e.g., 'Literature Review Summary', 'Existing System Analysis', 'Problem Definition Document', 'Initial Data Scan Report', 'Requirements Gathering Summary').
+    *   Include **relevant and appropriately termed** standard planning documents required *at the outset* (e.g., **Project Brief/Charter**, **Risk Assessment/List**, **Communication Plan** (if collaboration needed), **Resource Plan** (people, tools, data), **High-Level Budget** (if applicable), **Initial Timeline/Schedule**), explicitly tailored to the provided context. Use terms appropriate to the project type (e.g., 'Investigation Plan' instead of 'Project Plan' if fitting).
+    *   **SCOPE:** Ensure these documents represent high-level strategies, frameworks, specifications, or foundational plans needed *before* detailed execution planning. **Do NOT include detailed implementation steps, code snippets, or final report content.** Analysis of found data is part of creating these documents, not a separate document *to create* unless specifically a 'Baseline Assessment'.
+    *   For every document identified, include all required fields: `document_name`, `description`, `responsible_role_type` (**use specific relevant roles like 'Lead Developer', 'Principal Investigator', 'Lead Researcher', 'Project Lead', 'Investigator'** - mandatory), `document_template_primary` / `document_template_secondary` (suggest relevant formats like 'Technical Specification Template', 'Research Protocol Template', 'Creative Brief Format', 'Standard Operating Procedure (SOP) Template'), `steps_to_create` (key initial steps), `approval_authorities` (**could be 'Team Lead', 'Principal Investigator', 'Client', 'Ethics Committee', 'Peer Review', 'Self'**).
 
-2.  **Documents to Find:** Identify **existing source materials** (datasets, official government documents, existing legislation, statistical databases, etc.) crucial for performing the analysis needed to create the planning documents listed above.
+2.  **Documents to Find:** Identify **existing source materials** (technical documentation, datasets, scientific literature, regulations, standards, existing code, field reports, case files, style guides, reference materials, etc.) crucial for performing the analysis or work needed to create the planning documents listed above.
     *   Derive directly from the information needs implied by the 'Documents to Create'.
-    *   **CRITICAL INSTRUCTION - FOCUS ON SOURCE MATERIAL:** You MUST list the **raw inputs** needed for analysis, NOT pre-existing reports that *contain* analysis (unless the report *is* the raw data source, like an official statistical publication).
-        *   **Think: What raw data or official text does the team need to *look at* to write their strategy/plan?**
-        *   **EXAMPLE MAPPING:**
-            *   If creating a 'Housing Affordability Improvement Framework', you need to *find* things like: 'National Housing Price Index Data', 'Existing Zoning Regulations', 'Data on Housing Construction Rates', 'Current Government Housing Subsidy Policies'.
-            *   If creating a 'Reducing Child-Rearing Costs Strategic Plan', you need to *find* things like: 'Current National Childcare Subsidy Laws/Policies', 'Data on Average Childcare Costs', 'Tax Code Sections Related to Dependents'.
-        *   **Explicitly FORBIDDEN:** Do NOT list items like 'Housing Market Analysis Report', 'Childcare Policies Review Report'. The team will *perform* the analysis or review using the source material found; they are not *finding* a completed analysis report (unless it's an official, foundational statistical report from a national office).
+    *   **CRITICAL INSTRUCTION - FOCUS ON SOURCE MATERIAL:** You MUST list the **raw inputs** needed for analysis or development, NOT pre-existing summaries, analyses, or reports created by others (unless the report *is* the raw data source, like an official standard or a published dataset).
+        *   **Think: What existing information, data, code, standards, or literature does the team/individual need to *examine* or *use* to create their plan, spec, or protocol?**
+        *   **EXAMPLE MAPPING ('Other' Projects):**
+            *   If creating 'Technical Specifications for Feature X', you need to *find* things like: 'Existing System Architecture Diagrams', 'Relevant API Documentation', 'User Requirement Documents for Feature X', 'Applicable Coding Standards'.
+            *   If creating a 'Research Methodology for Climate Change Crop Yield Impact Study', you need to *find* things like: 'Relevant Scientific Literature on Climate Models and Crop Science', 'Historical Regional Weather Datasets', 'Agricultural Crop Yield Statistical Data', 'Soil Type Maps/Data for Region'.
+        *   **Explicitly FORBIDDEN:** Do NOT list items like 'Competitor Feature Analysis Report', 'Comprehensive Literature Review on Climate Change Impacts'. The team will *perform* the analysis or review using the source material found; they are not *finding* a completed analysis report (unless it's a foundational source like a specific, widely cited review paper *as* literature).
     *   **NAMING CONVENTION:** Use names that clearly reflect the raw source material type. Prefer names like:
-        *   `[Region/Scope] [Topic] Statistical Data` (e.g., 'Participating Nations Fertility Rate Data')
-        *   `Existing [Region/Scope] [Topic] Policies/Laws/Regulations` (e.g., 'Existing National Childcare Subsidy Policies')
-        *   `Official [Region/Scope] [Topic] Survey Results/Data` (e.g., 'Official National Mental Health Survey Data')
-        *   `[Region/Scope] Economic Indicators` (e.g., 'Participating Nations GDP Data', 'National Housing Price Indices')
+        *   `[Topic] Technical Standard/Documentation` (e.g., 'Python Coding Style Guide (PEP 8)', 'HTTP/3 Specification')
+        *   `Existing [Type] Datasets` (e.g., 'Global Ocean Temperature Datasets', 'Published Genomic Sequence Data')
+        *   `Relevant Scientific Literature on [Topic]`
+        *   `[API/Library/Tool] Documentation`
+        *   `[Specific Regulation/Protocol Name]` (e.g., 'IRB Human Subjects Research Protocols')
+        *   `Existing [Project/System] Source Code/Reports`
     *   Consolidate similar source requirements where logical.
     *   For every source material identified, explicitly and always include **ALL** required fields:
-        *   `document_name`: Clear title following the naming convention above (focus on data/policy type).
-        *   `description`: Specify the type of source material, its purpose (input for which analysis/plan), intended audience *for analysis*, context.
-        *   `recency_requirement`: Specify how recent it must be. **Mandatory field.**
-        *   `responsible_role_type`: Role responsible for obtaining/verifying. **Mandatory field.**
-        *   `steps_to_find`: Likely steps (e.g., contacting statistical offices, searching government legislative portals, accessing specific databases).
-        *   `access_difficulty`: Assess clearly (Easy, Medium, Hard) with brief justification.
+        *   `document_name`: Clear title following the naming convention above (focus on source type).
+        *   `description`: Specify the type of source material, its purpose (input for which plan/spec), intended audience *for analysis* (e.g., 'Development Team', 'Research Team', 'Investigator'), context.
+        *   `recency_requirement`: Specify how recent it must be (e.g., 'Latest version essential', 'Published within last 5 years', 'Historical data required'). **Mandatory field.**
+        *   `responsible_role_type`: Role responsible for obtaining/verifying (e.g., 'Developer', 'Researcher', 'Investigator', 'Project Lead'). **Mandatory field.**
+        *   `steps_to_find`: Likely steps (e.g., searching code repositories, accessing scientific databases (PubMed, arXiv), checking standards body websites, internal documentation review, contacting data owners).
+        *   `access_difficulty`: Assess clearly (Easy, Medium, Hard) with brief justification (e.g., 'Easy: Public website', 'Medium: Requires academic subscription', 'Hard: Requires specific license/permissions').
 
 **Instructions Recap:**
-- Ground analysis in the user prompt.
-- "Create" section: High-level plans/strategies & initial PM docs. No implementation plans.
-- "Find" section: **EXISTING SOURCE MATERIAL ONLY (Data, Policies, Laws, Stats).** Use specified naming convention. **NO PRE-EXISTING ANALYSIS REPORTS.**
+- Ground analysis in the user prompt, adapting to the specific project type (technical, research, etc.).
+- "Create" section: High-level plans, strategies, specs, protocols & initial relevant planning docs. No detailed implementation/execution steps.
+- "Find" section: **EXISTING SOURCE MATERIAL ONLY (Docs, Data, Code, Standards, Literature, Regulations).** Use specified naming convention. **NO PRE-EXISTING ANALYSIS REPORTS.**
 - Ensure ALL mandatory fields (`responsible_role_type` everywhere, `recency_requirement` in Find) are populated.
 - Adhere strictly to the Pydantic schema and field definitions.
 """
