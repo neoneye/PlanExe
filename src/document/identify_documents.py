@@ -19,7 +19,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
-from src.assume.identify_purpose import IdentifyPurpose
+from src.assume.identify_purpose import IdentifyPurpose, PlanPurposeInfo, PlanPurpose
 
 logger = logging.getLogger(__name__)
 
@@ -274,22 +274,30 @@ class IdentifyDocuments:
         logger.debug(f"User Prompt:\n{user_prompt}")
 
         if identify_purpose_dict is None:
+            logging.info("No identify_purpose_dict provided, identifying purpose.")
             identify_purpose = IdentifyPurpose.execute(llm, user_prompt)
             identify_purpose_dict = identify_purpose.to_dict()
+        else:
+            logging.info("identify_purpose_dict provided, using it.")
 
+        # Parse the identify_purpose_dict
         logging.debug(f"IdentifyPurpose json {json.dumps(identify_purpose_dict, indent=2)}")
+        try:
+            purpose_info = PlanPurposeInfo(**identify_purpose_dict)
+        except Exception as e:
+            logging.error(f"Error parsing identify_purpose_dict: {e}")
+            raise ValueError("Error parsing identify_purpose_dict.") from e
 
-        purpose = identify_purpose_dict['purpose']
-        logging.info(f"IdentifyDocuments.execute: purpose: {purpose}")
-
-        if purpose == 'business':
+        # Select the appropriate system prompt based on the purpose
+        logging.info(f"IdentifyDocuments.execute: purpose: {purpose_info.purpose}")
+        if purpose_info.purpose == PlanPurpose.business:
             system_prompt = IDENTIFY_DOCUMENTS_BUSINESS_SYSTEM_PROMPT
-        elif purpose == 'personal':
+        elif purpose_info.purpose == PlanPurpose.personal:
             system_prompt = IDENTIFY_DOCUMENTS_PERSONAL_SYSTEM_PROMPT
-        elif purpose == 'other':
+        elif purpose_info.purpose == PlanPurpose.other:
             system_prompt = IDENTIFY_DOCUMENTS_OTHER_SYSTEM_PROMPT
         else:
-            raise ValueError(f"Invalid purpose: {purpose}, must be one of 'business', 'personal', or 'other'. Cannot identify documents.")
+            raise ValueError(f"Invalid purpose: {purpose_info.purpose}, must be one of 'business', 'personal', or 'other'. Cannot identify documents.")
 
         system_prompt = system_prompt.strip()
 
