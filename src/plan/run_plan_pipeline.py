@@ -1747,6 +1747,7 @@ class FilterDocumentsToFindTask(PlanTask):
 
     def requires(self):
         return {
+            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'identified_documents': IdentifyDocumentsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1754,6 +1755,8 @@ class FilterDocumentsToFindTask(PlanTask):
     
     def run(self):
         # Read inputs from required tasks.
+        with self.input()['identify_purpose']['raw'].open("r") as f:
+            identify_purpose_dict = json.load(f)
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
@@ -1777,7 +1780,8 @@ class FilterDocumentsToFindTask(PlanTask):
             llm=llm,
             user_prompt=query,
             identified_documents_raw_json=documents_to_find,
-            integer_id_to_document_uuid=integer_id_to_document_uuid
+            integer_id_to_document_uuid=integer_id_to_document_uuid,
+            identify_purpose_dict=identify_purpose_dict
         )
 
         # Save the results.

@@ -22,6 +22,7 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
+from src.assume.identify_purpose import IdentifyPurpose, PlanPurposeInfo, PlanPurpose
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,83 @@ class DocumentImpactAssessmentResult(BaseModel):
         description="A summary highlighting the critical and high impact documents identified as most vital for the project start (80/20)."
     )
 
-FILTER_DOCUMENTS_TO_FIND_SYSTEM_PROMPT = """
+FILTER_DOCUMENTS_TO_FIND_BUSINESS_SYSTEM_PROMPT = """
+You are an expert AI assistant specializing in project planning documentation prioritization, applying the 80/20 principle (Pareto principle). Your task is to analyze a list of potential documents (from user input) against a provided project plan (also from user input). Evaluate each document's **impact** on the **critical initial phase** of the project.
+
+**Goal:** Identify the vital few documents (the '20%') that will provide the most value (the '80%') right at the project's start. This means focusing on documents essential for:
+1.  **Establishing Core Feasibility:** Can the project fundamentally work?
+2.  **Defining Core Strategy/Scope:** What are we *actually* doing initially?
+3.  **Addressing Major Risks:** Mitigating the highest-priority risks identified *in the plan*.
+4.  **Meeting Non-Negotiable Prerequisites:** Fulfilling mandatory requirements to even begin (e.g., foundational compliance, key data for planning).
+
+**Output Format:**
+Respond with a JSON object matching the `DocumentImpactAssessmentResult` schema. For each document:
+- Provide its original `id`.
+- Assign an `impact_rating` using the `DocumentImpact` enum ('Critical', 'High', 'Medium', 'Low').
+- Provide a detailed `rationale` explaining *why* that specific impact rating was chosen. **The rationale MUST link the document's content directly to critical project goals, major risks, key decisions, essential analyses, or uncertainties mentioned in the provided project plan for the initial phase.**
+
+**Impact Rating Definitions (Assign ONE per document):**
+- **Critical:** Absolutely essential for the initial phase. Project cannot realistically start, core feasibility cannot be assessed, or a top-tier risk (per the plan) cannot be addressed without this. Represents a non-negotiable prerequisite. (This is the core of the 80/20 focus).
+- **High:** Very important for the initial phase. Significantly clarifies major uncertainties mentioned in the plan, enables core strategic decisions, provides essential data for key initial analyses, or addresses a significant risk.
+- **Medium:** Useful context for the initial phase. Supports secondary planning tasks, provides background information, or addresses lower-priority risks/tasks. Helpful but not strictly required for the *most critical* initial decisions/actions.
+- **Low:** Minor relevance for the *initial phase*. Might be useful much later, provides tangential information, or is superseded by higher-impact documents.
+
+**Rationale Requirements (MANDATORY):**
+- **MUST** justify the assigned `impact_rating`.
+- **MUST** explicitly reference elements from the **user-provided project plan** (e.g., "Needed to address Risk #1 identified in the plan," "Provides data for the market analysis step mentioned," "Required for the 'Regulatory Compliance Assessment' goal").
+- **Consider Overlap:** If two documents provide similar high-impact information, assign the highest rating to the most comprehensive or foundational one. Note the overlap in the rationale of the lower-rated document (e.g., "High: Provides important context, though some overlaps with ID [X]'s critical data."). Avoid assigning 'Critical' to multiple highly overlapping documents unless truly distinct aspects are covered.
+
+**Forbidden Rationales:** Single words or generic phrases without linkage to the plan.
+
+**Final Output:**
+Produce a single JSON object containing `document_list` (with impact ratings and detailed, plan-linked rationales) and a `summary`.
+
+The `summary` MUST provide a qualitative assessment based on the impact ratings you assigned:
+1.  **Relevance Distribution:** Characterize the overall list. Were most documents low impact ('Low'/'Medium'), indicating the initial list was broad or unfocused? Or were many documents assessed as 'High' or 'Critical', suggesting the list was generally relevant to the initial phase?
+2.  **Prioritization Clarity:** Comment on how easy it was to apply the 80/20 rule. Was there a clear distinction with only a few 'Critical'/'High' impact documents standing out? Or were there many documents clustered in the 'High'/'Medium' categories, making it difficult to isolate the truly vital few? **Do NOT simply list the documents in the summary.**
+
+Strictly adhere to the schema and instructions, especially for the `rationale` and the new `summary` requirements.
+"""
+
+FILTER_DOCUMENTS_TO_FIND_PERSONAL_SYSTEM_PROMPT = """
+You are an expert AI assistant specializing in project planning documentation prioritization, applying the 80/20 principle (Pareto principle). Your task is to analyze a list of potential documents (from user input) against a provided project plan (also from user input). Evaluate each document's **impact** on the **critical initial phase** of the project.
+
+**Goal:** Identify the vital few documents (the '20%') that will provide the most value (the '80%') right at the project's start. This means focusing on documents essential for:
+1.  **Establishing Core Feasibility:** Can the project fundamentally work?
+2.  **Defining Core Strategy/Scope:** What are we *actually* doing initially?
+3.  **Addressing Major Risks:** Mitigating the highest-priority risks identified *in the plan*.
+4.  **Meeting Non-Negotiable Prerequisites:** Fulfilling mandatory requirements to even begin (e.g., foundational compliance, key data for planning).
+
+**Output Format:**
+Respond with a JSON object matching the `DocumentImpactAssessmentResult` schema. For each document:
+- Provide its original `id`.
+- Assign an `impact_rating` using the `DocumentImpact` enum ('Critical', 'High', 'Medium', 'Low').
+- Provide a detailed `rationale` explaining *why* that specific impact rating was chosen. **The rationale MUST link the document's content directly to critical project goals, major risks, key decisions, essential analyses, or uncertainties mentioned in the provided project plan for the initial phase.**
+
+**Impact Rating Definitions (Assign ONE per document):**
+- **Critical:** Absolutely essential for the initial phase. Project cannot realistically start, core feasibility cannot be assessed, or a top-tier risk (per the plan) cannot be addressed without this. Represents a non-negotiable prerequisite. (This is the core of the 80/20 focus).
+- **High:** Very important for the initial phase. Significantly clarifies major uncertainties mentioned in the plan, enables core strategic decisions, provides essential data for key initial analyses, or addresses a significant risk.
+- **Medium:** Useful context for the initial phase. Supports secondary planning tasks, provides background information, or addresses lower-priority risks/tasks. Helpful but not strictly required for the *most critical* initial decisions/actions.
+- **Low:** Minor relevance for the *initial phase*. Might be useful much later, provides tangential information, or is superseded by higher-impact documents.
+
+**Rationale Requirements (MANDATORY):**
+- **MUST** justify the assigned `impact_rating`.
+- **MUST** explicitly reference elements from the **user-provided project plan** (e.g., "Needed to address Risk #1 identified in the plan," "Provides data for the market analysis step mentioned," "Required for the 'Regulatory Compliance Assessment' goal").
+- **Consider Overlap:** If two documents provide similar high-impact information, assign the highest rating to the most comprehensive or foundational one. Note the overlap in the rationale of the lower-rated document (e.g., "High: Provides important context, though some overlaps with ID [X]'s critical data."). Avoid assigning 'Critical' to multiple highly overlapping documents unless truly distinct aspects are covered.
+
+**Forbidden Rationales:** Single words or generic phrases without linkage to the plan.
+
+**Final Output:**
+Produce a single JSON object containing `document_list` (with impact ratings and detailed, plan-linked rationales) and a `summary`.
+
+The `summary` MUST provide a qualitative assessment based on the impact ratings you assigned:
+1.  **Relevance Distribution:** Characterize the overall list. Were most documents low impact ('Low'/'Medium'), indicating the initial list was broad or unfocused? Or were many documents assessed as 'High' or 'Critical', suggesting the list was generally relevant to the initial phase?
+2.  **Prioritization Clarity:** Comment on how easy it was to apply the 80/20 rule. Was there a clear distinction with only a few 'Critical'/'High' impact documents standing out? Or were there many documents clustered in the 'High'/'Medium' categories, making it difficult to isolate the truly vital few? **Do NOT simply list the documents in the summary.**
+
+Strictly adhere to the schema and instructions, especially for the `rationale` and the new `summary` requirements.
+"""
+
+FILTER_DOCUMENTS_TO_FIND_OTHER_SYSTEM_PROMPT = """
 You are an expert AI assistant specializing in project planning documentation prioritization, applying the 80/20 principle (Pareto principle). Your task is to analyze a list of potential documents (from user input) against a provided project plan (also from user input). Evaluate each document's **impact** on the **critical initial phase** of the project.
 
 **Goal:** Identify the vital few documents (the '20%') that will provide the most value (the '80%') right at the project's start. This means focusing on documents essential for:
@@ -150,7 +227,7 @@ class FilterDocumentsToFind:
         return process_documents, integer_id_to_document_uuid
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str, identified_documents_raw_json: list[dict], integer_id_to_document_uuid: dict[int, str]) -> 'FilterDocumentsToFind':
+    def execute(cls, llm: LLM, user_prompt: str, identified_documents_raw_json: list[dict], integer_id_to_document_uuid: dict[int, str], identify_purpose_dict: Optional[dict]) -> 'FilterDocumentsToFind':
         """
         Invoke LLM with the document details to analyze.
         """
@@ -158,10 +235,38 @@ class FilterDocumentsToFind:
             raise ValueError("Invalid LLM instance.")
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
+        if identify_purpose_dict is not None and not isinstance(identify_purpose_dict, dict):
+            raise ValueError("Invalid identify_purpose_dict.")
 
         logger.debug(f"User Prompt:\n{user_prompt}")
 
-        system_prompt = FILTER_DOCUMENTS_TO_FIND_SYSTEM_PROMPT.strip()
+        if identify_purpose_dict is None:
+            logging.info("No identify_purpose_dict provided, identifying purpose.")
+            identify_purpose = IdentifyPurpose.execute(llm, user_prompt)
+            identify_purpose_dict = identify_purpose.to_dict()
+        else:
+            logging.info("identify_purpose_dict provided, using it.")
+
+        # Parse the identify_purpose_dict
+        logging.debug(f"IdentifyPurpose json {json.dumps(identify_purpose_dict, indent=2)}")
+        try:
+            purpose_info = PlanPurposeInfo(**identify_purpose_dict)
+        except Exception as e:
+            logging.error(f"Error parsing identify_purpose_dict: {e}")
+            raise ValueError("Error parsing identify_purpose_dict.") from e
+
+        # Select the appropriate system prompt based on the purpose
+        logging.info(f"FilterDocumentsToFind.execute: purpose: {purpose_info.purpose}")
+        if purpose_info.purpose == PlanPurpose.business:
+            system_prompt = FILTER_DOCUMENTS_TO_FIND_BUSINESS_SYSTEM_PROMPT
+        elif purpose_info.purpose == PlanPurpose.personal:
+            system_prompt = FILTER_DOCUMENTS_TO_FIND_PERSONAL_SYSTEM_PROMPT
+        elif purpose_info.purpose == PlanPurpose.other:
+            system_prompt = FILTER_DOCUMENTS_TO_FIND_OTHER_SYSTEM_PROMPT
+        else:
+            raise ValueError(f"Invalid purpose: {purpose_info.purpose}, must be one of 'business', 'personal', or 'other'. Cannot filter documents.")
+
+        system_prompt = system_prompt.strip()
 
         chat_message_list = [
             ChatMessage(
@@ -286,6 +391,14 @@ if __name__ == "__main__":
 
     plan_prompt = find_plan_prompt("5c4b4fee-267a-409b-842f-4833d86aa215")
 
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler()
+        ]
+    )
+
     llm = get_llm("ollama-llama3.1")
     # llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
 
@@ -303,7 +416,7 @@ if __name__ == "__main__":
     )
     print(f"Query:\n{query}\n\n")
 
-    result = FilterDocumentsToFind.execute(llm, query, identified_documents_raw_json, integer_id_to_document_uuid)
+    result = FilterDocumentsToFind.execute(llm, query, identified_documents_raw_json, integer_id_to_document_uuid, identify_purpose_dict=None)
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
