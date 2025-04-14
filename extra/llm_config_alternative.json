@@ -19,6 +19,20 @@
             "is_function_calling_model": false
         }
     },
+    "openrouter-paid-openai-gpt-41-nano": {
+        "comment": "This is medium fast. It's paid, so check the pricing before use.",
+        "class": "OpenRouter",
+        "arguments": {
+            "model": "openai/gpt-4.1-nano",
+            "api_key": "${OPENROUTER_API_KEY}",
+            "temperature": 0.1,
+            "timeout": 60.0,
+            "is_function_calling_model": false,
+            "is_chat_model": true,
+            "max_tokens": 8192,
+            "max_retries": 5
+        }
+    },
     "openai-paid-o1": {
         "comment": "This is paid. Possible free to use for a limited time. Check the pricing before use.",
         "class": "OpenAI",
