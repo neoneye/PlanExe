@@ -1674,8 +1674,8 @@ class IdentifyDocumentsTask(PlanTask):
         return {
             "raw": luigi.LocalTarget(self.file_path(FilenameEnum.IDENTIFIED_DOCUMENTS_RAW)),
             "markdown": luigi.LocalTarget(self.file_path(FilenameEnum.IDENTIFIED_DOCUMENTS_MARKDOWN)),
-            "documents_to_create": luigi.LocalTarget(self.file_path(FilenameEnum.IDENTIFIED_DOCUMENTS_TO_CREATE_JSON)),
             "documents_to_find": luigi.LocalTarget(self.file_path(FilenameEnum.IDENTIFIED_DOCUMENTS_TO_FIND_JSON)),
+            "documents_to_create": luigi.LocalTarget(self.file_path(FilenameEnum.IDENTIFIED_DOCUMENTS_TO_CREATE_JSON)),
         }
 
     def requires(self):
@@ -1729,8 +1729,8 @@ class IdentifyDocumentsTask(PlanTask):
         # Save the results.
         identify_documents.save_raw(self.output()["raw"].path)
         identify_documents.save_markdown(self.output()["markdown"].path)
-        identify_documents.save_json_documents_to_create(self.output()["documents_to_create"].path)
         identify_documents.save_json_documents_to_find(self.output()["documents_to_find"].path)
+        identify_documents.save_json_documents_to_create(self.output()["documents_to_create"].path)
 
 class FilterDocumentsToFindTask(PlanTask):
     """
