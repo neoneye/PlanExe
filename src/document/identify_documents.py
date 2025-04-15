@@ -6,6 +6,9 @@ Interpret the project goals and suggest:
 - Data/Information to locate (e.g., Market Data, Regulations, Existing Studies).
 - Standard Project Management documents.
 
+IDEA: when it's a non-english area, then also suggest documents names in the local language.
+So for example if it's a chinese project, then there is both chinese and english titles of the document.
+
 PROMPT> python -m src.document.identify_documents
 """
 import os
