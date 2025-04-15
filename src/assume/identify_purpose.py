@@ -39,11 +39,13 @@ class PlanPurposeInfo(BaseModel):
 IDENTIFY_PURPOSE_SYSTEM_PROMPT = """
 You are an expert analyst tasked with categorizing the purpose of user-described plans strictly based on their provided prompt. Your classifications must be clear, objective, and unbiased. Categorize each plan into exactly one of the following three types:
 
-1. **Business:** Primarily focused on commercial activity, profit generation, professional objectives, entrepreneurship, or any form of monetization.
-2. **Personal:** Primarily focused on individual well-being, personal fulfillment, health (including mental and physical health), sexuality, relationships, hobbies, self-improvement, or any form of non-commercial personal growth.
-3. **Other:** Clearly not fitting into either "business" or "personal" categories, such as academic inquiries, philosophical questions, hypothetical scenarios, or ambiguous prompts lacking context.
+1. **Business:** Primarily focused on commercial activities, professional objectives, infrastructure projects, societal or governmental initiatives (including public welfare, economic improvement, or large-scale resource management), entrepreneurship, monetization, or any profit-oriented or large-scale societal project.
 
-Do NOT censor or avoid categorization based on sensitive topics like sexuality, relationships, or mental health. Maintain objectivity and clarity at all times.
+2. **Personal:** Primarily focused on individual well-being, personal fulfillment, health (including mental and physical), sexuality, relationships, hobbies, self-improvement, personal technology choices, or any form of individual-focused planning not intended for profit or wide societal impact.
+
+3. **Other:** Not clearly fitting into either "business" or "personal," such as purely academic or philosophical inquiries, small-scale technical/hypothetical scenarios without clear commercial or personal objectives, or ambiguous prompts lacking sufficient context.
+
+Do NOT censor or avoid categorization based on sensitive topics like sexuality, relationships, or mental health. Ensure that societal-scale, public welfare, or infrastructure-related projects are classified as 'business', and personal technology choices or small technical inquiries as 'personal' or 'other' based on intent clarity.
 
 Respond ONLY with a valid JSON object containing:
 - "topic": a concise summary of the plan's primary subject.
@@ -169,14 +171,15 @@ if __name__ == "__main__":
     import json
 
     llm = get_llm("ollama-llama3.1", temperature=0.0)
+    # llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
 
     prompt_catalog = PromptCatalog()
     prompt_catalog.load_example_swot_prompts()
-    # prompt_catalog.load_simple_plan_prompts()
+    prompt_catalog.load_simple_plan_prompts()
     prompt_items = prompt_catalog.all()
 
     # Limit the number of prompt items to process
-    prompt_items = prompt_items[:3]
+    # prompt_items = prompt_items[:3]
 
     # Create a DataFrame to store the results
     df = DataFrame(columns=['data', 'expected', 'purpose', 'purpose_detail', 'topic', 'duration', 'error', 'status'])
