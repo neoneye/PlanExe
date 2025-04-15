@@ -12,7 +12,7 @@ import logging
 from math import ceil
 from dataclasses import dataclass, asdict
 from typing import Optional
-from src.assume.identify_purpose import IdentifyPurpose
+from src.assume.identify_purpose import IdentifyPurpose, PlanPurposeInfo, PlanPurpose
 from src.swot.swot_phase2_conduct_analysis import (
     swot_phase2_conduct_analysis, 
     CONDUCT_SWOT_ANALYSIS_BUSINESS_SYSTEM_PROMPT, 
@@ -52,28 +52,36 @@ class SWOTAnalysis:
         logging.debug("Determining SWOT analysis type...")
 
         if identify_purpose_dict is None:
+            logging.info("No identify_purpose_dict provided, identifying purpose.")
             identify_purpose = IdentifyPurpose.execute(llm, query)
             identify_purpose_dict = identify_purpose.to_dict()
-
-        logging.debug("IdentifyPurpose json " + json.dumps(identify_purpose_dict, indent=2))
-
-        purpose = identify_purpose_dict['purpose']
-        purpose_detailed = identify_purpose_dict['purpose_detailed']
-        topic = identify_purpose_dict['topic']
-
-        if purpose == 'business':
-            system_prompt = CONDUCT_SWOT_ANALYSIS_BUSINESS_SYSTEM_PROMPT
-        elif purpose == 'personal':
-            system_prompt = CONDUCT_SWOT_ANALYSIS_PERSONAL_SYSTEM_PROMPT
-        elif purpose == 'other':
-            system_prompt = CONDUCT_SWOT_ANALYSIS_OTHER_SYSTEM_PROMPT
-            system_prompt = system_prompt.replace("INSERT_USER_TOPIC_HERE", topic)
-            system_prompt = system_prompt.replace("INSERT_USER_SWOTTYPEDETAILED_HERE", purpose_detailed)
         else:
-            raise ValueError(f"Invalid purpose: {purpose}")
+            logging.info("identify_purpose_dict provided, using it.")
+
+        # Parse the identify_purpose_dict
+        logging.debug(f"IdentifyPurpose json {json.dumps(identify_purpose_dict, indent=2)}")
+        try:
+            purpose_info = PlanPurposeInfo(**identify_purpose_dict)
+        except Exception as e:
+            logging.error(f"Error parsing identify_purpose_dict: {e}")
+            raise ValueError("Error parsing identify_purpose_dict.") from e
+
+        # Select the appropriate system prompt based on the purpose
+        logging.info(f"SWOTAnalysis.execute: purpose: {purpose_info.purpose}")
+        if purpose_info.purpose == PlanPurpose.business:
+            system_prompt = CONDUCT_SWOT_ANALYSIS_BUSINESS_SYSTEM_PROMPT
+        elif purpose_info.purpose == PlanPurpose.personal:
+            system_prompt = CONDUCT_SWOT_ANALYSIS_PERSONAL_SYSTEM_PROMPT
+        elif purpose_info.purpose == PlanPurpose.other:
+            system_prompt = CONDUCT_SWOT_ANALYSIS_OTHER_SYSTEM_PROMPT
+            system_prompt = system_prompt.replace("INSERT_USER_TOPIC_HERE", purpose_info.topic)
+            system_prompt = system_prompt.replace("INSERT_USER_SWOTTYPEDETAILED_HERE", purpose_info.purpose_detailed)
+        else:
+            raise ValueError(f"Invalid purpose: {purpose_info.purpose}, must be one of 'business', 'personal', or 'other'. Cannot perform SWOT analysis.")
+
+        system_prompt = system_prompt.strip()
         
-        logging.debug(f"Conducting SWOT analysis... purpose: {purpose}")
-        json_response_conduct = swot_phase2_conduct_analysis(llm, query, system_prompt.strip())
+        json_response_conduct = swot_phase2_conduct_analysis(llm, query, system_prompt)
 
         end_time = time.perf_counter()
         logging.debug("swot_phase2_conduct_analysis json " + json.dumps(json_response_conduct, indent=2))
@@ -86,9 +94,9 @@ class SWOTAnalysis:
 
         result = SWOTAnalysis(
             query=query,
-            topic=topic,
-            purpose=purpose,
-            purpose_detailed=purpose_detailed,
+            topic=purpose_info.topic,
+            purpose=purpose_info.purpose,
+            purpose_detailed=purpose_info.purpose_detailed,
             response_purpose=identify_purpose_dict,
             response_conduct=json_response_conduct,
             metadata=metadata,
