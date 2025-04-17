@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PlanExe Project Report</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --text: #374151;
+      --text-light: #6b7280;
+      --bg: #f9fafb;
+      --card-bg: #ffffff;
+      --border: #e5e7eb;
+      --radius: 8px;
+      --gap: 16px;
+      --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    html {
+      background: var(--bg) !important;
+      color-scheme: light;
+    }
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: var(--gap);
+      min-height: 100vh;
+      font-family: var(--font);
+      color: var(--text);
+      background: var(--bg) !important;
+      max-width: 1024px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: calc(var(--gap) * 2);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+      color: var(--primary);
+    }
+    .timestamp {
+      font-size: 0.9rem;
+      color: var(--text-light);
+    }
+    .section {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom: calc(var(--gap) * 1.5);
+      overflow: hidden;
+    }
+    .collapsible {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: var(--gap);
+      font-size: 1rem;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.2s;
+    }
+    .collapsible:hover {
+      background: var(--primary-hover);
+    }
+    .collapsible:after {
+      content: '+';
+      position: absolute;
+      right: var(--gap);
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.2rem;
+      transition: transform 0.2s;
+    }
+    .collapsible.active:after {
+      content: '\2212';
+    }
+    .content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .content-inner {
+      background-color: var(--card-bg);
+      padding: var(--gap) calc(var(--gap) * 1.5);
+    }
+    h2 {
+      margin-top: var(--gap);
+      color: var(--text);
+    }
+    p, ul, ol {
+      margin: var(--gap) 0;
+      line-height: 1.6;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: var(--gap) 0;
+    }
+    th, td {
+      padding: var(--gap) 8px;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+    th {
+      background: var(--bg);
+    }
+    tr:nth-child(even) {
+      background: #f3f4f6;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PlanExe Project Report</h1>
+    <div class="timestamp">Generated on: <span id="timestamp">YYYY-MM-DD HH:mm:ss</span></div>
+  </header>
+  <!--CONTENT-START-->
+  <div class="section">
+    <button class="collapsible">Pitch</button>
+    <div class="content">
+      <div class="content-inner">
+        <h2>Pitch</h2>
+        <p>Concise project overview and vision. Replace this with your summary text.</p>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <button class="collapsible">SWOT Analysis</button>
+    <div class="content">
+      <div class="content-inner">
+        <h2>Strengths</h2>
+        <ul>
+          <li>Highlight key strengths here.</li>
+        </ul>
+        <h2>Weaknesses</h2>
+        <ul>
+          <li>List any weaknesses here.</li>
+        </ul>
+        <h2>Opportunities</h2>
+        <ul>
+          <li>Describe opportunities here.</li>
+        </ul>
+        <h2>Threats</h2>
+        <ul>
+          <li>Outline threats here.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <!--CONTENT-END-->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('timestamp').textContent = new Date().toISOString().slice(0,19).replace('T',' ');
+      document.querySelectorAll('.collapsible').forEach(btn => {
+        btn.addEventListener('click', () => {
+          btn.classList.toggle('active');
+          const content = btn.nextElementSibling;
+          content.style.maxHeight = content.style.maxHeight ? null : content.scrollHeight + 'px';
+        });
+      });
+    });
+  </script>
+</body>
+</html>
