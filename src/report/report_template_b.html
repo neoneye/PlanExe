@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PlanExe Project Report</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #4338ca;
+      --secondary: #111827;
+      --accent: #10b981;
+      --bg: #f3f4f6;
+      --card-bg: #ffffff;
+      --border: #e5e7eb;
+      --text: #374151;
+      --text-light: #6b7280;
+      --radius: 8px;
+      --gap: 16px;
+      --font: 'Inter', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background: var(--bg);
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
+    nav.sidebar {
+      background: var(--card-bg);
+      border-right: 1px solid var(--border);
+      padding: var(--gap);
+      overflow-y: auto;
+    }
+    nav.sidebar h2 {
+      font-size: 1.2rem;
+      margin-bottom: calc(var(--gap) / 2);
+      color: var(--secondary);
+    }
+    ul.toc { list-style: none; padding: 0; margin: 0; }
+    ul.toc li { margin: var(--gap) 0; }
+    ul.toc a {
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    ul.toc a:hover { color: var(--primary); }
+    main.container {
+      overflow-y: auto;
+      padding: var(--gap) var(--gap) var(--gap) calc(var(--gap) * 2);
+    }
+    header.report-header { text-align: center; margin-bottom: calc(var(--gap) * 2); }
+    header.report-header h1 {
+      font-size: 2.2rem;
+      color: var(--secondary);
+      margin-bottom: 8px;
+    }
+    header.report-header .timestamp {
+      font-size: 0.9rem;
+      color: var(--text-light);
+    }
+    .section {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      margin-bottom: calc(var(--gap) * 2);
+      overflow: hidden;
+      transition: transform 0.2s;
+    }
+    .section:hover { transform: translateY(-2px); }
+    .collapsible {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: var(--gap);
+      text-align: left;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .collapsible .label { display: flex; align-items: center; }
+    .collapsible .label i { margin-right: 8px; }
+    .chevron { transition: transform 0.3s; }
+    .collapsible.active .chevron { transform: rotate(180deg); }
+    .content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+    .content-inner { padding: var(--gap) calc(var(--gap) * 1.5); }
+    h2, h3 { margin-top: var(--gap); color: var(--secondary); }
+    p, ul, ol { margin: var(--gap) 0; line-height: 1.6; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: var(--gap) 0;
+    }
+    th, td {
+      padding: var(--gap) calc(var(--gap) * 1.5);
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+    th {
+      background: var(--bg);
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    tr:nth-child(even) { background: #f8fafc; }
+    tr:hover { background: var(--accent)10; }
+    /* SWOT Styles */
+    .swot-category { margin-top: var(--gap); padding: var(--gap); border: 1px solid var(--border); border-radius: var(--radius); }
+    .swot-category h2 { display: flex; align-items: center; margin: 0 0 var(--gap) 0; font-size: 1.3rem; }
+    .swot-category .swot-icon { margin-right: 8px; font-size: 1.4em; }
+    .swot-strengths { background: #ecfdf5; border-color: #a7f3d0; }
+    .swot-weaknesses { background: #fffbeb; border-color: #fde68a; }
+    .swot-opportunities { background: #eff6ff; border-color: #bfdbfe; }
+    .swot-threats { background: #fef2f2; border-color: #fecaca; }
+    .metric { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 500; margin-right: 4px; margin-bottom: 4px; border: 1px solid transparent; }
+    .metric-success { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .metric-warning { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+    .metric-danger { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+    .metric-info { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    @media (max-width: 768px) {
+      body { grid-template-columns: 1fr; }
+      nav.sidebar { display: none; }
+      main.container { padding: var(--gap); height: 100vh; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="sidebar">
+    <h2>Contents</h2>
+    <ul class="toc"></ul>
+  </nav>
+  <main class="container">
+    <header class="report-header">
+      <h1>PlanExe Project Report</h1>
+      <div class="timestamp">Generated on: <span id="report-timestamp">YYYY-MM-DD HH:mm:ss</span></div>
+    </header>
+    <!--CONTENT-START-->
+
+    <!-- Executive Summary -->
+    <div class="section">
+      <button class="collapsible">
+        <span class="label"><i class="fas fa-file-alt"></i> Executive Summary</span>
+        <i class="fas fa-chevron-down chevron"></i>
+      </button>
+      <div class="content">
+        <div class="content-inner">
+          <h2>Executive Summary</h2>
+          <p>This section provides a high-level overview of the project objectives, outcomes, and key recommendations. Replace this placeholder text with your summary.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pitch Overview -->
+    <div class="section">
+      <button class="collapsible">
+        <span class="label"><i class="fas fa-bullhorn"></i> Pitch</span>
+        <i class="fas fa-chevron-down chevron"></i>
+      </button>
+      <div class="content">
+        <div class="content-inner">
+          <h2>Pitch</h2>
+          <p>A concise description of the project's vision, goals, and key value propositions. Use this area to capture stakeholder interest.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed Pitch -->
+    <div class="section">
+      <button class="collapsible">
+        <span class="label"><i class="fas fa-bullhorn"></i> Pitch Details</span>
+        <i class="fas fa-chevron-down chevron"></i>
+      </button>
+      <div class="content">
+        <div class="content-inner">
+          <h2>Exploring a Radiative Cave System Near Copenhagen: A Search for Novel Life</h2>
+          <h3>Introduction</h3>
+          <p>Imagine a hidden world, untouched by sunlight, teeming with life adapted to conditions we can barely comprehend. Just outside Copenhagen, a newly discovered cave system presents an unprecedented opportunity: to explore a highly radiative environment and potentially uncover entirely new species. This project represents a significant <strong>innovation</strong> in extremophile research.</p>
+          <h3>Project Overview</h3>
+          <p>The core of this project is a six-month expedition to a newly discovered cave system near Copenhagen. This cave is unique due to its high radiation levels, creating an environment where life must have developed extraordinary adaptations. The primary goal is to <strong>document</strong> this unique ecosystem and analyze its secrets.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SWOT Analysis -->
+    <div class="section">
+      <button class="collapsible">
+        <span class="label"><i class="fas fa-magnifying-glass-chart"></i> SWOT Analysis</span>
+        <i class="fas fa-chevron-down chevron"></i>
+      </button>
+      <div class="content">
+        <div class="content-inner">
+          <!-- Strengths -->
+          <div class="swot-category swot-strengths">
+            <h2><i class="fas fa-thumbs-up swot-icon"></i>Strengths</h2>
+            <ul>
+              <li>Potential for Novel Scientific Discoveries: Deep cave exploration offers the opportunity to discover new lifeforms and ecosystems.</li>
+              <li>Unique Extreme Environment: The presence of high radiation levels creates a unique environment.</li>
+              <li>Interdisciplinary Research: The project necessitates collaboration between various scientific disciplines.</li>
+            </ul>
+          </div>
+          <!-- Weaknesses -->
+          <div class="swot-category swot-weaknesses">
+            <h2><i class="fas fa-triangle-exclamation swot-icon"></i>Weaknesses</h2>
+            <ul>
+              <li>High Technical and Logistical Complexity: Requires specialized equipment and protocols.</li>
+              <li>Limited Accessibility and Hazardous Conditions: Depth, radiation, and instability pose risks.</li>
+              <li>Potential for Environmental Disturbance: Exploration may impact the delicate ecosystem.</li>
+            </ul>
+          </div>
+          <!-- Opportunities -->
+          <div class="swot-category swot-opportunities">
+            <h2><i class="fas fa-lightbulb swot-icon"></i>Opportunities</h2>
+            <ul>
+              <li>Advancements in Exploration Technology: Drive innovation in cave mapping and sampling.</li>
+              <li>Increased Public Interest: Discovery of new lifeforms can boost awareness and funding.</li>
+              <li>International Collaborations: Engage with research institutions worldwide.</li>
+            </ul>
+          </div>
+          <!-- Threats -->
+          <div class="swot-category swot-threats">
+            <h2><i class="fas fa-skull-crossbones swot-icon"></i>Threats</h2>
+            <ul>
+              <li>Regulatory and Permitting Challenges: Complex approvals from Danish authorities.</li>
+              <li>Unforeseen Geological Instability: Risk of cave-ins and hazards.</li>
+              <li>Ethical Concerns: Treatment and exploitation of newly discovered lifeforms.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metrics Table -->
+    <div class="section">
+      <button class="collapsible">
+        <span class="label"><i class="fas fa-table"></i> Metrics Overview</span>
+        <i class="fas fa-chevron-down chevron"></i>
+      </button>
+      <div class="content">
+        <div class="content-inner">
+          <table>
+            <thead>
+              <tr><th>Parameter</th><th>Value</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Budget (DKK)</td><td>575,000</td><td><span class="metric metric-info">Confirmed</span></td></tr>
+              <tr><td>Duration</td><td>6 months</td><td><span class="metric metric-success">On Track</span></td></tr>
+              <tr><td>Team Size</td><td>5</td><td><span class="metric metric-warning">Hiring</span></td></tr>
+              <tr><td>Permits Secured</td><td>2/3</td><td><span class="metric metric-danger">Pending</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const toc = document.querySelector('.toc');
+      document.querySelectorAll('.section').forEach((sec, idx) => {
+        const btn = sec.querySelector('.collapsible');
+        const label = btn.querySelector('.label').textContent.trim();
+        const id = 'section-' + idx;
+        sec.id = id;
+        const li = document.createElement('li');
+        const a = document.createElement('a'); a.href = '#' + id; a.textContent = label;
+        li.appendChild(a); toc.appendChild(li);
+        btn.addEventListener('click', () => {
+          btn.classList.toggle('active');
+          const c = sec.querySelector('.content');
+          c.style.maxHeight = c.style.maxHeight ? null : c.scrollHeight + 'px';
+        });
+      });
+      document.getElementById('report-timestamp').textContent = new Date().toISOString().slice(0,19).replace('T',' ');
+    });
+  </script>
+</body>
+</html>
