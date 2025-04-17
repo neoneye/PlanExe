@@ -1,63 +1,83 @@
 <html>
 <head>
     <title>PlanExe Project Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #3498db;
-            --secondary-color: #2c3e50;
-            --accent-color: #e74c3c;
-            --text-color: #2c3e50;
-            --light-gray: #f5f5f5;
-            --border-color: #e0e0e0;
-            --shadow-color: rgba(0, 0, 0, 0.1);
+            --primary-color: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary-color: #1e293b;
+            --accent-color: #dc2626;
+            --text-color: #1e293b;
+            --text-light: #64748b;
+            --background-color: #f8fafc;
+            --card-background: #ffffff;
+            --border-color: #e2e8f0;
+            --shadow-color: rgba(0, 0, 0, 0.05);
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body { 
-            font-family: 'Segoe UI', Arial, sans-serif; 
+            font-family: 'Inter', sans-serif;
             margin: 0;
             padding: 0;
             line-height: 1.6;
             color: var(--text-color);
-            background-color: #f8f9fa;
+            background-color: var(--background-color);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 3rem 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
         }
 
         h1 { 
             color: var(--secondary-color);
-            font-size: 2.5rem;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 3px solid var(--primary-color);
-            font-weight: 600;
+            font-size: 2.75rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            letter-spacing: -0.025em;
         }
 
         h2 { 
             color: var(--secondary-color);
-            font-size: 1.8rem;
-            margin-top: 2rem;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--border-color);
-            font-weight: 500;
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-top: 2.5rem;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.025em;
         }
 
         .section { 
-            margin: 2rem 0;
-            border-radius: 8px;
-            background-color: white;
-            box-shadow: 0 4px 6px var(--shadow-color);
+            margin: 2.5rem 0;
+            border-radius: 12px;
+            background-color: var(--card-background);
+            box-shadow: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -1px var(--shadow-color);
             overflow: hidden;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .section:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 12px var(--shadow-color);
+            box-shadow: 0 10px 15px -3px var(--shadow-color), 0 4px 6px -2px var(--shadow-color);
         }
 
         table { 
@@ -68,44 +88,49 @@
             font-size: 0.95rem;
             border-radius: 8px;
             overflow: hidden;
+            box-shadow: 0 1px 3px var(--shadow-color);
         }
 
         th, td { 
-            padding: 1rem;
+            padding: 1rem 1.25rem;
             text-align: left;
             border-bottom: 1px solid var(--border-color);
         }
 
         th { 
-            background-color: var(--light-gray);
+            background-color: var(--background-color);
             font-weight: 600;
             color: var(--secondary-color);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
         }
 
         tr:hover {
-            background-color: var(--light-gray);
+            background-color: var(--background-color);
         }
 
         .timestamp { 
-            color: #666;
-            font-size: 0.9rem;
+            color: var(--text-light);
+            font-size: 0.875rem;
             margin-bottom: 2rem;
-            padding: 0.5rem 1rem;
-            background-color: var(--light-gray);
-            border-radius: 4px;
+            padding: 0.75rem 1.25rem;
+            background-color: var(--card-background);
+            border-radius: 8px;
             display: inline-block;
+            box-shadow: 0 1px 3px var(--shadow-color);
         }
 
         .collapsible {
             background-color: var(--primary-color);
             color: white;
             cursor: pointer;
-            padding: 1.2rem 2rem;
+            padding: 1.25rem 2rem;
             width: 100%;
             border: none;
             text-align: left;
             outline: none;
-            font-size: 1.1rem;
+            font-size: 1.125rem;
             font-weight: 600;
             transition: background-color 0.3s ease;
             position: relative;
@@ -115,7 +140,7 @@
         }
 
         .collapsible:hover {
-            background-color: #2980b9;
+            background-color: var(--primary-dark);
         }
 
         .collapsible:after {
@@ -133,26 +158,28 @@
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease-out;
-            background-color: white;
+            background-color: var(--card-background);
         }
 
         .content-inner {
-            padding: 2rem;
+            padding: 2.5rem;
         }
 
         ul {
             padding-left: 1.5rem;
-            margin: 1rem 0;
+            margin: 1.25rem 0;
         }
 
         li {
-            margin-bottom: 0.5rem;
-            line-height: 1.6;
+            margin-bottom: 0.75rem;
+            line-height: 1.7;
+            color: var(--text-color);
         }
 
         p {
-            margin: 1rem 0;
+            margin: 1.25rem 0;
             line-height: 1.8;
+            color: var(--text-color);
         }
 
         strong {
@@ -164,14 +191,67 @@
             font-size: 1.2em;
             margin-right: 0.5rem;
         }
+
+        .metric {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-success {
+            background-color: rgba(5, 150, 105, 0.1);
+            color: var(--success-color);
+        }
+
+        .metric-warning {
+            background-color: rgba(217, 119, 6, 0.1);
+            color: var(--warning-color);
+        }
+
+        .metric-danger {
+            background-color: rgba(220, 38, 38, 0.1);
+            color: var(--danger-color);
+        }
+
+        .highlight {
+            background-color: rgba(37, 99, 235, 0.1);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 2rem 1rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            .content-inner {
+                padding: 1.5rem;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!--CONTENT-START-->
-        <h1>PlanExe Project Report</h1>
-        <p class="timestamp">Generated on: 1984-12-31 23:59:59</p>
+        <div class="header">
+            <h1>PlanExe Project Report</h1>
+            <p class="timestamp">Generated on: 1984-12-31 23:59:59</p>
+        </div>
 
+        <!--CONTENT-START-->
         <div class="section">
             <button class="collapsible">Pitch</button>
             <div class="content">
