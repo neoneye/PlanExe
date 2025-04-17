@@ -1,658 +1,235 @@
-<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PlanExe Project Report</title>
-    <!-- Using Inter font from Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Adding Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
-        :root {
-            /* --- Color Palette --- */
-            --primary-color: #3b82f6; /* A slightly brighter blue */
-            --primary-dark: #2563eb;
-            --secondary-color: #111827; /* Darker gray for text */
-            --accent-color: #f43f5e; /* Example accent color (Rose) */
-            --text-color: #374151; /* Main text color */
-            --text-light: #6b7280; /* Lighter text */
-            --background-color: #f9fafb; /* Very light gray background */
-            --card-background: #ffffff;
-            --border-color: #e5e7eb; /* Lighter border */
-            --shadow-color: rgba(0, 0, 0, 0.06);
-            --success-color: #10b981; /* Emerald 500 */
-            --success-light-bg: #ecfdf5; /* Emerald 50 */
-            --success-border: #a7f3d0; /* Emerald 200 */
-            --success-dark-text: #047857; /* Emerald 700 */
-            --warning-color: #f59e0b; /* Amber 500 */
-            --warning-light-bg: #fffbeb; /* Amber 50 */
-            --warning-border: #fde68a; /* Amber 200 */
-            --warning-dark-text: #b45309; /* Amber 700 */
-            --danger-color: #ef4444; /* Red 500 */
-            --danger-light-bg: #fef2f2; /* Red 50 */
-            --danger-border: #fecaca; /* Red 200 */
-            --danger-dark-text: #b91c1c; /* Red 700 */
-            --info-color: #3b82f6; /* Blue 500 */
-            --info-light-bg: #eff6ff; /* Blue 50 */
-            --info-border: #bfdbfe; /* Blue 200 */
-            --info-dark-text: #1d4ed8; /* Blue 700 */
-
-            /* --- Typography --- */
-            --font-main: 'Inter', sans-serif;
-
-            /* --- Spacing & Radius --- */
-            --spacing-unit: 8px;
-            --border-radius: 10px; /* Slightly larger radius */
-        }
-
-        /* --- Base Styles --- */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: var(--font-main);
-            margin: 0;
-            padding: 0;
-            line-height: 1.7; /* Slightly increased line height */
-            color: var(--text-color);
-            background-color: var(--background-color);
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        /* --- Layout --- */
-        .container {
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px;
+            line-height: 1.6;
+            color: #333;
             max-width: 1200px;
             margin: 0 auto;
-            padding: calc(var(--spacing-unit) * 6) calc(var(--spacing-unit) * 3); /* 48px 24px */
+            padding: 20px;
         }
-
-        .header {
-            text-align: center;
-            margin-bottom: calc(var(--spacing-unit) * 6); /* 48px */
-            padding-bottom: calc(var(--spacing-unit) * 4); /* 32px */
-            border-bottom: 1px solid var(--border-color);
+        h1 { 
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
         }
-
-        /* --- Typography Styles --- */
-        h1 {
-            color: var(--secondary-color);
-            font-size: 2.5rem; /* Slightly adjusted */
-            font-weight: 700;
-            margin-bottom: calc(var(--spacing-unit) * 2); /* 16px */
-            letter-spacing: -0.03em;
+        h2 { 
+            color: #34495e;
+            margin-top: 30px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
         }
-
-        h2 {
-            color: var(--secondary-color);
-            font-size: 1.6rem; /* Slightly adjusted */
-            font-weight: 600;
-            margin-top: calc(var(--spacing-unit) * 5); /* 40px */
-            margin-bottom: calc(var(--spacing-unit) * 3); /* 24px */
-            letter-spacing: -0.02em;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: calc(var(--spacing-unit) * 1.5); /* 12px */
+        .section { 
+            margin: 20px 0;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-         /* Specific H2 style for inside content */
-        .content-inner h2 {
-             font-size: 1.4rem; /* Make subsection headers slightly smaller */
-             margin-top: calc(var(--spacing-unit) * 4); /* 32px */
-             margin-bottom: calc(var(--spacing-unit) * 2); /* 16px */
-             border-bottom: none; /* Remove double border */
-             padding-bottom: 0;
-        }
-        .content-inner h1 { /* For Pitch title */
-             font-size: 1.8rem;
-             margin-top: 0;
-             margin-bottom: calc(var(--spacing-unit) * 2.5);
-             border-bottom: 1px solid var(--primary-color);
-             padding-bottom: calc(var(--spacing-unit) * 1);
-             color: var(--primary-dark);
-        }
-
-
-        p {
-            margin: calc(var(--spacing-unit) * 2) 0; /* 16px */
-            line-height: 1.8;
-            color: var(--text-color);
-        }
-
-        ul, ol {
-            padding-left: calc(var(--spacing-unit) * 3); /* 24px */
-            margin: calc(var(--spacing-unit) * 2) 0;
-        }
-
-        li {
-            margin-bottom: calc(var(--spacing-unit) * 1); /* 8px */
-            line-height: 1.7;
-            color: var(--text-color);
-        }
-
-        strong, b {
-            /* Make strong tags stand out more */
-            color: var(--primary-dark);
-            font-weight: 600;
-            background-color: var(--info-light-bg);
-            padding: 2px 5px;
-            border-radius: 4px;
-            border: 1px solid var(--info-border);
-        }
-
-        /* --- Timestamp --- */
-        .timestamp {
-            color: var(--text-light);
-            font-size: 0.875rem;
-            margin-bottom: calc(var(--spacing-unit) * 4); /* 32px */
-            padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 2); /* 8px 16px */
-            background-color: var(--card-background);
-            border-radius: var(--border-radius);
-            display: inline-block;
-            box-shadow: 0 2px 5px var(--shadow-color);
-            border: 1px solid var(--border-color);
-        }
-
-        /* --- Section Styling --- */
-        .section {
-            margin: calc(var(--spacing-unit) * 4) 0; /* 32px */
-            border-radius: var(--border-radius);
-            background-color: var(--card-background);
-            box-shadow: 0 4px 12px var(--shadow-color); /* Softer shadow */
-            overflow: hidden;
-            transition: transform 0.2s ease, box-shadow 0.3s ease;
-            border-top: 3px solid transparent; /* For color accent */
-        }
-
-        .section:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08); /* Enhanced hover shadow */
-        }
-
-        /* Add subtle color accents to sections (optional, can cycle if AI provides types) */
-        .section:nth-of-type(3n+1) { border-top-color: var(--primary-color); }
-        .section:nth-of-type(3n+2) { border-top-color: var(--success-color); }
-        .section:nth-of-type(3n+3) { border-top-color: var(--warning-color); }
-
-
-        /* --- Collapsible Button --- */
-        .collapsible {
-            background-color: var(--primary-color);
-            /* background-image: linear-gradient(to bottom, var(--primary-color), var(--primary-dark)); */
-            color: white;
-            cursor: pointer;
-            padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 3); /* 16px 24px */
+        table { 
+            border-collapse: collapse;
             width: 100%;
-            border: none;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        th, td { 
+            border: 1px solid #ddd;
+            padding: 12px 8px;
             text-align: left;
-            outline: none;
-            font-size: 1.1rem; /* Slightly smaller */
-            font-weight: 600;
-            transition: background-color 0.3s ease, box-shadow 0.3s ease;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: space-between; /* Pushes icon to the right */
         }
-
-        .collapsible:hover {
-            background-color: var(--primary-dark);
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+        th { 
+            background-color: #f5f5f5;
+            font-weight: bold;
         }
-
-        .collapsible .section-icon {
-            margin-right: calc(var(--spacing-unit) * 1.5); /* 12px */
-            font-size: 1.1em;
-            opacity: 0.8;
+        tr:nth-child(even) { 
+            background-color: #f9f9f9;
         }
-
-        .collapsible .chevron-icon {
-            font-size: 1rem;
-            transition: transform 0.3s ease-out;
-            margin-left: calc(var(--spacing-unit) * 1.5); /* 12px */
-        }
-
-        .collapsible.active .chevron-icon {
-            transform: rotate(180deg);
-        }
-
-
-        /* --- Content Area --- */
-        .content {
-            padding: 0; /* Remove padding here, add to inner div */
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out; /* Smooth transition */
-            background-color: var(--card-background);
-        }
-
-        .content-inner {
-             padding: calc(var(--spacing-unit) * 3) calc(var(--spacing-unit) * 4); /* 24px 32px */
-             border-top: 1px solid var(--border-color); /* Separator line */
-        }
-
-        /* --- Table Styles --- */
-        .dataframe {
-             /* Ensure responsiveness for wide tables */
-             overflow-x: auto;
-             display: block;
-             width: 100%;
-             margin: calc(var(--spacing-unit) * 3) 0; /* 24px */
-             border: 1px solid var(--border-color);
-             border-radius: var(--border-radius);
-             box-shadow: 0 2px 5px var(--shadow-color);
-        }
-
-        table {
-            border-collapse: collapse; /* Use collapse for cleaner lines */
-            width: 100%;
-            font-size: 0.9rem; /* Slightly smaller for more data */
-        }
-
-        th, td {
-            padding: calc(var(--spacing-unit) * 1.5) calc(var(--spacing-unit) * 2); /* 12px 16px */
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-            white-space: nowrap; /* Prevent wrapping by default, rely on scroll */
-        }
-
-        th {
-            background-color: #f8fafc; /* Lighter header */
-            font-weight: 600;
-            color: var(--secondary-color);
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.04em; /* Subtle spacing */
-            position: sticky; /* Keep header visible on scroll */
-            top: 0;
-            z-index: 1;
-        }
-
-        /* Zebra striping for rows */
-        tr:nth-child(even) {
-            background-color: #f8fafc;
-        }
-
         tr:hover {
-            background-color: var(--info-light-bg); /* Light blue hover */
+            background-color: #f5f5f5;
         }
-
-        /* Remove bottom border from last row */
-        tr:last-child td {
-            border-bottom: none;
+        .timestamp { 
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 30px;
         }
-
-        /* --- SWOT Analysis Specific Styles --- */
-        .swot-category {
-            margin-top: calc(var(--spacing-unit) * 3); /* 24px */
-            padding: calc(var(--spacing-unit) * 2.5); /* 20px */
-            border-radius: var(--border-radius);
-            border: 1px solid var(--border-color);
-        }
-
-        .swot-category h2 {
-            display: flex;
-            align-items: center;
-            font-size: 1.3rem; /* Slightly smaller than main h2 */
-            margin-top: 0;
-            margin-bottom: calc(var(--spacing-unit) * 2); /* 16px */
-            padding-bottom: calc(var(--spacing-unit) * 1.5); /* 12px */
-            border-bottom: 1px solid; /* Color will be set below */
-        }
-
-        .swot-category h2 .swot-icon {
-            margin-right: calc(var(--spacing-unit) * 1.5); /* 12px */
-            font-size: 1.4em;
-        }
-
-        .swot-category ul {
-            margin-top: 0;
-            padding-left: calc(var(--spacing-unit) * 0.5); /* Adjust list padding */
-            list-style: none; /* Remove default bullets */
-        }
-
-        .swot-category li {
-             position: relative;
-             padding-left: calc(var(--spacing-unit) * 3); /* Space for icon */
-             margin-bottom: calc(var(--spacing-unit) * 1.5); /* More space between items */
-        }
-         .swot-category li .swot-item-icon {
-            position: absolute;
-            left: 0;
-            top: 4px; /* Adjust vertical alignment */
-            font-size: 1em;
-         }
-
-
-        .swot-strengths { background-color: var(--success-light-bg); border-color: var(--success-border); }
-        .swot-strengths h2 { color: var(--success-dark-text); border-bottom-color: var(--success-border); }
-        .swot-strengths h2 .swot-icon { color: var(--success-color); }
-        .swot-strengths li .swot-item-icon { color: var(--success-color); }
-
-        .swot-weaknesses { background-color: var(--warning-light-bg); border-color: var(--warning-border); }
-        .swot-weaknesses h2 { color: var(--warning-dark-text); border-bottom-color: var(--warning-border); }
-        .swot-weaknesses h2 .swot-icon { color: var(--warning-color); }
-        .swot-weaknesses li .swot-item-icon { color: var(--warning-color); }
-
-        .swot-opportunities { background-color: var(--info-light-bg); border-color: var(--info-border); }
-        .swot-opportunities h2 { color: var(--info-dark-text); border-bottom-color: var(--info-border); }
-        .swot-opportunities h2 .swot-icon { color: var(--info-color); }
-        .swot-opportunities li .swot-item-icon { color: var(--info-color); }
-
-        .swot-threats { background-color: var(--danger-light-bg); border-color: var(--danger-border); }
-        .swot-threats h2 { color: var(--danger-dark-text); border-bottom-color: var(--danger-border); }
-        .swot-threats h2 .swot-icon { color: var(--danger-color); }
-        .swot-threats li .swot-item-icon { color: var(--danger-color); }
-
-
-        /* --- Pitch Specific Styles --- */
-        .call-to-action {
-            margin-top: calc(var(--spacing-unit) * 4); /* 32px */
-            padding: calc(var(--spacing-unit) * 2.5); /* 20px */
-            background-color: var(--primary-dark);
-            color: white;
-            border-radius: var(--border-radius);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            border: 1px solid var(--primary-dark);
-        }
-        .call-to-action p {
-            color: white;
-            margin: 0;
-            font-weight: 500;
-        }
-         .call-to-action i {
-            margin-right: calc(var(--spacing-unit) * 1);
-         }
-
-
-        /* --- Utility & Misc --- */
-         .emoji { /* Keeping this, might be used elsewhere */
-            font-size: 1.2em;
-            margin-right: calc(var(--spacing-unit) * 0.5); /* 4px */
-            vertical-align: middle;
-        }
-
-        .metric {
-            display: inline-block;
-            padding: calc(var(--spacing-unit) * 0.5) calc(var(--spacing-unit) * 1); /* 4px 8px */
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            margin-right: calc(var(--spacing-unit) * 0.5); /* 4px */
-            margin-bottom: calc(var(--spacing-unit) * 0.5);
-            border: 1px solid transparent;
-        }
-
-        .metric-success { background-color: var(--success-light-bg); color: var(--success-dark-text); border-color: var(--success-border); }
-        .metric-warning { background-color: var(--warning-light-bg); color: var(--warning-dark-text); border-color: var(--warning-border); }
-        .metric-danger  { background-color: var(--danger-light-bg); color: var(--danger-dark-text); border-color: var(--danger-border); }
-        .metric-info    { background-color: var(--info-light-bg); color: var(--info-dark-text); border-color: var(--info-border); }
-
-        .highlight {
-            background-color: var(--info-light-bg);
-            padding: 0.2rem 0.4rem;
-            border-radius: 4px;
-            color: var(--info-dark-text);
-            font-weight: 500;
-            display: inline-block; /* Prevents breaking across lines weirdly */
-            border: 1px solid var(--info-border);
-        }
-
-        .source-info {
-            color: var(--text-light);
-            font-size: 0.85em;
-            margin-top: calc(var(--spacing-unit) * 1.5); /* 12px */
-            font-style: italic;
-            text-align: right;
+        .dataframe {
+            overflow-x: auto;
             display: block;
         }
-
-        /* --- Responsiveness --- */
-        @media (max-width: 768px) {
-            .container {
-                padding: calc(var(--spacing-unit) * 4) calc(var(--spacing-unit) * 2); /* 32px 16px */
-            }
-
-            h1 {
-                font-size: 2rem;
-            }
-
-            h2 {
-                font-size: 1.4rem;
-            }
-             .content-inner h2 { font-size: 1.2rem; }
-             .content-inner h1 { font-size: 1.6rem; }
-             .swot-category h2 { font-size: 1.1rem; }
-
-
-            .content-inner {
-                padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 2.5); /* 16px 20px */
-            }
-
-            th, td {
-                 padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 1.5); /* 8px 12px */
-                 font-size: 0.85rem;
-            }
-             .swot-category { padding: calc(var(--spacing-unit) * 2); } /* 16px */
+        .source-info {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 10px;
+            font-style: italic;
         }
-
+        .collapsible {
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            padding: 18px;
+            width: 100%;
+            border: none;
+            border-radius: 5px;
+            text-align: left;
+            outline: none;
+            font-size: 18px;
+            font-weight: bold;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+        }
+        .collapsible:hover {
+            background-color: #2980b9;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+        .collapsible:after {
+            content: '+';
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            transition: transform 0.3s ease;
+        }
+        .active:after {
+            content: "−";
+        }
+        .content {
+            padding: 0 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>PlanExe Project Report</h1>
-            <p class="timestamp">Generated on: 1984-12-31 23:59:59</p>
+    <!--CONTENT-START-->
+    <h1>PlanExe Project Report</h1>
+    <p class="timestamp">Generated on: 1984-12-31 23:59:59</p>
+
+    <div class="section">
+        <button class="collapsible">Pitch</button>
+        <div class="content">        
+            <h1>Exploring a Radiative Cave System Near Copenhagen: A Search for Novel Life</h1>
+<h2>Introduction</h2>
+<p>Imagine a hidden world, untouched by sunlight, teeming with life adapted to conditions we can barely comprehend. Just outside Copenhagen, a newly discovered cave system presents an unprecedented opportunity: to explore a highly radiative environment and potentially uncover entirely new species. This isn't just about exploring a cave; it's about expanding the very definition of life and pushing the boundaries of scientific understanding. We're embarking on a six-month expedition to document this unique ecosystem, analyze its secrets, and share our findings with the world. This project represents a significant <strong>innovation</strong> in extremophile research.</p>
+<h2>Project Overview</h2>
+<p>The core of this project is a six-month expedition to a newly discovered cave system near Copenhagen. This cave is unique due to its high radiation levels, creating an environment where life, if it exists, must have developed extraordinary adaptations. The primary goal is to <strong>document</strong> this unique ecosystem and analyze its secrets.</p>
+<h2>Goals and Objectives</h2>
+<ul>
+<li><strong>Discover</strong> and document any novel lifeforms present in the cave system.</li>
+<li>Analyze the adaptations of these organisms to the high-radiation environment.</li>
+<li>Share our findings with the scientific community and the public.</li>
+<li>Develop new technologies or methodologies for exploring extreme environments.</li>
+<li>Ensure the long-term <strong>preservation</strong> of the cave ecosystem.</li>
+</ul>
+<h2>Risks and Mitigation Strategies</h2>
+<p>We acknowledge the inherent risks of cave exploration, including regulatory delays, equipment failure due to radiation, and potential cave instability. Our comprehensive risk assessment includes detailed mitigation plans:</p>
+<ul>
+<li>Early permit applications to avoid regulatory delays.</li>
+<li>Radiation-hardened equipment with redundancy to prevent equipment failure.</li>
+<li>Specialized training for the team to handle cave conditions.</li>
+<li>Constant monitoring of cave conditions to detect instability.</li>
+<li>Environmental protection protocols and ethical guidelines to minimize our impact on the cave ecosystem.</li>
+</ul>
+<h2>Metrics for Success</h2>
+<p>Beyond the primary goal of discovering and documenting new lifeforms, our success will be measured by:</p>
+<ul>
+<li>The number of peer-reviewed publications resulting from our research.</li>
+<li>The level of engagement from the scientific community and the public.</li>
+<li>The development of new technologies or methodologies for exploring extreme environments.</li>
+<li>The long-term preservation of the cave ecosystem through responsible exploration practices.</li>
+<li>The establishment of international <strong>collaborations</strong> for future research.</li>
+</ul>
+<h2>Stakeholder Benefits</h2>
+<ul>
+<li>Investors will gain recognition as pioneers in supporting groundbreaking scientific discovery and potentially benefit from intellectual property developed during the project.</li>
+<li>Research institutions will have access to unique samples and data for further study, enhancing their reputation and contributing to scientific advancement.</li>
+<li>The Danish government will benefit from increased scientific prestige and a deeper understanding of its natural resources.</li>
+<li>Local communities may benefit from increased tourism and educational opportunities.</li>
+</ul>
+<h2>Ethical Considerations</h2>
+<p>We are committed to conducting this exploration ethically and responsibly. We have established a strict ethical framework to guide our actions, ensuring minimal disturbance to the cave ecosystem and respecting any potential lifeforms we encounter. We will prioritize the protection of the cave's environment and share our findings transparently with the public, fostering open dialogue about the ethical implications of exploring extreme environments. This includes a commitment to <strong>sustainability</strong> in our exploration practices.</p>
+<h2>Collaboration Opportunities</h2>
+<p>We are actively seeking collaborations with experts in various fields, including radiation safety, cave diving, microbiology, and geology. We welcome partnerships with universities, research institutions, and technology companies to leverage their expertise and resources. We are also open to engaging with citizen scientists and educators to promote public awareness and understanding of our research.</p>
+<h2>Long-term Vision</h2>
+<p>Our long-term vision extends beyond this initial exploration. We aim to establish a long-term research program to monitor the cave ecosystem, study the adaptations of its inhabitants, and develop new technologies for exploring other extreme environments on Earth and potentially beyond. We envision this project as a catalyst for further scientific discovery and a model for responsible exploration in the 21st century. This project aims to foster <strong>efficiency</strong> in future exploration endeavors.</p>
+<h2>Call to Action</h2>
+<p>We invite you to join us in this groundbreaking endeavor. Your support, whether through funding, expertise, or resources, will be instrumental in unlocking the secrets of this extraordinary cave. Contact us today to discuss partnership opportunities and help us illuminate this hidden world. Visit [insert project website or contact email here] to learn more and get involved.</p>
         </div>
-
-        <!--CONTENT-START-->
-
-        <!-- PITCH Section -->
-        <div class="section">
-            <button class="collapsible">
-                <span><i class="fas fa-bullhorn section-icon"></i>Pitch</span>
-                <i class="fas fa-chevron-down chevron-icon"></i>
-            </button>
-            <div class="content">
-                <div class="content-inner">
-                    <!-- Content from 026-report.html -> Pitch -->
-                    <h1>Exploring a Radiative Cave System Near Copenhagen: A Search for Novel Life</h1>
-                    <h2>Introduction</h2>
-                    <p>Imagine a hidden world, untouched by sunlight, teeming with life adapted to conditions we can barely comprehend. Just outside Copenhagen, a newly discovered cave system presents an unprecedented opportunity: to explore a highly radiative environment and potentially uncover entirely new species. This isn't just about exploring a cave; it's about expanding the very definition of life and pushing the boundaries of scientific understanding. We're embarking on a six-month expedition to document this unique ecosystem, analyze its secrets, and share our findings with the world. This project represents a significant <strong>innovation</strong> in extremophile research.</p>
-                    <h2>Project Overview</h2>
-                    <p>The core of this project is a six-month expedition to a newly discovered cave system near Copenhagen. This cave is unique due to its high radiation levels, creating an environment where life, if it exists, must have developed extraordinary adaptations. The primary goal is to <strong>document</strong> this unique ecosystem and analyze its secrets.</p>
-                    <h2>Goals and Objectives</h2>
-                    <ul>
-                        <li><strong>Discover</strong> and document any novel lifeforms present in the cave system.</li>
-                        <li>Analyze the adaptations of these organisms to the high-radiation environment.</li>
-                        <li>Share our findings with the scientific community and the public.</li>
-                        <li>Develop new technologies or methodologies for exploring extreme environments.</li>
-                        <li>Ensure the long-term <strong>preservation</strong> of the cave ecosystem.</li>
-                    </ul>
-                    <h2>Risks and Mitigation Strategies</h2>
-                    <p>We acknowledge the inherent risks of cave exploration, including regulatory delays, equipment failure due to radiation, and potential cave instability. Our comprehensive risk assessment includes detailed mitigation plans:</p>
-                    <ul>
-                        <li>Early permit applications to avoid regulatory delays.</li>
-                        <li>Radiation-hardened equipment with redundancy to prevent equipment failure.</li>
-                        <li>Specialized training for the team to handle cave conditions.</li>
-                        <li>Constant monitoring of cave conditions to detect instability.</li>
-                        <li>Environmental protection protocols and ethical guidelines to minimize our impact on the cave ecosystem.</li>
-                    </ul>
-                    <h2>Metrics for Success</h2>
-                    <p>Beyond the primary goal of discovering and documenting new lifeforms, our success will be measured by:</p>
-                    <ul>
-                        <li>The number of peer-reviewed publications resulting from our research.</li>
-                        <li>The level of engagement from the scientific community and the public.</li>
-                        <li>The development of new technologies or methodologies for exploring extreme environments.</li>
-                        <li>The long-term preservation of the cave ecosystem through responsible exploration practices.</li>
-                        <li>The establishment of international <strong>collaborations</strong> for future research.</li>
-                    </ul>
-                    <h2>Stakeholder Benefits</h2>
-                    <ul>
-                        <li>Investors will gain recognition as pioneers in supporting groundbreaking scientific discovery and potentially benefit from intellectual property developed during the project.</li>
-                        <li>Research institutions will have access to unique samples and data for further study, enhancing their reputation and contributing to scientific advancement.</li>
-                        <li>The Danish government will benefit from increased scientific prestige and a deeper understanding of its natural resources.</li>
-                        <li>Local communities may benefit from increased tourism and educational opportunities.</li>
-                    </ul>
-                    <h2>Ethical Considerations</h2>
-                    <p>We are committed to conducting this exploration ethically and responsibly. We have established a strict ethical framework to guide our actions, ensuring minimal disturbance to the cave ecosystem and respecting any potential lifeforms we encounter. We will prioritize the protection of the cave's environment and share our findings transparently with the public, fostering open dialogue about the ethical implications of exploring extreme environments. This includes a commitment to <strong>sustainability</strong> in our exploration practices.</p>
-                    <h2>Collaboration Opportunities</h2>
-                    <p>We are actively seeking collaborations with experts in various fields, including radiation safety, cave diving, microbiology, and geology. We welcome partnerships with universities, research institutions, and technology companies to leverage their expertise and resources. We are also open to engaging with citizen scientists and educators to promote public awareness and understanding of our research.</p>
-                    <h2>Long-term Vision</h2>
-                    <p>Our long-term vision extends beyond this initial exploration. We aim to establish a long-term research program to monitor the cave ecosystem, study the adaptations of its inhabitants, and develop new technologies for exploring other extreme environments on Earth and potentially beyond. We envision this project as a catalyst for further scientific discovery and a model for responsible exploration in the 21st century. This project aims to foster <strong>efficiency</strong> in future exploration endeavors.</p>
-
-                    <!-- Distinct Call to Action -->
-                    <div class="call-to-action">
-                         <p><i class="fas fa-paper-plane"></i>We invite you to join us in this groundbreaking endeavor. Your support, whether through funding, expertise, or resources, will be instrumental in unlocking the secrets of this extraordinary cave. Contact us today to discuss partnership opportunities and help us illuminate this hidden world. Visit [insert project website or contact email here] to learn more and get involved.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- SWOT Analysis Section -->
-        <div class="section">
-            <button class="collapsible">
-                <span><i class="fas fa-magnifying-glass-chart section-icon"></i>SWOT Analysis</span>
-                <i class="fas fa-chevron-down chevron-icon"></i>
-            </button>
-            <div class="content">
-                <div class="content-inner">
-                    <!-- Content from 026-report.html -> SWOT Analysis -->
-
-                    <!-- Strengths -->
-                    <div class="swot-category swot-strengths">
-                        <h2><i class="fas fa-thumbs-up swot-icon"></i>Strengths</h2>
-                        <ul>
-                            <li><i class="fas fa-check swot-item-icon"></i>Potential for Novel Scientific Discoveries: Deep cave exploration offers the opportunity to discover new lifeforms and ecosystems...</li>
-                            <li><i class="fas fa-check swot-item-icon"></i>Unique Extreme Environment: The presence of high radiation levels creates a unique environment...</li>
-                            <li><i class="fas fa-check swot-item-icon"></i>Interdisciplinary Research: The project necessitates collaboration between various scientific disciplines...</li>
-                            <!-- Add other strength list items here -->
-                        </ul>
-                    </div>
-
-                    <!-- Weaknesses -->
-                     <div class="swot-category swot-weaknesses">
-                        <h2><i class="fas fa-triangle-exclamation swot-icon"></i>Weaknesses</h2>
-                        <ul>
-                            <li><i class="fas fa-times swot-item-icon"></i>High Technical and Logistical Complexity: Deep cave exploration in a radiative environment requires specialized equipment...</li>
-                            <li><i class="fas fa-times swot-item-icon"></i>Limited Accessibility and Hazardous Conditions: The cave's depth, radiation levels, and potential instability pose significant challenges...</li>
-                            <li><i class="fas fa-times swot-item-icon"></i>Potential for Environmental Disturbance: Exploration activities can potentially disturb the cave's delicate ecosystem...</li>
-                             <!-- Add other weakness list items here -->
-                       </ul>
-                    </div>
-
-                    <!-- Opportunities -->
-                    <div class="swot-category swot-opportunities">
-                        <h2><i class="fas fa-lightbulb swot-icon"></i>Opportunities</h2>
-                        <ul>
-                             <li><i class="fas fa-star swot-item-icon"></i>Advancements in Exploration Technology: The project can drive innovation in cave exploration technology...</li>
-                             <li><i class="fas fa-star swot-item-icon"></i>Increased Public Interest in Scientific Discovery: The discovery of new lifeforms can generate significant public interest...</li>
-                             <li><i class="fas fa-star swot-item-icon"></i>Collaboration with International Research Institutions: The project can attract collaboration with international research institutions...</li>
-                             <!-- Add other opportunity list items here -->
-                        </ul>
-                    </div>
-
-                    <!-- Threats -->
-                    <div class="swot-category swot-threats">
-                         <h2><i class="fas fa-skull-crossbones swot-icon"></i>Threats</h2>
-                         <ul>
-                             <li><i class="fas fa-radiation swot-item-icon"></i>Regulatory and Permitting Challenges: Obtaining the necessary permits and approvals from Danish authorities...</li>
-                             <li><i class="fas fa-radiation swot-item-icon"></i>Unforeseen Geological Instability: The cave's geological structure may be unstable...</li>
-                             <li><i class="fas fa-radiation swot-item-icon"></i>Ethical Concerns Regarding New Lifeforms: The discovery of new lifeforms can raise ethical concerns...</li>
-                             <!-- Add other threat list items here -->
-                        </ul>
-                    </div>
-
-                     <!-- Recommendations (can be styled similarly or kept standard) -->
-                     <h2>Recommendations <i class="fas fa-clipboard-check"></i></h2>
-                     <ul>
-                         <li>Conduct a comprehensive risk assessment...</li>
-                         <li>Develop a detailed environmental protection plan...</li>
-                         <li>Establish a collaborative network...</li>
-                         <li>Implement a robust data management system...</li>
-                         <li>Develop a public engagement strategy...</li>
-                    </ul>
-
-                    <!-- You can choose to style these remaining sections similarly or keep them simpler -->
-                     <h2>Strategic Objectives <i class="fas fa-bullseye"></i></h2>
-                     <ul>...</ul>
-                     <h2>Assumptions <i class="fas fa-brain"></i></h2>
-                     <ul>...</ul>
-                     <h2>Missing Information <i class="fas fa-puzzle-piece"></i></h2>
-                     <ul>...</ul>
-                     <h2>Questions <i class="fas fa-question-circle"></i></h2>
-                     <ul>...</ul>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Other Sections Go Here (using the same structure) -->
-        <!-- Example Section Structure -->
-        <div class="section">
-            <button class="collapsible">
-                <span><i class="fas fa-tasks section-icon"></i>Example Section Title</span>
-                <i class="fas fa-chevron-down chevron-icon"></i>
-            </button>
-            <div class="content">
-                <div class="content-inner">
-                    <h2>Example Subsection Title</h2>
-                    <p>This is example content within a section. Use <strong>strong tags</strong> for emphasis. Lists are useful:</p>
-                    <ul>
-                        <li>List item one with details.</li>
-                        <li>List item two.</li>
-                        <li>List item three, perhaps <span class="highlight">highlighting</span> something important.</li>
-                    </ul>
-                    <p>You can also include metrics:
-                       <span class="metric metric-success">Success</span>
-                       <span class="metric metric-warning">Warning</span>
-                       <span class="metric metric-danger">Danger</span>
-                       <span class="metric metric-info">Info</span>
-                    </p>
-
-                    <h2>Example Table</h2>
-                     <!-- AI should wrap tables in a div with class="dataframe" for responsive scrolling -->
-                    <div class="dataframe">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Column 1</th>
-                                    <th>Column 2</th>
-                                    <th>Column 3</th>
-                                    <th>Numeric Data</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Data A1</td>
-                                    <td>Data B1</td>
-                                    <td>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</td>
-                                    <td>123.45</td>
-                                </tr>
-                                <tr>
-                                    <td>Data A2</td>
-                                    <td>Data B2</td>
-                                    <td>Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</td>
-                                    <td>678.90</td>
-                                </tr>
-                                <tr>
-                                    <td>Data A3</td>
-                                    <td>Data B3</td>
-                                    <td>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</td>
-                                    <td>1,011.12</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                     <span class="source-info">Data source: Example Data Inc.</span>
-
-                </div>
-            </div>
-        </div>
-        <!--CONTENT-END-->
     </div>
+
+    <div class="section">
+        <button class="collapsible">SWOT Analysis</button>
+        <div class="content">        
+            <h2>Strengths 👍💪🦾</h2>
+<ul>
+<li>Potential for Novel Scientific Discoveries: Deep cave exploration offers the opportunity to discover new lifeforms and ecosystems that are adapted to extreme conditions. This can lead to breakthroughs in biology, geology, and other scientific fields, expanding our understanding of life's limits and evolution.</li>
+<li>Unique Extreme Environment: The presence of high radiation levels creates a unique environment that may harbor specialized lifeforms not found elsewhere. This provides a focused research area with the potential for groundbreaking discoveries in extremophile biology and radiation resistance.</li>
+<li>Interdisciplinary Research: The project necessitates collaboration between various scientific disciplines, including biology, geology, hydrology, and potentially even robotics and materials science. This interdisciplinary approach can foster innovation and lead to a more comprehensive understanding of the cave ecosystem.</li>
+</ul>
+<h2>Weaknesses 👎😱🪫⚠️</h2>
+<ul>
+<li>High Technical and Logistical Complexity: Deep cave exploration in a radiative environment requires specialized equipment, safety protocols, and expertise. This complexity can increase the risk of equipment failure, accidents, and delays, requiring careful planning and execution.</li>
+<li>Limited Accessibility and Hazardous Conditions: The cave's depth, radiation levels, and potential instability pose significant challenges to accessibility and safety. This can limit exploration time, increase the risk of health problems, and require extensive safety measures.</li>
+<li>Potential for Environmental Disturbance: Exploration activities can potentially disturb the cave's delicate ecosystem, impacting any lifeforms present. This requires careful planning and execution to minimize environmental impact and ensure responsible exploration.</li>
+</ul>
+<h2>Opportunities 🌈🌐</h2>
+<ul>
+<li>Advancements in Exploration Technology: The project can drive innovation in cave exploration technology, such as radiation-hardened sensors, remote-controlled vehicles, and advanced life support systems. This can lead to new tools and techniques that can be applied to other extreme environments.</li>
+<li>Increased Public Interest in Scientific Discovery: The discovery of new lifeforms in an extreme environment can generate significant public interest and support for scientific research. This can lead to increased funding opportunities, educational outreach, and public engagement.</li>
+<li>Collaboration with International Research Institutions: The project can attract collaboration with international research institutions and experts in cave exploration, extremophile biology, and radiation science. This can provide access to additional expertise, resources, and funding opportunities.</li>
+</ul>
+<h2>Threats ☠️🛑🚨☢︎💩☣︎</h2>
+<ul>
+<li>Regulatory and Permitting Challenges: Obtaining the necessary permits and approvals from Danish authorities for cave exploration and radiation safety can be a lengthy and complex process. Delays or denials can significantly impact the project timeline and budget.</li>
+<li>Unforeseen Geological Instability: The cave's geological structure may be unstable, leading to cave-ins or other hazards that can endanger the exploration team. This requires thorough geological surveys and safety protocols to mitigate the risk.</li>
+<li>Ethical Concerns Regarding New Lifeforms: The discovery of new lifeforms can raise ethical concerns regarding their treatment, study, and potential exploitation. This requires careful consideration of ethical implications and the development of responsible research practices.</li>
+</ul>
+<h2>Recommendations 💡✅</h2>
+<ul>
+<li>Conduct a comprehensive risk assessment to identify and mitigate potential hazards, including equipment failure, cave-ins, and radiation exposure.</li>
+<li>Develop a detailed environmental protection plan to minimize the impact of exploration activities on the cave ecosystem.</li>
+<li>Establish a collaborative network with experts in cave exploration, extremophile biology, and radiation science to leverage their expertise and resources.</li>
+<li>Implement a robust data management system to ensure the integrity and security of collected data.</li>
+<li>Develop a public engagement strategy to communicate the project's goals, findings, and ethical considerations to the public.</li>
+</ul>
+<h2>Strategic Objectives 🎯🔭⛳🏅</h2>
+<ul>
+<li>Document and characterize any new lifeforms discovered in the cave, including their genetic, physiological, and ecological adaptations.</li>
+<li>Analyze the cave ecosystem to understand its unique characteristics, including its geology, hydrology, and microbial communities.</li>
+<li>Develop and implement innovative technologies for cave exploration and research in extreme environments.</li>
+<li>Publish findings in peer-reviewed scientific journals to disseminate knowledge to the broader scientific community.</li>
+<li>Engage the public through educational outreach and communication activities to promote scientific literacy and inspire future generations of scientists.</li>
+</ul>
+<h2>Assumptions 🤔🧠🔍</h2>
+<ul>
+<li>Access to the cave will be granted by the relevant authorities and landowners.</li>
+<li>The necessary equipment and resources for cave exploration and research will be available and functional.</li>
+<li>The exploration team will have the necessary expertise and training to safely conduct the research.</li>
+<li>The cave environment will remain relatively stable during the exploration period.</li>
+<li>The project will receive sufficient funding to complete its objectives.</li>
+</ul>
+<h2>Missing Information 🧩🤷‍♂️🤷‍♀️</h2>
+<ul>
+<li>Detailed geological survey of the cave to assess its stability and potential hazards.</li>
+<li>Comprehensive radiation survey of the cave to determine the levels of radiation exposure.</li>
+<li>Baseline ecological survey of the cave to document existing lifeforms and environmental conditions.</li>
+<li>Specific technical specifications of the radiation-hardened equipment required for the exploration.</li>
+<li>Detailed understanding of the regulatory requirements for cave exploration and radiation safety in Denmark.</li>
+</ul>
+<h2>Questions 🙋❓💬📌</h2>
+<ul>
+<li>What specific adaptations might lifeforms in a highly radiative cave environment possess?</li>
+<li>How can we ensure minimal disturbance to the cave ecosystem during exploration?</li>
+<li>What are the most effective methods for mapping and navigating a complex cave system?</li>
+<li>What ethical considerations should guide the study and potential use of any new lifeforms discovered?</li>
+<li>How can the findings from this exploration contribute to our understanding of the origins and evolution of life?</li>
+</ul>
+        </div>
+    </div>
+<!--CONTENT-END-->
 
     <script>
         var coll = document.getElementsByClassName("collapsible");
@@ -661,16 +238,11 @@
         for (i = 0; i < coll.length; i++) {
             coll[i].addEventListener("click", function() {
                 this.classList.toggle("active");
-                var content = this.nextElementSibling; // The .content div
-                var icon = this.querySelector('.chevron-icon'); // Find the chevron icon within the button
-
+                var content = this.nextElementSibling;
                 if (content.style.maxHeight){
-                    // Collapse
                     content.style.maxHeight = null;
                 } else {
-                    // Expand
-                    // We add a little buffer for padding/margins inside content-inner
-                    content.style.maxHeight = (content.scrollHeight + 20) + "px";
+                    content.style.maxHeight = content.scrollHeight + "px";
                 }
             });
         }
