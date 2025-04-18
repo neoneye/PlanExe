@@ -315,10 +315,22 @@ def parse_input_data(data: str) -> list[Activity]:
     start_line = 1 if 'activity' in header and 'predecessor' in header else 0
     
     # First pass: create all activities
-    for line in lines[start_line:]:
+    for i, line in enumerate(lines[start_line:], start=start_line):
         if not line.strip(): continue
+
+        # Split by semicolon, strip whitespace from each part
+        parts = [part.strip() for part in line.split(';')]
+
+        # We need at least 3 parts (ID, Predecessor, Duration)
+        # Additional parts are ignored (considered comments)
+        if len(parts) < 3:
+             print(f"Warning: Skipping line {i+1} due to insufficient columns ({len(parts)}): '{line}'")
+             continue
+
         try:
-            id_str, pred_str, dur_str = [part.strip() for part in line.split(';')]
+            # Take the first three parts
+            id_str, pred_str, dur_str = parts[0], parts[1], parts[2]
+
             duration = int(dur_str)
             if duration <= 0: raise ValueError(f"Duration must be positive for Activity {id_str}")
             activity = Activity(id=id_str, duration=duration, predecessors_str=pred_str)
@@ -346,15 +358,15 @@ def parse_input_data(data: str) -> list[Activity]:
 class TestCriticalPath(unittest.TestCase):
     def test_all_dependency_types(self):
         data = """
-        Activity;Predecessor;Duration
-        A;-;3
-        B;A(FS2);2
-        C;A(SS);2
-        D;B(SS1);4
-        E;C(SF3);1
-        F;C(FF3);2
-        G;D(SS1),E;4
-        H;F(SF2),G;3
+        Activity;Predecessor;Duration;Comment
+        A;-;3;Start node
+        B;A(FS2);2;
+        C;A(SS);2;
+        D;B(SS1);4;
+        E;C(SF3);1;SF dependency
+        F;C(FF3);2;FF dependency
+        G;D(SS1),E;4;Multiple preds
+        H;F(SF2),G;3;Multiple preds
         """
 
         print("--- Parsing Input ---")
