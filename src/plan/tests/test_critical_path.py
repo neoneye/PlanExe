@@ -44,6 +44,32 @@ class Activity:
         if not isinstance(other, Activity):
             return NotImplemented
         return self.id == other.id
+    
+    @classmethod
+    def build_successor_links(cls, activities: Dict[str, "Activity"]) -> None:
+        """
+        Populate .successors for every activity so that it mirrors the
+        .parsed_predecessors lists.
+
+        • Clears existing successor lists (idempotent).  
+        • Raises ValueError if a predecessor id is missing in *activities*.  
+        """
+        # 1. blank slate
+        for act in activities.values():
+            act.successors.clear()
+
+        # 2. wire forward links
+        for act in activities.values():
+            for info in act.parsed_predecessors:
+                try:
+                    pred = activities[info.activity_id]
+                except KeyError:
+                    raise ValueError(
+                        f"Predecessor '{info.activity_id}' referenced by "
+                        f"activity '{act.id}' not found."
+                    )
+                if act not in pred.successors: # de‑dupe
+                    pred.successors.append(act)
 
 def _topological_order(activities: Dict[str, Activity]) -> List[Activity]:
     """
@@ -81,17 +107,8 @@ class ProjectPlan:
         if not acts:
             return cls(activities={}, project_duration=0)
 
-        # (Re)build successor links once
-        for a in acts.values():
-            a.successors.clear()
-        for a in acts.values():
-            for info in a.parsed_predecessors:
-                try:
-                    acts[info.activity_id].successors.append(a)
-                except KeyError:
-                    raise ValueError(f"Unknown predecessor {info.activity_id} for {a.id}")
-
-        topo = _topological_order(acts)            # ← priority‑1 fix
+        Activity.build_successor_links(acts)
+        topo = _topological_order(acts)
 
         # ── Forward pass ─────────────────────────────────────────────
         for node in topo:
@@ -220,7 +237,7 @@ def parse_input_data(data: str) -> list[Activity]:
     header = lines[0].strip().lower()
     start_line = 1 if 'activity' in header and 'predecessor' in header else 0
     
-    # First pass: create all activities
+    # Create all activities
     for i, line in enumerate(lines[start_line:], start=start_line):
         if not line.strip(): continue
 
@@ -248,18 +265,7 @@ def parse_input_data(data: str) -> list[Activity]:
         except (ValueError, IndexError) as e:
             print(f"Error parsing line: '{line}'. Reason: {e}"); raise
     
-    # Second pass: build successor relationships
-    activities = list(activity_map.values())
-    for activity in activities:
-        for pred_info in activity.parsed_predecessors:
-            pred_activity = activity_map.get(pred_info.activity_id)
-            if pred_activity:
-                if activity not in pred_activity.successors:
-                    pred_activity.successors.append(activity)
-            else:
-                 raise ValueError(f"Predecessor '{pred_info.activity_id}' for activity '{activity.id}' not found.")
-    
-    return activities
+    return list(activity_map.values()) 
 
 class TestCriticalPath(unittest.TestCase):
     def test_all_dependency_types(self):
