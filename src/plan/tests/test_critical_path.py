@@ -9,6 +9,8 @@ from collections import deque
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Set, Type
+import pandas as pd
+from io import StringIO
 
 # Terminology is described here:
 # https://en.wikipedia.org/wiki/Dependency_(project_management)
@@ -274,40 +276,70 @@ def parse_dependency(dep_str: str) -> PredecessorInfo:
     return PredecessorInfo(activity_id=activity_id, dep_type=dep_type, lag=lag)
 
 def parse_input_data(data: str) -> list[Activity]:
-    activity_map: Dict[str, Activity] = {}  # Temporary map for building relationships
-    lines = data.strip().split('\n')
-    header = lines[0].strip().lower()
-    start_line = 1 if 'activity' in header and 'predecessor' in header else 0
-    
-    # Create all activities
-    for i, line in enumerate(lines[start_line:], start=start_line):
-        if not line.strip(): continue
+    """
+    Parse a semicolon‑separated text block into Activity objects.
+    Uses pandas.read_csv for robust CSV semantics (quoted cells, UTF‑8, etc.).
+    Expected columns (case‑insensitive):
+        Activity ; Predecessor ; Duration ; [Comment ...]
+    """
+    # ── 1.  Read into a DataFrame ──────────────────────────────────
+    df = pd.read_csv(
+        StringIO(data),
+        sep=";",
+        comment="#",          # allow remark lines starting with #
+        dtype=str,            # keep everything as string for now
+        keep_default_na=False # don't convert empty to NaN (we want '')
+    )
 
-        # Split by semicolon, strip whitespace from each part
-        parts = [part.strip() for part in line.split(';')]
+    # Normalise column names
+    df.columns = df.columns.str.strip().str.lower()
 
-        # We need at least 3 parts (ID, Predecessor, Duration)
-        # Additional parts are ignored (considered comments)
-        if len(parts) < 3:
-             print(f"Warning: Skipping line {i+1} due to insufficient columns ({len(parts)}): '{line}'")
-             continue
+    required = {"activity", "predecessor", "duration"}
+    if not required.issubset(df.columns):
+        missing = required - set(df.columns)
+        raise ValueError(f"Missing columns: {', '.join(missing)}")
 
-        try:
-            # Take the first three parts
-            id_str, pred_str, dur_str = parts[0], parts[1], parts[2]
+    # ── 2.  Convert & validate ────────────────────────────────────
+    df["duration"] = df["duration"].str.strip()
+    if (df["duration"] == "").any():
+        bad = df.loc[df["duration"] == "", "activity"].tolist()
+        raise ValueError(f"Duration empty for activities: {', '.join(bad)}")
 
-            duration = int(dur_str)
-            if duration <= 0: raise ValueError(f"Duration must be positive for Activity {id_str}")
-            activity = Activity(id=id_str, duration=duration, predecessors_str=pred_str)
-            if pred_str != '-':
-                 for item in pred_str.split(','):
-                     activity.parsed_predecessors.append(parse_dependency(item.strip()))
-            if id_str in activity_map: raise ValueError(f"Duplicate Activity ID found: {id_str}")
-            activity_map[id_str] = activity
-        except (ValueError, IndexError) as e:
-            print(f"Error parsing line: '{line}'. Reason: {e}"); raise
-    
-    return list(activity_map.values()) 
+    try:
+        df["duration"] = df["duration"].astype(int)
+    except ValueError as e:
+        raise ValueError(f"Non‑integer duration encountered: {e}")
+
+    if (df["duration"] <= 0).any():
+        bad = df.loc[df["duration"] <= 0, "activity"].tolist()
+        raise ValueError(f"Duration must be positive for: {', '.join(bad)}")
+
+    # Check duplicates early
+    dupes = df["activity"].duplicated(keep=False)
+    if dupes.any():
+        raise ValueError(f"Duplicate activity IDs: {', '.join(df.loc[dupes,'activity'])}")
+
+    # ── 3.  Build Activity objects ────────────────────────────────
+    activity_map: dict[str, Activity] = {}
+
+    for _, row in df.iterrows():
+        act_id   = row["activity"].strip()
+        pred_str = row["predecessor"].strip() or "-"  # unify empty & dash
+        duration = int(row["duration"])
+
+        activity = Activity(id=act_id,
+                            duration=duration,
+                            predecessors_str=pred_str)
+
+        if pred_str != "-":
+            for item in pred_str.split(","):
+                activity.parsed_predecessors.append(parse_dependency(item.strip()))
+
+        activity_map[act_id] = activity
+
+    # ── 4.  Let ProjectPlan.create() wire successors  ─────────────
+    #     (No knowledge of successors here — clean separation.)
+    return list(activity_map.values())
 
 class TestCriticalPath(unittest.TestCase):
     def test_all_dependency_types(self):
