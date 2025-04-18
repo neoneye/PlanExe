@@ -1,6 +1,11 @@
+"""
+CPM: Critical Path Method
+https://en.wikipedia.org/wiki/Critical_path_method
+https://en.wikipedia.org/wiki/Dependency_(project_management)
+"""
 import unittest
 import re
-import collections
+from collections import deque
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Set, Type
@@ -42,6 +47,29 @@ class Activity:
             return NotImplemented
         return self.id == other.id
 
+def _topological_order(activities: Dict[str, Activity]) -> List[Activity]:
+    """
+    Kahn’s algorithm - returns a topological order or raises on cycles
+    https://en.wikipedia.org/wiki/Topological_sorting
+    """
+    in_deg = {aid: len(act.parsed_predecessors) for aid, act in activities.items()}
+    q      = deque([act for aid, act in activities.items() if in_deg[aid] == 0])
+    order  : List[Activity] = []
+
+    while q:
+        node = q.popleft()
+        order.append(node)
+        for succ in node.successors:
+            in_deg[succ.id] -= 1
+            if in_deg[succ.id] == 0:
+                q.append(succ)
+
+    if len(order) != len(activities):
+        cycles = [aid for aid, d in in_deg.items() if d > 0]
+        raise RuntimeError(f"Cycle detected involving: {', '.join(cycles)}")
+
+    return order
+
 @dataclass
 class ProjectPlan:
     """Holds the results of the CPM calculation."""
@@ -49,216 +77,62 @@ class ProjectPlan:
     project_duration: int
 
     @classmethod
-    def create(cls: Type['ProjectPlan'], activities: list[Activity]) -> 'ProjectPlan':
-        """
-        CPM: Critical Path Method
-        https://en.wikipedia.org/wiki/Critical_path_method
+    def create(cls: Type["ProjectPlan"], activities: List["Activity"]) -> "ProjectPlan":
+        """Compute CPM dates using a single forward‑then‑backward topological sweep."""
+        acts: Dict[str, Activity] = {a.id: a for a in activities}
+        if not acts:
+            return cls(activities={}, project_duration=0)
 
-        Performs Forward Pass, Backward Pass, calculates Float on the provided activities.
-        Returns a new ProjectPlan instance containing the activities with calculated values
-        and the project duration.
+        # (Re)build successor links once
+        for a in acts.values():
+            a.successors.clear()
+        for a in acts.values():
+            for info in a.parsed_predecessors:
+                try:
+                    acts[info.activity_id].successors.append(a)
+                except KeyError:
+                    raise ValueError(f"Unknown predecessor {info.activity_id} for {a.id}")
 
-        Args:
-            cls: The class itself (ProjectPlan).
-            activities: A list of Activity objects to process.
+        topo = _topological_order(acts)            # ← priority‑1 fix
 
-        Returns:
-            A new ProjectPlan instance with calculated data.
-
-        Raises:
-            ValueError: If no start activities are found or other input inconsistencies.
-            RuntimeError: If forward/backward pass fails (e.g., due to cycles or disconnections).
-        """
-        # Convert list to dictionary for internal processing
-        activities_dict = {act.id: act for act in activities}
-
-        if not activities_dict:
-            return cls(activities={}, project_duration=0) # Use cls to construct
-
-        # Reset calculation helpers (allows recalculation if needed)
-        for act in activities_dict.values():
-            act.es = 0
-            act.ef = 0
-            act.ls = None # Reset to None
-            act.lf = None # Reset to None
-            act.float = None # Reset to None
-            act.forward_pass_done = False
-            act.backward_pass_done = False
-            # Rebuild successors based on parsed predecessors (safer if called multiple times)
-            act.successors = []
-        for act in activities_dict.values():
-            for pred_info in act.parsed_predecessors:
-                pred_activity = activities_dict.get(pred_info.activity_id)
-                if pred_activity:
-                     if act not in pred_activity.successors:
-                           pred_activity.successors.append(act)
-                else:
-                    # This should have been caught by parse_input_data, but double-check
-                    raise ValueError(f"Consistency Error: Predecessor '{pred_info.activity_id}' for activity '{act.id}' not found during reset.")
-
-        start_nodes = [act for act in activities_dict.values() if not act.parsed_predecessors]
-        end_nodes = [act for act in activities_dict.values() if not act.successors] # Nodes with no successors
-
-        if not start_nodes and activities_dict:
-            raise ValueError("No start activities found. Check for cycles or missing dependencies.")
-
-        # --- Forward Pass (Calculate ES, EF) ---
-        processed_forward_count = 0
-        forward_q = collections.deque()
-
-        # Initialize start nodes
-        for node in start_nodes:
-            node.es = 0 # Start nodes begin at time 0
-            node.ef = node.duration
-            node.forward_pass_done = True
-            processed_forward_count += 1
-            forward_q.append(node) # Add start nodes to the queue
-
-        iter_count = 0
-        max_iters = len(activities_dict) ** 2 + 1 # Safety break for cycles
-
-        while forward_q and iter_count < max_iters:
-            iter_count += 1
-            current_node = forward_q.popleft()
-
-            for successor in current_node.successors:
-                # Check if all predecessors of the successor are done
-                all_preds_done = all(activities_dict[p.activity_id].forward_pass_done
-                                     for p in successor.parsed_predecessors)
-
-                if all_preds_done:
-                    max_potential_es = 0
-                    for pred_info in successor.parsed_predecessors:
-                        pred_act = activities_dict[pred_info.activity_id]
-                        potential_es = 0
-                        lag = pred_info.lag
-
-                        # Ensure predecessor EF is calculated (should be if all_preds_done is True)
-                        if not pred_act.forward_pass_done:
-                             raise RuntimeError(f"Internal logic error: Predecessor {pred_act.id} not done in forward pass for {successor.id}")
-
-
-                        if pred_info.dep_type == DependencyType.FS: potential_es = pred_act.ef + lag
-                        elif pred_info.dep_type == DependencyType.SS: potential_es = pred_act.es + lag
-                        elif pred_info.dep_type == DependencyType.FF: potential_es = pred_act.ef + lag - successor.duration
-                        elif pred_info.dep_type == DependencyType.SF: potential_es = pred_act.es + lag - successor.duration
-
-                        max_potential_es = max(max_potential_es, potential_es)
-
-                    # Update successor if a later start time is found or if it's the first time
-                    needs_update = max_potential_es > successor.es or not successor.forward_pass_done
-
-                    if needs_update:
-                        successor.es = max_potential_es
-                        successor.ef = successor.es + successor.duration
-
-                        # Mark as done and add to queue if it wasn't already
-                        if not successor.forward_pass_done:
-                             successor.forward_pass_done = True
-                             processed_forward_count += 1
-                             if successor not in forward_q: # Ensure not already queued
-                                 forward_q.append(successor)
-                        # If already done but updated, add back to queue to propagate changes
-                        elif successor not in forward_q:
-                             forward_q.append(successor)
-
-        if processed_forward_count < len(activities_dict):
-             remaining_ids = [aid for aid, act in activities_dict.items() if not act.forward_pass_done]
-             raise RuntimeError(f"Could not complete forward pass. Check for cycles or unconnected activities. Remaining: {remaining_ids}")
-        if iter_count >= max_iters:
-            raise RuntimeError(f"Forward pass exceeded max iterations ({iter_count}). Check for cycles.")
-
-        # --- Project Duration ---
-        project_duration = 0
-        if activities_dict:
-             project_duration = max((node.ef for node in activities_dict.values() if node.forward_pass_done), default=0)
-
-        # --- Backward Pass (Calculate LF, LS) ---
-        # Start with nodes that have no successors (logical end points)
-        processed_backward_count = 0
-        backward_q = collections.deque()
-
-        # Initialize end nodes
-        for node in end_nodes:
-             node.lf = project_duration
-             node.ls = node.lf - node.duration
-             node.backward_pass_done = True
-             processed_backward_count += 1
-             backward_q.append(node) # Add end nodes to the queue
-
-        iter_count = 0
-        # max_iters reused from forward pass
-
-        while backward_q and iter_count < max_iters:
-             iter_count += 1
-             current_successor = backward_q.popleft() # Node whose LS/LF is known
-
-             # Process predecessors of the current_successor
-             for pred_info in current_successor.parsed_predecessors:
-                 pred_act = activities_dict[pred_info.activity_id]
-
-                 # Check if all successors of this predecessor are done
-                 all_succs_done = all(s.backward_pass_done for s in pred_act.successors)
-
-                 if all_succs_done:
-                     min_potential_lf = float('inf')
-                     # Calculate potential LF based on ALL successors of pred_act
-                     for succ_of_pred in pred_act.successors:
-                         # Find the specific dependency info from pred_act to succ_of_pred
-                         link_info = next((p for p in succ_of_pred.parsed_predecessors if p.activity_id == pred_act.id), None)
-                         if not link_info:
-                             raise RuntimeError(f"Consistency error: Cannot find {pred_act.id} in predecessors of {succ_of_pred.id} during backward pass")
-                         if succ_of_pred.ls is None or succ_of_pred.lf is None:
-                              raise RuntimeError(f"Internal logic error: Successor {succ_of_pred.id} LS/LF not calculated for {pred_act.id}")
-
-
-                         potential_lf_based_on_succ = float('inf')
-                         lag = link_info.lag
-
-                         if link_info.dep_type == DependencyType.FS: potential_lf_based_on_succ = succ_of_pred.ls - lag
-                         elif link_info.dep_type == DependencyType.SS: potential_lf_based_on_succ = succ_of_pred.ls - lag + pred_act.duration
-                         elif link_info.dep_type == DependencyType.FF: potential_lf_based_on_succ = succ_of_pred.lf - lag
-                         elif link_info.dep_type == DependencyType.SF: potential_lf_based_on_succ = succ_of_pred.lf - lag + pred_act.duration
-
-                         min_potential_lf = min(min_potential_lf, potential_lf_based_on_succ)
-
-                     # Update predecessor if a smaller LF is found or if it's the first time
-                     needs_update = pred_act.lf is None or min_potential_lf < pred_act.lf
-
-                     if needs_update:
-                          pred_act.lf = min_potential_lf
-                          pred_act.ls = pred_act.lf - pred_act.duration
-
-                          # Mark as done and add to queue if it wasn't already
-                          if not pred_act.backward_pass_done:
-                              pred_act.backward_pass_done = True
-                              processed_backward_count += 1
-                              if pred_act not in backward_q: # Ensure not already queued
-                                  backward_q.append(pred_act)
-                          # If already done but updated, add back to queue to propagate changes
-                          elif pred_act not in backward_q:
-                              backward_q.append(pred_act)
-
-
-        if processed_backward_count < len(activities_dict):
-             remaining_ids = [aid for aid, act in activities_dict.items() if not act.backward_pass_done]
-             # Raise error for consistency with forward pass - disconnected graphs are problematic
-             raise RuntimeError(f"Could not complete backward pass. Check for cycles or unconnected activities. Remaining: {remaining_ids}")
-             # print(f"Warning: Could not complete backward pass for all nodes. Processed: {processed_backward_count}/{len(activities_dict)}. Remaining: {remaining_ids}")
-
-        if iter_count >= max_iters:
-             raise RuntimeError(f"Backward pass exceeded max iterations ({iter_count}). Check for cycles.")
-
-        # --- Calculate Float ---
-        for activity in activities_dict.values():
-            # Ensure both passes completed successfully for this activity
-            if activity.ls is not None and activity.es is not None:
-                 activity.float = activity.ls - activity.es
+        # ── Forward pass ─────────────────────────────────────────────
+        for node in topo:
+            if not node.parsed_predecessors:               # start node
+                node.es = 0
             else:
-                 activity.float = None # Indicate incomplete calculation for this activity
+                node.es = max(
+                    {
+                        DependencyType.FS: lambda p, lag: p.ef + lag,
+                        DependencyType.SS: lambda p, lag: p.es + lag,
+                        DependencyType.FF: lambda p, lag: p.ef + lag - node.duration,
+                        DependencyType.SF: lambda p, lag: p.es + lag - node.duration,
+                    }[info.dep_type](acts[info.activity_id], info.lag)
+                    for info in node.parsed_predecessors
+                )
+            node.ef = node.es + node.duration
 
-        return cls(activities=activities_dict, project_duration=project_duration)
+        project_duration = max(a.ef for a in acts.values())
 
+        # ── Backward pass ────────────────────────────────────────────
+        for node in reversed(topo):
+            if not node.successors:                          # end node
+                node.lf = project_duration
+            else:
+                node.lf = min(
+                    {
+                        DependencyType.FS: lambda s, link: s.ls - link.lag,
+                        DependencyType.SS: lambda s, link: s.ls - link.lag + node.duration,
+                        DependencyType.FF: lambda s, link: s.lf - link.lag,
+                        DependencyType.SF: lambda s, link: s.lf - link.lag + node.duration,
+                    }[link.dep_type](s, link)
+                    for s in node.successors
+                    for link in (next(p for p in s.parsed_predecessors if p.activity_id == node.id),)
+                )
+            node.ls   = node.lf - node.duration
+            node.float = node.ls - node.es
+
+        return cls(activities=acts, project_duration=project_duration)
+    
     def get_critical_path_activities(self) -> list[Activity]:
         """Returns a list of Activity objects on the critical path, sorted by ES."""
         critical_nodes = [
