@@ -94,11 +94,52 @@ def _topological_order(activities: Dict[str, Activity]) -> List[Activity]:
 
     return order
 
+def _collect_schedule_warnings(acts: Dict[str, Activity]) -> List[str]:
+    """
+    Post‑schedule validation & warning collection
+
+    Return a list of human‑readable warning strings.
+    • Temporal‑constraint violations (lead/lag not respected)
+    • Negative total float
+    """
+    warn: list[str] = []
+
+    # 1. inter‑activity constraints
+    for succ in acts.values():
+        for info in succ.parsed_predecessors:
+            pred = acts[info.activity_id]
+            lag  = info.lag
+
+            ok = {
+                DependencyType.FS: succ.es >= pred.ef + lag,
+                DependencyType.SS: succ.es >= pred.es + lag,
+                DependencyType.FF: succ.ef >= pred.ef + lag,
+                DependencyType.SF: succ.ef >= pred.es + lag,
+            }[info.dep_type]
+
+            if not ok:
+                warn.append(
+                    f"Constraint violation: {pred.id}->{succ.id} "
+                    f"{info.dep_type.value}{lag:+} not satisfied "
+                    f"(pred.EF={pred.ef}, succ.ES={succ.es}, succ.EF={succ.ef})"
+                )
+
+    # 2. negative total float
+    for a in acts.values():
+        if a.float is not None and a.float < 0:
+            warn.append(
+                f"Negative total float ({a.float}) on activity {a.id} "
+                f"(ES={a.es}, LS={a.ls})."
+            )
+
+    return warn
+
 @dataclass
 class ProjectPlan:
     """Holds the results of the CPM calculation."""
     activities: Dict[str, Activity]
     project_duration: int
+    warnings: List[str] = field(default_factory=list) 
 
     @classmethod
     def create(cls: Type["ProjectPlan"], activities: List["Activity"]) -> "ProjectPlan":
@@ -146,7 +187,8 @@ class ProjectPlan:
             node.ls   = node.lf - node.duration
             node.float = node.ls - node.es
 
-        return cls(activities=acts, project_duration=project_duration)
+        warnings = _collect_schedule_warnings(acts)
+        return cls(activities=acts, project_duration=project_duration, warnings=warnings)
     
     def get_critical_path_activities(self) -> list[Activity]:
         """Returns a list of Activity objects on the critical path, sorted by ES."""
@@ -294,6 +336,11 @@ class TestCriticalPath(unittest.TestCase):
         print("\n--- Calculating CPM ---")
         project_plan = ProjectPlan.create(activities)
         # -----------------------------
+
+        print("\n--- Warnings ---")
+        for w in project_plan.warnings:
+            print("⚠️", w)
+        self.assertEqual(len(project_plan.warnings), 0)
 
         print("\n--- Results ---")
         project_duration = project_plan.project_duration
