@@ -36,8 +36,6 @@ class Activity:
     ls: Optional[int] = None # Latest Start
     lf: Optional[int] = None # Latest Finish
     float: Optional[int] = None # Slack/Float
-    forward_pass_done: bool = False
-    backward_pass_done: bool = False
 
     def __hash__(self):
         return hash(self.id)
