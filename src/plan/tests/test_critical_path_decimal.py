@@ -452,82 +452,82 @@ class TestCriticalPathDecimal(unittest.TestCase):
         self.assertEqual(plan.project_duration, D("4.5"))
 
     def test_cycle_detection(self):
-        data = """
-        Activity;Predecessor;Duration
-        A;B;1
-        B;A;1
-        """
+        input = dedent_strip("""
+            Activity;Predecessor;Duration
+            A;B;1
+            B;A;1
+        """)
         with self.assertRaises(RuntimeError):
-            ProjectPlan.create(parse_input_data(data))
+            ProjectPlan.create(parse_input_data(input))
 
     def test_dependency_type_finish_to_start(self):
         """FS = Finish to Start"""
-        data = """
-        Activity;Predecessor;Duration
-        A;-;3
-        B;A(FS2);4
-        """
-        plan = ProjectPlan.create(parse_input_data(data))
+        input = dedent_strip("""
+            Activity;Predecessor;Duration
+            A;-;3
+            B;A(FS2);4
+        """)
+        plan = ProjectPlan.create(parse_input_data(input))
 
-        expected = """
-Activity;Duration;ES;EF;LS;LF;Float
-A;3;0;3;0;3;0
-B;4;5;9;5;9;0
-""".strip()
+        expected = dedent_strip("""
+            Activity;Duration;ES;EF;LS;LF;Float
+            A;3;0;3;0;3;0
+            B;4;5;9;5;9;0
+        """)
 
         self.assertEqual(str(plan), expected) 
         self.assertEqual(plan.project_duration, D("9"))
 
     def test_dependency_type_finish_to_finish(self):
         """FF = Finish to Finish"""
-        data = """
-        Activity;Predecessor;Duration
-        A;-;3
-        B;A(FF2);4
-        """
-        plan = ProjectPlan.create(parse_input_data(data))
+        input = dedent_strip("""
+            Activity;Predecessor;Duration
+            A;-;3
+            B;A(FF2);4
+        """)
+        plan = ProjectPlan.create(parse_input_data(input))
 
-        expected = textwrap.dedent("""
-        Activity;Duration;ES;EF;LS;LF;Float
-        A;3;0;3;0;3;0
-        B;4;1;5;1;5;0
-        """).strip()
+        expected = dedent_strip("""
+            Activity;Duration;ES;EF;LS;LF;Float
+            A;3;0;3;0;3;0
+            B;4;1;5;1;5;0
+        """)
 
         self.assertEqual(str(plan), expected) 
         self.assertEqual(plan.project_duration, D("5"))
 
     def test_dependency_type_start_to_finish(self):
         """SF = Start to Finish"""
-        data = """
-        Activity;Predecessor;Duration
-        A;-;3
-        B;A(SF6);4
-        """
-        plan = ProjectPlan.create(parse_input_data(data))
+        input = dedent_strip("""
+            Activity;Predecessor;Duration
+            A;-;3
+            B;A(SF6);4
+        """)
+        plan = ProjectPlan.create(parse_input_data(input))
 
-        expected = """
-Activity;Duration;ES;EF;LS;LF;Float
-A;3;0;3;0;3;0
-B;4;2;6;2;6;0
-""".strip()
+        expected = dedent_strip("""
+            Activity;Duration;ES;EF;LS;LF;Float
+            A;3;0;3;0;3;0
+            B;4;2;6;2;6;0
+        """)
 
         self.assertEqual(str(plan), expected) 
         self.assertEqual(plan.project_duration, D("6"))
 
     def test_dependency_type_start_to_start(self):
         """SS = Start to Start"""
-        data = """
-        Activity;Predecessor;Duration
-        A;-;3
-        B;A(SS2);4
-        """
-        plan = ProjectPlan.create(parse_input_data(data))
+        input = dedent_strip("""
+            Activity;Predecessor;Duration
+            A;-;3
+            B;A(SS2);4
+        """)
+        plan = ProjectPlan.create(parse_input_data(input))
 
-        expected = """
-Activity;Duration;ES;EF;LS;LF;Float
-A;3;0;3;0;3;0
-B;4;2;6;2;6;0
-""".strip()
+        expected = dedent_strip("""
+            Activity;Duration;ES;EF;LS;LF;Float
+            A;3;0;3;0;3;0
+            B;4;2;6;2;6;0
+        """)
 
         self.assertEqual(str(plan), expected) 
         self.assertEqual(plan.project_duration, D("6"))                
