@@ -258,6 +258,56 @@ class ProjectPlan:
             else:
                 current = None
         return final_path
+    
+    def to_csv(self, *, sep: str = ";", sort_by: str = "id") -> str:
+        """
+        Human‑readable / test‑friendly serialisation
+
+        Return the full schedule as a deterministic line‑oriented string
+        (semicolon‑delimited by default).
+
+        Columns…… Activity ID · Duration · ES · EF · LS · LF · Float
+        Sort order… default α‑numeric by *sort_by*.
+
+        Change *sep* if you ever need a different delimiter.
+        """
+
+        def _d(val: Decimal | str | None) -> str:
+            """
+            Convert *val* to the shortest plain‑decimal string.
+
+            * Decimals show no exponent (1E+1 → "10") and no trailing zeros (1.50 → "1.5").
+            * None becomes an empty field so the column count stays constant.
+            * Non‑Decimal values fall back to ``str`` unchanged.
+            """
+            if val is None:
+                return ""
+            if isinstance(val, Decimal):
+                return format(val.normalize(), "f")  # fixed‑point, no exponent
+            return str(val)
+
+        if sort_by not in Activity.__dict__ and sort_by != "id":
+            raise ValueError(f"Unknown sort key: {sort_by!r}")
+
+        acts = sorted(self.activities.values(), key=lambda a: getattr(a, sort_by))
+
+        header = sep.join(("Activity", "Duration", "ES", "EF", "LS", "LF", "Float"))
+        rows = [
+            sep.join(
+                _d(val)
+                for val in (
+                    a.id,
+                    a.duration,
+                    a.es,
+                    a.ef,
+                    a.ls,
+                    a.lf,
+                    a.float,
+                )
+            )
+            for a in acts
+        ]
+        return "\n".join([header, *rows])
 
 # ────────────────────────────────────────────────────────────────────────────────
 #  Parsing helpers
@@ -349,33 +399,26 @@ class TestCriticalPathDecimal(unittest.TestCase):
         plan = ProjectPlan.create(acts)
 
         # project stats
+        expected = """
+Activity;Duration;ES;EF;LS;LF;Float
+A;3;0;3;0;3;0
+B;2;5;7;5;7;0
+C;2;0;2;4;6;4
+D;4;6;10;6;10;0
+E;1;2;3;6;7;4
+F;2;3;5;12;14;9
+G;4;7;11;7;11;0
+H;3;11;14;11;14;0
+""".strip()
+
+        self.assertEqual(plan.to_csv(), expected) 
+
         self.assertEqual(plan.project_duration, D("14"))
         self.assertListEqual(plan.obtain_critical_path(), ["A", "B", "D", "G", "H"])
 
-        a = plan.activities  # shorthand
-        # Floats
-        self.assertEqual(a["A"].float, D("0"))
-        self.assertEqual(a["B"].float, D("0"))
-        self.assertEqual(a["C"].float, D("4"))
-        self.assertEqual(a["D"].float, D("0"))
-        self.assertEqual(a["E"].float, D("4"))
-        self.assertEqual(a["F"].float, D("9"))
-        self.assertEqual(a["G"].float, D("0"))
-        self.assertEqual(a["H"].float, D("0"))
-
-        # ES / LS spot‑checks
-        self.assertEqual(a["A"].es, D("0"));  self.assertEqual(a["A"].ls, D("0"))
-        self.assertEqual(a["B"].es, D("5"));  self.assertEqual(a["B"].ls, D("5"))
-        self.assertEqual(a["C"].es, D("0"));  self.assertEqual(a["C"].ls, D("4"))
-        self.assertEqual(a["D"].es, D("6"));  self.assertEqual(a["D"].ls, D("6"))
-        self.assertEqual(a["E"].es, D("2"));  self.assertEqual(a["E"].ls, D("6"))
-        self.assertEqual(a["F"].es, D("3"));  self.assertEqual(a["F"].ls, D("12"))
-        self.assertEqual(a["G"].es, D("7"));  self.assertEqual(a["G"].ls, D("7"))
-        self.assertEqual(a["H"].es, D("11")); self.assertEqual(a["H"].ls, D("11"))
-
-    # ------------------------------------------------------------------
     def test_fractional_durations_and_lags(self):
         """Simple chain with fractional numbers to verify decimal math."""
+
         data = """
         Activity;Predecessor;Duration
         A;-;1.5
@@ -384,17 +427,16 @@ class TestCriticalPathDecimal(unittest.TestCase):
         acts = parse_input_data(data)
         plan = ProjectPlan.create(acts)
 
+        expected = """
+Activity;Duration;ES;EF;LS;LF;Float
+A;1.5;0;1.5;0;1.5;0
+B;2.25;2.25;4.5;2.25;4.5;0
+""".strip()
+
+        # one line checks the whole schedule
+        self.assertEqual(plan.to_csv(), expected) 
+        # keep a high‑level sanity check if you like
         self.assertEqual(plan.project_duration, D("4.5"))
-        a = plan.activities
-        # Activity A
-        self.assertEqual(a["A"].es, D("0"))
-        self.assertEqual(a["A"].ef, D("1.5"))
-        # Activity B
-        self.assertEqual(a["B"].es, D("2.25"))  # 1.5 + 0.75
-        self.assertEqual(a["B"].ef, D("4.5"))
-        # Floats on both should be zero
-        self.assertEqual(a["A"].float, D("0"))
-        self.assertEqual(a["B"].float, D("0"))
 
 
 if __name__ == "__main__":
