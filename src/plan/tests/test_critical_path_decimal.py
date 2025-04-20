@@ -438,6 +438,15 @@ B;2.25;2.25;4.5;2.25;4.5;0
         # keep a high‑level sanity check if you like
         self.assertEqual(plan.project_duration, D("4.5"))
 
+    def test_cycle_detection(self):
+        data = """
+        Activity;Predecessor;Duration
+        A;B;1
+        B;A;1
+        """
+        with self.assertRaises(RuntimeError):
+            ProjectPlan.create(parse_input_data(data))
+                
 
 if __name__ == "__main__":
     unittest.main(argv=["first-arg-is-ignored"], exit=False)
