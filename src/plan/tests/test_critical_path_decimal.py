@@ -380,39 +380,52 @@ def parse_input_data(data: str) -> List[Activity]:
     return list(activities.values())
 
 from decimal import Decimal as D
+import textwrap
+
+def dedent_strip(text: str) -> str:
+    """
+    Multi-line strings in Python are indented.
+    This function removes the common indent and trims leading/trailing whitespace.
+
+    Usage
+    -----
+    >>> expected = dedent_strip(\"""
+    ...     A
+    ...     B
+    ... \""")
+    """
+    return textwrap.dedent(text).strip()
 
 class TestCriticalPathDecimal(unittest.TestCase):
     """Updated test‑suite exercising decimal‑based CPM implementation."""
 
     def test_all_dependency_types_integer_data(self):
         """Original scenario – now using ``Decimal`` everywhere (integers still OK)."""
-        data = """
-        Activity;Predecessor;Duration;Comment
-        A;-;3;Start node
-        B;A(FS2);2;
-        C;A(SS);2; C starts when A starts
-        D;B(SS1);4; D starts 1 after B starts
-        E;C(SF3);1; E starts 3 after C finishes (E_ef >= C_es + 3)? No SF is Start-Finish E_lf >= C_es + lag + E_dur
-        F;C(FF3);2; F finishes 3 after C finishes
-        G;D(SS1),E;4;Multiple preds (E is FS default)
-        H;F(SF2),G;3;Multiple preds (G is FS default)
-        """
+        input = dedent_strip("""
+            Activity;Predecessor;Duration;Comment
+            A;-;3;Start node
+            B;A(FS2);2;
+            C;A(SS);2; C starts when A starts
+            D;B(SS1);4; D starts 1 after B starts
+            E;C(SF3);1; E starts 3 after C finishes (E_ef >= C_es + 3)? No SF is Start-Finish E_lf >= C_es + lag + E_dur
+            F;C(FF3);2; F finishes 3 after C finishes
+            G;D(SS1),E;4;Multiple preds (E is FS default)
+            H;F(SF2),G;3;Multiple preds (G is FS default)
+        """)
 
-        acts = parse_input_data(data)
-        plan = ProjectPlan.create(acts)
+        plan = ProjectPlan.create(parse_input_data(input))
 
-        # project stats
-        expected = """
-Activity;Duration;ES;EF;LS;LF;Float
-A;3;0;3;0;3;0
-B;2;5;7;5;7;0
-C;2;0;2;4;6;4
-D;4;6;10;6;10;0
-E;1;2;3;6;7;4
-F;2;3;5;12;14;9
-G;4;7;11;7;11;0
-H;3;11;14;11;14;0
-""".strip()
+        expected = dedent_strip("""
+            Activity;Duration;ES;EF;LS;LF;Float
+            A;3;0;3;0;3;0
+            B;2;5;7;5;7;0
+            C;2;0;2;4;6;4
+            D;4;6;10;6;10;0
+            E;1;2;3;6;7;4
+            F;2;3;5;12;14;9
+            G;4;7;11;7;11;0
+            H;3;11;14;11;14;0
+        """)
 
         self.assertEqual(str(plan), expected) 
 
@@ -422,19 +435,18 @@ H;3;11;14;11;14;0
     def test_fractional_durations_and_lags(self):
         """Simple chain with fractional numbers to verify decimal math."""
 
-        data = """
-        Activity;Predecessor;Duration
-        A;-;1.5
-        B;A(FS0.75);2.25
-        """
-        acts = parse_input_data(data)
-        plan = ProjectPlan.create(acts)
+        input = dedent_strip("""
+            Activity;Predecessor;Duration
+            A;-;1.5
+            B;A(FS0.75);2.25
+        """)
+        plan = ProjectPlan.create(parse_input_data(input))
 
-        expected = """
-Activity;Duration;ES;EF;LS;LF;Float
-A;1.5;0;1.5;0;1.5;0
-B;2.25;2.25;4.5;2.25;4.5;0
-""".strip()
+        expected = dedent_strip("""
+            Activity;Duration;ES;EF;LS;LF;Float
+            A;1.5;0;1.5;0;1.5;0
+            B;2.25;2.25;4.5;2.25;4.5;0
+        """)
 
         self.assertEqual(str(plan), expected) 
         self.assertEqual(plan.project_duration, D("4.5"))
@@ -475,11 +487,11 @@ B;4;5;9;5;9;0
         """
         plan = ProjectPlan.create(parse_input_data(data))
 
-        expected = """
-Activity;Duration;ES;EF;LS;LF;Float
-A;3;0;3;0;3;0
-B;4;1;5;1;5;0
-""".strip()
+        expected = textwrap.dedent("""
+        Activity;Duration;ES;EF;LS;LF;Float
+        A;3;0;3;0;3;0
+        B;4;1;5;1;5;0
+        """).strip()
 
         self.assertEqual(str(plan), expected) 
         self.assertEqual(plan.project_duration, D("5"))
