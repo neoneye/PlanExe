@@ -402,6 +402,7 @@ class TestCriticalPathDecimal(unittest.TestCase):
     def test_textbook_example_all_dependency_types(self):
         """
         As shown in the video:
+        "Difficult network diagram example with lag solved" by "Engineer4Free" 
         https://www.youtube.com/watch?v=qTErIV6OqLg
         """
         input = dedent_strip("""
@@ -437,6 +438,7 @@ class TestCriticalPathDecimal(unittest.TestCase):
     def test_textbook_example_two_start_nodes_and_two_end_nodes(self):
         """
         As shown in the video:
+        "Project Scheduling - PERT/CPM | Finding Critical Path" by "Joshua Emmanuel"
         https://www.youtube.com/watch?v=-TDh-5n90vk
         """
         input = dedent_strip("""
