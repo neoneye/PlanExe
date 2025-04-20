@@ -95,7 +95,8 @@ class Activity:
 
 def _topological_order(activities: Dict[str, Activity]) -> List[Activity]:
     """Return activities in topological order or raise on cyclic dependency."""
-    in_deg = {aid: len(a.parsed_predecessors) for aid, a in activities.items()}
+    in_deg = {aid: len({p.activity_id for p in a.parsed_predecessors})
+              for aid, a in activities.items()}
     queue = deque([a for aid, a in activities.items() if in_deg[aid] == 0])
     order: List[Activity] = []
 
