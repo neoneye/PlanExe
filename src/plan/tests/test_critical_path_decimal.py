@@ -222,6 +222,10 @@ class ProjectPlan:
         return crit
 
     def obtain_critical_path(self) -> List[str]:
+        """
+        Identifies *a* critical path through the network. There might
+        be multiple critical paths in a network; this method returns one.
+        """
         crit_nodes = self.get_critical_path_activities()
         if not crit_nodes:
             return []
