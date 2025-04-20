@@ -204,8 +204,9 @@ class ProjectPlan:
                         DependencyType.SF: lambda s, link: s.lf - link.lag + node.duration,
                     }[link.dep_type](s, link)
                     for s in node.successors
-                    for link in (next(p for p in s.parsed_predecessors if p.activity_id == node.id),)
-                )
+                    for link in (p for p in s.parsed_predecessors
+                                 if p.activity_id == node.id)
+                )            
             node.ls = node.lf - node.duration
             node.float = node.ls - node.es
 
@@ -243,17 +244,21 @@ class ProjectPlan:
             for succ in current.successors:
                 if succ.float != ZERO:
                     continue
-                link = next(p for p in succ.parsed_predecessors if p.activity_id == current.id)
-                lag = link.lag
 
-                is_crit_link = {
-                    DependencyType.FS: succ.es == current.ef + lag,
-                    DependencyType.SS: succ.es == current.es + lag,
-                    DependencyType.FF: succ.lf == current.lf + lag,
-                    DependencyType.SF: succ.lf == current.es + lag,
-                }[link.dep_type]
+                # any link between current → succ may be the driving one
+                links = [p for p in succ.parsed_predecessors
+                         if p.activity_id == current.id]
 
-                if is_crit_link and succ.id not in processed:
+                def _drives(link: PredecessorInfo) -> bool:
+                    lag = link.lag
+                    return {
+                        DependencyType.FS: succ.es == current.ef + lag,
+                        DependencyType.SS: succ.es == current.es + lag,
+                        DependencyType.FF: succ.lf == current.lf + lag,
+                        DependencyType.SF: succ.lf == current.es + lag,
+                    }[link.dep_type]
+
+                if any(_drives(link) for link in links) and succ.id not in processed:
                     next_on_path.append(succ)
 
             if next_on_path:
@@ -634,6 +639,25 @@ class TestCriticalPathDecimal(unittest.TestCase):
 
         self.assertEqual(str(plan), expected) 
         self.assertEqual(plan.project_duration, D("6"))                
+
+    def test_multiple_relationships_between_two_activities(self):
+        input_data = dedent_strip("""
+            Activity;Predecessor;Duration
+            A;-;4
+            B;A(SS),A(FF2);3
+        """)
+
+        plan = ProjectPlan.create(parse_input_data(input_data))
+
+        expected = dedent_strip("""
+            Activity;Duration;ES;EF;LS;LF;Float
+            A;4;0;4;0;4;0
+            B;3;3;6;3;6;0
+        """)
+
+        self.assertEqual(str(plan), expected)
+        self.assertEqual(plan.project_duration, D("6"))
+        self.assertListEqual(plan.obtain_critical_path(), ["A", "B"])
 
 if __name__ == "__main__":
     unittest.main(argv=["first-arg-is-ignored"], exit=False)
