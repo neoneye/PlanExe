@@ -250,7 +250,7 @@ class ProjectPlan:
                     DependencyType.FS: succ.es == current.ef + lag,
                     DependencyType.SS: succ.es == current.es + lag,
                     DependencyType.FF: succ.lf == current.lf + lag,
-                    DependencyType.SF: succ.lf == current.es + lag + succ.duration,
+                    DependencyType.SF: succ.lf == current.es + lag,
                 }[link.dep_type]
 
                 if is_crit_link and succ.id not in processed:
@@ -473,7 +473,7 @@ class TestCriticalPathDecimal(unittest.TestCase):
         self.assertEqual(plan.project_duration, D("32"))
         self.assertListEqual(plan.obtain_critical_path(), ["B", "D", "E", "F"])
 
-    def test_textbook_example_of_lags(self):
+    def test_textbook_example_of_lags1(self):
         """
         As shown in the video:
         "Lags Part 1" by "James Marion"
@@ -502,6 +502,38 @@ class TestCriticalPathDecimal(unittest.TestCase):
         self.assertEqual(str(plan), expected)
         self.assertEqual(plan.project_duration, D("18"))
         self.assertListEqual(plan.obtain_critical_path(), ["A", "B", "D", "E"])
+
+    def test_textbook_example_of_lags2(self):
+        """
+        As shown in the video:
+        "Lags Part 2" by "James Marion"
+        https://www.youtube.com/watch?v=lQtpnHzvTT8
+        """
+        input = dedent_strip("""
+            Activity;Predecessor;Duration
+            A;-;2
+            B;A(FS);2
+            C;A(FS);4
+            D;B(FS),C(SF7);3
+            E;C(FS);3
+            F;D(FF3),E(FS);1                 
+        """)
+
+        plan = ProjectPlan.create(parse_input_data(input))
+
+        expected = dedent_strip("""
+            Activity;Duration;ES;EF;LS;LF;Float
+            A;2;0;2;0;2;0
+            B;2;2;4;4;6;2
+            C;4;2;6;2;6;0
+            D;3;6;9;6;9;0
+            E;3;6;9;8;11;2
+            F;1;11;12;11;12;0
+        """)
+
+        self.assertEqual(str(plan), expected)
+        self.assertEqual(plan.project_duration, D("12"))
+        self.assertListEqual(plan.obtain_critical_path(), ["A", "C", "D", "F"])
 
     def test_fractional_durations_and_lags(self):
         """Simple chain with fractional numbers to verify decimal math."""
