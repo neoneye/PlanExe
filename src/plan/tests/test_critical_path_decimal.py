@@ -399,8 +399,11 @@ def dedent_strip(text: str) -> str:
 class TestCriticalPathDecimal(unittest.TestCase):
     """Updated test‑suite exercising decimal‑based CPM implementation."""
 
-    def test_all_dependency_types_integer_data(self):
-        """Original scenario – now using ``Decimal`` everywhere (integers still OK)."""
+    def test_textbook_example_all_dependency_types(self):
+        """
+        As shown in the video:
+        https://www.youtube.com/watch?v=qTErIV6OqLg
+        """
         input = dedent_strip("""
             Activity;Predecessor;Duration;Comment
             A;-;3;Start node
@@ -430,6 +433,39 @@ class TestCriticalPathDecimal(unittest.TestCase):
         self.assertEqual(str(plan), expected)
         self.assertEqual(plan.project_duration, D("14"))
         self.assertListEqual(plan.obtain_critical_path(), ["A", "B", "D", "G", "H"])
+
+    def test_textbook_example_two_start_nodes_and_two_end_nodes(self):
+        """
+        As shown in the video:
+        https://www.youtube.com/watch?v=-TDh-5n90vk
+        """
+        input = dedent_strip("""
+            Activity;Predecessor;Duration
+            A;-;7
+            B;-;9
+            C;A(FS);12
+            D;A(FS),B(FS);8
+            E;D(FS);9
+            F;C(FS),E(FS);6
+            G;E(FS);5
+        """)
+
+        plan = ProjectPlan.create(parse_input_data(input))
+
+        expected = dedent_strip("""
+            Activity;Duration;ES;EF;LS;LF;Float
+            A;7;0;7;2;9;2
+            B;9;0;9;0;9;0
+            C;12;7;19;14;26;7
+            D;8;9;17;9;17;0
+            E;9;17;26;17;26;0
+            F;6;26;32;26;32;0
+            G;5;26;31;27;32;1
+        """)
+
+        self.assertEqual(str(plan), expected)
+        self.assertEqual(plan.project_duration, D("32"))
+        self.assertListEqual(plan.obtain_critical_path(), ["B", "D", "E", "F"])
 
     def test_fractional_durations_and_lags(self):
         """Simple chain with fractional numbers to verify decimal math."""
@@ -530,40 +566,6 @@ class TestCriticalPathDecimal(unittest.TestCase):
 
         self.assertEqual(str(plan), expected) 
         self.assertEqual(plan.project_duration, D("6"))                
-
-    def test_textbook_example1(self):
-        """
-        As shown in the video:
-        https://www.youtube.com/watch?v=-TDh-5n90vk
-        """
-        input = dedent_strip("""
-            Activity;Predecessor;Duration
-            A;-;7
-            B;-;9
-            C;A(FS);12
-            D;A(FS),B(FS);8
-            E;D(FS);9
-            F;C(FS),E(FS);6
-            G;E(FS);5
-        """)
-
-        plan = ProjectPlan.create(parse_input_data(input))
-
-        expected = dedent_strip("""
-            Activity;Duration;ES;EF;LS;LF;Float
-            A;7;0;7;2;9;2
-            B;9;0;9;0;9;0
-            C;12;7;19;14;26;7
-            D;8;9;17;9;17;0
-            E;9;17;26;17;26;0
-            F;6;26;32;26;32;0
-            G;5;26;31;27;32;1
-        """)
-
-        self.assertEqual(str(plan), expected)
-        self.assertEqual(plan.project_duration, D("32"))
-        self.assertListEqual(plan.obtain_critical_path(), ["B", "D", "E", "F"])
-
 
 if __name__ == "__main__":
     unittest.main(argv=["first-arg-is-ignored"], exit=False)
