@@ -1,5 +1,8 @@
 from __future__ import annotations
 """
+Precedence Diagramming Method (PDM)
+https://en.wikipedia.org/wiki/Precedence_diagram_method
+
 CPM: Critical Path Method – **decimal version**
 Supports fractional durations & lags via ``decimal.Decimal``.
 Originally adapted from the integer‑based implementation.
@@ -468,6 +471,36 @@ class TestCriticalPathDecimal(unittest.TestCase):
         self.assertEqual(str(plan), expected)
         self.assertEqual(plan.project_duration, D("32"))
         self.assertListEqual(plan.obtain_critical_path(), ["B", "D", "E", "F"])
+
+    def test_textbook_example_of_lags(self):
+        """
+        As shown in the video:
+        "Lags Part 1" by "James Marion"
+        https://www.youtube.com/watch?v=nhRTJBQ1NPM
+        """
+        input = dedent_strip("""
+            Activity;Predecessor;Duration
+            A;-;2
+            B;A(FS5);4
+            C;B(SS3);3
+            D;B(FS);5
+            E;C(FS),D(FS);2
+        """)
+
+        plan = ProjectPlan.create(parse_input_data(input))
+
+        expected = dedent_strip("""
+            Activity;Duration;ES;EF;LS;LF;Float
+            A;2;0;2;0;2;0
+            B;4;7;11;7;11;0
+            C;3;10;13;13;16;3
+            D;5;11;16;11;16;0
+            E;2;16;18;16;18;0
+        """)
+
+        self.assertEqual(str(plan), expected)
+        self.assertEqual(plan.project_duration, D("18"))
+        self.assertListEqual(plan.obtain_critical_path(), ["A", "B", "D", "E"])
 
     def test_fractional_durations_and_lags(self):
         """Simple chain with fractional numbers to verify decimal math."""
