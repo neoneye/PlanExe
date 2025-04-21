@@ -326,6 +326,17 @@ class ProjectPlan:
     def __str__(self) -> str:
         return self.to_csv()
 
+    @staticmethod
+    def _dep_summary(preds: list[PredecessorInfo]) -> str:
+        """Return 'A FS, B SS+2' etc. for the tooltip/label."""
+        parts = []
+        for p in preds:
+            lag = p.lag
+            lag_txt = ("" if lag == 0
+                    else f"{'+' if lag > 0 else ''}{lag}")   # +2  or  -1
+            parts.append(f"{p.activity_id} {p.dep_type.value}{lag_txt}")
+        return ", ".join(parts)
+    
     def to_mermaid_gantt(
         self,
         project_start: date | str | None = None,
@@ -362,12 +373,16 @@ class ProjectPlan:
 
         # order tasks by early‑start so the chart looks natural
         for act in sorted(self.activities.values(), key=lambda a: a.es):
-            start = project_start + timedelta(days=float(act.es))
-            dur   = float(act.duration)
-            # Mermaid accepts “Xd”; keep integers tidy, leave decimals unchanged
-            dur_txt = f"{int(dur)}d" if dur.is_integer() else f"{dur}d"
+            start   = project_start + timedelta(days=float(act.es))
+            dur_txt = f"{int(act.duration)}d" if act.duration % 1 == 0 else f"{act.duration}d"
+
+            label = act.id
+            depinfo = self._dep_summary(act.parsed_predecessors)
+            if depinfo:
+                label += f" ({depinfo})"
+
             lines.append(
-                f"    {act.id} :{act.id.lower()}, {start.isoformat()}, {dur_txt}"
+                f"    {label} :{act.id.lower()}, {start.isoformat()}, {dur_txt}"
             )
 
         return "\n".join(lines)
