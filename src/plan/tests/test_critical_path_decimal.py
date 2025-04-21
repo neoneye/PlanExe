@@ -13,6 +13,7 @@ from collections import deque
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Type
+from datetime import date, timedelta
 import re
 import pandas as pd
 from io import StringIO
@@ -324,6 +325,91 @@ class ProjectPlan:
     
     def __str__(self) -> str:
         return self.to_csv()
+
+    def to_mermaid_gantt(
+        self,
+        project_start: date | str | None = None,
+        *,
+        title: str = "Project schedule",
+    ) -> str:
+        """
+        Return a Mermaid‑compatible Gantt diagram describing the CPM schedule.
+
+        Parameters
+        ----------
+        project_start
+            • ``datetime.date`` → use it as day 0  
+            • ``"YYYY‑MM‑DD"``  → parsed with ``date.fromisoformat``  
+            • ``None``         → today (``date.today()``)
+        title
+            Shown at the top of the chart.
+        """
+        # normalise the reference date -------------------------------------------------
+        if project_start is None:
+            project_start = date.today()
+        elif isinstance(project_start, str):
+            project_start = date.fromisoformat(project_start)
+
+        # build the Mermaid text -------------------------------------------------------
+        lines: list[str] = [
+            "gantt",
+            f"    title {title}",
+            "    dateFormat  YYYY-MM-DD",
+            "    axisFormat  %d %b",
+            "",
+            "    section Activities",
+        ]
+
+        # order tasks by early‑start so the chart looks natural
+        for act in sorted(self.activities.values(), key=lambda a: a.es):
+            start = project_start + timedelta(days=float(act.es))
+            dur   = float(act.duration)
+            # Mermaid accepts “Xd”; keep integers tidy, leave decimals unchanged
+            dur_txt = f"{int(dur)}d" if dur.is_integer() else f"{dur}d"
+            lines.append(
+                f"    {act.id} :{act.id.lower()}, {start.isoformat()}, {dur_txt}"
+            )
+
+        return "\n".join(lines)
+
+    def export_gantt_html(
+        self,
+        path: str,
+        *,
+        project_start: date | str | None = None,
+        title: str = "Project schedule",
+    ) -> None:
+        """
+        Write a self‑contained HTML page with an embedded Mermaid Gantt chart.
+        Simply open the resulting file in any modern browser.
+        """
+        mermaid_code = self.to_mermaid_gantt(project_start, title=title)
+
+        html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{title}</title>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({{ startOnLoad: true }});
+  </script>
+  <style>
+    body {{
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        margin: 2rem;
+    }}
+  </style>
+</head>
+<body>
+<h1>{title}</h1>
+<div class="mermaid">
+{mermaid_code}
+</div>
+</body>
+</html>"""
+        with open(path, "w", encoding="utf-8") as fp:
+            fp.write(html)
 
 # ────────────────────────────────────────────────────────────────────────────────
 #  Parsing helpers
