@@ -1,6 +1,10 @@
 """
 Export Project Plan as Graphviz DOT code.
 
+Render the DOT code in the browser with:
+https://github.com/mdaines/viz-js
+https://viz-js.com/
+
 PROMPT> python -m src.schedule.export_graphviz
 """
 from decimal import Decimal
