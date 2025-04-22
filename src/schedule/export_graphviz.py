@@ -16,7 +16,7 @@ class ExportGraphviz:
         return s.lstrip("+")          # Graphviz label 'FS2' not 'FS+2'
 
     @staticmethod
-    def to_graphviz(
+    def to_graphviz_representation(
         project_plan: ProjectPlan,
         *,
         include_dates: bool = False,
@@ -115,24 +115,24 @@ class ExportGraphviz:
         return "\n".join(lines)
 
     @staticmethod
-    def export_graphviz(project_plan: ProjectPlan, path: str, **kwargs) -> None:
+    def save(project_plan: ProjectPlan, path: str, **kwargs) -> None:
         """
         Write a `.dot` file ready for Graphviz.
 
         Example
         -------
-        plan.export_graphviz("network.dot")
+        ExportGraphviz.save(plan, "network.dot")
         # then, in a shell:
         #   dot -Tpng network.dot -o network.png
         """
         with open(path, "w", encoding="utf-8") as fp:
-            fp.write(ExportGraphviz.to_graphviz(project_plan, **kwargs))
+            fp.write(ExportGraphviz.to_graphviz_representation(project_plan, **kwargs))
 
 if __name__ == "__main__":
     from src.schedule.parse_schedule_input_data import parse_schedule_input_data
     from src.schedule.schedule import ProjectPlan
     from src.utils.dedent_strip import dedent_strip
-    
+
     input = dedent_strip("""
         Activity;Predecessor;Duration;Comment
         A;-;3;Start node
@@ -146,4 +146,4 @@ if __name__ == "__main__":
     """)
 
     plan = ProjectPlan.create(parse_schedule_input_data(input))
-    ExportGraphviz.export_graphviz(plan, "network.dot")
+    ExportGraphviz.save(plan, "network.dot")
