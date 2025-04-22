@@ -1,79 +1,8 @@
 import unittest
-from decimal import Decimal
 from decimal import Decimal as D
 from src.utils.dedent_strip import dedent_strip
-from typing import Dict, List
-import re
-import pandas as pd
-from io import StringIO
-from src.schedule.schedule import Activity, PredecessorInfo, DependencyType, ProjectPlan, ZERO
-
-# ────────────────────────────────────────────────────────────────────────────────
-#  Parsing helpers
-# ----------------------------------------------------------------------------
-_DEF_RE = re.compile(r"(\w+)(?:\(([SF]{2})([-+]?\d+(?:\.\d+)?)?\))?", re.IGNORECASE)
-
-
-def parse_dependency(dep_str: str) -> PredecessorInfo:
-    dep_str = dep_str.strip()
-    m = _DEF_RE.fullmatch(dep_str)
-    if not m:
-        raise ValueError(f"Invalid dependency format: {dep_str}")
-    act_id, dep_type_str, lag_str = m.groups()
-    dep_type = DependencyType(dep_type_str.upper()) if dep_type_str else DependencyType.FS
-    lag = Decimal(lag_str) if lag_str else ZERO
-    return PredecessorInfo(activity_id=act_id, dep_type=dep_type, lag=lag)
-
-# -----------------------------------------------------------------------------
-#  Main input parser (semicolon‑separated data)
-# -----------------------------------------------------------------------------
-
-def parse_input_data(data: str) -> List[Activity]:
-    """Parse a semicolon‑separated text block into ``Activity`` objects."""
-    df = pd.read_csv(
-        StringIO(data),
-        sep=";",
-        comment="#",
-        dtype=str,
-        keep_default_na=False,
-    )
-
-    # normalise column names
-    df.columns = df.columns.str.strip().str.lower()
-    required = {"activity", "predecessor", "duration"}
-    if not required.issubset(df.columns):
-        missing = required - set(df.columns)
-        raise ValueError(f"Missing columns: {', '.join(missing)}")
-
-    # duplication early exit
-    if df["activity"].duplicated(keep=False).any():
-        dups = df.loc[df["activity"].duplicated(keep=False), "activity"].tolist()
-        raise ValueError(f"Duplicate activity IDs: {', '.join(dups)}")
-
-    activities: Dict[str, Activity] = {}
-
-    for _, row in df.iterrows():
-        act_id = row["activity"].strip()
-        duration_str = row["duration"].strip()
-        if duration_str == "":
-            raise ValueError(f"Duration empty for activity {act_id}")
-        try:
-            duration = Decimal(duration_str)
-        except Exception:
-            raise ValueError(f"Non‑numeric duration for activity {act_id}: '{duration_str}'")
-        if duration <= ZERO:
-            raise ValueError(f"Duration must be positive for {act_id}")
-
-        pred_str = row["predecessor"].strip() or "-"
-        act = Activity(id=act_id, duration=duration, predecessors_str=pred_str)
-
-        if pred_str != "-":
-            for item in pred_str.split(","):
-                act.parsed_predecessors.append(parse_dependency(item))
-
-        activities[act_id] = act
-
-    return list(activities.values())
+from src.schedule.schedule import ProjectPlan
+from src.schedule.parse_schedule_input_data import parse_schedule_input_data
 
 class TestSchedule(unittest.TestCase):
     def test_textbook_example_all_dependency_types(self):
@@ -94,7 +23,7 @@ class TestSchedule(unittest.TestCase):
             H;F(SF2),G;3;Multiple preds (G is FS default)
         """)
 
-        plan = ProjectPlan.create(parse_input_data(input))
+        plan = ProjectPlan.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -129,7 +58,7 @@ class TestSchedule(unittest.TestCase):
             G;E(FS);5
         """)
 
-        plan = ProjectPlan.create(parse_input_data(input))
+        plan = ProjectPlan.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -161,7 +90,7 @@ class TestSchedule(unittest.TestCase):
             E;C(FS),D(FS);2
         """)
 
-        plan = ProjectPlan.create(parse_input_data(input))
+        plan = ProjectPlan.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -192,7 +121,7 @@ class TestSchedule(unittest.TestCase):
             F;D(FF3),E(FS);1                 
         """)
 
-        plan = ProjectPlan.create(parse_input_data(input))
+        plan = ProjectPlan.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -216,7 +145,7 @@ class TestSchedule(unittest.TestCase):
             A;-;1.5
             B;A(FS0.75);2.25
         """)
-        plan = ProjectPlan.create(parse_input_data(input))
+        plan = ProjectPlan.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -234,7 +163,7 @@ class TestSchedule(unittest.TestCase):
             B;A;1
         """)
         with self.assertRaises(RuntimeError):
-            ProjectPlan.create(parse_input_data(input))
+            ProjectPlan.create(parse_schedule_input_data(input))
 
     def test_dependency_type_finish_to_start(self):
         """FS = Finish to Start"""
@@ -243,7 +172,7 @@ class TestSchedule(unittest.TestCase):
             A;-;3
             B;A(FS2);4
         """)
-        plan = ProjectPlan.create(parse_input_data(input))
+        plan = ProjectPlan.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -261,7 +190,7 @@ class TestSchedule(unittest.TestCase):
             A;-;3
             B;A(FF2);4
         """)
-        plan = ProjectPlan.create(parse_input_data(input))
+        plan = ProjectPlan.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -279,7 +208,7 @@ class TestSchedule(unittest.TestCase):
             A;-;3
             B;A(SF6);4
         """)
-        plan = ProjectPlan.create(parse_input_data(input))
+        plan = ProjectPlan.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -297,7 +226,7 @@ class TestSchedule(unittest.TestCase):
             A;-;3
             B;A(SS2);4
         """)
-        plan = ProjectPlan.create(parse_input_data(input))
+        plan = ProjectPlan.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -315,7 +244,7 @@ class TestSchedule(unittest.TestCase):
             B;A(SS),A(FF2);3
         """)
 
-        plan = ProjectPlan.create(parse_input_data(input_data))
+        plan = ProjectPlan.create(parse_schedule_input_data(input_data))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
