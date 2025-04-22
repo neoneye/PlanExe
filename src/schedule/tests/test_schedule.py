@@ -1,5 +1,7 @@
 import unittest
 from decimal import Decimal
+from decimal import Decimal as D
+from src.utils.dedent_strip import dedent_strip
 from typing import Dict, List
 import re
 import pandas as pd
@@ -72,23 +74,6 @@ def parse_input_data(data: str) -> List[Activity]:
         activities[act_id] = act
 
     return list(activities.values())
-
-from decimal import Decimal as D
-import textwrap
-
-def dedent_strip(text: str) -> str:
-    """
-    Multi-line strings in Python are indented.
-    This function removes the common indent and trims leading/trailing whitespace.
-
-    Usage
-    -----
-    >>> expected = dedent_strip(\"""
-    ...     A
-    ...     B
-    ... \""")
-    """
-    return textwrap.dedent(text).strip()
 
 class TestSchedule(unittest.TestCase):
     def test_textbook_example_all_dependency_types(self):
