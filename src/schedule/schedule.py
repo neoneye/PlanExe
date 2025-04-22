@@ -1,4 +1,3 @@
-from __future__ import annotations
 """
 Scheduling of activities.
 
@@ -9,9 +8,6 @@ from collections import deque
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Type
-from datetime import date, timedelta
-import json
-import html
 
 # ────────────────────────────────────────────────────────────────────────────────
 #  Global decimal configuration  
