@@ -537,6 +537,7 @@ const gantt = new Gantt('#gantt', tasks, {{
     ) -> str:
         """
         Return a string with Graphviz DOT code describing the CPM network.
+        Critical path nodes and edges are highlighted in red with thicker lines.
 
         Parameters
         ----------
@@ -547,21 +548,79 @@ const gantt = new Gantt('#gantt', tasks, {{
             "digraph {",
             "  graph [rankdir=LR];",
             "  node  [shape=record, fontsize=11];",
+            "  edge  [fontsize=9];"  # Add default edge font size
         ]
 
-        # ── nodes -----------------------------------------------------------------
-        for a in sorted(self.activities.values(), key=lambda x: x.id):
-            content = f"{a.id} | dur: {a.duration}"
-            if include_dates:
-                content += f" | ES:{a.es} | EF:{a.ef}"
-            lines.append(f'  "{a.id}" [label="{{{content}}}"];')
+        # Identify critical activity IDs (float == 0)
+        critical_ids = {
+            a.id for a in self.activities.values()
+            if a.float is not None and a.float == ZERO
+        }
 
-        # ── edges -----------------------------------------------------------------
+        # ── nodes ─────────────────────────────────────────────────────────────────
+        for a in sorted(self.activities.values(), key=lambda x: x.id):
+            content = f"{a.id} | dur: {a.duration.normalize()}"
+            if include_dates:
+                es_str = f"{a.es.normalize()}"
+                ef_str = f"{a.ef.normalize()}"
+                content += f" | ES:{es_str} | EF:{ef_str}"
+                if a.float is not None:
+                    ls_str = f"{a.ls.normalize()}" if a.ls is not None else '?'
+                    lf_str = f"{a.lf.normalize()}" if a.lf is not None else '?'
+                    float_str = f"{a.float.normalize()}"
+                    content += f" | LS:{ls_str} | LF:{lf_str} | F:{float_str}"
+
+            node_attrs = []
+            if a.id in critical_ids:
+                node_attrs.append("color=red")
+                node_attrs.append("penwidth=3.0")
+
+            attrs_str = (", " + ", ".join(node_attrs)) if node_attrs else ""
+            lines.append(f'  "{a.id}" [label="{{{content}}}"{attrs_str}];')
+
+        # ── edges ─────────────────────────────────────────────────────────────────
         for succ in self.activities.values():
             for info in succ.parsed_predecessors:
+                pred = self.activities.get(info.activity_id)
+                if not pred: continue # Should not happen if data is valid
+
                 label = f"{info.dep_type.value}{self._lag_txt(info.lag)}"
+                edge_attrs_list = [f'label="{label}"']
+
+                # Determine if the edge is part of the critical path
+                is_critical_edge = False
+                if (pred.id in critical_ids and succ.id in critical_ids and
+                    pred.lf is not None and succ.lf is not None): # Both nodes must be critical
+
+                    lag = info.lag
+                    dep_type = info.dep_type
+
+                    # Check if this specific dependency is driving the timing
+                    # These conditions check if the relationship holds exactly,
+                    # implying it's potentially a driving constraint on the critical path.
+                    try:
+                        if dep_type == DependencyType.FS:
+                            is_critical_edge = (succ.es == pred.ef + lag)
+                        elif dep_type == DependencyType.SS:
+                            is_critical_edge = (succ.es == pred.es + lag)
+                        elif dep_type == DependencyType.FF:
+                            # Check if the backward pass calculation was driven by this link
+                            is_critical_edge = (pred.lf == succ.lf - lag)
+                        elif dep_type == DependencyType.SF:
+                            # Check if the backward pass calculation was driven by this link
+                            is_critical_edge = (pred.lf == succ.lf - lag + pred.duration)
+                    except TypeError:
+                         # Handle potential None values during comparison if logic evolves
+                         pass
+
+
+                if is_critical_edge:
+                    edge_attrs_list.append("color=red")
+                    edge_attrs_list.append("penwidth=3.0")
+
+                edge_attrs_str = ", ".join(edge_attrs_list)
                 lines.append(
-                    f'  "{info.activity_id}" -> "{succ.id}" [label="{label}"];'
+                    f'  "{info.activity_id}" -> "{succ.id}" [{edge_attrs_str}];'
                 )
 
         lines.append("}")
