@@ -520,6 +520,66 @@ const gantt = new Gantt('#gantt', tasks, {{
         with open(path, "w", encoding="utf‑8") as fp:
             fp.write(html_page)
 
+    # ── helper for nice lag text ──────────────────────────────────────────────────
+    @staticmethod
+    def _lag_txt(lag: Decimal) -> str:
+        """Return '', '2', or '-1.5' (Graphviz label)."""
+        if lag == 0:
+            return ""
+        s = str(lag.normalize())      # strip trailing zeros on Decimals
+        return s.lstrip("+")          # Graphviz label ‘FS2’ not ‘FS+2’
+
+    # ── ProjectPlan ➜ Graphviz ----------------------------------------------------
+    def to_graphviz(
+        self,
+        *,
+        include_dates: bool = False,
+    ) -> str:
+        """
+        Return a string with Graphviz DOT code describing the CPM network.
+
+        Parameters
+        ----------
+        include_dates
+            If *True*, put ES/EF in the node record alongside the duration.
+        """
+        lines: list[str] = [
+            "digraph {",
+            "  graph [rankdir=LR];",
+            "  node  [shape=record, fontsize=11];",
+        ]
+
+        # ── nodes -----------------------------------------------------------------
+        for a in sorted(self.activities.values(), key=lambda x: x.id):
+            content = f"{a.id} | dur: {a.duration}"
+            if include_dates:
+                content += f" | ES:{a.es} | EF:{a.ef}"
+            lines.append(f'  "{a.id}" [label="{{{content}}}"];')
+
+        # ── edges -----------------------------------------------------------------
+        for succ in self.activities.values():
+            for info in succ.parsed_predecessors:
+                label = f"{info.dep_type.value}{self._lag_txt(info.lag)}"
+                lines.append(
+                    f'  "{info.activity_id}" -> "{succ.id}" [label="{label}"];'
+                )
+
+        lines.append("}")
+        return "\n".join(lines)
+
+    def export_graphviz(self, path: str, **kwargs) -> None:
+        """
+        Write a `.dot` file ready for Graphviz.
+
+        Example
+        -------
+        plan.export_graphviz("network.dot")
+        # then, in a shell:
+        #   dot -Tpng network.dot -o network.png
+        """
+        with open(path, "w", encoding="utf-8") as fp:
+            fp.write(self.to_graphviz(**kwargs))
+
 # ────────────────────────────────────────────────────────────────────────────────
 #  Parsing helpers
 # ----------------------------------------------------------------------------
