@@ -7,6 +7,7 @@ If it's an already finished run, then remove the "999-pipeline_complete.txt" fil
 PROMPT> RUN_ID=PlanExe_20250216_150332 python -m src.plan.run_plan_pipeline
 """
 from datetime import datetime
+from decimal import Decimal
 import logging
 import json
 import luigi
@@ -62,6 +63,8 @@ from src.team.team_markdown_document import TeamMarkdownDocumentBuilder
 from src.team.review_team import ReviewTeam
 from src.wbs.wbs_task import WBSTask, WBSProject
 from src.wbs.wbs_populate import WBSPopulate
+from src.schedule.schedule import ProjectPlan, Activity
+from src.schedule.export_graphviz import ExportGraphviz
 from src.llm_factory import get_llm
 from src.format_json_for_use_in_query import format_json_for_use_in_query
 from src.utils.get_env_as_string import get_env_as_string
@@ -2549,6 +2552,76 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
         with self.output()['csv'].open("w") as f:
             f.write(csv_representation)
 
+class CreateScheduleTask(PlanTask):
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def output(self):
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.SCHEDULE_RAW))),
+            'graphviz_dot': luigi.LocalTarget(str(self.file_path(FilenameEnum.SCHEDULE_GRAPHVIZ_DOT)))
+        }
+    
+    def requires(self):
+        return {
+            'dependencies': IdentifyTaskDependenciesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'durations': EstimateTaskDurationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+    
+    def run(self):
+        # Read inputs from required tasks.
+        with self.input()['dependencies'].open("r") as f:
+            dependencies_dict = json.load(f)
+        with self.input()['durations'].open("r") as f:
+            durations_dict = json.load(f)
+        wbs_project_path = self.input()['wbs_project123']['full'].path
+        with open(wbs_project_path, "r") as f:
+            wbs_project_dict = json.load(f)
+        wbs_project = WBSProject.from_dict(wbs_project_dict)
+
+        print("!!!!!!!!!!!!!!!!!!! CreateScheduleTask - input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("dependencies_dict", dependencies_dict)
+        print("durations_dict", durations_dict)
+        print("wbs_project", wbs_project.to_dict())
+
+
+        # The number of hours per day is hardcoded. This should be determined by the task_duration agent. Is it 8 hours or 24 hours, or instead of days is it hours or weeks.
+        hours_per_day = 8
+        task_id_to_duration_dict = {}
+        for duration_dict in durations_dict:
+            task_id = duration_dict['task_id']
+            duration_hours = duration_dict['days_realistic'] * hours_per_day
+            task_id_to_duration_dict[task_id] = Decimal(duration_hours)
+
+        activities = []
+
+        zero = Decimal("0")
+        def visit_task(task: WBSTask):
+            task_id = task.id
+            duration = task_id_to_duration_dict.get(task_id, zero)
+            #duration = Decimal("1")
+            predecessors_str = ""
+            activity = Activity(id=task_id, duration=duration, predecessors_str=predecessors_str)
+            activities.append(activity)
+
+            for child in task.task_children:
+                visit_task(child)
+
+
+        visit_task(wbs_project.root_task)
+
+        print("!!!!!!!!!!!!!!!!!!! CreateScheduleTask - activities !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("activities", activities)
+
+        project_plan = ProjectPlan.create(activities)
+
+        print("!!!!!!!!!!!!!!!!!!! CreateScheduleTask - project_plan !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("project_plan", project_plan)
+
+        ExportGraphviz.save(project_plan, self.output()['graphviz_dot'].path)
+
+        raise Exception("Not implemented")
+
 class ReviewPlanTask(PlanTask):
     """
     Ask questions about the almost finished plan.
@@ -2801,9 +2874,10 @@ class FullPlanPipeline(PlanTask):
             'durations': EstimateTaskDurationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level3': CreateWBSLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'plan_evaluator': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'executive_summary': ExecutiveSummaryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'report': ReportTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'create_schedule': CreateScheduleTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            # 'plan_evaluator': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            # 'executive_summary': ExecutiveSummaryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            # 'report': ReportTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
 
     def output(self):
