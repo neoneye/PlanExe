@@ -64,7 +64,7 @@ from src.team.team_markdown_document import TeamMarkdownDocumentBuilder
 from src.team.review_team import ReviewTeam
 from src.wbs.wbs_task import WBSTask, WBSProject
 from src.wbs.wbs_populate import WBSPopulate
-from src.schedule.schedule import ProjectPlan, Activity
+from src.schedule.schedule import DependencyType, PredecessorInfo, ProjectPlan, Activity
 from src.schedule.export_graphviz import ExportGraphviz
 from src.llm_factory import get_llm
 from src.format_json_for_use_in_query import format_json_for_use_in_query
@@ -2596,15 +2596,25 @@ class CreateScheduleTask(PlanTask):
 
         activities = []
 
+        def clean_id(id: str) -> str:
+            """remove characters that aren't a-z"""
+            return "".join(char for char in id if char.isalpha())
+
         zero = Decimal("0")
         def visit_task(task: WBSTask, depth: int, parent_id: Optional[str]):
             task_id = task.id
             duration = task_id_to_duration_dict.get(task_id, zero)
             #duration = Decimal("1")
             predecessors_str = ""
+            pred = None
             if parent_id is not None:
-                predecessors_str = f"{parent_id}(SS)"
-            activity = Activity(id=task_id, duration=duration, predecessors_str=predecessors_str)
+                parent_id_clean = clean_id(parent_id)
+                predecessors_str = f"{parent_id_clean}(SS)"
+                pred = PredecessorInfo(activity_id=parent_id_clean, dep_type=DependencyType.SS, lag=zero)
+            activity = Activity(id=clean_id(task_id), duration=duration, predecessors_str=predecessors_str)
+
+            if pred is not None:
+                activity.parsed_predecessors.append(pred)
             activities.append(activity)
 
             if depth > 1:
