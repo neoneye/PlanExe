@@ -10,6 +10,7 @@ from datetime import datetime
 from decimal import Decimal
 import logging
 import json
+from typing import Optional
 import luigi
 from pathlib import Path
 
@@ -2596,19 +2597,24 @@ class CreateScheduleTask(PlanTask):
         activities = []
 
         zero = Decimal("0")
-        def visit_task(task: WBSTask):
+        def visit_task(task: WBSTask, depth: int, parent_id: Optional[str]):
             task_id = task.id
             duration = task_id_to_duration_dict.get(task_id, zero)
             #duration = Decimal("1")
             predecessors_str = ""
+            if parent_id is not None:
+                predecessors_str = f"{parent_id}(SS)"
             activity = Activity(id=task_id, duration=duration, predecessors_str=predecessors_str)
             activities.append(activity)
 
+            if depth > 1:
+                return
+
             for child in task.task_children:
-                visit_task(child)
+                visit_task(child, depth + 1, parent_id=task_id)
 
 
-        visit_task(wbs_project.root_task)
+        visit_task(wbs_project.root_task, 0, parent_id=None)
 
         print("!!!!!!!!!!!!!!!!!!! CreateScheduleTask - activities !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         print("activities", activities)
