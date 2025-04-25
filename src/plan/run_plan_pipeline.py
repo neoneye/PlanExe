@@ -53,6 +53,7 @@ from src.plan.identify_wbs_task_dependencies import IdentifyWBSTaskDependencies
 from src.plan.estimate_wbs_task_durations import EstimateWBSTaskDurations
 from src.plan.data_collection import DataCollection
 from src.plan.review_plan import ReviewPlan
+from src.plan.status_quo import StatusQuo
 from src.plan.executive_summary import ExecutiveSummary
 from src.team.find_team_members import FindTeamMembers
 from src.team.enrich_team_members_with_contract_type import EnrichTeamMembersWithContractType
@@ -2622,6 +2623,81 @@ class ReviewPlanTask(PlanTask):
         logger.info("Reviewed the plan.")
 
 
+class StatusQuoTask(PlanTask):
+    """
+    Create a status quo analysis of the plan.
+    """
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def output(self):
+        return {
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.STATUS_QUO_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.STATUS_QUO_MARKDOWN)))
+        }
+    
+    def requires(self):
+        return {
+            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'review_plan': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+    
+    def run(self):
+        # Read inputs from required tasks.
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+            assumptions_markdown = f.read()
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
+        with self.input()['data_collection']['markdown'].open("r") as f:
+            data_collection_markdown = f.read()
+        with self.input()['related_resources']['raw'].open("r") as f:
+            related_resources_dict = json.load(f)
+        with self.input()['swot_analysis']['markdown'].open("r") as f:
+            swot_analysis_markdown = f.read()
+        with self.input()['team_markdown'].open("r") as f:
+            team_markdown = f.read()
+        with self.input()['pitch_markdown']['markdown'].open("r") as f:
+            pitch_markdown = f.read()
+        with self.input()['expert_review'].open("r") as f:
+            expert_review = f.read()
+        with self.input()['wbs_project123']['csv'].open("r") as f:
+            wbs_project_csv = f.read()
+        with self.input()['review_plan']['markdown'].open("r") as f:
+            review_plan_markdown = f.read()
+
+        # Build the query.
+        query = (
+            f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
+            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
+            f"File 'data-collection.md':\n{data_collection_markdown}\n\n"
+            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}\n\n"
+            f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
+            f"File 'team.md':\n{team_markdown}\n\n"
+            f"File 'pitch.md':\n{pitch_markdown}\n\n"
+            f"File 'expert-review.md':\n{expert_review}\n\n"
+            f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}\n\n"
+            f"File 'review-plan.md':\n{review_plan_markdown}"
+        )
+        
+        llm = get_llm(self.llm_model)
+
+        # Create the status quo.
+        status_quo = StatusQuo.execute(llm, query)
+
+        # Save the results.
+        json_path = self.output()['raw'].path
+        status_quo.save_raw(json_path)
+        markdown_path = self.output()['markdown'].path
+        status_quo.save_markdown(markdown_path)
+
+
 class ExecutiveSummaryTask(PlanTask):
     """
     Create an executive summary of the plan.
@@ -2802,8 +2878,9 @@ class FullPlanPipeline(PlanTask):
             'wbs_level3': CreateWBSLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'plan_evaluator': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'executive_summary': ExecutiveSummaryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'report': ReportTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'status_quo': StatusQuoTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            # 'executive_summary': ExecutiveSummaryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            # 'report': ReportTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
 
     def output(self):

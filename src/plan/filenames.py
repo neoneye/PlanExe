@@ -88,6 +88,8 @@ class FilenameEnum(str, Enum):
     WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_CSV = "023-4-wbs_project_level1_and_level2_and_level3.csv"
     REVIEW_PLAN_RAW = "024-1-review_plan_raw.json"
     REVIEW_PLAN_MARKDOWN = "024-2-review_plan.md"
+    STATUS_QUO_RAW = "025-1-status_quo_raw.json"
+    STATUS_QUO_MARKDOWN = "025-2-status_quo.md"
     EXECUTIVE_SUMMARY_RAW = "025-1-executive_summary_raw.json"
     EXECUTIVE_SUMMARY_MARKDOWN = "025-2-executive_summary.md"
     REPORT = "026-report.html"
