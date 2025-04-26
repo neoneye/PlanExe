@@ -20,63 +20,108 @@ from llama_index.core.llms.llm import LLM
 logger = logging.getLogger(__name__)
 
 class DocumentDetails(BaseModel):
-    plan_sufficient_detailed: str = Field(
-        description="Is the plan sufficient and detailed enough to address the original goal or problem."
+    # ── Baseline & context ───────────────────────────────────────────────
+    status_quo_baseline: str = Field(
+        description="Concise description of the present situation the plan intends to change—this is the ‘do-nothing’ starting point."
     )
+
+    # ── Core gap analysis ────────────────────────────────────────────────
     persisting_problems: list[str] = Field(
-        description="List of the original problems or needs (that the plan aimed to solve) which will remain unaddressed if no action is taken."
+        description="Original needs/issues that remain unresolved if no action is taken."
     )
     worsening_conditions: list[str] = Field(
-        description="List of specific issues or conditions that are likely to get *worse* over time due to inaction (e.g., deteriorating assets, increasing costs, escalating risks)."
+        description="Specific conditions likely to degrade over time owing to inaction."
     )
+    new_risks: list[str] = Field(
+        description="Risks that emerge *only because* no intervention occurs."
+    )
+
+    # ── Impact catalogue ────────────────────────────────────────────────
+    impact_areas: dict[str, list[str]] = Field(
+        description=(
+            "Dictionary whose keys are impact categories "
+            "('Financial', 'Operational', 'Strategic', 'Reputational', "
+            "'Safety/Well-being', 'Legal/Compliance') and whose values "
+            "are lists of concrete, category-specific consequences of inaction."
+        )
+    )
+    quantifiable_impacts: dict[str, str] = Field(
+        description=(
+            "Rough numerical estimates for the most salient impacts "
+            "(e.g., 'Financial': '€15-20 M cost escalation', "
+            "'Safety': '~5× greater casualty likelihood'). "
+            "If not quantifiable, state 'Not quantifiable'."
+        )
+    )
+
     missed_opportunities: list[str] = Field(
-        description="List of potential benefits, advantages, or positive outcomes outlined in the plan that will be forfeited if the plan is not implemented."
+        description="Benefits outlined in the draft plan that will be forfeited."
     )
     potential_costs_of_inaction: list[str] = Field(
-        description="List of potential financial, reputational, operational, or other costs that might be incurred specifically *because* of not acting (e.g., future higher repair costs, fines, lost revenue, safety incidents)."
+        description="Direct costs (financial, reputational, operational, etc.) incurred by doing nothing."
+    )
+
+    # ── Diagnostic & meta-assessment ─────────────────────────────────────
+    plan_sufficient_detailed: str = Field(
+        description="Does the existing draft plan appear sufficiently detailed? "
+                    "Answer in one sentence (‘Yes, because …’ or ‘No, because …’)."
+    )
+    assumptions: list[str] = Field(
+        description="Key analytical assumptions made while projecting the inaction scenario."
     )
     timescale_impact: str = Field(
-        description="A brief assessment of the time horizon over which the negative consequences are likely to manifest (e.g., immediate, short-term, medium-term, long-term)."
+        description="When the major negative consequences will manifest (immediate, short, medium, long term)."
     )
+    risk_assessment: str = Field(
+        description="One-word overall risk level (Low / Medium / High / Critical) PLUS a one-sentence justification."
+    )
+
+    # ── Executive contrast & recommendation ─────────────────────────────
     summary_is_not_executed: str = Field(
-        description="A concise summary describing the situation if the proposed plan *is not* executed."
+        description="Concise narrative of the future if the plan is *not* executed."
     )
     summary_is_executed: str = Field(
-        description="A concise summary describing the situation if the proposed plan *is* executed."
+        description="Concise narrative of the future if the plan *is* executed."
     )
     recommendation: str = Field(
-        description="Go/No-go decision based on the analysis."
+        description="Single word: 'Go' or 'No-go'."
     )
     summary: str = Field(
-        description="A concise summary describing the situation if the proposed plan *is not* executed vs. *is* executed."
+        description="Side-by-side comparison (2–3 sentences) contrasting inaction vs. execution."
     )
 
 STATUS_QUO_SYSTEM_PROMPT = """
-You are a meticulous risk analyst and strategic planner. Your task is to analyze the consequences of *failing to act* on a proposed plan, creating a compelling case for why action might be necessary by highlighting the risks of the status quo.
+You are a senior risk-and-strategy analyst.  
+Given (1) the **Original Goal/Problem** and (2) a **Draft Plan**, you must model the
+*“do-nothing”* scenario and populate the JSON *exactly* according to the
+`DocumentDetails` schema that you have been provided.
 
-You will be given:
-1.  **Original Goal/Problem Description:** The initial need or objective.
-2.  **Draft Plan:** The proposed set of actions to address the goal/problem.
+***Your analysis must focus solely on the consequences of NOT executing the plan.***
+Do **not** critique the quality of the plan itself; you are describing the world
+that unfolds if the plan is ignored.
 
-Your analysis MUST focus *exclusively* on the negative outcomes, risks, missed opportunities, and worsening conditions that arise from *ignoring* the draft plan and maintaining the status quo. Do *not* evaluate the quality or feasibility of the plan itself. Your goal is to paint a clear picture of the "do nothing" scenario relative to the plan's intent.
+Follow these guidelines for each schema field:
 
-Structure your response STRICTLY according to the provided JSON schema. Ensure all fields are populated accurately based on the provided goal and plan.
+1. **status_quo_baseline** – 1–2 sentences situating the current state.
+2. **persisting_problems** – bullet-style list.
+3. **worsening_conditions** – bullet list of degradations over time.
+4. **new_risks** – risks triggered exclusively by inaction.
+5. **impact_areas** – provide a dictionary with up to six keys
+   (‘Financial’, ‘Operational’, ‘Strategic’, ‘Reputational’, ‘Safety/Well-being’,
+   ‘Legal/Compliance’).  Each value is a *list* of concrete effects.
+6. **quantifiable_impacts** – give *approximate* numbers or state
+   “Not quantifiable”.
+7. **missed_opportunities** & **potential_costs_of_inaction** – bullet lists.
+8. **plan_sufficient_detailed** – one-sentence verdict (“Yes, because …” or “No, because …”).
+9. **assumptions** – spell out the key analytical assumptions you made.
+10. **timescale_impact** – classify the horizon (immediate/short/medium/long) and
+    explain in ≤15 words.
+11. **risk_assessment** – choose **Low / Medium / High / Critical** and justify in ≤25 words.
+12. **summary_is_not_executed** & **summary_is_executed** – crisp (~40 words each) narratives.
+13. **recommendation** – “Go” if the plan *should* proceed, “No-go” if inaction seems safer.
+14. **summary** – 2–3 sentences directly contrasting both futures.
 
-**Key Areas to Address:**
-
-*   **Status Quo Baseline:** Briefly describe the current situation the plan intends to change.
-*   **Persisting Problems:** Identify which of the original issues will remain unsolved.
-*   **Worsening Conditions:** Detail how the current situation is likely to degrade over time without intervention. Think about deterioration, escalating costs, increasing complexity, decaying opportunities etc.
-*   **Impact Areas:** Categorize the impacts of inaction (Financial, Operational, Strategic, Reputational, Safety/Well-being, Legal/Compliance) providing specific examples for each based on the context.
-*   **Missed Opportunities:** List the specific benefits outlined or implied in the *plan* that will be lost.
-*   **New Risks:** Identify any *new* problems or risks that might arise specifically due to inaction (e.g., competitor actions, obsolescence, non-compliance).
-*   **Quantifiable Impacts:** Where possible, provide rough estimates of the scale of negative impacts (e.g., cost increases, time delays, market share loss). State if not quantifiable.
-*   **Timescale:** Estimate when the significant consequences of inaction will likely be felt (short, medium, long term).
-*   **Assumptions:** State any key assumptions you made about the external environment or internal factors when analyzing inaction.
-*   **Comparative Summary:** Directly contrast the likely "do nothing" outcome with the intended outcome if the plan *were* executed.
-*   **Risk Assessment:** Provide a final assessment of the overall risk level (Low, Medium, High, Critical) associated with inaction, with a brief justification.
-
-Be specific, objective, and use the context provided by the goal and the plan to inform your analysis of the status quo trajectory.
+Return *only* valid JSON matching the schema—no extra keys, no commentary.
 """
 
 @dataclass
