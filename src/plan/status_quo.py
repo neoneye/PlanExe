@@ -20,108 +20,91 @@ from llama_index.core.llms.llm import LLM
 logger = logging.getLogger(__name__)
 
 class DocumentDetails(BaseModel):
+    """Structured output describing the consequences of doing nothing."""
+
     # ── Baseline & context ───────────────────────────────────────────────
     status_quo_baseline: str = Field(
-        description="Concise description of the present situation the plan intends to change—this is the ‘do-nothing’ starting point."
+        description=(
+            "Concise, 1–2‑sentence description of the current, unmitigated situation.  "
+            "Must *not* repeat details of the draft plan itself."
+        )
     )
 
     # ── Core gap analysis ────────────────────────────────────────────────
-    persisting_problems: list[str] = Field(
-        description="Original needs/issues that remain unresolved if no action is taken."
-    )
-    worsening_conditions: list[str] = Field(
-        description="Specific conditions likely to degrade over time owing to inaction."
-    )
-    new_risks: list[str] = Field(
-        description="Risks that emerge *only because* no intervention occurs."
-    )
+    persisting_problems: list[str] = Field(..., description="Unresolved original issues if no action is taken.")
+    worsening_conditions: list[str] = Field(..., description="Conditions that will degrade over time without intervention.")
+    new_risks: list[str] = Field(..., description="Risks arising *specifically* from inaction.")
 
     # ── Impact catalogue ────────────────────────────────────────────────
     impact_areas: dict[str, list[str]] = Field(
+        ...,
         description=(
-            "Dictionary whose keys are impact categories "
-            "('Financial', 'Operational', 'Strategic', 'Reputational', "
-            "'Safety/Well-being', 'Legal/Compliance') and whose values "
-            "are lists of concrete, category-specific consequences of inaction."
-        )
+            "Dictionary whose keys are the six recognised impact categories —  \n"
+            "  Financial, Operational, Strategic, Reputational, Safety/Well-being, Legal/Compliance —  \n"
+            "and whose values are lists of concrete consequences of inaction."),
     )
     quantifiable_impacts: dict[str, str] = Field(
+        ...,
         description=(
-            "Rough numerical estimates for the most salient impacts "
-            "(e.g., 'Financial': '€15-20 M cost escalation', "
-            "'Safety': '~5× greater casualty likelihood'). "
-            "If not quantifiable, state 'Not quantifiable'."
-        )
+            "Approximate numerics for the same keys used in *impact_areas*.  \n"
+            "Keys *must match exactly*; value 'Not quantifiable' is acceptable when numbers cannot be estimated."),
     )
 
-    missed_opportunities: list[str] = Field(
-        description="Benefits outlined in the draft plan that will be forfeited."
-    )
-    potential_costs_of_inaction: list[str] = Field(
-        description="Direct costs (financial, reputational, operational, etc.) incurred by doing nothing."
-    )
+    # ── Lost upside & direct costs ───────────────────────────────────────
+    missed_opportunities: list[str] = Field(..., description="Benefits forfeited by doing nothing.")
+    potential_costs_of_inaction: list[str] = Field(..., description="Direct costs incurred through inaction.")
 
-    # ── Diagnostic & meta-assessment ─────────────────────────────────────
+    # ── Diagnostic verdicts ──────────────────────────────────────────────
     plan_sufficient_detailed: str = Field(
-        description="Does the existing draft plan appear sufficiently detailed? "
-                    "Answer in one sentence (‘Yes, because …’ or ‘No, because …’)."
+        ..., description="One‑sentence verdict: ‘Yes, because …’ or ‘No, because …’."
     )
-    assumptions: list[str] = Field(
-        description="Key analytical assumptions made while projecting the inaction scenario."
-    )
+    assumptions: list[str] = Field(..., description="Key analytical assumptions.")
     timescale_impact: str = Field(
-        description="When the major negative consequences will manifest (immediate, short, medium, long term)."
+        ..., description="<=15 words indicating when major negative effects emerge (immediate / short / medium / long)."
     )
     risk_assessment: str = Field(
-        description="One-word overall risk level (Low / Medium / High / Critical) PLUS a one-sentence justification."
+        ..., description="Overall risk rating (Low/Medium/High/Critical) + justification in <=25 words."
     )
 
-    # ── Executive contrast & recommendation ─────────────────────────────
-    summary_is_not_executed: str = Field(
-        description="Concise narrative of the future if the plan is *not* executed."
-    )
-    summary_is_executed: str = Field(
-        description="Concise narrative of the future if the plan *is* executed."
-    )
-    recommendation: str = Field(
-        description="Single word: 'Go' or 'No-go'."
-    )
-    summary: str = Field(
-        description="Side-by-side comparison (2–3 sentences) contrasting inaction vs. execution."
-    )
+    # ── Executive contrast & decision ───────────────────────────────────
+    summary_is_not_executed: str = Field(..., description="~40‑word narrative of the future if plan is *not* executed.")
+    summary_is_executed: str = Field(..., description="~40‑word narrative of the future if plan *is* executed.")
+    recommendation: str = Field(..., description="Single word: 'Go' or 'No-go'.")
+    summary: str = Field(..., description="2–3 sentence contrast of inaction vs. execution.")
 
 STATUS_QUO_SYSTEM_PROMPT = """
-You are a senior risk-and-strategy analyst.  
-Given (1) the **Original Goal/Problem** and (2) a **Draft Plan**, you must model the
-*“do-nothing”* scenario and populate the JSON *exactly* according to the
-`DocumentDetails` schema that you have been provided.
+You are a senior risk‑and‑strategy analyst.  
+Given (1) the **Original Goal/Problem** and (2) a **Draft Plan**, you must model
+and describe the *“do‑nothing”* scenario.  Output **only** JSON that complies
+exactly with the `DocumentDetails` schema.
 
-***Your analysis must focus solely on the consequences of NOT executing the plan.***
-Do **not** critique the quality of the plan itself; you are describing the world
-that unfolds if the plan is ignored.
+**Scope:** Describe consequences, risks, costs, and lost upside if the plan is
+ignored. **Do not** critique the plan’s feasibility; assume it *could* work if
+implemented.
 
-Follow these guidelines for each schema field:
+Populate each field as follows:
 
-1. **status_quo_baseline** – 1–2 sentences situating the current state.
-2. **persisting_problems** – bullet-style list.
-3. **worsening_conditions** – bullet list of degradations over time.
-4. **new_risks** – risks triggered exclusively by inaction.
-5. **impact_areas** – provide a dictionary with up to six keys
-   (‘Financial’, ‘Operational’, ‘Strategic’, ‘Reputational’, ‘Safety/Well-being’,
-   ‘Legal/Compliance’).  Each value is a *list* of concrete effects.
-6. **quantifiable_impacts** – give *approximate* numbers or state
-   “Not quantifiable”.
-7. **missed_opportunities** & **potential_costs_of_inaction** – bullet lists.
-8. **plan_sufficient_detailed** – one-sentence verdict (“Yes, because …” or “No, because …”).
-9. **assumptions** – spell out the key analytical assumptions you made.
-10. **timescale_impact** – classify the horizon (immediate/short/medium/long) and
-    explain in ≤15 words.
-11. **risk_assessment** – choose **Low / Medium / High / Critical** and justify in ≤25 words.
-12. **summary_is_not_executed** & **summary_is_executed** – crisp (~40 words each) narratives.
-13. **recommendation** – “Go” if the plan *should* proceed, “No-go” if inaction seems safer.
-14. **summary** – 2–3 sentences directly contrasting both futures.
+1. **status_quo_baseline** – 1–2 sentences on current unmitigated state.
+2. **persisting_problems / worsening_conditions / new_risks** – bullet lists.
+3. **impact_areas** – dict with *exactly* these six keys:  
+   Financial · Operational · Strategic · Reputational · Safety/Well-being · Legal/Compliance.  
+   Each value: 2–4 concrete consequences.
+4. **quantifiable_impacts** – same six keys, each with a rough numeric impact
+   (ranges or percentage change).  Use "Not quantifiable" when necessary.
+5. **missed_opportunities** & **potential_costs_of_inaction** – bullet lists.
+6. **plan_sufficient_detailed** – one sentence verdict.
+7. **assumptions** – list main assumptions driving the analysis.
+8. **timescale_impact** – ≤15 words; specify horizon(s).
+9. **risk_assessment** – Low / Medium / High / Critical + ≤25‑word rationale.
+10. **summary_is_not_executed** & **summary_is_executed** – crisp ~40‑word
+    narratives each.
+11. **recommendation** – "Go" if plan should proceed; otherwise "No-go".
+12. **summary** – 2–3 sentences directly contrasting both futures.
 
-Return *only* valid JSON matching the schema—no extra keys, no commentary.
+**Validation rules**
+• Keys in `quantifiable_impacts` must *exactly match* those in `impact_areas`.  
+• Maintain JSON compliance; no extra keys, no commentary.  
+• Respect word‑count limits.
 """
 
 @dataclass
