@@ -106,25 +106,25 @@ TASK ► Analyze the provided **Draft Plan** and the **Original Goal/Problem** i
 Follow these field instructions precisely:
   1. project_goal_summary: ≤30 words summarizing the core aim of the *planned project being abandoned*.
   2. inaction_baseline_summary: ≤50 words describing the likely state *without* this specific planned project.
-  3. strategic_positioning_consequences: Impacts on competitive standing, influence, etc., *if abandoned*.
+  3. strategic_positioning_consequences: Impacts on competitive standing, market position, influence, standard-setting, or strategic alignment *if abandoned*. **Explicitly mention loss of leadership or falling behind key competitors/alternatives if implied by the plan context.**
   4. capability_development_consequences: Impacts on skills, tech, resources *if abandoned*.
   5. economic_financial_consequences: Savings vs. opportunity costs *if abandoned*.
   6. knowledge_objective_consequences: Knowledge gaps, unaddressed objectives *if abandoned*.
   7. risks_avoided_by_inaction: Specific risks *from the plan* that are avoided by cancellation. Frame as risks *not* incurred or 'risk reduction opportunities' gained by inaction.
   8. stakeholder_impact_summary: Net effect on *identified stakeholders* (infer from plan). Explicitly consider the "Winners/Losers" dynamic in your assessment *if abandoned*.
-  9. quantifiable_impacts_of_inaction: Rough ranges for consequences of *abandonment*. Use "Not readily quantifiable" if needed. **Avoid excessive speculation.**
+  9. quantifiable_impacts_of_inaction: Rough ranges/estimates for consequences of *abandonment*. Use 'Not readily quantifiable' if needed. **Explicitly label highly speculative figures (e.g., very long-term revenue projections, precise market share shifts far in the future) by appending `(highly speculative)` after the figure/statement.** Avoid excessive speculation elsewhere.
  10. missed_opportunities: Key opportunities forgone *by abandonment*.
  11. status_quo_assumptions: Assumptions about the relevant environment *without* this project.
  12. key_inflection_points: Future external events/milestones that inaction makes the entity vulnerable or reactive to. These are points where the cost of inaction might become clearer.
  13. timescale_impact: Horizon + ≤15 words for when abandonment impacts manifest.
  14. overall_assessment_of_inaction: "Level – justification ≤20 words" assessing severity of *abandonment*.
- 15. summary_if_project_abandoned: ~40 words describing the future *without* the planned project.
- 16. summary_if_project_executed_successfully: ~40 words describing the potential *positive* future *with* a successful execution of the plan (acknowledging its inherent risks).
- 17. recommendation_rationale: **1-2 sentences explaining the final recommendation.** Compare the potential rewards (if successful according to plan) against the plan's inherent risks *and* the consequences of abandonment.
+ 15. summary_if_project_abandoned: ~40 words describing the future *without* the planned project. **Clearly state the potential loss of strategic advantage or leadership position, implying falling behind if applicable.**
+ 16. summary_if_project_executed_successfully: ~40 words describing the potential *positive* future *with* a successful execution of the plan (acknowledging its inherent risks), implying leadership or advantage.
+ 17. recommendation_rationale: **1-2 sentences explaining the final recommendation.** Compare the potential rewards (if successful according to plan) against the plan's inherent risks *and* the consequences of abandonment (including potential loss of leadership).
  18. recommendation: **Provide ONE word: 'Proceed' or 'Abandon'.** This MUST logically follow from the `recommendation_rationale`.
        • "Proceed" → The potential benefits of successful execution (despite plan risks) appear greater than the downsides of abandonment.
        • "Abandon" → The downsides of abandonment appear less severe than the high risks/costs associated with attempting the project (as described in the plan), even considering its potential rewards.
- 19. summary: 2–3 sentences directly contrasting the *abandonment* future vs. the *potential successful execution* future based on the plan's context.
+ 19. summary: 2–3 sentences directly contrasting the *abandonment* future (potentially including falling behind or ceding leadership) vs. the *potential successful execution* future (implying leadership/advantage) based on the plan's context.
 
 OUTPUT ► Return only valid JSON matching the schema. No extra keys or comments.
 """
