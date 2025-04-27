@@ -49,15 +49,15 @@ class DocumentDetails(BaseModel):
         description="Bullet points. Specific knowledge gaps, research questions, learning opportunities, or secondary objectives that remain unaddressed due to abandonment."
     )
     risks_avoided_by_inaction: list[str] = Field(
-        description="Bullet points. Specific risks inherent in the *planned project* (e.g., technical failure, financial loss, negative side-effects) that are *avoided* by not proceeding."
+        description="Bullet points. Specific risks inherent in the *planned project* (e.g., technical failure, financial loss, negative side-effects) that are *avoided* by not proceeding. Consider this the 'risk reduction' achieved through inaction."
     )
 
     # -- Impact & Stakeholder Summary --
     stakeholder_impact_summary: dict[str, str] = Field(
-        description="Key/value pairs. Briefly describe the net effect (positive, negative, mixed) on key identified stakeholders (individuals, groups, organizations) if the project is abandoned. Infer stakeholders from plan context."
+        description="Key/value pairs. Describe the net effect (positive, negative, mixed - consider 'Winners/Losers') on key identified stakeholders (individuals, groups, organizations) if the project is abandoned. Infer stakeholders from plan context."
     )
     quantifiable_impacts_of_inaction: dict[str, str] = Field(
-        description="Key/value pairs for relevant impact dimensions (e.g., Financial, Time, Market Share). Rough ranges/estimates for consequences of *abandonment*. Use 'Not readily quantifiable' if needed."
+        description="Key/value pairs for relevant impact dimensions (e.g., Financial, Time, Market Share). Rough ranges/estimates for consequences of *abandonment*. Use 'Not readily quantifiable' if needed. Be cautious with speculation."
     )
     missed_opportunities: list[str] = Field(
         description="Bullet points. Key strategic, developmental, financial, or learning opportunities forgone by abandoning the project."
@@ -67,8 +67,8 @@ class DocumentDetails(BaseModel):
     status_quo_assumptions: list[str] = Field(
         description="Bullet points. Key assumptions about the relevant environment or domain *without* this specific project proceeding (e.g., competitor actions, market trends, resource availability)."
     )
-    key_future_milestones_or_events: list[str] = Field(
-        description="Bullet points. Future events, milestones, or competitor actions that inaction makes the entity vulnerable to or reactive towards. Infer context from plan."
+    key_inflection_points: list[str] = Field(
+        description="Bullet points. Future events, milestones, competitor actions, or market shifts that inaction makes the entity vulnerable to or reactive towards. Represents points where the cost of inaction becomes more apparent."
     )
     timescale_impact: str = Field(
         description="Horizon keyword (e.g., Short-term, Mid-term, Long-term) + ≤15 words. Timescale over which the main consequences of inaction will manifest."
@@ -85,7 +85,7 @@ class DocumentDetails(BaseModel):
         description="~40 words. Concise summary of the potential positive future state if the planned project *is* pursued and overcomes its challenges successfully (as implied by the plan)."
     )
     recommendation_rationale: str = Field(
-        description="1-2 sentences. Briefly explain the reasoning for the final recommendation based on the comparison of risks, potential rewards, and consequences of inaction."
+        description="1-2 sentences. Briefly explain the reasoning for the final recommendation based on the comparison of risks (inherent in plan), potential rewards (if plan succeeds), and consequences of inaction/abandonment."
     )
     recommendation: str = Field(
         description="Single word: 'Proceed' or 'Abandon'. Must be consistent with the rationale."
@@ -110,20 +110,20 @@ Follow these field instructions precisely:
   4. capability_development_consequences: Impacts on skills, tech, resources *if abandoned*.
   5. economic_financial_consequences: Savings vs. opportunity costs *if abandoned*.
   6. knowledge_objective_consequences: Knowledge gaps, unaddressed objectives *if abandoned*.
-  7. risks_avoided_by_inaction: Specific risks *from the plan* that are avoided by cancellation.
-  8. stakeholder_impact_summary: Net effect on *identified stakeholders* (infer from plan) *if abandoned*.
-  9. quantifiable_impacts_of_inaction: Rough ranges for consequences of *abandonment*. Use "Not readily quantifiable" if needed.
+  7. risks_avoided_by_inaction: Specific risks *from the plan* that are avoided by cancellation. Frame as risks *not* incurred or 'risk reduction opportunities' gained by inaction.
+  8. stakeholder_impact_summary: Net effect on *identified stakeholders* (infer from plan). Explicitly consider the "Winners/Losers" dynamic in your assessment *if abandoned*.
+  9. quantifiable_impacts_of_inaction: Rough ranges for consequences of *abandonment*. Use "Not readily quantifiable" if needed. **Avoid excessive speculation.**
  10. missed_opportunities: Key opportunities forgone *by abandonment*.
  11. status_quo_assumptions: Assumptions about the relevant environment *without* this project.
- 12. key_future_milestones_or_events: External events inaction leaves the entity vulnerable to (infer context).
+ 12. key_inflection_points: Future external events/milestones that inaction makes the entity vulnerable or reactive to. These are points where the cost of inaction might become clearer.
  13. timescale_impact: Horizon + ≤15 words for when abandonment impacts manifest.
  14. overall_assessment_of_inaction: "Level – justification ≤20 words" assessing severity of *abandonment*.
  15. summary_if_project_abandoned: ~40 words describing the future *without* the planned project.
  16. summary_if_project_executed_successfully: ~40 words describing the potential *positive* future *with* a successful execution of the plan (acknowledging its inherent risks).
- 17. recommendation_rationale: **1-2 sentences explaining the final recommendation.** Compare the potential rewards (if successful) against the plan's inherent risks *and* the consequences of abandonment.
+ 17. recommendation_rationale: **1-2 sentences explaining the final recommendation.** Compare the potential rewards (if successful according to plan) against the plan's inherent risks *and* the consequences of abandonment.
  18. recommendation: **Provide ONE word: 'Proceed' or 'Abandon'.** This MUST logically follow from the `recommendation_rationale`.
-       • "Proceed" → The potential benefits of successful execution (despite risks) appear greater than the downsides of abandonment.
-       • "Abandon" → The downsides of abandonment appear less severe than the high risks/costs associated with attempting the project, even considering its potential rewards.
+       • "Proceed" → The potential benefits of successful execution (despite plan risks) appear greater than the downsides of abandonment.
+       • "Abandon" → The downsides of abandonment appear less severe than the high risks/costs associated with attempting the project (as described in the plan), even considering its potential rewards.
  19. summary: 2–3 sentences directly contrasting the *abandonment* future vs. the *potential successful execution* future based on the plan's context.
 
 OUTPUT ► Return only valid JSON matching the schema. No extra keys or comments.
