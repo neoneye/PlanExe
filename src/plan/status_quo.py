@@ -1,11 +1,16 @@
 """
 Status Quo Scenario - The risk of not acting.
 
+- Do-Nothing Scenario
+- Consequences of Inaction
+- Inaction Scenario Analysis
+- Justification for Project
+
 Outlining the consequences of doing nothing. What happens if the big project is cancelled or not pursued? Exploring the consequences of project abandonment.
 
 Present a "do-nothing baseline" vs. the draft plan outcomes.
 
-I imagine these steps:
+Follows roughly these steps:
 1. Identifying assumptions about what will happen if the project is not pursued.
 2. Exploring the consequences of the project not being pursued.
 3. Presenting the status quo baseline vs. the draft plan outcomes.
