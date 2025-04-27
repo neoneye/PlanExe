@@ -30,7 +30,7 @@ Follows roughly these steps:
 2. Exploring the consequences of the project not being pursued.
 3. Presenting the status quo baseline vs. the draft plan outcomes.
 
-PROMPT> python -m src.plan.status_quo
+PROMPT> python -m src.plan.no_action_scenario
 """
 import os
 import json
@@ -151,7 +151,7 @@ OUTPUT ► Return only valid JSON matching the schema. No extra keys or comments
 """
 
 @dataclass
-class StatusQuo:
+class NoActionScenario:
     """
     Take a look at the draft plan and present the status quo scenario.
     """
@@ -162,7 +162,7 @@ class StatusQuo:
     markdown: str
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'StatusQuo':
+    def execute(cls, llm: LLM, user_prompt: str) -> 'NoActionScenario':
         """
         Invoke LLM with the project description.
         """
@@ -209,7 +209,7 @@ class StatusQuo:
 
         markdown = cls.convert_to_markdown(chat_response.raw)
 
-        result = StatusQuo(
+        result = NoActionScenario(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
@@ -260,9 +260,9 @@ if __name__ == "__main__":
     )
     print(f"Query: {query}")
 
-    physical_locations = StatusQuo.execute(llm, query)
-    json_response = physical_locations.to_dict(include_system_prompt=False, include_user_prompt=False)
+    no_action_scenario = NoActionScenario.execute(llm, query)
+    json_response = no_action_scenario.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
 
-    print(f"\n\nMarkdown:\n{physical_locations.markdown}")
+    print(f"\n\nMarkdown:\n{no_action_scenario.markdown}")

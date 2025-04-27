@@ -53,7 +53,7 @@ from src.plan.identify_wbs_task_dependencies import IdentifyWBSTaskDependencies
 from src.plan.estimate_wbs_task_durations import EstimateWBSTaskDurations
 from src.plan.data_collection import DataCollection
 from src.plan.review_plan import ReviewPlan
-from src.plan.status_quo import StatusQuo
+from src.plan.no_action_scenario import NoActionScenario
 from src.plan.executive_summary import ExecutiveSummary
 from src.team.find_team_members import FindTeamMembers
 from src.team.enrich_team_members_with_contract_type import EnrichTeamMembersWithContractType
@@ -2623,16 +2623,16 @@ class ReviewPlanTask(PlanTask):
         logger.info("Reviewed the plan.")
 
 
-class StatusQuoTask(PlanTask):
+class NoActionScenarioTask(PlanTask):
     """
-    Create a status quo analysis of the plan.
+    Create a no-action scenario analysis of the plan.
     """
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.STATUS_QUO_RAW))),
-            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.STATUS_QUO_MARKDOWN)))
+            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.NO_ACTION_SCENARIO_RAW))),
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.NO_ACTION_SCENARIO_MARKDOWN)))
         }
     
     def requires(self):
@@ -2688,14 +2688,14 @@ class StatusQuoTask(PlanTask):
         
         llm = get_llm(self.llm_model)
 
-        # Create the status quo.
-        status_quo = StatusQuo.execute(llm, query)
+        # Analyze the no-action scenario.
+        no_action_scenario = NoActionScenario.execute(llm, query)
 
         # Save the results.
         json_path = self.output()['raw'].path
-        status_quo.save_raw(json_path)
+        no_action_scenario.save_raw(json_path)
         markdown_path = self.output()['markdown'].path
-        status_quo.save_markdown(markdown_path)
+        no_action_scenario.save_markdown(markdown_path)
 
 
 class ExecutiveSummaryTask(PlanTask):
@@ -2878,7 +2878,7 @@ class FullPlanPipeline(PlanTask):
             'wbs_level3': CreateWBSLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'plan_evaluator': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'status_quo': StatusQuoTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'no_action_scenario': NoActionScenarioTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             # 'executive_summary': ExecutiveSummaryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             # 'report': ReportTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
