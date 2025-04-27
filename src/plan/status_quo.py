@@ -5,6 +5,11 @@ Outlining the consequences of doing nothing. What happens if the big project is 
 
 Present a "do-nothing baseline" vs. the draft plan outcomes.
 
+I imagine these steps:
+1. Identifying assumptions about what will happen if the project is not pursued.
+2. Exploring the consequences of the project not being pursued.
+3. Presenting the status quo baseline vs. the draft plan outcomes.
+
 PROMPT> python -m src.plan.status_quo
 """
 import os
