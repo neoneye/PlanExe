@@ -1,9 +1,24 @@
 """
 Status Quo Scenario - The risk of not acting.
 
+- No-Action Scenario (straightforward and common in project management)
 - Do-Nothing Scenario
-- Consequences of Inaction
+- Baseline Scenario (neutral and clear, commonly understood in strategic contexts)
+- Inaction Analysis
 - Inaction Scenario Analysis
+- Business-as-Usual Scenario
+- Standstill Scenario
+- Consequences of No Change
+- Consequences of Inaction (directly emphasizes negative implications)
+- Passive Scenario
+- Static Scenario
+- Current Path Scenario
+- Implications of Non-Action
+- Default Future Scenario
+- Do-Nothing Baseline (explicitly highlights the comparison to the action scenario)
+- Project Abandonment Scenario
+- Risk of Inertia Scenario
+- Future Without Project (very clear, intuitive wording emphasizing future states clearly)
 - Justification for Project
 
 Outlining the consequences of doing nothing. What happens if the big project is cancelled or not pursued? Exploring the consequences of project abandonment.
