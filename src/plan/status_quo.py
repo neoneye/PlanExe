@@ -1,7 +1,7 @@
 """
 Status Quo Scenario - The risk of not acting.
 
-Outlining the consequences of doing nothing.
+Outlining the consequences of doing nothing. What happens if the big project is cancelled or not pursued? Exploring the consequences of project abandonment.
 
 Present a "do-nothing baseline" vs. the draft plan outcomes.
 
