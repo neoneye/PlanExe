@@ -2600,10 +2600,6 @@ class CreateScheduleTask(PlanTask):
 
         activities = []
 
-        def clean_id(id: str) -> str:
-            """remove characters that aren't a-z"""
-            return "".join(char for char in id if char.isalpha())
-
         zero = Decimal("0")
         def visit_task(task: WBSTask, depth: int, parent_id: Optional[str], prev_task_id: Optional[str], is_first_child: bool, is_last_child: bool):
             task_id = task.id
@@ -2617,30 +2613,27 @@ class CreateScheduleTask(PlanTask):
             pred_prev = None
             if is_first_child:
                 if parent_id is not None:
-                    parent_id_clean = clean_id(parent_id)
-                    predecessors_str = f"{parent_id_clean}(SS)"
+                    predecessors_str = f"{parent_id}(SS)"
                     # lag = Decimal(random.randint(0, 10))
                     lag = zero
-                    pred_first_child = PredecessorInfo(activity_id=parent_id_clean, dep_type=DependencyType.SS, lag=lag)
+                    pred_first_child = PredecessorInfo(activity_id=parent_id, dep_type=DependencyType.SS, lag=lag)
             if is_last_child:
                 if parent_id is not None:
-                    parent_id_clean = clean_id(parent_id)
-                    predecessors_str = f"{parent_id_clean}(FF)"
+                    predecessors_str = f"{parent_id}(FF)"
                     # lag = Decimal(random.randint(0, 10))
                     lag = zero
-                    pred_last_child = PredecessorInfo(activity_id=parent_id_clean, dep_type=DependencyType.FF, lag=lag)
+                    pred_last_child = PredecessorInfo(activity_id=parent_id, dep_type=DependencyType.FF, lag=lag)
 
             if prev_task_id is not None:
-                prev_task_id_clean = clean_id(prev_task_id)
                 predecessors_str = f"{prev_task_id}(SS)"
                 # lag = Decimal(random.randint(0, 10))
                 lag = zero
-                pred_prev = PredecessorInfo(activity_id=prev_task_id_clean, dep_type=DependencyType.FS, lag=lag)
+                pred_prev = PredecessorInfo(activity_id=prev_task_id, dep_type=DependencyType.FS, lag=lag)
 
-            activity = Activity(id=clean_id(task_id), duration=duration, predecessors_str=predecessors_str, title=task.description)
+            activity = Activity(id=task_id, duration=duration, predecessors_str=predecessors_str, title=task.description)
 
             if parent_id is not None:
-                activity.parent_id = clean_id(parent_id)
+                activity.parent_id = parent_id
 
             if pred_first_child is not None:
                 activity.parsed_predecessors.append(pred_first_child)
