@@ -138,12 +138,34 @@ class ExportDHTMLXGantt:
         height: 80vh;
         border: 1px solid #ccc;
         border-radius: .5rem;
+        margin-bottom: 1rem;
+    }}
+    .zoom-controls {{
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+    }}
+    .zoom-controls button {{
+        padding: 0.5rem 1rem;
+        border: 1px solid #ccc;
+        border-radius: 0.25rem;
+        background: white;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }}
+    .zoom-controls button:hover {{
+        background: #f5f5f5;
     }}
   </style>
 </head>
 <body>
 <h1>{html.escape(title)}</h1>
 <div id="gantt_container" class="gantt_container"></div>
+<div class="zoom-controls">
+    <button onclick="zoomFit()">Zoom Fit</button>
+    <button onclick="zoomIn()">Zoom In</button>
+    <button onclick="zoomOut()">Zoom Out</button>
+</div>
 
 <script>
     // Initialize Gantt
@@ -167,6 +189,115 @@ class ExportDHTMLXGantt:
     const gantt_data = {gantt_data_json};
     gantt.init("gantt_container");
     gantt.parse(gantt_data);
+
+    // Zoom functions
+    function zoomFit() {{
+        const tasks = gantt.getTaskByTime();
+        if (tasks.length > 0) {{
+            const firstTask = tasks[0];
+            const lastTask = tasks[tasks.length - 1];
+            gantt.showDate(firstTask.start_date);
+            
+            // Calculate total duration in days
+            const startDate = new Date(firstTask.start_date);
+            const endDate = new Date(lastTask.end_date);
+            const durationDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
+            
+            // Choose appropriate scale based on duration
+            if (durationDays > 3650) {{ // More than 10 years
+                gantt.config.scale_unit = "year";
+                gantt.config.step = 10;
+                gantt.config.subscales = [
+                    {{unit: "year", step: 1, date: "%Y"}}
+                ];
+            }} else if (durationDays > 365) {{ // More than 1 year
+                gantt.config.scale_unit = "year";
+                gantt.config.step = 1;
+                gantt.config.subscales = [
+                    {{unit: "month", step: 1, date: "%M"}}
+                ];
+            }} else if (durationDays > 30) {{ // More than 1 month
+                gantt.config.scale_unit = "month";
+                gantt.config.step = 1;
+                gantt.config.subscales = [
+                    {{unit: "day", step: 1, date: "%d"}}
+                ];
+            }} else if (durationDays > 7) {{ // More than 1 week
+                gantt.config.scale_unit = "week";
+                gantt.config.step = 1;
+                gantt.config.subscales = [
+                    {{unit: "day", step: 1, date: "%d"}}
+                ];
+            }} else {{
+                gantt.config.scale_unit = "day";
+                gantt.config.step = 1;
+                gantt.config.subscales = [];
+            }}
+            gantt.render();
+        }}
+    }}
+
+    function zoomIn() {{
+        const currentUnit = gantt.config.scale_unit;
+        const currentStep = gantt.config.step;
+        
+        if (currentUnit === "year" && currentStep === 10) {{
+            gantt.config.scale_unit = "year";
+            gantt.config.step = 1;
+            gantt.config.subscales = [
+                {{unit: "month", step: 1, date: "%M"}}
+            ];
+        }} else if (currentUnit === "year") {{
+            gantt.config.scale_unit = "month";
+            gantt.config.step = 1;
+            gantt.config.subscales = [
+                {{unit: "day", step: 1, date: "%d"}}
+            ];
+        }} else if (currentUnit === "month") {{
+            gantt.config.scale_unit = "week";
+            gantt.config.step = 1;
+            gantt.config.subscales = [
+                {{unit: "day", step: 1, date: "%d"}}
+            ];
+        }} else if (currentUnit === "week") {{
+            gantt.config.scale_unit = "day";
+            gantt.config.step = 1;
+            gantt.config.subscales = [];
+        }}
+        gantt.render();
+    }}
+
+    function zoomOut() {{
+        const currentUnit = gantt.config.scale_unit;
+        const currentStep = gantt.config.step;
+        
+        if (currentUnit === "day") {{
+            gantt.config.scale_unit = "week";
+            gantt.config.step = 1;
+            gantt.config.subscales = [
+                {{unit: "day", step: 1, date: "%d"}}
+            ];
+        }} else if (currentUnit === "week") {{
+            gantt.config.scale_unit = "month";
+            gantt.config.step = 1;
+            gantt.config.subscales = [
+                {{unit: "day", step: 1, date: "%d"}}
+            ];
+        }} else if (currentUnit === "month") {{
+            gantt.config.scale_unit = "year";
+            gantt.config.step = 1;
+            gantt.config.subscales = [
+                {{unit: "month", step: 1, date: "%M"}}
+            ];
+        }} else if (currentUnit === "year") {{
+            gantt.config.scale_unit = "year";
+            gantt.config.step = 10;
+            gantt.config.subscales = [
+                {{unit: "year", step: 1, date: "%Y"}}
+            ];
+        }}
+        gantt.render();
+    }}
 </script>
 </body>
 </html>"""
