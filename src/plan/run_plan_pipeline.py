@@ -2607,8 +2607,10 @@ class CreateScheduleTask(PlanTask):
         zero = Decimal("0")
         def visit_task(task: WBSTask, depth: int, parent_id: Optional[str], prev_task_id: Optional[str]):
             task_id = task.id
-            duration = task_id_to_duration_dict.get(task_id, zero)
-            #duration = Decimal("1")
+            duration = task_id_to_duration_dict.get(task_id)
+            if duration is None:
+                logger.warning(f"Duration is None for task {task_id}")
+                duration = Decimal("1")
             predecessors_str = ""
             pred_parent = None
             pred_prev = None
@@ -2624,12 +2626,12 @@ class CreateScheduleTask(PlanTask):
                 predecessors_str = f"{prev_task_id}(SS)"
                 # lag = Decimal(random.randint(0, 10))
                 lag = zero
-                pred_prev = PredecessorInfo(activity_id=prev_task_id_clean, dep_type=DependencyType.SF, lag=lag)
+                pred_prev = PredecessorInfo(activity_id=prev_task_id_clean, dep_type=DependencyType.FS, lag=lag)
 
             activity = Activity(id=clean_id(task_id), duration=duration, predecessors_str=predecessors_str, title=task.description)
 
-            if pred_parent is not None:
-                activity.parsed_predecessors.append(pred_parent)
+            # if pred_parent is not None:
+            #     activity.parsed_predecessors.append(pred_parent)
             if pred_prev is not None:
                 activity.parsed_predecessors.append(pred_prev)
 
