@@ -148,10 +148,10 @@ class ExportDHTMLXGantt:
 <script>
     // Initialize Gantt
     gantt.config.date_format = "%Y-%m-%d";
-    gantt.config.scale_unit = "day";
+    gantt.config.scale_unit = "month";
     gantt.config.step = 1;
     gantt.config.subscales = [
-        {{unit: "day", step: 1, date: "%d %M"}}
+        {{unit: "day", step: 1, date: "%d"}}
     ];
     
     // Configure tooltips
