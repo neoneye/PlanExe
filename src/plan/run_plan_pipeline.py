@@ -2605,7 +2605,7 @@ class CreateScheduleTask(PlanTask):
             return "".join(char for char in id if char.isalpha())
 
         zero = Decimal("0")
-        def visit_task(task: WBSTask, depth: int, parent_id: Optional[str], prev_task_id: Optional[str]):
+        def visit_task(task: WBSTask, depth: int, parent_id: Optional[str], prev_task_id: Optional[str], is_first_child: bool, is_last_child: bool):
             task_id = task.id
             duration = task_id_to_duration_dict.get(task_id)
             if duration is None:
@@ -2614,12 +2614,13 @@ class CreateScheduleTask(PlanTask):
             predecessors_str = ""
             pred_parent = None
             pred_prev = None
-            if parent_id is not None:
-                parent_id_clean = clean_id(parent_id)
-                predecessors_str = f"{parent_id_clean}(SS)"
-                # lag = Decimal(random.randint(0, 10))
-                lag = zero
-                pred_parent = PredecessorInfo(activity_id=parent_id_clean, dep_type=DependencyType.SS, lag=lag)
+            if is_first_child:
+                if parent_id is not None:
+                    parent_id_clean = clean_id(parent_id)
+                    predecessors_str = f"{parent_id_clean}(SS)"
+                    # lag = Decimal(random.randint(0, 10))
+                    lag = zero
+                    pred_parent = PredecessorInfo(activity_id=parent_id_clean, dep_type=DependencyType.SS, lag=lag)
 
             if prev_task_id is not None:
                 prev_task_id_clean = clean_id(prev_task_id)
@@ -2633,8 +2634,8 @@ class CreateScheduleTask(PlanTask):
             if parent_id is not None:
                 activity.parent_id = clean_id(parent_id)
 
-            # if pred_parent is not None:
-            #     activity.parsed_predecessors.append(pred_parent)
+            if pred_parent is not None:
+                activity.parsed_predecessors.append(pred_parent)
             if pred_prev is not None:
                 activity.parsed_predecessors.append(pred_prev)
 
@@ -2647,12 +2648,14 @@ class CreateScheduleTask(PlanTask):
                 return
 
             prev_task_id: Optional[str] = None
-            for child in task.task_children:
-                visit_task(child, depth + 1, parent_id=parent_id, prev_task_id=prev_task_id)
+            for child_index, child in enumerate(task.task_children):
+                is_first_child = child_index == 0
+                is_last_child = child_index == len(task.task_children) - 1
+                visit_task(child, depth + 1, parent_id=parent_id, prev_task_id=prev_task_id, is_first_child=is_first_child, is_last_child=is_last_child)
                 prev_task_id = child.id
 
 
-        visit_task(wbs_project.root_task, 0, parent_id=None, prev_task_id=None)
+        visit_task(wbs_project.root_task, 0, parent_id=None, prev_task_id=None, is_first_child=True, is_last_child=True)
 
         print("!!!!!!!!!!!!!!!!!!! CreateScheduleTask - activities !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         print("activities", activities)
