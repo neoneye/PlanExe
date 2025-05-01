@@ -42,6 +42,9 @@ class Activity:
     parsed_predecessors: List[PredecessorInfo] = field(default_factory=list)
     successors: List["Activity"] = field(default_factory=list)  # populated later
 
+    # What to display in the Gantt chart
+    title: Optional[str] = None
+
     # CPM dates
     es: Decimal = field(default=ZERO)  # Earliest Start
     ef: Decimal = field(default=ZERO)  # Earliest Finish

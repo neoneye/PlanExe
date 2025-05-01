@@ -62,10 +62,12 @@ class ExportDHTMLXGantt:
             start = project_start + timedelta(days=float(act.es))
             end = project_start + timedelta(days=float(act.ef))
             
+            title = act.title if act.title else act.id
+
             # Create task
             task = {
                 "id": act.id,
-                "text": act.id,
+                "text": title,
                 "start_date": start.isoformat(),
                 "duration": float(act.duration),
                 "progress": 0,

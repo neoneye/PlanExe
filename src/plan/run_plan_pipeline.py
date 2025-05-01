@@ -2614,7 +2614,7 @@ class CreateScheduleTask(PlanTask):
                 parent_id_clean = clean_id(parent_id)
                 predecessors_str = f"{parent_id_clean}(SS)"
                 pred = PredecessorInfo(activity_id=parent_id_clean, dep_type=DependencyType.SS, lag=zero)
-            activity = Activity(id=clean_id(task_id), duration=duration, predecessors_str=predecessors_str)
+            activity = Activity(id=clean_id(task_id), duration=duration, predecessors_str=predecessors_str, title=task.description)
 
             if pred is not None:
                 activity.parsed_predecessors.append(pred)
