@@ -189,6 +189,9 @@ class ExportDHTMLXGantt:
 
     // Load data and initialize
     const gantt_data = {gantt_data_json};
+    gantt.plugins({{
+        quick_info: true
+    }});
     gantt.init("gantt_container");
     gantt.parse(gantt_data);
 
