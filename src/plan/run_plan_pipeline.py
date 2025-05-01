@@ -66,6 +66,7 @@ from src.wbs.wbs_task import WBSTask, WBSProject
 from src.wbs.wbs_populate import WBSPopulate
 from src.schedule.schedule import DependencyType, PredecessorInfo, ProjectPlan, Activity
 from src.schedule.export_graphviz import ExportGraphviz
+from src.schedule.export_dhtmlx_gantt import ExportDHTMLXGantt
 from src.llm_factory import get_llm
 from src.format_json_for_use_in_query import format_json_for_use_in_query
 from src.utils.get_env_as_string import get_env_as_string
@@ -2559,7 +2560,8 @@ class CreateScheduleTask(PlanTask):
     def output(self):
         return {
             'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.SCHEDULE_RAW))),
-            'graphviz_dot': luigi.LocalTarget(str(self.file_path(FilenameEnum.SCHEDULE_GRAPHVIZ_DOT)))
+            'graphviz_dot': luigi.LocalTarget(str(self.file_path(FilenameEnum.SCHEDULE_GRAPHVIZ_DOT))),
+            'gantt_html': luigi.LocalTarget(str(self.file_path(FilenameEnum.SCHEDULE_GANTT_HTML)))
         }
     
     def requires(self):
@@ -2587,12 +2589,13 @@ class CreateScheduleTask(PlanTask):
 
 
         # The number of hours per day is hardcoded. This should be determined by the task_duration agent. Is it 8 hours or 24 hours, or instead of days is it hours or weeks.
-        hours_per_day = 8
+        # hours_per_day = 8
+        hours_per_day = 1
         task_id_to_duration_dict = {}
         for duration_dict in durations_dict:
             task_id = duration_dict['task_id']
-            duration_hours = duration_dict['days_realistic'] * hours_per_day
-            task_id_to_duration_dict[task_id] = Decimal(duration_hours)
+            duration = duration_dict['days_realistic'] * hours_per_day
+            task_id_to_duration_dict[task_id] = Decimal(duration)
 
         activities = []
 
@@ -2635,6 +2638,7 @@ class CreateScheduleTask(PlanTask):
         print("project_plan", project_plan)
 
         ExportGraphviz.save(project_plan, self.output()['graphviz_dot'].path)
+        ExportDHTMLXGantt.save(project_plan, self.output()['gantt_html'].path)
 
         raise Exception("Not implemented")
 
