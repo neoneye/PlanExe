@@ -23,7 +23,10 @@ class ExportDHTMLXGantt:
 
     @staticmethod
     def _get_dhtmlx_link_type(dep_type: DependencyType) -> str:
-        """Convert our dependency types to DHTMLX Gantt link types."""
+        """Convert our dependency types to DHTMLX Gantt link types.
+        
+        https://docs.dhtmlx.com/gantt/desktop__link_properties.html
+        """
         return {
             DependencyType.FS: "0",  # finish_to_start
             DependencyType.SS: "1",  # start_to_start
@@ -158,14 +161,6 @@ class ExportDHTMLXGantt:
                "End: " + gantt.templates.tooltip_date_format(end) + "<br>" +
                "Duration: " + task.duration + " days<br>" +
                "Dependencies: " + (task.meta || "None");
-    }};
-
-    // Configure link types
-    gantt.config.link_types = {{
-        "0": "Finish-to-Start",
-        "1": "Start-to-Start",
-        "2": "Finish-to-Finish",
-        "3": "Start-to-Finish"
     }};
 
     // Load data and initialize
