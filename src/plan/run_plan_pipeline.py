@@ -2605,31 +2605,49 @@ class CreateScheduleTask(PlanTask):
             return "".join(char for char in id if char.isalpha())
 
         zero = Decimal("0")
-        def visit_task(task: WBSTask, depth: int, parent_id: Optional[str]):
+        def visit_task(task: WBSTask, depth: int, parent_id: Optional[str], prev_task_id: Optional[str]):
             task_id = task.id
             duration = task_id_to_duration_dict.get(task_id, zero)
             #duration = Decimal("1")
             predecessors_str = ""
-            pred = None
+            pred_parent = None
+            pred_prev = None
             if parent_id is not None:
                 parent_id_clean = clean_id(parent_id)
                 predecessors_str = f"{parent_id_clean}(SS)"
-                random_lag = Decimal(random.randint(0, 10))
-                pred = PredecessorInfo(activity_id=parent_id_clean, dep_type=DependencyType.SS, lag=random_lag)
+                # lag = Decimal(random.randint(0, 10))
+                lag = zero
+                pred_parent = PredecessorInfo(activity_id=parent_id_clean, dep_type=DependencyType.SS, lag=lag)
+
+            if prev_task_id is not None:
+                prev_task_id_clean = clean_id(prev_task_id)
+                predecessors_str = f"{prev_task_id}(SS)"
+                # lag = Decimal(random.randint(0, 10))
+                lag = zero
+                pred_prev = PredecessorInfo(activity_id=prev_task_id_clean, dep_type=DependencyType.SF, lag=lag)
+
             activity = Activity(id=clean_id(task_id), duration=duration, predecessors_str=predecessors_str, title=task.description)
 
-            if pred is not None:
-                activity.parsed_predecessors.append(pred)
-            activities.append(activity)
+            if pred_parent is not None:
+                activity.parsed_predecessors.append(pred_parent)
+            if pred_prev is not None:
+                activity.parsed_predecessors.append(pred_prev)
 
-            if depth > 1:
+            if len(task.task_children) == 0:
+                activities.append(activity)
+
+            # if depth > 1:
+            #     return
+            if len(activities) > 8:
                 return
 
+            prev_task_id: Optional[str] = None
             for child in task.task_children:
-                visit_task(child, depth + 1, parent_id=task_id)
+                visit_task(child, depth + 1, parent_id=parent_id, prev_task_id=prev_task_id)
+                prev_task_id = child.id
 
 
-        visit_task(wbs_project.root_task, 0, parent_id=None)
+        visit_task(wbs_project.root_task, 0, parent_id=None, prev_task_id=None)
 
         print("!!!!!!!!!!!!!!!!!!! CreateScheduleTask - activities !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         print("activities", activities)
