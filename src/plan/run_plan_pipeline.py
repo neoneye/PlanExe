@@ -2630,17 +2630,20 @@ class CreateScheduleTask(PlanTask):
 
             activity = Activity(id=clean_id(task_id), duration=duration, predecessors_str=predecessors_str, title=task.description)
 
+            if parent_id is not None:
+                activity.parent_id = clean_id(parent_id)
+
             # if pred_parent is not None:
             #     activity.parsed_predecessors.append(pred_parent)
             if pred_prev is not None:
                 activity.parsed_predecessors.append(pred_prev)
 
-            if len(task.task_children) == 0:
-                activities.append(activity)
+            # if len(task.task_children) == 0:
+            activities.append(activity)
 
             # if depth > 1:
             #     return
-            if len(activities) > 8:
+            if len(activities) > 12:
                 return
 
             prev_task_id: Optional[str] = None

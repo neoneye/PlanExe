@@ -45,6 +45,9 @@ class Activity:
     # What to display in the Gantt chart
     title: Optional[str] = None
 
+    # The ID of the parent activity
+    parent_id: Optional[str] = None
+
     # CPM dates
     es: Decimal = field(default=ZERO)  # Earliest Start
     ef: Decimal = field(default=ZERO)  # Earliest Finish

@@ -77,6 +77,8 @@ class ExportDHTMLXGantt:
                 "open": True,
                 "meta": ExportDHTMLXGantt._dep_summary(act.parsed_predecessors)
             }
+            if act.parent_id:
+                task["parent"] = act.parent_id
             tasks.append(task)
 
             # Create links for dependencies
