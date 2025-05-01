@@ -2612,7 +2612,8 @@ class CreateScheduleTask(PlanTask):
                 logger.warning(f"Duration is None for task {task_id}")
                 duration = Decimal("1")
             predecessors_str = ""
-            pred_parent = None
+            pred_first_child = None
+            pred_last_child = None
             pred_prev = None
             if is_first_child:
                 if parent_id is not None:
@@ -2620,7 +2621,14 @@ class CreateScheduleTask(PlanTask):
                     predecessors_str = f"{parent_id_clean}(SS)"
                     # lag = Decimal(random.randint(0, 10))
                     lag = zero
-                    pred_parent = PredecessorInfo(activity_id=parent_id_clean, dep_type=DependencyType.SS, lag=lag)
+                    pred_first_child = PredecessorInfo(activity_id=parent_id_clean, dep_type=DependencyType.SS, lag=lag)
+            if is_last_child:
+                if parent_id is not None:
+                    parent_id_clean = clean_id(parent_id)
+                    predecessors_str = f"{parent_id_clean}(FF)"
+                    # lag = Decimal(random.randint(0, 10))
+                    lag = zero
+                    pred_last_child = PredecessorInfo(activity_id=parent_id_clean, dep_type=DependencyType.FF, lag=lag)
 
             if prev_task_id is not None:
                 prev_task_id_clean = clean_id(prev_task_id)
@@ -2634,8 +2642,10 @@ class CreateScheduleTask(PlanTask):
             if parent_id is not None:
                 activity.parent_id = clean_id(parent_id)
 
-            if pred_parent is not None:
-                activity.parsed_predecessors.append(pred_parent)
+            if pred_first_child is not None:
+                activity.parsed_predecessors.append(pred_first_child)
+            if pred_last_child is not None:
+                activity.parsed_predecessors.append(pred_last_child)
             if pred_prev is not None:
                 activity.parsed_predecessors.append(pred_prev)
 
