@@ -2602,6 +2602,9 @@ class CreateScheduleTask(PlanTask):
 
         zero = Decimal("0")
         def visit_task(task: WBSTask, depth: int, parent_id: Optional[str], prev_task_id: Optional[str], is_first_child: bool, is_last_child: bool):
+            if len(activities) > 15:
+                return
+
             task_id = task.id
             duration = task_id_to_duration_dict.get(task_id)
             if duration is None:
@@ -2647,14 +2650,12 @@ class CreateScheduleTask(PlanTask):
 
             # if depth > 1:
             #     return
-            if len(activities) > 12:
-                return
 
             prev_task_id: Optional[str] = None
             for child_index, child in enumerate(task.task_children):
                 is_first_child = child_index == 0
                 is_last_child = child_index == len(task.task_children) - 1
-                visit_task(child, depth + 1, parent_id=parent_id, prev_task_id=prev_task_id, is_first_child=is_first_child, is_last_child=is_last_child)
+                visit_task(child, depth + 1, parent_id=task.id, prev_task_id=prev_task_id, is_first_child=is_first_child, is_last_child=is_last_child)
                 prev_task_id = child.id
 
 
