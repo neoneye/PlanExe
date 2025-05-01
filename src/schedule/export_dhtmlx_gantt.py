@@ -135,7 +135,7 @@ class ExportDHTMLXGantt:
     }}
     .gantt_container {{
         width: 100%;
-        height: 600px;
+        height: 80vh;
         border: 1px solid #ccc;
         border-radius: .5rem;
     }}
