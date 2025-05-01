@@ -165,6 +165,31 @@ class TestSchedule(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             ProjectPlan.create(parse_schedule_input_data(input))
 
+    def test_dependency_type_finish_to_start_no_lag(self):
+        """
+        Waterfall.
+        FS = Finish to Start
+        """
+        input = dedent_strip("""
+            Activity;Predecessor;Duration
+            A;-;1
+            B;A(FS);1
+            C;B(FS);1
+            D;C(FS);1
+        """)
+        plan = ProjectPlan.create(parse_schedule_input_data(input))
+
+        expected = dedent_strip("""
+            Activity;Duration;ES;EF;LS;LF;Float
+            A;1;0;1;0;1;0
+            B;1;1;2;1;2;0
+            C;1;2;3;2;3;0
+            D;1;3;4;3;4;0
+        """)
+
+        self.assertEqual(str(plan), expected) 
+        self.assertEqual(plan.project_duration, D("4"))
+
     def test_dependency_type_finish_to_start(self):
         """FS = Finish to Start"""
         input = dedent_strip("""
