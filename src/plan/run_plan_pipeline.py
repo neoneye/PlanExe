@@ -10,6 +10,7 @@ from datetime import datetime
 from decimal import Decimal
 import logging
 import json
+import random
 from typing import Optional
 import luigi
 from pathlib import Path
@@ -2613,7 +2614,8 @@ class CreateScheduleTask(PlanTask):
             if parent_id is not None:
                 parent_id_clean = clean_id(parent_id)
                 predecessors_str = f"{parent_id_clean}(SS)"
-                pred = PredecessorInfo(activity_id=parent_id_clean, dep_type=DependencyType.SS, lag=zero)
+                random_lag = Decimal(random.randint(0, 10))
+                pred = PredecessorInfo(activity_id=parent_id_clean, dep_type=DependencyType.SS, lag=random_lag)
             activity = Activity(id=clean_id(task_id), duration=duration, predecessors_str=predecessors_str, title=task.description)
 
             if pred is not None:
@@ -2637,7 +2639,7 @@ class CreateScheduleTask(PlanTask):
         print("!!!!!!!!!!!!!!!!!!! CreateScheduleTask - project_plan !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         print("project_plan", project_plan)
 
-        ExportGraphviz.save(project_plan, self.output()['graphviz_dot'].path)
+        # ExportGraphviz.save(project_plan, self.output()['graphviz_dot'].path)
         ExportDHTMLXGantt.save(project_plan, self.output()['gantt_html'].path)
 
         raise Exception("Not implemented")
