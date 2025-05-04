@@ -2609,6 +2609,8 @@ class CreateScheduleTask(PlanTask):
             duration = task_id_to_duration_dict.get(task_id)
             if duration is None:
                 logger.warning(f"Duration is None for task {task_id}")
+                # IDEA: child activities without duration. Here I want to take the duration from the parent WBS task duration, and split it evenly among the N child activities.
+                # This way the leaf WBS tasks will have the same duration as their parent WBS task.
                 duration = Decimal("1")
             predecessors_str = ""
             pred_first_child = None
