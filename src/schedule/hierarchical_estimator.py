@@ -1,3 +1,43 @@
+"""
+Provides a system for generating initial time estimates for hierarchical tasks.
+
+This module defines a `Node` class to represent tasks in a tree-like plan.
+The core functionality lies in the `Node.resolve_duration()` method, which
+recursively traverses the task tree to distribute and calculate time durations
+based on a set of predefined hierarchical rules.
+
+Key behaviors of the duration resolution process:
+- **Parent-to-Child Distribution:** If a parent task has a specified duration,
+  it's distributed among its children that were initially unspecified (had a
+  `None` duration). Children explicitly given a duration (even `Decimal(0)`)
+  generally retain their value unless a specific override rule applies.
+- **Child-to-Parent Summation:** If a parent task's duration is initially
+  unspecified, its duration is calculated as the sum of its children's
+  resolved durations.
+- **Override for Over-Specified Parent:** A special rule allows a parent with a
+  pre-set duration, which is larger than the sum of its children's
+  (all of whom must have been initially specified), to redistribute its
+  total duration evenly among all its children, overwriting their
+  original values.
+- **Zero Duration Handling:** Children explicitly set to `Decimal(0)` maintain
+  that duration unless overridden by the rule above. Children that were
+  initially `None` and cannot receive distributed time (e.g., parent has
+  insufficient duration or no duration to give) will also resolve to `Decimal(0)`.
+  Negative durations are prevented; tasks will receive at least `Decimal(0)`.
+- **Final Consistency:** The process aims to ensure that, after resolution,
+  a parent's duration typically reflects the sum of its children's durations,
+  except in the specific override case mentioned.
+
+All durations are handled internally using Python's `Decimal` type for precision.
+The `Node` class also provides a `to_dict()` method for serializing the task tree,
+which converts durations to integers (using ceiling) for easier use in contexts
+like testing or simple display.
+
+The primary purpose of this module is to serve as an initial estimator,
+providing a complete set of baseline durations for all tasks in a plan before
+potentially more refined estimation techniques (e.g., human review, LLM-based
+adjustments) are applied.
+"""
 from typing import Optional
 from decimal import ROUND_CEILING, Decimal as D
 
@@ -51,6 +91,8 @@ class Node:
         if self.duration is None:
             self.duration = assigned_duration
             return
+
+        # Parent has a duration. Now decide how to reconcile with children.
 
         # Count children that had None duration originally
         unassigned_children = sum(1 for child in self.children if child._had_none_duration)
