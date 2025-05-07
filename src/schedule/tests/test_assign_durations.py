@@ -1,6 +1,7 @@
 from typing import Optional
 import unittest
 from decimal import Decimal as D
+import math
 
 class Node:
     def __init__(self, id: str, duration: Optional[D] = None):
@@ -9,10 +10,11 @@ class Node:
         self.children = []
 
     def to_dict(self):
-        """Convert the node and its children to a JSON-compatible dictionary."""
+        """Convert the node and its children to a JSON-compatible dictionary.
+        The duration is ceiled to an integer value. This is to avoid floating point comparisions in unittests."""
         result = {
             "id": self.id,
-            "duration": int(self.duration) if self.duration is not None else None,
+            "duration": int(math.ceil(self.duration)) if self.duration is not None else None,
         }
         if len(self.children) > 0:
             result["children"] = [child.to_dict() for child in self.children]
@@ -53,7 +55,7 @@ class Node:
                     child.duration = duration_per_child
 
 class TestAssignDurations(unittest.TestCase):
-    def test_split_evenly(self):
+    def test_split_evenly_integer(self):
         # Arrange
         root = Node("root", D(10))
         root.children.append(Node("child1"))
@@ -70,6 +72,28 @@ class TestAssignDurations(unittest.TestCase):
                 {"id": "child1", "duration": 5},
                 {"id": "child2", "duration": 5},
             ],
+        }
+        self.assertEqual(root.to_dict(), expected)
+
+    def test_split_evenly_fractional(self):
+        # Arrange
+        root = Node("root", D(10))
+        root.children.append(Node("child1"))
+        root.children.append(Node("child2"))
+        root.children.append(Node("child3"))
+
+        # Act
+        root.resolve_duration()
+
+        # Assert
+        expected = {
+            "id": "root",
+            "duration": 10,
+            "children": [
+                {"id": "child1", "duration": 4}, # The duration is 3.33 ceiled to 4
+                {"id": "child2", "duration": 4}, # The duration is 3.33 ceiled to 4
+                {"id": "child3", "duration": 4} # The duration is 3.33 ceiled to 4
+            ]
         }
         self.assertEqual(root.to_dict(), expected)
 
