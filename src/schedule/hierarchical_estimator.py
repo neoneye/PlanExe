@@ -68,11 +68,12 @@ class Node:
         # Flag to remember if the duration was initially None, needed for distribution logic
         self._had_none_duration = duration is None
 
-    def add_child(self, child: 'Node'):
-        """Adds a child node."""
+    def add_child(self, child: 'Node') -> 'Node':
+        """Adds a child node and returns it."""
         if not isinstance(child, Node):
             raise TypeError("Can only add Node instances as children")
         self.children.append(child)
+        return child
 
     def to_dict(self):
         """Convert the node and its children to a JSON-compatible dictionary.

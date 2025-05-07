@@ -2,7 +2,7 @@ import unittest
 from decimal import Decimal as D
 from src.schedule.hierarchical_estimator import Node
 
-class TestAssignDurations(unittest.TestCase):
+class TestHierarchicalEstimator(unittest.TestCase):
     def test_negative_duration_in_constructor(self):
         # Arrange/Act/Assert
         with self.assertRaises(ValueError) as cm:
@@ -138,10 +138,8 @@ class TestAssignDurations(unittest.TestCase):
     def test_split_unevenly_3levels(self):
         # Arrange
         root = Node("root")
-        child1 = Node("child1", D(10))
-        child2 = Node("child2", D(12))
-        root.add_child(child1)
-        root.add_child(child2)
+        child1 = root.add_child(Node("child1", D(10)))
+        child2 = root.add_child(Node("child2", D(12)))
         child1.add_child(Node("child1.1"))
         child1.add_child(Node("child1.2"))
         child2.add_child(Node("child2.1"))
@@ -198,10 +196,8 @@ class TestAssignDurations(unittest.TestCase):
     def test_sum_of_children_3levels(self):
         # Arrange
         root = Node("root") # without duration. It's up to the algorithm to distribute the duration
-        child1 = Node("child1") # without duration. It's up to the algorithm to distribute the duration
-        child2 = Node("child2") # without duration. It's up to the algorithm to distribute the duration
-        root.add_child(child1)
-        root.add_child(child2)
+        child1 = root.add_child(Node("child1")) # without duration. It's up to the algorithm to distribute the duration
+        child2 = root.add_child(Node("child2")) # without duration. It's up to the algorithm to distribute the duration
         child1.add_child(Node("child1.1", D(2)))
         child1.add_child(Node("child1.2", D(3)))
         child2.add_child(Node("child2.1", D(4)))
