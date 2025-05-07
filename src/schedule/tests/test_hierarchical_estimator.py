@@ -362,5 +362,4 @@ class TestAssignDurations(unittest.TestCase):
                 {"id": "child2", "duration": 5},
             ],
         }
-        self.assertEqual(root.to_dict(), expected)
-
+        self.assertEqual(root.to_dict(), expected) 
