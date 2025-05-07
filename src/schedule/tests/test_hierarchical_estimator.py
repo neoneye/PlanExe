@@ -23,6 +23,26 @@ class TestAssignDurations(unittest.TestCase):
         }
         self.assertEqual(root.to_dict(), expected)
 
+    def test_negative_durations_yield_zeros(self):
+        # Arrange
+        root = Node("root", D(-10)) # negative duration. Clamp this to 0.
+        root.children.append(Node("child1"))
+        root.children.append(Node("child2"))
+
+        # Act
+        root.resolve_duration()
+
+        # Assert
+        expected = {
+            "id": "root",
+            "duration": 0,
+            "children": [
+                {"id": "child1", "duration": 0},
+                {"id": "child2", "duration": 0},
+            ]
+        }
+        self.assertEqual(root.to_dict(), expected)
+
     def test_split_evenly_integer(self):
         # Arrange
         root = Node("root", D(10))
