@@ -66,6 +66,7 @@ from src.team.review_team import ReviewTeam
 from src.wbs.wbs_task import WBSTask, WBSProject
 from src.wbs.wbs_populate import WBSPopulate
 from src.schedule.schedule import DependencyType, PredecessorInfo, ProjectPlan, Activity
+from src.schedule.hierarchy_estimator_wbs import HierarchyEstimatorWBS
 from src.schedule.export_graphviz import ExportGraphviz
 from src.schedule.export_dhtmlx_gantt import ExportDHTMLXGantt
 from src.llm_factory import get_llm
@@ -2597,6 +2598,9 @@ class CreateScheduleTask(PlanTask):
             task_id = duration_dict['task_id']
             duration = duration_dict['days_realistic'] * hours_per_day
             task_id_to_duration_dict[task_id] = Decimal(duration)
+
+        # he_wbs = HierarchyEstimatorWBS.run(wbs_project, task_id_to_duration_dict)
+        # raise Exception("Not implemented")
 
         activities = []
 
