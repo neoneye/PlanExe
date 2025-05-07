@@ -27,11 +27,13 @@ class Node:
 
     def resolve_duration(self):
         """Distribute the parent's duration among its children.
-        If a child already has a duration, that duration is preserved and
-        the remaining duration is distributed among other children.
+        If a child already has a duration (i.e., not initially None), that duration is generally preserved
+        unless a parent with a significantly larger duration forces an even redistribution across all children.
+        The parent's duration is primarily distributed among children that were initially unspecified (had None duration).
         If the parent has no duration, it gets the sum of its children's durations.
         If the parent has a longer duration than the sum of its children's durations,
-        and all children have non-zero durations, the parent's duration is distributed evenly among all children."""
+        and all children were initially specified with a duration (none were None),
+        the parent's duration is distributed evenly among all children, overwriting their initial values."""
         # First resolve children's durations recursively
         for child in self.children:
             child.resolve_duration()
