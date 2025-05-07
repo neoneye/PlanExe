@@ -1,6 +1,6 @@
 from typing import Optional
 import unittest
-from decimal import Decimal as D
+from decimal import ROUND_CEILING, Decimal as D
 import math
 
 class Node:
@@ -14,7 +14,7 @@ class Node:
         The duration is ceiled to an integer value. This is to avoid floating point comparisions in unittests."""
         result = {
             "id": self.id,
-            "duration": int(math.ceil(self.duration)) if self.duration is not None else None,
+            "duration": int(self.duration.to_integral_value(rounding=ROUND_CEILING)) if self.duration is not None else None,
         }
         if len(self.children) > 0:
             result["children"] = [child.to_dict() for child in self.children]
