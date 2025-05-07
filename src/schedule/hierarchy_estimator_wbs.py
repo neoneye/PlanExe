@@ -6,9 +6,11 @@ from src.wbs.wbs_task import WBSProject, WBSTask
 class HierarchyEstimatorWBS:
 
     @staticmethod
-    def run(wbs_project: WBSProject, task_id_to_duration_dict: Dict[str, Decimal]) -> WBSProject:
+    def run(wbs_project: WBSProject, task_id_to_duration_dict: Dict[str, Decimal]) -> Dict[str, Decimal]:
+        """Resolve durations for all tasks in the WBS project."""
         
         def visit_task(task: WBSTask, depth: int) -> Node:
+            """Recursively visit a task and create a node for it."""
             if depth > 10:
                 raise Exception("Depth limit reached")
 
@@ -26,11 +28,8 @@ class HierarchyEstimatorWBS:
         root_node.resolve_duration()
         root_node.apply_minimum_duration()
 
-        d = root_node.to_dict()
-        print("!!!!!!!!!!!!!!!!", d)
+        # print("root_node.to_dict", root_node.to_dict())
+        # print("root_node.duration", root_node.duration)
 
-        print("root_node.duration", root_node.duration)
-
-        raise NotImplementedError("Not implemented")
-    
-
+        resolved_task_id_to_duration_dict = root_node.task_id_to_duration_dict()
+        return resolved_task_id_to_duration_dict

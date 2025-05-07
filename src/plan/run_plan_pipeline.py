@@ -2599,22 +2599,20 @@ class CreateScheduleTask(PlanTask):
             duration = duration_dict['days_realistic'] * hours_per_day
             task_id_to_duration_dict[task_id] = Decimal(duration)
 
-        # he_wbs = HierarchyEstimatorWBS.run(wbs_project, task_id_to_duration_dict)
-        # raise Exception("Not implemented")
+        # Estimate the durations for all tasks in the WBS project.
+        task_id_to_duration_dict2 = HierarchyEstimatorWBS.run(wbs_project, task_id_to_duration_dict)
 
         activities = []
 
         zero = Decimal("0")
         def visit_task(task: WBSTask, depth: int, parent_id: Optional[str], prev_task_id: Optional[str], is_first_child: bool, is_last_child: bool):
-            if len(activities) > 15:
+            if len(activities) > 25:
                 return
 
             task_id = task.id
-            duration = task_id_to_duration_dict.get(task_id)
+            duration = task_id_to_duration_dict2.get(task_id)
             if duration is None:
-                logger.warning(f"Duration is None for task {task_id}")
-                # IDEA: child activities without duration. Here I want to take the duration from the parent WBS task duration, and split it evenly among the N child activities.
-                # This way the leaf WBS tasks will have the same duration as their parent WBS task.
+                logger.error(f"Duration is None for task {task_id}, should have been estimated by HierarchyEstimatorWBS")
                 duration = Decimal("1")
             predecessors_str = ""
             pred_first_child = None
