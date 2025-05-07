@@ -36,34 +36,30 @@ class Node:
         if not self.children:
             return
 
-        # If parent has no duration, set it to sum of children's durations
-        if self.duration is None:
-            # Set any None durations to 0
-            for child in self.children:
-                if child.duration is None:
-                    child.duration = D(0)
-            self.duration = sum(child.duration for child in self.children)
-            return
+        # Set any None durations to 0
+        for child in self.children:
+            if child.duration is None:
+                child.duration = D(0)
 
         # Calculate total duration already assigned to children
-        assigned_duration = sum((child.duration or D(0)) for child in self.children)
+        assigned_duration = sum(child.duration for child in self.children)
         
         # Count children without duration
-        unassigned_children = sum(1 for child in self.children if child.duration is None)
+        unassigned_children = sum(1 for child in self.children if child.duration == D(0))
         
         if unassigned_children > 0:
             # Calculate remaining duration to distribute
-            remaining_duration = self.duration - assigned_duration
+            remaining_duration = (self.duration or D(0)) - assigned_duration
             # Calculate duration per remaining child
             duration_per_child = remaining_duration / D(unassigned_children)
             
             # Assign durations to children without pre-existing duration
             for child in self.children:
-                if child.duration is None:
+                if child.duration == D(0):
                     child.duration = max(D(0), duration_per_child)
             
-            # Recalculate parent's duration based on actual child durations
-            self.duration = sum(child.duration for child in self.children)
+        # Always update parent's duration to match sum of children
+        self.duration = sum(child.duration for child in self.children)
 
 class TestAssignDurations(unittest.TestCase):
     def test_no_durations_yield_zeros(self):
@@ -264,6 +260,26 @@ class TestAssignDurations(unittest.TestCase):
             "children": [
                 {"id": "child1", "duration": 12},
                 {"id": "child2", "duration": 0},
+            ],
+        }
+        self.assertEqual(root.to_dict(), expected)
+
+    def test_replace_parents_short_duration_with_childrens_longer_duration(self):
+        # Arrange
+        root = Node("root", D(2)) # Pick the longest duration, In this case the sum of children's durations is 7, which is more than the parent's duration of 2.
+        root.children.append(Node("child1", D(3)))
+        root.children.append(Node("child2", D(4)))
+
+        # Act
+        root.resolve_duration()
+
+        # Assert
+        expected = {
+            "id": "root",
+            "duration": 7,
+            "children": [
+                {"id": "child1", "duration": 3},
+                {"id": "child2", "duration": 4},
             ],
         }
         self.assertEqual(root.to_dict(), expected)
