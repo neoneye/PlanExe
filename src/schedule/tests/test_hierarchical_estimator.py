@@ -292,6 +292,27 @@ class TestHierarchicalEstimator(unittest.TestCase):
 
     def test_apply_minimum_duration_small(self):
         # Arrange
+        root = Node("root", D(1) / D(10))
+
+        root.resolve_duration()
+        expected_before_apply_minimum_duration = {
+            "id": "root",
+            "duration": 1,
+        }
+        self.assertEqual(root.to_dict(), expected_before_apply_minimum_duration)
+
+        # Act
+        root.apply_minimum_duration()
+
+        # Assert
+        expected = {
+            "id": "root",
+            "duration": 1
+        }
+        self.assertEqual(root.to_dict(), expected)
+
+    def test_apply_minimum_duration_medium(self):
+        # Arrange
         root = Node("root", D(0))
         root.add_child(Node("child1", D(0)))
         root.add_child(Node("child2", D(0)))
