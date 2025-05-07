@@ -12,6 +12,7 @@ class Node:
         self.id = id
         self.duration = duration
         self.children = []
+        self._had_none_duration = duration is None
 
     def to_dict(self):
         """Convert the node and its children to a JSON-compatible dictionary.
@@ -46,12 +47,17 @@ class Node:
         # Calculate total duration already assigned to children
         assigned_duration = sum(child.duration for child in self.children)
         
-        # Count children without duration
-        unassigned_children = sum(1 for child in self.children if child.duration == D(0))
+        # If parent has no duration, use sum of children's durations
+        if self.duration is None:
+            self.duration = assigned_duration
+            return
+
+        # Count children that had None duration originally
+        unassigned_children = sum(1 for child in self.children if child._had_none_duration)
         
         # If parent has a longer duration than sum of children AND all children have durations,
         # redistribute evenly
-        if self.duration is not None and self.duration > assigned_duration and unassigned_children == 0:
+        if self.duration > assigned_duration and unassigned_children == 0:
             duration_per_child = self.duration / D(len(self.children))
             for child in self.children:
                 child.duration = duration_per_child
@@ -59,13 +65,13 @@ class Node:
         
         if unassigned_children > 0:
             # Calculate remaining duration to distribute
-            remaining_duration = (self.duration or D(0)) - assigned_duration
+            remaining_duration = self.duration - assigned_duration
             # Calculate duration per remaining child
             duration_per_child = remaining_duration / D(unassigned_children)
             
-            # Assign durations to children without pre-existing duration
+            # Assign durations to children that had None duration originally
             for child in self.children:
-                if child.duration == D(0):
+                if child._had_none_duration:
                     child.duration = max(D(0), duration_per_child)
             
         # Always update parent's duration to match sum of children
@@ -134,11 +140,11 @@ class TestAssignDurations(unittest.TestCase):
         }
         self.assertEqual(root.to_dict(), expected)
 
-    def test_split_unevenly_2levels(self):
+    def test_split_unevenly_2levels_nonzero_duration(self):
         # Arrange
         root = Node("root", D(10))
-        root.children.append(Node("child1", D(2)))
-        root.children.append(Node("child2"))
+        root.children.append(Node("child1", D(2))) # Keep this duration of 2
+        root.children.append(Node("child2")) # assign the remaining duration to this child, which is 8
 
         # Act
         root.resolve_duration()
@@ -150,6 +156,48 @@ class TestAssignDurations(unittest.TestCase):
             "children": [
                 {"id": "child1", "duration": 2},
                 {"id": "child2", "duration": 8},
+            ],
+        }
+        self.assertEqual(root.to_dict(), expected)
+
+    def test_split_unevenly_2levels_zero_duration_2children(self):
+        # Arrange
+        root = Node("root", D(10))
+        root.children.append(Node("child1", D(0))) # Keep the duration of 0
+        root.children.append(Node("child2")) # assign the remaining duration to this child, which is 10
+
+        # Act
+        root.resolve_duration()
+
+        # Assert
+        expected = {
+            "id": "root",
+            "duration": 10,
+            "children": [
+                {"id": "child1", "duration": 0},
+                {"id": "child2", "duration": 10},
+            ],
+        }
+        self.assertEqual(root.to_dict(), expected)
+
+    def test_split_unevenly_2levels_zero_duration_3children(self):
+        # Arrange
+        root = Node("root", D(10))
+        root.children.append(Node("child1", D(0))) # Keep the duration of 0
+        root.children.append(Node("child2")) # assign the remaining duration to this child, which is 10
+        root.children.append(Node("child3", D(0))) # Keep the duration of 0
+
+        # Act
+        root.resolve_duration()
+
+        # Assert
+        expected = {
+            "id": "root",
+            "duration": 10,
+            "children": [
+                {"id": "child1", "duration": 0},
+                {"id": "child2", "duration": 10},
+                {"id": "child3", "duration": 0},
             ],
         }
         self.assertEqual(root.to_dict(), expected)
