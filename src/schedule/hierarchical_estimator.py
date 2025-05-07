@@ -111,7 +111,7 @@ class Node:
 
         # Store parent's *initial* state before potential modification
         initial_parent_duration = self.duration # This could be None or a Decimal
-        parent_was_initially_none = self._had_none_duration # Use the flag from init
+        parent_was_initially_none = self._had_none_duration
 
         # 3. Apply parent logic based on initial state and children's sum
 
@@ -168,4 +168,31 @@ class Node:
 
         # 4. Final Step: Ensure parent's duration is the sum of its children's *final* durations.
         # This provides the invariant: parent_duration == sum(children_durations).
+        self.duration = sum(child.duration for child in self.children)
+
+    def apply_minimum_duration(self):
+        """
+        Ensures that no node has a duration less than 1.
+        For leaf nodes (no children), sets duration to 1 if it was 0.
+        For parent nodes, distributes the minimum duration among children evenly.
+        Maintains the invariant that parent duration equals sum of children's durations.
+        """
+        # First recursively apply minimum duration to all children
+        for child in self.children:
+            child.apply_minimum_duration()
+
+        # If this is a leaf node (no children)
+        if not self.children:
+            # Set minimum duration to 1 if it was 0
+            if self.duration == D(0):
+                self.duration = D(1)
+            return
+
+        # For parent nodes, ensure each child has at least duration 1
+        # and parent duration is sum of children
+        for child in self.children:
+            if child.duration < D(1):
+                child.duration = D(1)
+
+        # Update parent duration to be sum of children
         self.duration = sum(child.duration for child in self.children)

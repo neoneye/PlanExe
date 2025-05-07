@@ -289,3 +289,100 @@ class TestHierarchicalEstimator(unittest.TestCase):
             ],
         }
         self.assertEqual(root.to_dict(), expected) 
+
+    def test_apply_minimum_duration_small(self):
+        # Arrange
+        root = Node("root", D(0))
+        root.add_child(Node("child1", D(0)))
+        root.add_child(Node("child2", D(0)))
+
+        root.resolve_duration()
+        expected_before_apply_minimum_duration = {
+            "id": "root",
+            "duration": 0,
+            "children": [
+                {"id": "child1", "duration": 0},
+                {"id": "child2", "duration": 0},
+            ],
+        }
+        self.assertEqual(root.to_dict(), expected_before_apply_minimum_duration)
+
+        # Act
+        root.apply_minimum_duration()
+
+        # Assert
+        expected = {
+            "id": "root",
+            "duration": 2,
+            "children": [
+                {"id": "child1", "duration": 1},
+                {"id": "child2", "duration": 1},
+            ],
+        }
+        self.assertEqual(root.to_dict(), expected)
+
+    def test_apply_minimum_duration_big(self):
+        # Arrange
+        root = Node("root", D(0))
+        child1 = root.add_child(Node("child1", D(0)))
+        child2 = root.add_child(Node("child2", D(0)))
+        child1.add_child(Node("child1.1"))
+        child1.add_child(Node("child1.2"))
+        child2.add_child(Node("child2.1", D(0)))
+        child2.add_child(Node("child2.2", D(0)))
+        child2.add_child(Node("child2.3", D(0)))
+
+        root.resolve_duration()
+        expected_before_apply_minimum_duration = {
+            "id": "root",
+            "duration": 0,
+            "children": [
+                {
+                    "id": "child1", 
+                    "duration": 0,
+                    "children": [
+                        {"id": "child1.1", "duration": 0},
+                        {"id": "child1.2", "duration": 0}
+                    ]
+                },
+                {
+                    "id": "child2", 
+                    "duration": 0,
+                    "children": [
+                        {"id": "child2.1", "duration": 0},
+                        {"id": "child2.2", "duration": 0},
+                        {"id": "child2.3", "duration": 0},
+                    ]
+                }
+            ]
+        }
+        self.assertEqual(root.to_dict(), expected_before_apply_minimum_duration)
+
+        # Act
+        root.apply_minimum_duration()
+
+        # Assert
+        expected = {
+            "id": "root",
+            "duration": 5,
+            "children": [
+                {
+                    "id": "child1", 
+                    "duration": 2,
+                    "children": [
+                        {"id": "child1.1", "duration": 1},
+                        {"id": "child1.2", "duration": 1}
+                    ]
+                },
+                {
+                    "id": "child2", 
+                    "duration": 3,
+                    "children": [
+                        {"id": "child2.1", "duration": 1},
+                        {"id": "child2.2", "duration": 1},
+                        {"id": "child2.3", "duration": 1},
+                    ]
+                }
+            ]
+        }
+        self.assertEqual(root.to_dict(), expected)
