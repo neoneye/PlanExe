@@ -48,7 +48,7 @@ class TestHierarchicalEstimator(unittest.TestCase):
         }
         self.assertEqual(root.to_dict(), expected)
 
-    def test_split_evenly_fractional(self):
+    def test_split_evenly_fractional_3children(self):
         # Arrange
         root = Node("root", D(10))
         root.add_child(Node("child1"))
@@ -68,6 +68,32 @@ class TestHierarchicalEstimator(unittest.TestCase):
                 {"id": "child1", "duration": 4}, # ceil(3.33...)
                 {"id": "child2", "duration": 4}, # ceil(3.33...)
                 {"id": "child3", "duration": 4}  # ceil(3.33...)
+            ]
+        }
+        self.assertEqual(root.to_dict(), expected)
+
+    def test_split_evenly_fractional_4children(self):
+        # Arrange
+        root = Node("root", D(14))
+        root.add_child(Node("child1"))
+        root.add_child(Node("child2"))
+        root.add_child(Node("child3"))
+        root.add_child(Node("child4"))
+
+        # Act
+        root.resolve_duration()
+
+        # Assert
+        # 14 / 4 = 3.5
+        # to_dict() with ROUND_CEILING: ceil(3.5) = 4
+        expected = {
+            "id": "root",
+            "duration": 14, # Parent duration remains 14 (sum of children: 3*3.5 = 14)
+            "children": [
+                {"id": "child1", "duration": 4}, # ceil(3.5)
+                {"id": "child2", "duration": 4}, # ceil(3.5)
+                {"id": "child3", "duration": 4}, # ceil(3.5)
+                {"id": "child4", "duration": 4}  # ceil(3.5)
             ]
         }
         self.assertEqual(root.to_dict(), expected)
