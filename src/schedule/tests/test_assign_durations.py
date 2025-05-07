@@ -60,7 +60,10 @@ class Node:
             # Assign durations to children without pre-existing duration
             for child in self.children:
                 if child.duration is None:
-                    child.duration = duration_per_child
+                    child.duration = max(D(0), duration_per_child)
+            
+            # Recalculate parent's duration based on actual child durations
+            self.duration = sum(child.duration for child in self.children)
 
 class TestAssignDurations(unittest.TestCase):
     def test_no_durations_yield_zeros(self):
@@ -242,6 +245,26 @@ class TestAssignDurations(unittest.TestCase):
                     ]
                 }
             ]
+        }
+        self.assertEqual(root.to_dict(), expected)
+
+    def test_prevent_negative_durations(self):
+        # Arrange
+        root = Node("root", D(10))
+        root.children.append(Node("child1", D(12)))
+        root.children.append(Node("child2")) # would otherwise get a duration of -2. Clamp this to 0.
+
+        # Act
+        root.resolve_duration()
+
+        # Assert
+        expected = {
+            "id": "root",
+            "duration": 12,
+            "children": [
+                {"id": "child1", "duration": 12},
+                {"id": "child2", "duration": 0},
+            ],
         }
         self.assertEqual(root.to_dict(), expected)
 
