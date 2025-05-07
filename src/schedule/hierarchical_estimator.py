@@ -7,26 +7,37 @@ recursively traverses the task tree to distribute and calculate time durations
 based on a set of predefined hierarchical rules.
 
 Key behaviors of the duration resolution process:
-- **Parent-to-Child Distribution:** If a parent task has a specified duration,
-  it's distributed among its children that were initially unspecified (had a
-  `None` duration). Children explicitly given a duration (even `Decimal(0)`)
-  generally retain their value unless a specific override rule applies.
-- **Child-to-Parent Summation:** If a parent task's duration is initially
-  unspecified, its duration is calculated as the sum of its children's
-  resolved durations.
-- **Override for Over-Specified Parent:** A special rule allows a parent with a
-  pre-set duration, which is larger than the sum of its children's
-  (all of whom must have been initially specified), to redistribute its
-  total duration evenly among all its children, overwriting their
-  original values.
-- **Zero Duration Handling:** Children explicitly set to `Decimal(0)` maintain
-  that duration unless overridden by the rule above. Children that were
-  initially `None` and cannot receive distributed time (e.g., parent has
-  insufficient duration or no duration to give) will also resolve to `Decimal(0)`.
-  Negative durations are prevented; tasks will receive at least `Decimal(0)`.
-- **Final Consistency:** The process aims to ensure that, after resolution,
-  a parent's duration typically reflects the sum of its children's durations,
-  except in the specific override case mentioned.
+- **Child Resolution First:** Children's durations are resolved recursively
+  before the parent's duration is finalized.
+- **Initial None Handling:** Tasks initially set to `None` duration, which
+  end up as leaves (no children or children resolve to 0), will finalize at `Decimal(0)`.
+- **Bottom-Up Summation:** If a parent task's duration was initially `None`,
+  its resolved duration becomes the sum of its children's resolved durations.
+- **Top-Down Distribution (if parent > sum of children):**
+    - If a parent has a specified duration (`!= None`) and it's greater than
+      the sum of its children's resolved durations:
+        - If *all* children originally had a specified duration (none were `None`),
+          the parent's total duration is distributed *evenly* among all children,
+          overwriting their initial values. The parent's duration remains the sum
+          of these newly assigned child durations.
+        - If *some* children originally had `None` duration, the excess duration
+          (`parent duration - sum of currently resolved children durations`) is
+          distributed among *only* those children that were originally `None`.
+          Children with initial specified durations keep them unless the override
+          rule above applied (which it wouldn't in this case). Any remaining
+          duration after distribution is added to the parent's total.
+- **Top-Down Constraint (if parent <= sum of children):**
+    - If a parent has a specified duration (`!= None`) and it's less than or
+      equal to the sum of its children's resolved durations, children initially
+      set to `None` will receive `Decimal(0)` duration. Children with initial
+      specified durations keep them. The parent's final duration will be the
+      sum of its children's resolved durations (which will be >= the original
+      parent duration).
+- **Preventing Negatives:** Initial durations must be non-negative or `None`.
+  Calculated durations during distribution are clamped at `Decimal(0)`.
+- **Final Consistency:** The parent's duration is *always* set to the final
+  sum of its children's durations after the children have been resolved and
+  any distribution/assignment logic for them has occurred.
 
 All durations are handled internally using Python's `Decimal` type for precision.
 The `Node` class also provides a `to_dict()` method for serializing the task tree,
@@ -45,76 +56,115 @@ class Node:
     def __init__(self, id: str, duration: Optional[D] = None):
         if not isinstance(id, str):
             raise ValueError("id must be a string")
-        if duration is not None and not isinstance(duration, D):
-            raise ValueError("duration must be a decimal or None")
+        if duration is not None:
+            if not isinstance(duration, D):
+                 raise ValueError("duration must be a Decimal or None")
+            if duration < D(0):
+                 raise ValueError("duration cannot be negative")
+
         self.id = id
         self.duration = duration
         self.children = []
+        # Flag to remember if the duration was initially None, needed for distribution logic
         self._had_none_duration = duration is None
+
+    def add_child(self, child: 'Node'):
+        """Adds a child node."""
+        if not isinstance(child, Node):
+            raise TypeError("Can only add Node instances as children")
+        self.children.append(child)
 
     def to_dict(self):
         """Convert the node and its children to a JSON-compatible dictionary.
-        The duration is ceiled to an integer value. This is to avoid floating point comparisions in unittests."""
+        The duration is ceiled to an integer value for simpler testing/display."""
         result = {
             "id": self.id,
             "duration": int(self.duration.to_integral_value(rounding=ROUND_CEILING)) if self.duration is not None else None,
         }
-        if len(self.children) > 0:
+        if self.children: # Use if self.children to avoid empty list in output for leaves
             result["children"] = [child.to_dict() for child in self.children]
         return result
 
     def resolve_duration(self):
-        """Distribute the parent's duration among its children.
-        If a child already has a duration (i.e., not initially None), that duration is generally preserved
-        unless a parent with a significantly larger duration forces an even redistribution across all children.
-        The parent's duration is primarily distributed among children that were initially unspecified (had None duration).
-        If the parent has no duration, it gets the sum of its children's durations.
-        If the parent has a longer duration than the sum of its children's durations,
-        and all children were initially specified with a duration (none were None),
-        the parent's duration is distributed evenly among all children, overwriting their initial values."""
-        # First resolve children's durations recursively
+        """
+        Recursively resolves durations in the subtree rooted at this node.
+        Applies hierarchical rules: bottom-up summation and top-down distribution.
+        Ensures parent duration is the sum of children's resolved durations at the end.
+        """
+        # 1. Recursively resolve children first (bottom-up pass)
         for child in self.children:
             child.resolve_duration()
 
+        # If no children, we are done for this leaf node.
+        # If duration was None, it remains None until the very end where it's
+        # set to 0 if it's still None and no children.
         if not self.children:
-            return
+             # If a leaf node had None duration, set it to 0
+             if self.duration is None:
+                 self.duration = D(0)
+             return
 
-        # Set any None durations to 0
-        for child in self.children:
-            if child.duration is None:
-                child.duration = D(0)
+        # 2. At this point, all children have resolved durations (Decimal).
+        # Calculate the sum of the children's resolved durations.
+        sum_children_duration = sum(child.duration for child in self.children)
 
-        # Calculate total duration already assigned to children
-        assigned_duration = sum(child.duration for child in self.children)
-        
-        # If parent has no duration, use sum of children's durations
-        if self.duration is None:
-            self.duration = assigned_duration
-            return
+        # Store parent's *initial* state before potential modification
+        initial_parent_duration = self.duration # This could be None or a Decimal
+        parent_was_initially_none = self._had_none_duration # Use the flag from init
 
-        # Parent has a duration. Now decide how to reconcile with children.
+        # 3. Apply parent logic based on initial state and children's sum
 
-        # Count children that had None duration originally
-        unassigned_children = sum(1 for child in self.children if child._had_none_duration)
-        
-        # If parent has a longer duration than sum of children AND all children have durations,
-        # redistribute evenly
-        if self.duration > assigned_duration and unassigned_children == 0:
-            duration_per_child = self.duration / D(len(self.children))
-            for child in self.children:
-                child.duration = duration_per_child
-            return
-        
-        if unassigned_children > 0:
-            # Calculate remaining duration to distribute
-            remaining_duration = self.duration - assigned_duration
-            # Calculate duration per remaining child
-            duration_per_child = remaining_duration / D(unassigned_children)
-            
-            # Assign durations to children that had None duration originally
-            for child in self.children:
-                if child._had_none_duration:
-                    child.duration = max(D(0), duration_per_child)
-            
-        # Always update parent's duration to match sum of children
+        if parent_was_initially_none:
+            # Case A: Parent had no initial duration, its duration is the sum of children.
+            # Children's durations are already resolved recursively. No distribution needed from parent.
+            pass # Parent duration will be set to sum_children_duration in step 4
+
+        elif initial_parent_duration is not None:
+            # Case B: Parent had an initial duration.
+
+            # Count children that were initially None
+            unassigned_children_count = sum(1 for child in self.children if child._had_none_duration)
+
+            if initial_parent_duration > sum_children_duration:
+                 # Parent has more duration than the sum of its children's resolved durations.
+                 # This excess duration needs to be distributed.
+
+                 if unassigned_children_count == 0:
+                    # Case B1: Parent > sum, AND all children originally had durations.
+                    # Apply the override rule: distribute parent's duration evenly among ALL children.
+                    duration_per_child = initial_parent_duration / D(len(self.children))
+                    for child in self.children:
+                         child.duration = duration_per_child
+                    # Parent duration will become the sum of these in step 4 (which equals initial_parent_duration)
+
+                 else:
+                    # Case B2: Parent > sum, AND some children originally had None duration.
+                    # Distribute the *remaining* duration (parent_duration - sum of already assigned children)
+                    # among the children that were initially None.
+                    already_assigned_sum = sum(child.duration for child in self.children if not child._had_none_duration)
+                    remaining_duration_to_distribute = initial_parent_duration - already_assigned_sum
+
+                    # Ensure remaining duration is non-negative before distributing
+                    remaining_duration_to_distribute = max(D(0), remaining_duration_to_distribute)
+
+                    duration_per_unassigned_child = D(0)
+                    if unassigned_children_count > 0:
+                         duration_per_unassigned_child = remaining_duration_to_distribute / D(unassigned_children_count)
+
+                    for child in self.children:
+                         if child._had_none_duration:
+                            child.duration = max(D(0), duration_per_unassigned_child)
+                    # Parent duration will become the sum of all children in step 4 (which might be > initial_parent_duration if distribution wasn't enough, or equals it if it was exactly distributed)
+
+            else: # initial_parent_duration <= sum_children_duration
+                # Case B3: Parent duration is less than or equal to the sum of children's resolved durations.
+                # The parent's duration doesn't constrain the children in a top-down way in this scenario.
+                # Children initially None already resolved to 0 in step 1 or 2 if they were leaves.
+                # If children initially None are parents, their duration is sum of their kids >= 0.
+                # Children with initial specified durations keep them.
+                # No distribution from parent needed. The parent's duration will simply become the sum of children.
+                pass # Parent duration will be set to sum_children_duration in step 4
+
+        # 4. Final Step: Ensure parent's duration is the sum of its children's *final* durations.
+        # This provides the invariant: parent_duration == sum(children_durations).
         self.duration = sum(child.duration for child in self.children)
