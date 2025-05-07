@@ -34,7 +34,11 @@ class Node:
 
         # If parent has no duration, set it to sum of children's durations
         if self.duration is None:
-            self.duration = sum((child.duration or D(0)) for child in self.children)
+            # Set any None durations to 0
+            for child in self.children:
+                if child.duration is None:
+                    child.duration = D(0)
+            self.duration = sum(child.duration for child in self.children)
             return
 
         # Calculate total duration already assigned to children
@@ -55,6 +59,26 @@ class Node:
                     child.duration = duration_per_child
 
 class TestAssignDurations(unittest.TestCase):
+    def test_no_durations_yield_zeros(self):
+        # Arrange
+        root = Node("root")
+        root.children.append(Node("child1"))
+        root.children.append(Node("child2"))
+
+        # Act
+        root.resolve_duration()
+
+        # Assert
+        expected = {
+            "id": "root",
+            "duration": 0,
+            "children": [
+                {"id": "child1", "duration": 0},
+                {"id": "child2", "duration": 0},
+            ]
+        }
+        self.assertEqual(root.to_dict(), expected)
+
     def test_split_evenly_integer(self):
         # Arrange
         root = Node("root", D(10))
