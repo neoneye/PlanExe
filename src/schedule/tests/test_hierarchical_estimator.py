@@ -4,7 +4,6 @@ from src.schedule.hierarchical_estimator import Node
 
 class TestHierarchicalEstimator(unittest.TestCase):
     def test_negative_duration_in_constructor(self):
-        # Arrange/Act/Assert
         with self.assertRaises(ValueError) as cm:
             Node("root", D(-5))
         self.assertIn("duration cannot be negative", str(cm.exception))
