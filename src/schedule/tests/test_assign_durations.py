@@ -73,7 +73,7 @@ class TestAssignDurations(unittest.TestCase):
         }
         self.assertEqual(root.to_dict(), expected)
 
-    def test_split_unevenly(self):
+    def test_split_unevenly_2levels(self):
         # Arrange
         root = Node("root", D(10))
         root.children.append(Node("child1", D(2)))
@@ -93,7 +93,47 @@ class TestAssignDurations(unittest.TestCase):
         }
         self.assertEqual(root.to_dict(), expected)
 
-    def test_sum_of_children(self):
+    def test_split_unevenly_3levels(self):
+        # Arrange
+        root = Node("root")
+        child1 = Node("child1", D(10))
+        child2 = Node("child2", D(12))
+        root.children.append(child1)
+        root.children.append(child2)
+        child1.children.append(Node("child1.1"))
+        child1.children.append(Node("child1.2"))
+        child2.children.append(Node("child2.1"))
+        child2.children.append(Node("child2.2"))
+
+        # Act
+        root.resolve_duration()
+
+        # Assert
+        expected = {
+            "id": "root",
+            "duration": 22,
+            "children": [
+                {
+                    "id": "child1", 
+                    "duration": 10,
+                    "children": [
+                        {"id": "child1.1", "duration": 5},
+                        {"id": "child1.2", "duration": 5}
+                    ]
+                },
+                {
+                    "id": "child2", 
+                    "duration": 12,
+                    "children": [
+                        {"id": "child2.1", "duration": 6},
+                        {"id": "child2.2", "duration": 6}
+                    ]
+                }
+            ]
+        }
+        self.assertEqual(root.to_dict(), expected)
+
+    def test_sum_of_children_2levels(self):
         # Arrange
         root = Node("root")
         root.children.append(Node("child1", D(2)))
@@ -110,6 +150,46 @@ class TestAssignDurations(unittest.TestCase):
                 {"id": "child1", "duration": 2},
                 {"id": "child2", "duration": 3},
             ],
+        }
+        self.assertEqual(root.to_dict(), expected)
+
+    def test_sum_of_children_3levels(self):
+        # Arrange
+        root = Node("root") # without duration. It's up to the algorithm to distribute the duration
+        child1 = Node("child1") # without duration. It's up to the algorithm to distribute the duration
+        child2 = Node("child2") # without duration. It's up to the algorithm to distribute the duration
+        root.children.append(child1)
+        root.children.append(child2)
+        child1.children.append(Node("child1.1", D(2)))
+        child1.children.append(Node("child1.2", D(3)))
+        child2.children.append(Node("child2.1", D(4)))
+        child2.children.append(Node("child2.2", D(5)))
+
+        # Act
+        root.resolve_duration()
+
+        # Assert
+        expected = {
+            "id": "root",
+            "duration": 14,
+            "children": [
+                {
+                    "id": "child1", 
+                    "duration": 5,
+                    "children": [
+                        {"id": "child1.1", "duration": 2},
+                        {"id": "child1.2", "duration": 3}
+                    ]
+                },
+                {
+                    "id": "child2", 
+                    "duration": 9,
+                    "children": [
+                        {"id": "child2.1", "duration": 4},
+                        {"id": "child2.2", "duration": 5}
+                    ]
+                }
+            ]
         }
         self.assertEqual(root.to_dict(), expected)
 
