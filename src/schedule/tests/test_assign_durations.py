@@ -5,6 +5,10 @@ import math
 
 class Node:
     def __init__(self, id: str, duration: Optional[D] = None):
+        if not isinstance(id, str):
+            raise ValueError("id must be a string")
+        if duration is not None and not isinstance(duration, D):
+            raise ValueError("duration must be a decimal or None")
         self.id = id
         self.duration = duration
         self.children = []
