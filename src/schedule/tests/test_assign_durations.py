@@ -28,7 +28,9 @@ class Node:
         """Distribute the parent's duration among its children.
         If a child already has a duration, that duration is preserved and
         the remaining duration is distributed among other children.
-        If the parent has no duration, it gets the sum of its children's durations."""
+        If the parent has no duration, it gets the sum of its children's durations.
+        If the parent has a longer duration than the sum of its children's durations,
+        and all children have non-zero durations, the parent's duration is distributed evenly among all children."""
         # First resolve children's durations recursively
         for child in self.children:
             child.resolve_duration()
@@ -46,6 +48,15 @@ class Node:
         
         # Count children without duration
         unassigned_children = sum(1 for child in self.children if child.duration == D(0))
+        
+        # If parent has a longer duration than sum of children AND all children have durations,
+        # redistribute evenly
+        if self.duration is not None and self.duration > assigned_duration and unassigned_children == 0:
+            duration_per_child = self.duration / D(len(self.children))
+            for child in self.children:
+                child.duration = duration_per_child
+            self.duration = self.duration
+            return
         
         if unassigned_children > 0:
             # Calculate remaining duration to distribute
@@ -280,6 +291,26 @@ class TestAssignDurations(unittest.TestCase):
             "children": [
                 {"id": "child1", "duration": 3},
                 {"id": "child2", "duration": 4},
+            ],
+        }
+        self.assertEqual(root.to_dict(), expected)
+
+    def test_assign_longer_duration_to_children(self):
+        # Arrange
+        root = Node("root", D(10))
+        root.children.append(Node("child1", D(3))) # too short, will be replaced by the parent's duration / 2 children, thus 5
+        root.children.append(Node("child2", D(4))) # too short, will be replaced by the parent's duration / 2 children, thus 5
+
+        # Act
+        root.resolve_duration()
+
+        # Assert
+        expected = {
+            "id": "root",
+            "duration": 10,
+            "children": [
+                {"id": "child1", "duration": 5},
+                {"id": "child2", "duration": 5},
             ],
         }
         self.assertEqual(root.to_dict(), expected)
