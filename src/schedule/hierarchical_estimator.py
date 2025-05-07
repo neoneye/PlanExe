@@ -172,7 +172,10 @@ class Node:
 
     def apply_minimum_duration(self):
         """
-        Ensures that no node has a duration less than 1.
+        In real life, no piece of work takes less than 1 unit of work.
+        In the draft plan usually have several tasks with a duration of 0.
+        Thus this function ensures that no task has a duration less than 1.
+
         For leaf nodes (no children), sets duration to 1 if it was 0.
         For parent nodes, distributes the minimum duration among children evenly.
         Maintains the invariant that parent duration equals sum of children's durations.
