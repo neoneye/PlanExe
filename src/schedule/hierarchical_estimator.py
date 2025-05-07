@@ -49,7 +49,7 @@ providing a complete set of baseline durations for all tasks in a plan before
 potentially more refined estimation techniques (e.g., human review, LLM-based
 adjustments) are applied.
 """
-from typing import Optional
+from typing import Dict, Optional
 from decimal import ROUND_CEILING, Decimal as D
 
 class Node:
@@ -199,3 +199,12 @@ class Node:
 
         # Update parent duration to be sum of children
         self.duration = sum(child.duration for child in self.children)
+
+    def task_id_to_duration_dict(self) -> Dict[str, D]:
+        """
+        Returns a dictionary of task IDs and their durations.
+        """
+        result = {self.id: self.duration}
+        for child in self.children:
+            result.update(child.task_id_to_duration_dict())
+        return result

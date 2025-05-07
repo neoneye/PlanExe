@@ -407,3 +407,20 @@ class TestHierarchicalEstimator(unittest.TestCase):
             ]
         }
         self.assertEqual(root.to_dict(), expected)
+
+    def test_task_id_to_duration_dict(self):
+        # Arrange
+        root = Node("root", D(1))
+        root.add_child(Node("child1", D(2)))
+        root.add_child(Node("child2", D(3)))
+
+        # Act
+        d = root.task_id_to_duration_dict()
+
+        # Assert
+        expected = {
+            "root": D(1),
+            "child1": D(2),
+            "child2": D(3),
+        }
+        self.assertEqual(d, expected)
