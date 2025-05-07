@@ -55,7 +55,6 @@ class Node:
             duration_per_child = self.duration / D(len(self.children))
             for child in self.children:
                 child.duration = duration_per_child
-            self.duration = self.duration
             return
         
         if unassigned_children > 0:
