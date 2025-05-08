@@ -4,6 +4,7 @@ https://github.com/mermaid-js/mermaid
 
 As of 2025-Apr-22, I'm not satisfied with the Mermaid Gantt chart library, it cannot show 
 the dependency types: FS, FF, SS, SF. It cannot show the lag. Essential stuff for a Gantt chart.
+There is no way for the user to change the resolution of the x-axis: days, weeks, months.
 
 PROMPT> python -m src.schedule.export_mermaid_gantt
 """
