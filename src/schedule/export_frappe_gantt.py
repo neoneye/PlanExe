@@ -2,8 +2,13 @@
 Export Project Plan as Gantt chart, using Frappe Gantt chart library.
 https://github.com/frappe/gantt
 
-As of 2025-Apr-22, I'm not satisfied with the Frappe Gantt chart library, it cannot show 
+As of 2025-May-08, I'm not satisfied with the Frappe Gantt chart library, it cannot show 
 the dependency types: FS, FF, SS, SF. It cannot show the lag. Essential stuff for a Gantt chart.
+
+Frappe Gantt has so the user can change the resolution of the x-axis: days, weeks, months.
+However the CSS gets messed up when the user changes the resolution.
+
+Frappe Gantt, with +100 tasks, the scrolling is laggy.
 
 PROMPT> python -m src.schedule.export_frappe_gantt
 """

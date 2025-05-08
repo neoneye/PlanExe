@@ -2,7 +2,7 @@
 Export Project Plan as Gantt chart, using the Mermaid library.
 https://github.com/mermaid-js/mermaid
 
-As of 2025-Apr-22, I'm not satisfied with the Mermaid Gantt chart library, it cannot show 
+As of 2025-May-08, I'm not satisfied with the Mermaid Gantt chart library, it cannot show 
 the dependency types: FS, FF, SS, SF. It cannot show the lag. Essential stuff for a Gantt chart.
 There is no way for the user to change the resolution of the x-axis: days, weeks, months.
 
