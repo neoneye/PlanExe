@@ -106,9 +106,20 @@ class ExportFrappeGantt:
 <script src="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.umd.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.css">
 <style>
- body {{font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        margin: 2rem;}}
- svg {{border: 1px solid #ccc; border-radius: .5rem;}}
+ body {{
+   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+   margin: 2rem;
+ }}
+
+ #gantt-container {{
+   overflow-x: auto;
+ }}
+
+ svg {{
+   border: 1px solid #ccc;
+   border-radius: .5rem;
+   display: block;
+ }}
 </style>
 </head>
 <body>
