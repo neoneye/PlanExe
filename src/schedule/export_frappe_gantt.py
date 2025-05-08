@@ -114,6 +114,9 @@ const tasks = {tasks_json};
 
 const gantt = new Gantt('#gantt', tasks, {{
     view_mode: 'Day',
+    view_mode_select: true,
+    today_button: false,
+    readonly: true,
     custom_popup_html: task => `
       <div style="padding:.5em 1em;max-width:18rem">
         <h4 style="margin:.2em 0">${{task.name}}</h4>
