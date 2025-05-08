@@ -59,15 +59,19 @@ class TestHierarchicalEstimator(unittest.TestCase):
         root.resolve_duration()
 
         # Assert
-        # 10 / 3 = 3.33...
-        # to_dict() with ROUND_CEILING: ceil(3.33...) = 4
+        # Initial parent 10 > sum of children (0). All children were None (0 initially). Case B1.
+        # Distribute initial parent 10 evenly among 3 children. 10 / 3 = 3.33...
+        # Rounded duration per child (ceiled): ceil(3.33...) = 4
+        # Children durations become 4, 4, 4.
+        # Parent duration is sum of children: 4 + 4 + 4 = 12.
         expected = {
             "id": "root",
-            "duration": 10, # Parent duration remains 10 (sum of children: 3*3.33... = 10)
+            # Parent duration becomes sum of rounded children durations (4+4+4=12)
+            "duration": 12,
             "children": [
-                {"id": "child1", "duration": 4}, # ceil(3.33...)
-                {"id": "child2", "duration": 4}, # ceil(3.33...)
-                {"id": "child3", "duration": 4}  # ceil(3.33...)
+                {"id": "child1", "duration": 4},
+                {"id": "child2", "duration": 4},
+                {"id": "child3", "duration": 4}
             ]
         }
         self.assertEqual(root.to_dict(), expected)
@@ -84,16 +88,20 @@ class TestHierarchicalEstimator(unittest.TestCase):
         root.resolve_duration()
 
         # Assert
-        # 14 / 4 = 3.5
-        # to_dict() with ROUND_CEILING: ceil(3.5) = 4
+        # Initial parent 14 > sum of children (0). All children were None (0 initially). Case B1.
+        # Distribute initial parent 14 evenly among 4 children. 14 / 4 = 3.5
+        # Rounded duration per child (ceiled): ceil(3.5) = 4
+        # Children durations become 4, 4, 4, 4.
+        # Parent duration is sum of children: 4 + 4 + 4 + 4 = 16.
         expected = {
             "id": "root",
-            "duration": 14, # Parent duration remains 14 (sum of children: 3*3.5 = 14)
+            # Parent duration becomes sum of rounded children durations (4+4+4+4=16)
+            "duration": 16,
             "children": [
-                {"id": "child1", "duration": 4}, # ceil(3.5)
-                {"id": "child2", "duration": 4}, # ceil(3.5)
-                {"id": "child3", "duration": 4}, # ceil(3.5)
-                {"id": "child4", "duration": 4}  # ceil(3.5)
+                {"id": "child1", "duration": 4},
+                {"id": "child2", "duration": 4},
+                {"id": "child3", "duration": 4},
+                {"id": "child4", "duration": 4}
             ]
         }
         self.assertEqual(root.to_dict(), expected)
