@@ -1,6 +1,6 @@
 import unittest
 from decimal import Decimal as D
-from src.schedule.hierarchical_estimator import Node
+from src.schedule.hierarchy_estimator import Node
 
 class TestHierarchicalEstimator(unittest.TestCase):
     def test_negative_duration_in_constructor(self):

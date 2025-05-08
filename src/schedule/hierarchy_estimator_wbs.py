@@ -1,6 +1,6 @@
 from decimal import Decimal
 from typing import Dict
-from src.schedule.hierarchical_estimator import Node
+from src.schedule.hierarchy_estimator import Node
 from src.wbs.wbs_task import WBSProject, WBSTask
 
 class HierarchyEstimatorWBS:
