@@ -43,6 +43,7 @@ from src.governance.governance_phase4_decision_escalation_matrix import Governan
 from src.governance.governance_phase5_monitoring_progress import GovernancePhase5MonitoringProgress
 from src.governance.governance_phase6_extra import GovernancePhase6Extra
 from src.plan.related_resources import RelatedResources
+from src.schedule.export_frappe_gantt import ExportFrappeGantt
 from src.swot.swot_analysis import SWOTAnalysis
 from src.expert.expert_finder import ExpertFinder
 from src.expert.expert_criticism import ExpertCriticism
@@ -2686,7 +2687,8 @@ class CreateScheduleTask(PlanTask):
         print("project_plan", project_plan)
 
         # ExportGraphviz.save(project_plan, self.output()['graphviz_dot'].path)
-        ExportDHTMLXGantt.save(project_plan, self.output()['gantt_html'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
+        ExportFrappeGantt.save(project_plan, self.output()['gantt_html'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
+        # ExportDHTMLXGantt.save(project_plan, self.output()['gantt_html'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
 
         raise Exception("Not implemented")
 
