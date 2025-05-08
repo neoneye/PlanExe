@@ -48,6 +48,30 @@ class TestHierarchicalEstimator(unittest.TestCase):
         }
         self.assertEqual(root.to_dict(), expected)
 
+    def test_split_evenly_fractional_2children(self):
+        # Arrange
+        root = Node("root", D(6.2)) # Fractional duration
+        root.add_child(Node("child1"))
+        root.add_child(Node("child2"))
+
+        # Act
+        root.resolve_duration()
+
+        # Assert
+        # 6.2 / 2 = 3.1
+        # Rounded duration per child (ceiled): ceil(3.1) = 4
+        # Children durations become 4, 4.
+        # Parent duration is sum of children: 4 + 4 = 8.
+        expected = {
+            "id": "root",
+            "duration": 8,
+            "children": [
+                {"id": "child1", "duration": 4},
+                {"id": "child2", "duration": 4},
+            ]
+        }
+        self.assertEqual(root.to_dict(), expected)
+
     def test_split_evenly_fractional_3children(self):
         # Arrange
         root = Node("root", D(10))
