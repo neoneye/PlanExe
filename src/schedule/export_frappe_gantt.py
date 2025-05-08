@@ -5,10 +5,24 @@ https://github.com/frappe/gantt
 As of 2025-May-08, I'm not satisfied with the Frappe Gantt chart library, it cannot show 
 the dependency types: FS, FF, SS, SF. It cannot show the lag. Essential stuff for a Gantt chart.
 
-Frappe Gantt has so the user can change the resolution of the x-axis: days, weeks, months.
-However the CSS gets messed up when the user changes the resolution.
+With Frappe Gantt version 1.0.x the user can change the resolution of the x-axis: days, weeks, months.
+However version 1.0.x's horizontal scrolling is only rendering the viewport area, 
+when scrolling outside the viewport, the gantt chart is blank.
 
-Frappe Gantt, with +100 tasks, the scrolling is laggy.
+Frappe Gantt's horizontal scrolling is broken, in versions: 1.0.3, 1.0.0.
+<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@1.0.3/dist/frappe-gantt.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@1.0.3/dist/frappe-gantt.min.css">
+
+Frappe Gantt's horizontal scrolling is working in versions: 0.9.0, 0.6.1.
+<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.9.0/dist/frappe-gantt.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.9.0/dist/frappe-gantt.css">
+<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.css">
+
+Frappe Gantt version 1.0.x, with +100 tasks, the scrolling is laggy.
+
+Frappe Gantt version 1.0.x, the activity durations are N time units. I prefer this behavior.
+However older versions have activity duration are N+1 time units. I don't like that behavior.
 
 PROMPT> python -m src.schedule.export_frappe_gantt
 """
@@ -103,33 +117,28 @@ class ExportFrappeGantt:
 <head>
 <meta charset="utf-8">
 <title>{html.escape(title)}</title>
-<script src="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.umd.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.css">
+<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@1.0.3/dist/frappe-gantt.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@1.0.3/dist/frappe-gantt.min.css">
+
+<!-- <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.9.0/dist/frappe-gantt.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.9.0/dist/frappe-gantt.css"> -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.css"> -->
 <style>
  body {{
    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
    margin: 2rem;
  }}
-
- #gantt-container {{
-   overflow-x: auto;
- }}
-
- svg {{
-   border: 1px solid #ccc;
-   border-radius: .5rem;
-   display: block;
- }}
 </style>
 </head>
 <body>
 <h1>{html.escape(title)}</h1>
-<svg id="gantt"></svg>
+<div id="the-gantt-container"></div>
 
 <script type="module">
 const tasks = {tasks_json};
 
-const gantt = new Gantt('#gantt', tasks, {{
+const gantt = new Gantt('#the-gantt-container', tasks, {{
     view_mode: 'Day',
     view_mode_select: true,
     today_button: false,
