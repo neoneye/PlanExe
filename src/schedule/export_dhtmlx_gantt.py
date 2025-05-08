@@ -37,7 +37,8 @@ class ExportDHTMLXGantt:
     @staticmethod
     def to_dhtmlx_gantt_data(
         project_plan: ProjectPlan,
-        project_start: date | str | None = None,
+        project_start: date | str | None,
+        task_ids_to_treat_as_project_activities: set[str]
     ) -> dict:
         """
         Return a dict with tasks and links ready for DHTMLX Gantt initialization.
@@ -79,10 +80,19 @@ class ExportDHTMLXGantt:
             }
             if act.parent_id:
                 task["parent"] = act.parent_id
+            if act.id in task_ids_to_treat_as_project_activities:
+                task["type"] = "project"
+                del task["start_date"]
+                del task["duration"]
             tasks.append(task)
 
             # Create links for dependencies
             for pred in act.parsed_predecessors:
+                is_leaf = act.id not in task_ids_to_treat_as_project_activities
+                is_parent_project = pred.activity_id in task_ids_to_treat_as_project_activities
+                if is_leaf and is_parent_project:
+                    # print(f"Skipping link {pred.activity_id} -> {act.id} because it's a leaf activity and the parent is a project")
+                    continue
                 link = {
                     "id": f"link_{link_id}",
                     "source": pred.activity_id,
@@ -94,7 +104,7 @@ class ExportDHTMLXGantt:
                 link_id += 1
 
         return {
-            "data": tasks,
+            "tasks": tasks,
             "links": links
         }
 
@@ -119,8 +129,9 @@ class ExportDHTMLXGantt:
         """
         title = kwargs.get("title", "Project schedule")
         project_start = kwargs.get("project_start", None)
+        task_ids_to_treat_as_project_activities = kwargs.get("task_ids_to_treat_as_project_activities", set())
 
-        gantt_data = ExportDHTMLXGantt.to_dhtmlx_gantt_data(project_plan, project_start)
+        gantt_data = ExportDHTMLXGantt.to_dhtmlx_gantt_data(project_plan, project_start, task_ids_to_treat_as_project_activities)
         gantt_data_json = json.dumps(gantt_data, indent=2)
 
         html_content = f"""<!DOCTYPE html>
@@ -158,6 +169,16 @@ class ExportDHTMLXGantt:
     .zoom-controls button:hover {{
         background: #f5f5f5;
     }}
+    .project-task.gantt_task_line {{
+        background-color: #b67134;
+        border-color: #f57c00;
+    }}
+    .project-task .gantt_task_content {{
+        color: white;
+    }}
+    .project-task.gantt_project.gantt_task_line {{
+        border-radius: 0;
+    }}
   </style>
 </head>
 <body>
@@ -178,6 +199,14 @@ class ExportDHTMLXGantt:
         {{unit: "day", step: 1, date: "%d"}}
     ];
     
+    // Configure project task appearance
+    gantt.templates.task_class = function(start, end, task) {{
+        if (task.type === "project") {{
+            return "project-task";
+        }}
+        return "";
+    }};
+
     // Configure tooltips
     gantt.templates.tooltip_text = function(start, end, task) {{
         return "<b>" + task.text + "</b><br>" +

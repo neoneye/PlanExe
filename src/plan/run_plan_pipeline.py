@@ -2602,6 +2602,18 @@ class CreateScheduleTask(PlanTask):
         # Estimate the durations for all tasks in the WBS project.
         task_id_to_duration_dict2 = HierarchyEstimatorWBS.run(wbs_project, task_id_to_duration_dict)
 
+        # Identify the tasks that should be treated as project activities.
+        task_ids_to_treat_as_project_activities = set()
+        def visit_task1(task: WBSTask):
+            if len(task.task_children) > 0:
+                task_ids_to_treat_as_project_activities.add(task.id)
+            for child in task.task_children:
+                visit_task1(child)
+        visit_task1(wbs_project.root_task)
+
+        print("!!!!!!!!!!!!!!!!!!! CreateScheduleTask - task_ids_to_treat_as_project_activities !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("task_ids_to_treat_as_project_activities", task_ids_to_treat_as_project_activities)
+
         activities = []
 
         zero = Decimal("0")
@@ -2674,7 +2686,7 @@ class CreateScheduleTask(PlanTask):
         print("project_plan", project_plan)
 
         # ExportGraphviz.save(project_plan, self.output()['graphviz_dot'].path)
-        ExportDHTMLXGantt.save(project_plan, self.output()['gantt_html'].path)
+        ExportDHTMLXGantt.save(project_plan, self.output()['gantt_html'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
 
         raise Exception("Not implemented")
 
