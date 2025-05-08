@@ -2606,8 +2606,8 @@ class CreateScheduleTask(PlanTask):
 
         zero = Decimal("0")
         def visit_task(task: WBSTask, depth: int, parent_id: Optional[str], prev_task_id: Optional[str], is_first_child: bool, is_last_child: bool):
-            if len(activities) > 25:
-                return
+            # if len(activities) > 25:
+            #     return
 
             task_id = task.id
             duration = task_id_to_duration_dict2.get(task_id)
