@@ -57,10 +57,11 @@ class ExportFrappeGantt:
                 for p in a.parsed_predecessors
                 if p.dep_type is DependencyType.FS and p.lag == 0
             ]
+            name = a.title if a.title else a.id
             tasks.append(
                 {
                     "id":          a.id,
-                    "name":        a.id,        # keep label short; full info is in pop‑up
+                    "name":        name,
                     "start":       start.isoformat(),
                     "end":         end.isoformat(),
                     "progress":    0,
@@ -122,6 +123,8 @@ const gantt = new Gantt('#gantt', tasks, {{
     view_mode_select: true,
     today_button: false,
     readonly: true,
+    infinite_padding: false,
+    holidays: false,
     custom_popup_html: task => `
       <div style="padding:.5em 1em;max-width:18rem">
         <h4 style="margin:.2em 0">${{task.name}}</h4>
