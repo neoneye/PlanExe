@@ -6,8 +6,11 @@ As of 2025-May-08, I'm not satisfied with the Frappe Gantt chart library, it can
 the dependency types: FS, FF, SS, SF. It cannot show the lag. Essential stuff for a Gantt chart.
 
 With Frappe Gantt version 1.0.x the user can change the resolution of the x-axis: days, weeks, months.
-However version 1.0.x's horizontal scrolling is only rendering the viewport area, 
+
+Unfortunately version 1.0.x's horizontal scrolling is only rendering the viewport area, 
 when scrolling outside the viewport, the gantt chart is blank.
+Awaiting fix for horizontal scrolling bug, until then version 1.0.x is not usable.
+https://github.com/frappe/gantt/issues/544
 
 Frappe Gantt's horizontal scrolling is broken, in versions: 1.0.3, 1.0.0.
 <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@1.0.3/dist/frappe-gantt.umd.min.js"></script>
