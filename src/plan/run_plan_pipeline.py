@@ -2871,12 +2871,14 @@ class ReportTask(PlanTask):
             'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'review_plan': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'executive_summary': ExecutiveSummaryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'executive_summary': ExecutiveSummaryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'create_schedule': CreateScheduleTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
     
     def run(self):
         rg = ReportGenerator()
         rg.append_markdown('Executive Summary', self.input()['executive_summary']['markdown'].path)
+        rg.append_html('Schedule', self.input()['create_schedule'].path)
         rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
         rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
         rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown']['full'].path)

@@ -114,7 +114,7 @@ class ExportMermaidGantt:
 <head>
   <meta charset="UTF-8">
   <title>{title}</title>
-  <!-- HTML_HEAD_START -->
+  <!--HTML_HEAD_START-->
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
     mermaid.initialize({{ 
@@ -130,7 +130,7 @@ class ExportMermaidGantt:
         }}
     }});
   </script>
-  <!-- HTML_HEAD_END -->
+  <!--HTML_HEAD_END-->
   <style>
     body {{
         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -140,11 +140,11 @@ class ExportMermaidGantt:
 </head>
 <body>
 <h1>{title}</h1>
-<!-- HTML_BODY_START -->
+<!--HTML_BODY_START-->
 <div class="mermaid">
 {mermaid_code}
 </div>
-<!-- HTML_BODY_END -->
+<!--HTML_BODY_END-->
 </body>
 </html>"""
         with open(path, "w", encoding="utf-8") as fp:
