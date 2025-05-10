@@ -114,7 +114,18 @@ class ExportMermaidGantt:
   <title>{title}</title>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({{ startOnLoad: true }});
+    mermaid.initialize({{ 
+        "startOnLoad": true,
+        "theme": "default",
+        "themeVariables": {{
+            "sectionBkgColor": "#777",
+            "sectionBkgColor2": "#777",
+        }},
+        "gantt": {{
+            "fontSize": 18,
+            "sectionFontSize": 20,
+        }}
+    }});
   </script>
   <style>
     body {{
