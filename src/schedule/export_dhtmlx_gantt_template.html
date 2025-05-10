@@ -51,15 +51,16 @@
 </head>
 <body>
     <h1>PLACEHOLDER_TITLE</h1>
-<!--HTML_BODY_START-->
+<!--HTML_BODY_CONTENT_START-->
 <div id="gantt_container" class="gantt_container"></div>
 <div class="zoom-controls">
     <button id="zoomFitButton">Zoom Fit</button>
     <button id="zoomInButton">Zoom In</button>
     <button id="zoomOutButton">Zoom Out</button>
 </div>
-<!--HTML_BODY_END-->
+<!--HTML_BODY_CONTENT_END-->
 
+<!--HTML_BODY_SCRIPT_START-->
 <script type="module">
     function zoomFit() {
         const tasks = gantt.getTaskByTime();
@@ -203,5 +204,6 @@
     document.getElementById('zoomInButton').addEventListener('click', zoomIn);
     document.getElementById('zoomOutButton').addEventListener('click', zoomOut);
 </script>
+<!--HTML_BODY_SCRIPT_END-->
 </body>
 </html>

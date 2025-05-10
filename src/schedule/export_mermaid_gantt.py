@@ -140,11 +140,13 @@ class ExportMermaidGantt:
 </head>
 <body>
 <h1>{title}</h1>
-<!--HTML_BODY_START-->
+<!--HTML_BODY_CONTENT_START-->
 <div class="mermaid">
 {mermaid_code}
 </div>
-<!--HTML_BODY_END-->
+<!--HTML_BODY_CONTENT_END-->
+<!--HTML_BODY_SCRIPT_START-->
+<!--HTML_BODY_SCRIPT_END-->
 </body>
 </html>"""
         with open(path, "w", encoding="utf-8") as fp:
