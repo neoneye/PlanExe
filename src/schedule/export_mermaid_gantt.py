@@ -7,6 +7,9 @@ the dependency types: FS, FF, SS, SF. It cannot show the lag. Essential stuff fo
 There is no way for the user to change the resolution of the x-axis: days, weeks, months.
 No way to assign a custom css class to a specific activity, so it can be styled differently.
 
+CSS styling of mermaid:
+https://github.com/mermaid-js/mermaid/blob/develop/packages/mermaid/src/diagrams/gantt/styles.js
+
 PROMPT> python -m src.schedule.export_mermaid_gantt
 """
 from datetime import date, timedelta
@@ -61,7 +64,6 @@ class ExportMermaidGantt:
             "    dateFormat  YYYY-MM-DD",
             "    axisFormat  %d %b",
             "    todayMarker off",
-            "",
         ]
 
         # order tasks by early‑start so the chart looks natural
@@ -78,7 +80,7 @@ class ExportMermaidGantt:
                 lines.append(f"    section {index}")
 
             lines.append(
-                f"    {label} :{act.id.lower()}, {start.isoformat()}, {dur_txt}"
+                f"    {label} :{start.isoformat()}, {dur_txt}"
             )
 
         return "\n".join(lines)
@@ -119,11 +121,11 @@ class ExportMermaidGantt:
         "theme": "default",
         "themeVariables": {{
             "sectionBkgColor": "#777",
-            "sectionBkgColor2": "#777",
+            "sectionBkgColor2": "#777"
         }},
         "gantt": {{
-            "fontSize": 18,
-            "sectionFontSize": 20,
+            "fontSize": 17,
+            "sectionFontSize": 20
         }}
     }});
   </script>
