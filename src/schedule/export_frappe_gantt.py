@@ -32,7 +32,7 @@ PROMPT> python -m src.schedule.export_frappe_gantt
 from datetime import date, timedelta
 import json
 import html
-from src.schedule.schedule import ProjectPlan, DependencyType, PredecessorInfo, ZERO
+from src.schedule.schedule import ProjectPlan, DependencyType, PredecessorInfo
 
 class ExportFrappeGantt:
     @staticmethod

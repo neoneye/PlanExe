@@ -13,6 +13,22 @@ from src.schedule.schedule import ProjectPlan, PredecessorInfo
 
 class ExportMermaidGantt:
     @staticmethod
+    def _escape_mermaid(text: str) -> str:
+        """Escape special characters for Mermaid syntax."""
+        # Replace characters that could break Mermaid syntax
+        text = text.replace(':', '\\:')  # Escape colons
+        text = text.replace('(', '\\(')  # Escape parentheses
+        text = text.replace(')', '\\)')
+        text = text.replace('[', '\\[')  # Escape brackets
+        text = text.replace(']', '\\]')
+        text = text.replace('{', '\\{')  # Escape braces
+        text = text.replace('}', '\\}')
+        text = text.replace('|', '\\|')  # Escape pipe
+        text = text.replace('"', '\\"')  # Escape quotes
+        text = text.replace("'", "\\'")  # Escape single quotes
+        return text
+    
+    @staticmethod
     def _dep_summary(preds: list[PredecessorInfo]) -> str:
         """Return 'A FS, B SS+2' etc. for the tooltip/label."""
         parts = []
@@ -65,7 +81,10 @@ class ExportMermaidGantt:
             start   = project_start + timedelta(days=float(act.es))
             dur_txt = f"{int(act.duration)}d" if act.duration % 1 == 0 else f"{act.duration}d"
 
-            label = act.id
+            name = act.title if act.title else act.id
+            name = ExportMermaidGantt._escape_mermaid(name)
+            label = name
+
             depinfo = ExportMermaidGantt._dep_summary(act.parsed_predecessors)
             if depinfo:
                 label += f" ({depinfo})"
