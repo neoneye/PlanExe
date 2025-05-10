@@ -2561,7 +2561,10 @@ class CreateScheduleTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
     def output(self):
-        return luigi.LocalTarget(self.file_path(FilenameEnum.SCHEDULE_GANTT_HTML))
+        return {
+            'mermaid': luigi.LocalTarget(self.file_path(FilenameEnum.SCHEDULE_MERMAID_GANTT_HTML)),
+            'dhtmlx': luigi.LocalTarget(self.file_path(FilenameEnum.SCHEDULE_DHTMLX_GANTT_HTML))
+        }
     
     def requires(self):
         return {
@@ -2682,11 +2685,9 @@ class CreateScheduleTask(PlanTask):
         print("!!!!!!!!!!!!!!!!!!! CreateScheduleTask - project_plan !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         print("project_plan", project_plan)
 
-        # ExportFrappeGantt.save(project_plan, self.output().path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
-        ExportMermaidGantt.save(project_plan, self.output().path)
-        # ExportDHTMLXGantt.save(project_plan, self.output().path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
-
-        # raise Exception("Not implemented")
+        # ExportFrappeGantt.save(project_plan, self.output()['frappe'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
+        ExportMermaidGantt.save(project_plan, self.output()['mermaid'].path)
+        ExportDHTMLXGantt.save(project_plan, self.output()['dhtmlx'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
 
 class ReviewPlanTask(PlanTask):
     """
@@ -2878,7 +2879,8 @@ class ReportTask(PlanTask):
     def run(self):
         rg = ReportGenerator()
         rg.append_markdown('Executive Summary', self.input()['executive_summary']['markdown'].path)
-        rg.append_html('Schedule', self.input()['create_schedule'].path)
+        rg.append_html('Gantt Chart (Mermaid)', self.input()['create_schedule']['mermaid'].path)
+        rg.append_html('Gantt Chart (DHTMLX)', self.input()['create_schedule']['dhtmlx'].path)
         rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
         rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
         rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown']['full'].path)
