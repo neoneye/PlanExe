@@ -2,9 +2,10 @@
 Export Project Plan as Gantt chart, using the Mermaid library.
 https://github.com/mermaid-js/mermaid
 
-As of 2025-May-08, I'm not satisfied with the Mermaid Gantt chart library, it cannot show 
+As of 2025-May-10, I'm not satisfied with the Mermaid Gantt chart library, it cannot show 
 the dependency types: FS, FF, SS, SF. It cannot show the lag. Essential stuff for a Gantt chart.
 There is no way for the user to change the resolution of the x-axis: days, weeks, months.
+No way to assign a custom css class to a specific activity, so it can be styled differently.
 
 PROMPT> python -m src.schedule.export_mermaid_gantt
 """
@@ -14,31 +15,19 @@ from src.schedule.schedule import ProjectPlan, PredecessorInfo
 class ExportMermaidGantt:
     @staticmethod
     def _escape_mermaid(text: str) -> str:
-        """Escape special characters for Mermaid syntax."""
-        # Replace characters that could break Mermaid syntax
-        text = text.replace(':', '\\:')  # Escape colons
-        text = text.replace('(', '\\(')  # Escape parentheses
+        """Escape special characters for Mermaid syntax. Replace characters that could break Mermaid syntax."""
+        text = text.replace(':', '\\:')
+        text = text.replace('(', '\\(')
         text = text.replace(')', '\\)')
-        text = text.replace('[', '\\[')  # Escape brackets
+        text = text.replace('[', '\\[')
         text = text.replace(']', '\\]')
-        text = text.replace('{', '\\{')  # Escape braces
+        text = text.replace('{', '\\{')
         text = text.replace('}', '\\}')
-        text = text.replace('|', '\\|')  # Escape pipe
-        text = text.replace('"', '\\"')  # Escape quotes
-        text = text.replace("'", "\\'")  # Escape single quotes
+        text = text.replace('|', '\\|')
+        text = text.replace('"', '\\"')
+        text = text.replace("'", "\\'")
         return text
     
-    @staticmethod
-    def _dep_summary(preds: list[PredecessorInfo]) -> str:
-        """Return 'A FS, B SS+2' etc. for the tooltip/label."""
-        parts = []
-        for p in preds:
-            lag = p.lag
-            lag_txt = ("" if lag == 0
-                    else f"{'+' if lag > 0 else ''}{lag}")   # +2  or  -1
-            parts.append(f"{p.activity_id} {p.dep_type.value}{lag_txt}")
-        return ", ".join(parts)
-
     @staticmethod
     def to_mermaid_gantt(
         project_plan: ProjectPlan,
@@ -82,12 +71,7 @@ class ExportMermaidGantt:
             dur_txt = f"{int(act.duration)}d" if act.duration % 1 == 0 else f"{act.duration}d"
 
             name = act.title if act.title else act.id
-            name = ExportMermaidGantt._escape_mermaid(name)
-            label = name
-
-            depinfo = ExportMermaidGantt._dep_summary(act.parsed_predecessors)
-            if depinfo:
-                label += f" ({depinfo})"
+            label = ExportMermaidGantt._escape_mermaid(name)
 
             lines.append(
                 f"    {label} :{act.id.lower()}, {start.isoformat()}, {dur_txt}"
