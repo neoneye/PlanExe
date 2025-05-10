@@ -2879,8 +2879,8 @@ class ReportTask(PlanTask):
     def run(self):
         rg = ReportGenerator()
         rg.append_markdown('Executive Summary', self.input()['executive_summary']['markdown'].path)
-        rg.append_html('Gantt Chart (Mermaid)', self.input()['create_schedule']['mermaid'].path)
-        rg.append_html('Gantt Chart (DHTMLX)', self.input()['create_schedule']['dhtmlx'].path)
+        rg.append_html('Gantt Overview', self.input()['create_schedule']['mermaid'].path)
+        rg.append_html('Gantt Interactive', self.input()['create_schedule']['dhtmlx'].path)
         rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
         rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
         rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown']['full'].path)
