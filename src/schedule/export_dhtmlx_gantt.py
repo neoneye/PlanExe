@@ -11,7 +11,6 @@ PROMPT> python -m src.schedule.export_dhtmlx_gantt
 from datetime import date, timedelta
 import json
 import html
-import os
 from pathlib import Path
 from src.schedule.schedule import ProjectPlan, DependencyType, PredecessorInfo
 
@@ -144,7 +143,8 @@ class ExportDHTMLXGantt:
         with open(path_to_template, "r", encoding="utf-8") as f:
             html_template = f.read()
         
-        html_content = html_template.replace("{title}", html.escape(title)).replace("{gantt_data}", gantt_data_json)
+        html_content = html_template.replace("PLACEHOLDER_TITLE", html.escape(title))
+        html_content = html_content.replace("PLACEHOLDER_GANTT_DATA", gantt_data_json)
 
         with open(path, "w", encoding="utf-8") as fp:
             fp.write(html_content)
