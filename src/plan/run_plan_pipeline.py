@@ -69,7 +69,6 @@ from src.wbs.wbs_task import WBSTask, WBSProject
 from src.wbs.wbs_populate import WBSPopulate
 from src.schedule.schedule import DependencyType, PredecessorInfo, ProjectPlan, Activity
 from src.schedule.hierarchy_estimator_wbs import HierarchyEstimatorWBS
-from src.schedule.export_graphviz import ExportGraphviz
 from src.schedule.export_dhtmlx_gantt import ExportDHTMLXGantt
 from src.llm_factory import get_llm
 from src.format_json_for_use_in_query import format_json_for_use_in_query
@@ -2562,11 +2561,7 @@ class CreateScheduleTask(PlanTask):
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
     def output(self):
-        return {
-            'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.SCHEDULE_RAW))),
-            'graphviz_dot': luigi.LocalTarget(str(self.file_path(FilenameEnum.SCHEDULE_GRAPHVIZ_DOT))),
-            'gantt_html': luigi.LocalTarget(str(self.file_path(FilenameEnum.SCHEDULE_GANTT_HTML)))
-        }
+        return luigi.LocalTarget(self.file_path(FilenameEnum.SCHEDULE_GANTT_HTML))
     
     def requires(self):
         return {
@@ -2687,12 +2682,11 @@ class CreateScheduleTask(PlanTask):
         print("!!!!!!!!!!!!!!!!!!! CreateScheduleTask - project_plan !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         print("project_plan", project_plan)
 
-        # ExportGraphviz.save(project_plan, self.output()['graphviz_dot'].path)
-        # ExportFrappeGantt.save(project_plan, self.output()['gantt_html'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
-        ExportMermaidGantt.save(project_plan, self.output()['gantt_html'].path)
-        # ExportDHTMLXGantt.save(project_plan, self.output()['gantt_html'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
+        # ExportFrappeGantt.save(project_plan, self.output().path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
+        ExportMermaidGantt.save(project_plan, self.output().path)
+        # ExportDHTMLXGantt.save(project_plan, self.output().path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
 
-        raise Exception("Not implemented")
+        # raise Exception("Not implemented")
 
 class ReviewPlanTask(PlanTask):
     """
@@ -2946,10 +2940,10 @@ class FullPlanPipeline(PlanTask):
             'durations': EstimateTaskDurationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_level3': CreateWBSLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'plan_evaluator': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'executive_summary': ExecutiveSummaryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'create_schedule': CreateScheduleTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            # 'plan_evaluator': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            # 'executive_summary': ExecutiveSummaryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            # 'report': ReportTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'report': ReportTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
 
     def output(self):
