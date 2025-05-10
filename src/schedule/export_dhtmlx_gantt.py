@@ -2,6 +2,10 @@
 Export Project Plan as Gantt chart, using the DHTMLX Gantt library.
 https://dhtmlx.com/docs/products/dhtmlxGantt/
 
+I'm a developer, not a license lawyer. DHTMLX Gantt is GPL. PlanExe is MIT.
+AFAIK, linking to a GPL component via a CDN from an MIT-licensed project is 
+considered compatible and does not force the MIT project code to become GPL.
+
 PROMPT> python -m src.schedule.export_dhtmlx_gantt
 """
 from datetime import date, timedelta
