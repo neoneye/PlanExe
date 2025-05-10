@@ -58,20 +58,24 @@ class ExportMermaidGantt:
         # build the Mermaid text -------------------------------------------------------
         lines: list[str] = [
             "gantt",
-            f"    title {title}",
             "    dateFormat  YYYY-MM-DD",
             "    axisFormat  %d %b",
+            "    todayMarker off",
             "",
-            "    section Activities",
         ]
 
         # order tasks by early‑start so the chart looks natural
-        for act in sorted(project_plan.activities.values(), key=lambda a: a.es):
+        activities = sorted(project_plan.activities.values(), key=lambda a: a.es)
+        for index, act in enumerate(activities):
             start   = project_start + timedelta(days=float(act.es))
             dur_txt = f"{int(act.duration)}d" if act.duration % 1 == 0 else f"{act.duration}d"
 
             name = act.title if act.title else act.id
             label = ExportMermaidGantt._escape_mermaid(name)
+
+            # insert a section for every 10 activities
+            if index % 10 == 0:
+                lines.append(f"    section {index}")
 
             lines.append(
                 f"    {label} :{act.id.lower()}, {start.isoformat()}, {dur_txt}"
