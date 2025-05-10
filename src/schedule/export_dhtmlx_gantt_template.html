@@ -178,6 +178,12 @@
         {unit: "day", step: 1, date: "%d"}
     ];
 
+    gantt.config.columns = [
+        {name:"text", label:"Task name", width:"*", tree:true },
+        {name:"start_date", label:"Start time", align: "center", width:80},
+        {name:"duration", label:"Duration", align: "center", width:80}
+    ];
+
     gantt.templates.task_class = function(start, end, task) {
         if (task.type === "project") {
             return "project-task";
