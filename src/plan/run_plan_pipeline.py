@@ -2584,10 +2584,9 @@ class CreateScheduleTask(PlanTask):
             wbs_project_dict = json.load(f)
         wbs_project = WBSProject.from_dict(wbs_project_dict)
 
-        print("!!!!!!!!!!!!!!!!!!! CreateScheduleTask - input !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        print("dependencies_dict", dependencies_dict)
-        print("durations_dict", durations_dict)
-        print("wbs_project", wbs_project.to_dict())
+        logger.debug("dependencies_dict", dependencies_dict)
+        logger.debug("durations_dict", durations_dict)
+        logger.debug("wbs_project", wbs_project.to_dict())
 
 
         # The number of hours per day is hardcoded. This should be determined by the task_duration agent. Is it 8 hours or 24 hours, or instead of days is it hours or weeks.
@@ -2611,16 +2610,12 @@ class CreateScheduleTask(PlanTask):
                 visit_task1(child)
         visit_task1(wbs_project.root_task)
 
-        print("!!!!!!!!!!!!!!!!!!! CreateScheduleTask - task_ids_to_treat_as_project_activities !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        print("task_ids_to_treat_as_project_activities", task_ids_to_treat_as_project_activities)
+        logger.debug("task_ids_to_treat_as_project_activities", task_ids_to_treat_as_project_activities)
 
         activities = []
 
         zero = Decimal("0")
         def visit_task(task: WBSTask, depth: int, parent_id: Optional[str], prev_task_id: Optional[str], is_first_child: bool, is_last_child: bool):
-            # if len(activities) > 25:
-            #     return
-
             task_id = task.id
             duration = task_id_to_duration_dict2.get(task_id)
             if duration is None:
@@ -2633,21 +2628,15 @@ class CreateScheduleTask(PlanTask):
             if is_first_child:
                 if parent_id is not None:
                     predecessors_str = f"{parent_id}(SS)"
-                    # lag = Decimal(random.randint(0, 10))
-                    lag = zero
-                    pred_first_child = PredecessorInfo(activity_id=parent_id, dep_type=DependencyType.SS, lag=lag)
+                    pred_first_child = PredecessorInfo(activity_id=parent_id, dep_type=DependencyType.SS, lag=zero)
             if is_last_child:
                 if parent_id is not None:
                     predecessors_str = f"{parent_id}(FF)"
-                    # lag = Decimal(random.randint(0, 10))
-                    lag = zero
-                    pred_last_child = PredecessorInfo(activity_id=parent_id, dep_type=DependencyType.FF, lag=lag)
+                    pred_last_child = PredecessorInfo(activity_id=parent_id, dep_type=DependencyType.FF, lag=zero)
 
             if prev_task_id is not None:
                 predecessors_str = f"{prev_task_id}(SS)"
-                # lag = Decimal(random.randint(0, 10))
-                lag = zero
-                pred_prev = PredecessorInfo(activity_id=prev_task_id, dep_type=DependencyType.FS, lag=lag)
+                pred_prev = PredecessorInfo(activity_id=prev_task_id, dep_type=DependencyType.FS, lag=zero)
 
             activity = Activity(id=task_id, duration=duration, predecessors_str=predecessors_str, title=task.description)
 
@@ -2661,11 +2650,7 @@ class CreateScheduleTask(PlanTask):
             if pred_prev is not None:
                 activity.parsed_predecessors.append(pred_prev)
 
-            # if len(task.task_children) == 0:
             activities.append(activity)
-
-            # if depth > 1:
-            #     return
 
             prev_task_id: Optional[str] = None
             for child_index, child in enumerate(task.task_children):
@@ -2677,13 +2662,11 @@ class CreateScheduleTask(PlanTask):
 
         visit_task(wbs_project.root_task, 0, parent_id=None, prev_task_id=None, is_first_child=True, is_last_child=True)
 
-        print("!!!!!!!!!!!!!!!!!!! CreateScheduleTask - activities !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        print("activities", activities)
+        logger.debug("activities", activities)
 
         project_plan = ProjectPlan.create(activities)
 
-        print("!!!!!!!!!!!!!!!!!!! CreateScheduleTask - project_plan !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        print("project_plan", project_plan)
+        logger.debug("project_plan", project_plan)
 
         # ExportFrappeGantt.save(project_plan, self.output()['frappe'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
         ExportMermaidGantt.save(project_plan, self.output()['mermaid'].path)
