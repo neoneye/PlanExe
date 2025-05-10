@@ -189,46 +189,12 @@ class ExportDHTMLXGantt:
 <h1>{html.escape(title)}</h1>
 <div id="gantt_container" class="gantt_container"></div>
 <div class="zoom-controls">
-    <button onclick="zoomFit()">Zoom Fit</button>
-    <button onclick="zoomIn()">Zoom In</button>
-    <button onclick="zoomOut()">Zoom Out</button>
+    <button id="zoomFitButton">Zoom Fit</button>
+    <button id="zoomInButton">Zoom In</button>
+    <button id="zoomOutButton">Zoom Out</button>
 </div>
 
-<script>
-    // Initialize Gantt
-    gantt.config.date_format = "%Y-%m-%d";
-    gantt.config.scale_unit = "month";
-    gantt.config.step = 1;
-    gantt.config.subscales = [
-        {{unit: "day", step: 1, date: "%d"}}
-    ];
-    
-    // Configure project task appearance
-    gantt.templates.task_class = function(start, end, task) {{
-        if (task.type === "project") {{
-            return "project-task";
-        }}
-        return "";
-    }};
-
-    // Configure tooltips
-    gantt.templates.tooltip_text = function(start, end, task) {{
-        return "<b>" + task.text + "</b><br>" +
-               "Start: " + gantt.templates.tooltip_date_format(start) + "<br>" +
-               "End: " + gantt.templates.tooltip_date_format(end) + "<br>" +
-               "Duration: " + task.duration + " days<br>" +
-               "Dependencies: " + (task.meta || "None");
-    }};
-
-    // Load data and initialize
-    const gantt_data = {gantt_data_json};
-    gantt.plugins({{
-        quick_info: true
-    }});
-    gantt.init("gantt_container");
-    gantt.parse(gantt_data);
-
-    // Zoom functions
+<script type="module">
     function zoomFit() {{
         const tasks = gantt.getTaskByTime();
         if (tasks.length > 0) {{
@@ -336,6 +302,40 @@ class ExportDHTMLXGantt:
         }}
         gantt.render();
     }}
+
+    // Gantt Initialization
+    gantt.config.date_format = "%Y-%m-%d";
+    gantt.config.scale_unit = "month";
+    gantt.config.step = 1;
+    gantt.config.subscales = [
+        {{unit: "day", step: 1, date: "%d"}}
+    ];
+
+    gantt.templates.task_class = function(start, end, task) {{
+        if (task.type === "project") {{
+            return "project-task";
+        }}
+        return "";
+    }};
+
+    gantt.templates.tooltip_text = function(start, end, task) {{
+        return "<b>" + task.text + "</b><br>" +
+               "Start: " + gantt.templates.tooltip_date_format(start) + "<br>" +
+               "End: " + gantt.templates.tooltip_date_format(end) + "<br>" +
+               "Duration: " + task.duration + " days<br>" +
+               "Dependencies: " + (task.meta || "None");
+    }};
+    
+    const gantt_data = {gantt_data_json};
+    gantt.plugins({{
+        quick_info: true
+    }});
+    gantt.init("gantt_container");
+    gantt.parse(gantt_data);
+
+    document.getElementById('zoomFitButton').addEventListener('click', zoomFit);
+    document.getElementById('zoomInButton').addEventListener('click', zoomIn);
+    document.getElementById('zoomOutButton').addEventListener('click', zoomOut);
 </script>
 </body>
 </html>"""
