@@ -10,7 +10,6 @@ from datetime import datetime
 from decimal import Decimal
 import logging
 import json
-import random
 from typing import Optional
 import luigi
 from pathlib import Path
@@ -67,9 +66,9 @@ from src.team.team_markdown_document import TeamMarkdownDocumentBuilder
 from src.team.review_team import ReviewTeam
 from src.wbs.wbs_task import WBSTask, WBSProject
 from src.wbs.wbs_populate import WBSPopulate
-from src.schedule.schedule import DependencyType, PredecessorInfo, ProjectSchedule, Activity
 from src.schedule.hierarchy_estimator_wbs import HierarchyEstimatorWBS
 from src.schedule.export_dhtmlx_gantt import ExportDHTMLXGantt
+from src.schedule.project_schedule_wbs import ProjectScheduleWBS
 from src.llm_factory import get_llm
 from src.format_json_for_use_in_query import format_json_for_use_in_query
 from src.utils.get_env_as_string import get_env_as_string
@@ -2600,65 +2599,12 @@ class CreateScheduleTask(PlanTask):
         # Estimate the durations for all tasks in the WBS project.
         task_id_to_duration_dict2 = HierarchyEstimatorWBS.run(wbs_project, task_id_to_duration_dict)
 
+        # Convert the WBSProject to a ProjectSchedule.
+        project_schedule = ProjectScheduleWBS.convert(wbs_project, task_id_to_duration_dict2)
+        # logger.debug(f"project_schedule {project_schedule}")
+
         # Identify the tasks that should be treated as project activities.
         task_ids_to_treat_as_project_activities = wbs_project.task_ids_with_one_or_more_children()
-        # logger.debug(f"task_ids_to_treat_as_project_activities length: {len(task_ids_to_treat_as_project_activities)}")
-
-        activities = []
-
-        zero = Decimal("0")
-        def visit_task(task: WBSTask, depth: int, parent_id: Optional[str], prev_task_id: Optional[str], is_first_child: bool, is_last_child: bool):
-            task_id = task.id
-            duration = task_id_to_duration_dict2.get(task_id)
-            if duration is None:
-                logger.error(f"Duration is None for task {task_id}, should have been estimated by HierarchyEstimatorWBS")
-                duration = Decimal("1")
-            predecessors_str = ""
-            pred_first_child = None
-            pred_last_child = None
-            pred_prev = None
-            if is_first_child:
-                if parent_id is not None:
-                    predecessors_str = f"{parent_id}(SS)"
-                    pred_first_child = PredecessorInfo(activity_id=parent_id, dep_type=DependencyType.SS, lag=zero)
-            if is_last_child:
-                if parent_id is not None:
-                    predecessors_str = f"{parent_id}(FF)"
-                    pred_last_child = PredecessorInfo(activity_id=parent_id, dep_type=DependencyType.FF, lag=zero)
-
-            if prev_task_id is not None:
-                predecessors_str = f"{prev_task_id}(SS)"
-                pred_prev = PredecessorInfo(activity_id=prev_task_id, dep_type=DependencyType.FS, lag=zero)
-
-            activity = Activity(id=task_id, duration=duration, predecessors_str=predecessors_str, title=task.description)
-
-            if parent_id is not None:
-                activity.parent_id = parent_id
-
-            if pred_first_child is not None:
-                activity.parsed_predecessors.append(pred_first_child)
-            if pred_last_child is not None:
-                activity.parsed_predecessors.append(pred_last_child)
-            if pred_prev is not None:
-                activity.parsed_predecessors.append(pred_prev)
-
-            activities.append(activity)
-
-            prev_task_id: Optional[str] = None
-            for child_index, child in enumerate(task.task_children):
-                is_first_child = child_index == 0
-                is_last_child = child_index == len(task.task_children) - 1
-                visit_task(child, depth + 1, parent_id=task.id, prev_task_id=prev_task_id, is_first_child=is_first_child, is_last_child=is_last_child)
-                prev_task_id = child.id
-
-
-        visit_task(wbs_project.root_task, 0, parent_id=None, prev_task_id=None, is_first_child=True, is_last_child=True)
-
-        logger.debug(f"activities length: {len(activities)}")
-
-        project_schedule = ProjectSchedule.create(activities)
-
-        # logger.debug(f"project_schedule {project_schedule}")
 
         # ExportFrappeGantt.save(project_schedule, self.output()['frappe'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
         ExportMermaidGantt.save(project_schedule, self.output()['mermaid'].path)
