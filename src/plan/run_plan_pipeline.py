@@ -2626,6 +2626,9 @@ class CreateScheduleTask(PlanTask):
         for duration_dict in durations_dict:
             task_id = duration_dict['task_id']
             duration = duration_dict['days_realistic'] * hours_per_day
+            if duration < 0:
+                logger.warning(f"Duration for task {task_id} is negative: {duration}. Setting to 1.")
+                duration = 1
             task_id_to_duration_dict[task_id] = Decimal(duration)
 
         # Estimate the durations for all tasks in the WBS project.
