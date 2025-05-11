@@ -2601,10 +2601,15 @@ class CreateScheduleTask(PlanTask):
 
             html_items.append(f"<b>{html.escape(task.description)}</b>")
 
+            if 'final_deliverable' in fields:
+                html_items.append("<b>Final deliverable:</b>")
+                html_items.append(html.escape(fields['final_deliverable']))
+
             if 'detailed_description' in fields:
                 html_items.append(html.escape(fields['detailed_description']))
 
             if 'resources_needed' in fields:
+                html_items.append("<b>Resources needed:</b>")
                 html_items.append(formal_list_as_html_bullet_points(fields['resources_needed']))
 
             if len(html_items) > 0:
