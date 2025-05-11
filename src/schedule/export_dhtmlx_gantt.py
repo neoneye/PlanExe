@@ -13,6 +13,7 @@ import json
 import html
 from pathlib import Path
 from src.schedule.schedule import ProjectSchedule, DependencyType, PredecessorInfo
+from src.utils.dedent_strip import dedent_strip
 
 class ExportDHTMLXGantt:
     @staticmethod
@@ -73,10 +74,15 @@ class ExportDHTMLXGantt:
             
             title = act.title if act.title else act.id
 
+            tooltip = dedent_strip(f"""
+            <b>{html.escape(title)}</b><br>
+            """)
+
             # Create task
             task = {
                 "id": act.id,
                 "text": title,
+                "custom_tooltip": tooltip,
                 "start_date": start.isoformat(),
                 "duration": float(act.duration),
                 "progress": 0,

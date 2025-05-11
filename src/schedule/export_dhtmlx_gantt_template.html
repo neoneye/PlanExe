@@ -197,11 +197,7 @@
     };
 
     gantt.templates.tooltip_text = function(start, end, task) {
-        return "<b>" + task.text + "</b><br>" +
-               "Start: " + gantt.templates.tooltip_date_format(start) + "<br>" +
-               "End: " + gantt.templates.tooltip_date_format(end) + "<br>" +
-               "Duration: " + task.duration + " days<br>" +
-               "Dependencies: " + (task.meta || "None");
+        return task.custom_tooltip || "No tooltip";
     };
     
     const gantt_data = PLACEHOLDER_GANTT_DATA;
