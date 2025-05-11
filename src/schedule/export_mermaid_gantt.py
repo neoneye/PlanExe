@@ -20,8 +20,6 @@ class ExportMermaidGantt:
     def _escape_mermaid(text: str) -> str:
         """Escape special characters for Mermaid syntax. Replace characters that could break Mermaid syntax."""
         text = text.replace(':', '\\:')
-        text = text.replace('(', '\\(')
-        text = text.replace(')', '\\)')
         text = text.replace('[', '\\[')
         text = text.replace(']', '\\]')
         text = text.replace('{', '\\{')
