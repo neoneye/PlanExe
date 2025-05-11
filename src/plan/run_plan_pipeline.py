@@ -8,6 +8,7 @@ PROMPT> RUN_ID=PlanExe_20250216_150332 python -m src.plan.run_plan_pipeline
 """
 from datetime import datetime
 from decimal import Decimal
+import html
 import logging
 import json
 from typing import Optional
@@ -2587,6 +2588,32 @@ class CreateScheduleTask(PlanTask):
         # logger.debug(f"durations_dict {durations_dict}")
         # logger.debug(f"wbs_project {wbs_project.to_dict()}")
 
+
+        def formal_list_as_html_bullet_points(list_of_items: list[str]) -> str:
+            return "<ul>" + "".join([f"<li>{html.escape(item)}</li>" for item in list_of_items]) + "</ul>"
+
+        task_id_to_tooltip_dict = {}
+
+        def visit_task(task: WBSTask):
+            fields = task.extra_fields
+
+            html_items = []
+
+            html_items.append(f"<b>{html.escape(task.description)}</b>")
+
+            if 'detailed_description' in fields:
+                html_items.append(html.escape(fields['detailed_description']))
+
+            if 'resources_needed' in fields:
+                html_items.append(formal_list_as_html_bullet_points(fields['resources_needed']))
+
+            if len(html_items) > 0:
+                task_id_to_tooltip_dict[task.id] = "<br>".join(html_items)
+
+            for child in task.task_children:
+                visit_task(child)
+        visit_task(wbs_project.root_task)
+
         # The number of hours per day is hardcoded. This should be determined by the task_duration agent. Is it 8 hours or 24 hours, or instead of days is it hours or weeks.
         # hours_per_day = 8
         hours_per_day = 1
@@ -2608,7 +2635,13 @@ class CreateScheduleTask(PlanTask):
 
         # ExportFrappeGantt.save(project_schedule, self.output()['frappe'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
         ExportMermaidGantt.save(project_schedule, self.output()['mermaid'].path)
-        ExportDHTMLXGantt.save(project_schedule, self.output()['dhtmlx'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
+
+        ExportDHTMLXGantt.save(
+            project_schedule, 
+            self.output()['dhtmlx'].path, 
+            task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities,
+            task_id_to_tooltip_dict=task_id_to_tooltip_dict
+        )
 
 class ReviewPlanTask(PlanTask):
     """

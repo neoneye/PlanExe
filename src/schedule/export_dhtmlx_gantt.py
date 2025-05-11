@@ -44,7 +44,8 @@ class ExportDHTMLXGantt:
     def to_dhtmlx_gantt_data(
         project_schedule: ProjectSchedule,
         project_start: date | str | None,
-        task_ids_to_treat_as_project_activities: set[str]
+        task_ids_to_treat_as_project_activities: set[str],
+        task_id_to_tooltip_dict: dict[str, str]
     ) -> dict:
         """
         Return a dict with tasks and links ready for DHTMLX Gantt initialization.
@@ -74,9 +75,11 @@ class ExportDHTMLXGantt:
             
             title = act.title if act.title else act.id
 
-            tooltip = dedent_strip(f"""
+            fallback_tooltip = dedent_strip(f"""
             <b>{html.escape(title)}</b><br>
             """)
+
+            tooltip = task_id_to_tooltip_dict.get(act.id, fallback_tooltip)
 
             # Create task
             task = {
@@ -141,8 +144,14 @@ class ExportDHTMLXGantt:
         title = kwargs.get("title", "Project schedule")
         project_start = kwargs.get("project_start", None)
         task_ids_to_treat_as_project_activities = kwargs.get("task_ids_to_treat_as_project_activities", set())
-
-        gantt_data = ExportDHTMLXGantt.to_dhtmlx_gantt_data(project_schedule, project_start, task_ids_to_treat_as_project_activities)
+        task_id_to_tooltip_dict = kwargs.get("task_id_to_tooltip_dict", {})
+        
+        gantt_data = ExportDHTMLXGantt.to_dhtmlx_gantt_data(
+            project_schedule, 
+            project_start, 
+            task_ids_to_treat_as_project_activities, 
+            task_id_to_tooltip_dict
+        )
         gantt_data_json = json.dumps(gantt_data, indent=2)
 
         path_to_template = Path(__file__).parent / 'export_dhtmlx_gantt_template.html'
