@@ -32,7 +32,7 @@ PROMPT> python -m src.schedule.export_frappe_gantt
 from datetime import date, timedelta
 import json
 import html
-from src.schedule.schedule import ProjectPlan, DependencyType, PredecessorInfo
+from src.schedule.schedule import ProjectSchedule, DependencyType, PredecessorInfo
 
 class ExportFrappeGantt:
     @staticmethod
@@ -48,7 +48,7 @@ class ExportFrappeGantt:
 
     @staticmethod
     def to_frappe_gantt_tasks(
-        project_plan: ProjectPlan,
+        project_plan: ProjectSchedule,
         project_start: date | str | None = None,
     ) -> list[dict]:
         """
@@ -90,7 +90,7 @@ class ExportFrappeGantt:
         return tasks
 
     @staticmethod
-    def save(project_plan: ProjectPlan, path: str, **kwargs) -> None:
+    def save(project_plan: ProjectSchedule, path: str, **kwargs) -> None:
         """
         Write a self‑contained HTML file that renders a Frappe‑Gantt chart.
         Open it directly in any modern browser.
@@ -164,7 +164,7 @@ const gantt = new Gantt('#the-gantt-container', tasks, {{
 
 if __name__ == "__main__":
     from src.schedule.parse_schedule_input_data import parse_schedule_input_data
-    from src.schedule.schedule import ProjectPlan
+    from src.schedule.schedule import ProjectSchedule
     from src.utils.dedent_strip import dedent_strip
 
     input = dedent_strip("""
@@ -179,5 +179,5 @@ if __name__ == "__main__":
         H;F(SF2),G;3;Multiple preds (G is FS default)
     """)
 
-    plan = ProjectPlan.create(parse_schedule_input_data(input))
+    plan = ProjectSchedule.create(parse_schedule_input_data(input))
     ExportFrappeGantt.save(plan, "frappe_gantt.html") 

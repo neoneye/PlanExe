@@ -153,7 +153,7 @@ def _collect_schedule_warnings(acts: Dict[str, Activity]) -> List[str]:
 #  CPM calculation (forward & backward pass)
 # ----------------------------------------------------------------------------
 @dataclass
-class ProjectPlan:
+class ProjectSchedule:
     activities: Dict[str, Activity]
     project_duration: Decimal
     warnings: List[str] = field(default_factory=list)
@@ -162,7 +162,7 @@ class ProjectPlan:
     #  Factory – compute CPM
     # --------------------------------------------------------------------
     @classmethod
-    def create(cls: Type["ProjectPlan"], activities: List[Activity]) -> "ProjectPlan":
+    def create(cls: Type["ProjectSchedule"], activities: List[Activity]) -> "ProjectSchedule":
         acts: Dict[str, Activity] = {a.id: a for a in activities}
         if not acts:
             return cls(activities={}, project_duration=ZERO)

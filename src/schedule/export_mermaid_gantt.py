@@ -13,7 +13,7 @@ https://github.com/mermaid-js/mermaid/blob/develop/packages/mermaid/src/diagrams
 PROMPT> python -m src.schedule.export_mermaid_gantt
 """
 from datetime import date, timedelta
-from src.schedule.schedule import ProjectPlan, PredecessorInfo
+from src.schedule.schedule import ProjectSchedule, PredecessorInfo
 
 class ExportMermaidGantt:
     @staticmethod
@@ -33,7 +33,7 @@ class ExportMermaidGantt:
     
     @staticmethod
     def to_mermaid_gantt(
-        project_plan: ProjectPlan,
+        project_plan: ProjectSchedule,
         project_start: date | str | None = None,
         *,
         title: str = "Project schedule",
@@ -86,7 +86,7 @@ class ExportMermaidGantt:
         return "\n".join(lines)
 
     @staticmethod
-    def save(project_plan: ProjectPlan, path: str, **kwargs) -> None:
+    def save(project_plan: ProjectSchedule, path: str, **kwargs) -> None:
         """
         Write a self‑contained HTML page with an embedded Mermaid Gantt chart.
         Simply open the resulting file in any modern browser.
@@ -154,7 +154,7 @@ class ExportMermaidGantt:
 
 if __name__ == "__main__":
     from src.schedule.parse_schedule_input_data import parse_schedule_input_data
-    from src.schedule.schedule import ProjectPlan
+    from src.schedule.schedule import ProjectSchedule
     from src.utils.dedent_strip import dedent_strip
 
     input = dedent_strip("""
@@ -169,5 +169,5 @@ if __name__ == "__main__":
         H;F(SF2),G;3;Multiple preds (G is FS default)
     """)
 
-    plan = ProjectPlan.create(parse_schedule_input_data(input))
+    plan = ProjectSchedule.create(parse_schedule_input_data(input))
     ExportMermaidGantt.save(plan, "mermaid_gantt.html") 

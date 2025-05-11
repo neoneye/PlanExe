@@ -67,7 +67,7 @@ from src.team.team_markdown_document import TeamMarkdownDocumentBuilder
 from src.team.review_team import ReviewTeam
 from src.wbs.wbs_task import WBSTask, WBSProject
 from src.wbs.wbs_populate import WBSPopulate
-from src.schedule.schedule import DependencyType, PredecessorInfo, ProjectPlan, Activity
+from src.schedule.schedule import DependencyType, PredecessorInfo, ProjectSchedule, Activity
 from src.schedule.hierarchy_estimator_wbs import HierarchyEstimatorWBS
 from src.schedule.export_dhtmlx_gantt import ExportDHTMLXGantt
 from src.llm_factory import get_llm
@@ -2656,7 +2656,7 @@ class CreateScheduleTask(PlanTask):
 
         logger.debug(f"activities length: {len(activities)}")
 
-        project_plan = ProjectPlan.create(activities)
+        project_plan = ProjectSchedule.create(activities)
 
         # logger.debug(f"project_plan {project_plan}")
 

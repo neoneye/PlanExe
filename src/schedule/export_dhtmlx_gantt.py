@@ -12,7 +12,7 @@ from datetime import date, timedelta
 import json
 import html
 from pathlib import Path
-from src.schedule.schedule import ProjectPlan, DependencyType, PredecessorInfo
+from src.schedule.schedule import ProjectSchedule, DependencyType, PredecessorInfo
 
 class ExportDHTMLXGantt:
     @staticmethod
@@ -41,7 +41,7 @@ class ExportDHTMLXGantt:
 
     @staticmethod
     def to_dhtmlx_gantt_data(
-        project_plan: ProjectPlan,
+        project_plan: ProjectSchedule,
         project_start: date | str | None,
         task_ids_to_treat_as_project_activities: set[str]
     ) -> dict:
@@ -114,7 +114,7 @@ class ExportDHTMLXGantt:
         }
 
     @staticmethod
-    def save(project_plan: ProjectPlan, path: str, **kwargs) -> None:
+    def save(project_plan: ProjectSchedule, path: str, **kwargs) -> None:
         """
         Write a self‑contained HTML page with an embedded DHTMLX Gantt chart.
         Simply open the resulting file in any modern browser.
@@ -151,7 +151,7 @@ class ExportDHTMLXGantt:
 
 if __name__ == "__main__":
     from src.schedule.parse_schedule_input_data import parse_schedule_input_data
-    from src.schedule.schedule import ProjectPlan
+    from src.schedule.schedule import ProjectSchedule
     from src.utils.dedent_strip import dedent_strip
 
     input = dedent_strip("""
@@ -166,5 +166,5 @@ if __name__ == "__main__":
         H;F(SF2),G;3;Multiple preds (G is FS default)
     """)
 
-    plan = ProjectPlan.create(parse_schedule_input_data(input))
+    plan = ProjectSchedule.create(parse_schedule_input_data(input))
     ExportDHTMLXGantt.save(plan, "dhtmlx_gantt.html") 

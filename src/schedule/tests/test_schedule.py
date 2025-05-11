@@ -1,7 +1,7 @@
 import unittest
 from decimal import Decimal as D
 from src.utils.dedent_strip import dedent_strip
-from src.schedule.schedule import ProjectPlan
+from src.schedule.schedule import ProjectSchedule
 from src.schedule.parse_schedule_input_data import parse_schedule_input_data
 
 class TestSchedule(unittest.TestCase):
@@ -23,7 +23,7 @@ class TestSchedule(unittest.TestCase):
             H;F(SF2),G;3;Multiple preds (G is FS default)
         """)
 
-        plan = ProjectPlan.create(parse_schedule_input_data(input))
+        plan = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -58,7 +58,7 @@ class TestSchedule(unittest.TestCase):
             G;E(FS);5
         """)
 
-        plan = ProjectPlan.create(parse_schedule_input_data(input))
+        plan = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -90,7 +90,7 @@ class TestSchedule(unittest.TestCase):
             E;C(FS),D(FS);2
         """)
 
-        plan = ProjectPlan.create(parse_schedule_input_data(input))
+        plan = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -121,7 +121,7 @@ class TestSchedule(unittest.TestCase):
             F;D(FF3),E(FS);1                 
         """)
 
-        plan = ProjectPlan.create(parse_schedule_input_data(input))
+        plan = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -145,7 +145,7 @@ class TestSchedule(unittest.TestCase):
             A;-;1.5
             B;A(FS0.75);2.25
         """)
-        plan = ProjectPlan.create(parse_schedule_input_data(input))
+        plan = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -163,7 +163,7 @@ class TestSchedule(unittest.TestCase):
             B;A;1
         """)
         with self.assertRaises(RuntimeError):
-            ProjectPlan.create(parse_schedule_input_data(input))
+            ProjectSchedule.create(parse_schedule_input_data(input))
 
     def test_dependency_type_finish_to_start_no_lag(self):
         """
@@ -177,7 +177,7 @@ class TestSchedule(unittest.TestCase):
             C;B(FS);1
             D;C(FS);1
         """)
-        plan = ProjectPlan.create(parse_schedule_input_data(input))
+        plan = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -197,7 +197,7 @@ class TestSchedule(unittest.TestCase):
             A;-;3
             B;A(FS2);4
         """)
-        plan = ProjectPlan.create(parse_schedule_input_data(input))
+        plan = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -215,7 +215,7 @@ class TestSchedule(unittest.TestCase):
             A;-;3
             B;A(FF2);4
         """)
-        plan = ProjectPlan.create(parse_schedule_input_data(input))
+        plan = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -233,7 +233,7 @@ class TestSchedule(unittest.TestCase):
             A;-;3
             B;A(SF6);4
         """)
-        plan = ProjectPlan.create(parse_schedule_input_data(input))
+        plan = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -251,7 +251,7 @@ class TestSchedule(unittest.TestCase):
             A;-;3
             B;A(SS2);4
         """)
-        plan = ProjectPlan.create(parse_schedule_input_data(input))
+        plan = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -269,7 +269,7 @@ class TestSchedule(unittest.TestCase):
             B;A(SS),A(FF2);3
         """)
 
-        plan = ProjectPlan.create(parse_schedule_input_data(input_data))
+        plan = ProjectSchedule.create(parse_schedule_input_data(input_data))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
