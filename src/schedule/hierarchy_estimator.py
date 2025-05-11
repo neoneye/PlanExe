@@ -110,7 +110,6 @@ class Node:
         # Use quantize for explicit rounding to a whole number place (D(1) is '1')
         return duration.quantize(D(1), rounding=ROUND_CEILING)
 
-
     def resolve_duration(self):
         """
         Recursively resolves durations in the subtree rooted at this node.
@@ -208,7 +207,6 @@ class Node:
         final_sum_children = sum(child.duration for child in self.children)
         self.duration = self._round_duration(final_sum_children)
 
-
     def apply_minimum_duration(self):
         """
         In real life, no piece of work takes less than 1 unit of work.
@@ -242,7 +240,6 @@ class Node:
             # Set minimum duration to 1 if it was 0
             if self.duration < D(1):
                 self.duration = D(1) # Set to integer Decimal 1
-
 
     def task_id_to_duration_dict(self) -> Dict[str, D]:
         """
