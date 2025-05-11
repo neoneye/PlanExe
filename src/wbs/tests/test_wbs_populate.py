@@ -121,7 +121,7 @@ class TestWBSPopulate(unittest.TestCase):
 
     def test_task_ids_with_one_or_more_children(self):
         """
-        Bigger tasks that have been decomposed into smaller subtasks.
+        Extract only the parent tasks and ignore the leaf tasks.
         """
         # Arrange
         path_level1_json = os.path.join(os.path.dirname(__file__), '..', 'test_data', 'solorfarm_wbs_level1.json')
@@ -133,7 +133,7 @@ class TestWBSPopulate(unittest.TestCase):
         task_ids = wbs_project.task_ids_with_one_or_more_children()
 
         expected = set([
-            "2900c638-8e2a-4b7b-96ea-e096a7bc8b5e",
+            "2900c638-8e2a-4b7b-96ea-e096a7bc8b5e", # root task
             "303c1a0b-9609-4297-8862-5b42a6230b2b",
             "1d3a023b-9c92-401a-9010-70e08109b0a3",
             "44fd780c-3052-4323-94c7-bdd86ca6d12f",
