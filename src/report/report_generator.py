@@ -158,7 +158,7 @@ class ReportGenerator:
         # Title and Timestamp
         html_parts.append(f"""
         <h1>PlanExe Project Report</h1>
-        <p class="timestamp">Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p class="planexe-report-info">Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} with PlanExe. <a href="https://neoneye.github.io/PlanExe-web/discord.html">Discord</a>, <a href="https://github.com/neoneye/PlanExe">GitHub</a></p>
         """)
 
         def add_section(title: str, content: str):
