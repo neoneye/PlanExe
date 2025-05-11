@@ -23,7 +23,7 @@ class TestSchedule(unittest.TestCase):
             H;F(SF2),G;3;Multiple preds (G is FS default)
         """)
 
-        plan = ProjectSchedule.create(parse_schedule_input_data(input))
+        project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -37,9 +37,9 @@ class TestSchedule(unittest.TestCase):
             H;3;11;14;11;14;0
         """)
 
-        self.assertEqual(str(plan), expected)
-        self.assertEqual(plan.project_duration, D("14"))
-        self.assertListEqual(plan.obtain_critical_path(), ["A", "B", "D", "G", "H"])
+        self.assertEqual(str(project_schedule), expected)
+        self.assertEqual(project_schedule.project_duration, D("14"))
+        self.assertListEqual(project_schedule.obtain_critical_path(), ["A", "B", "D", "G", "H"])
 
     def test_textbook_example_two_start_nodes_and_two_end_nodes(self):
         """
@@ -58,7 +58,7 @@ class TestSchedule(unittest.TestCase):
             G;E(FS);5
         """)
 
-        plan = ProjectSchedule.create(parse_schedule_input_data(input))
+        project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -71,9 +71,9 @@ class TestSchedule(unittest.TestCase):
             G;5;26;31;27;32;1
         """)
 
-        self.assertEqual(str(plan), expected)
-        self.assertEqual(plan.project_duration, D("32"))
-        self.assertListEqual(plan.obtain_critical_path(), ["B", "D", "E", "F"])
+        self.assertEqual(str(project_schedule), expected)
+        self.assertEqual(project_schedule.project_duration, D("32"))
+        self.assertListEqual(project_schedule.obtain_critical_path(), ["B", "D", "E", "F"])
 
     def test_textbook_example_of_lags1(self):
         """
@@ -90,7 +90,7 @@ class TestSchedule(unittest.TestCase):
             E;C(FS),D(FS);2
         """)
 
-        plan = ProjectSchedule.create(parse_schedule_input_data(input))
+        project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -101,9 +101,9 @@ class TestSchedule(unittest.TestCase):
             E;2;16;18;16;18;0
         """)
 
-        self.assertEqual(str(plan), expected)
-        self.assertEqual(plan.project_duration, D("18"))
-        self.assertListEqual(plan.obtain_critical_path(), ["A", "B", "D", "E"])
+        self.assertEqual(str(project_schedule), expected)
+        self.assertEqual(project_schedule.project_duration, D("18"))
+        self.assertListEqual(project_schedule.obtain_critical_path(), ["A", "B", "D", "E"])
 
     def test_textbook_example_of_lags2(self):
         """
@@ -121,7 +121,7 @@ class TestSchedule(unittest.TestCase):
             F;D(FF3),E(FS);1                 
         """)
 
-        plan = ProjectSchedule.create(parse_schedule_input_data(input))
+        project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -133,9 +133,9 @@ class TestSchedule(unittest.TestCase):
             F;1;11;12;11;12;0
         """)
 
-        self.assertEqual(str(plan), expected)
-        self.assertEqual(plan.project_duration, D("12"))
-        self.assertListEqual(plan.obtain_critical_path(), ["A", "C", "D", "F"])
+        self.assertEqual(str(project_schedule), expected)
+        self.assertEqual(project_schedule.project_duration, D("12"))
+        self.assertListEqual(project_schedule.obtain_critical_path(), ["A", "C", "D", "F"])
 
     def test_fractional_durations_and_lags(self):
         """Simple chain with fractional numbers to verify decimal math."""
@@ -145,7 +145,7 @@ class TestSchedule(unittest.TestCase):
             A;-;1.5
             B;A(FS0.75);2.25
         """)
-        plan = ProjectSchedule.create(parse_schedule_input_data(input))
+        project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -153,8 +153,8 @@ class TestSchedule(unittest.TestCase):
             B;2.25;2.25;4.5;2.25;4.5;0
         """)
 
-        self.assertEqual(str(plan), expected) 
-        self.assertEqual(plan.project_duration, D("4.5"))
+        self.assertEqual(str(project_schedule), expected) 
+        self.assertEqual(project_schedule.project_duration, D("4.5"))
 
     def test_cycle_detection(self):
         input = dedent_strip("""
@@ -177,7 +177,7 @@ class TestSchedule(unittest.TestCase):
             C;B(FS);1
             D;C(FS);1
         """)
-        plan = ProjectSchedule.create(parse_schedule_input_data(input))
+        project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -187,8 +187,8 @@ class TestSchedule(unittest.TestCase):
             D;1;3;4;3;4;0
         """)
 
-        self.assertEqual(str(plan), expected) 
-        self.assertEqual(plan.project_duration, D("4"))
+        self.assertEqual(str(project_schedule), expected) 
+        self.assertEqual(project_schedule.project_duration, D("4"))
 
     def test_dependency_type_finish_to_start(self):
         """FS = Finish to Start"""
@@ -197,7 +197,7 @@ class TestSchedule(unittest.TestCase):
             A;-;3
             B;A(FS2);4
         """)
-        plan = ProjectSchedule.create(parse_schedule_input_data(input))
+        project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -205,8 +205,8 @@ class TestSchedule(unittest.TestCase):
             B;4;5;9;5;9;0
         """)
 
-        self.assertEqual(str(plan), expected) 
-        self.assertEqual(plan.project_duration, D("9"))
+        self.assertEqual(str(project_schedule), expected) 
+        self.assertEqual(project_schedule.project_duration, D("9"))
 
     def test_dependency_type_finish_to_finish(self):
         """FF = Finish to Finish"""
@@ -215,7 +215,7 @@ class TestSchedule(unittest.TestCase):
             A;-;3
             B;A(FF2);4
         """)
-        plan = ProjectSchedule.create(parse_schedule_input_data(input))
+        project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -223,8 +223,8 @@ class TestSchedule(unittest.TestCase):
             B;4;1;5;1;5;0
         """)
 
-        self.assertEqual(str(plan), expected) 
-        self.assertEqual(plan.project_duration, D("5"))
+        self.assertEqual(str(project_schedule), expected) 
+        self.assertEqual(project_schedule.project_duration, D("5"))
 
     def test_dependency_type_start_to_finish(self):
         """SF = Start to Finish"""
@@ -233,7 +233,7 @@ class TestSchedule(unittest.TestCase):
             A;-;3
             B;A(SF6);4
         """)
-        plan = ProjectSchedule.create(parse_schedule_input_data(input))
+        project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -241,8 +241,8 @@ class TestSchedule(unittest.TestCase):
             B;4;2;6;2;6;0
         """)
 
-        self.assertEqual(str(plan), expected) 
-        self.assertEqual(plan.project_duration, D("6"))
+        self.assertEqual(str(project_schedule), expected) 
+        self.assertEqual(project_schedule.project_duration, D("6"))
 
     def test_dependency_type_start_to_start(self):
         """SS = Start to Start"""
@@ -251,7 +251,7 @@ class TestSchedule(unittest.TestCase):
             A;-;3
             B;A(SS2);4
         """)
-        plan = ProjectSchedule.create(parse_schedule_input_data(input))
+        project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -259,8 +259,8 @@ class TestSchedule(unittest.TestCase):
             B;4;2;6;2;6;0
         """)
 
-        self.assertEqual(str(plan), expected) 
-        self.assertEqual(plan.project_duration, D("6"))                
+        self.assertEqual(str(project_schedule), expected) 
+        self.assertEqual(project_schedule.project_duration, D("6"))                
 
     def test_multiple_relationships_between_two_activities(self):
         input_data = dedent_strip("""
@@ -269,7 +269,7 @@ class TestSchedule(unittest.TestCase):
             B;A(SS),A(FF2);3
         """)
 
-        plan = ProjectSchedule.create(parse_schedule_input_data(input_data))
+        project_schedule = ProjectSchedule.create(parse_schedule_input_data(input_data))
 
         expected = dedent_strip("""
             Activity;Duration;ES;EF;LS;LF;Float
@@ -277,9 +277,9 @@ class TestSchedule(unittest.TestCase):
             B;3;3;6;3;6;0
         """)
 
-        self.assertEqual(str(plan), expected)
-        self.assertEqual(plan.project_duration, D("6"))
-        self.assertListEqual(plan.obtain_critical_path(), ["A", "B"])
+        self.assertEqual(str(project_schedule), expected)
+        self.assertEqual(project_schedule.project_duration, D("6"))
+        self.assertListEqual(project_schedule.obtain_critical_path(), ["A", "B"])
 
 if __name__ == "__main__":
     unittest.main(argv=["first-arg-is-ignored"], exit=False)
