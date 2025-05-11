@@ -118,3 +118,28 @@ class TestWBSPopulate(unittest.TestCase):
         self.assertEqual(len(task3.task_children), 0)
         self.assertEqual(task3.extra_fields["detailed_description"], "Secure necessary permits for land use and environmental impact assessments.")
         self.assertEqual(task3.extra_fields["resources_needed"], ["Land permit"])
+
+    def test_task_ids_with_one_or_more_children(self):
+        """
+        Bigger tasks that have been decomposed into smaller subtasks.
+        """
+        # Arrange
+        path_level1_json = os.path.join(os.path.dirname(__file__), '..', 'test_data', 'solorfarm_wbs_level1.json')
+        path_level2_json = os.path.join(os.path.dirname(__file__), '..', 'test_data', 'solorfarm_wbs_level2.json')
+        wbs_project = WBSPopulate.project_from_level1_json(path_level1_json)
+        WBSPopulate.extend_project_with_level2_json(wbs_project, path_level2_json)
+
+        # Act
+        task_ids = wbs_project.task_ids_with_one_or_more_children()
+
+        expected = set([
+            "2900c638-8e2a-4b7b-96ea-e096a7bc8b5e",
+            "303c1a0b-9609-4297-8862-5b42a6230b2b",
+            "1d3a023b-9c92-401a-9010-70e08109b0a3",
+            "44fd780c-3052-4323-94c7-bdd86ca6d12f",
+            "74d93fb2-6d2d-4ef8-b91a-ce496860faae",
+            "d5d79ebd-c7eb-47ed-b955-48c85541259d",
+            "c518c687-b757-4ba1-8af4-08b3e61dff67",
+            "99b2720a-d390-43b4-af18-da889d974a1a",
+        ])
+        self.assertEqual(task_ids, expected)

@@ -2584,10 +2584,9 @@ class CreateScheduleTask(PlanTask):
             wbs_project_dict = json.load(f)
         wbs_project = WBSProject.from_dict(wbs_project_dict)
 
-        logger.debug("dependencies_dict", dependencies_dict)
-        logger.debug("durations_dict", durations_dict)
-        logger.debug("wbs_project", wbs_project.to_dict())
-
+        # logger.debug(f"dependencies_dict {dependencies_dict}")
+        # logger.debug(f"durations_dict {durations_dict}")
+        # logger.debug(f"wbs_project {wbs_project.to_dict()}")
 
         # The number of hours per day is hardcoded. This should be determined by the task_duration agent. Is it 8 hours or 24 hours, or instead of days is it hours or weeks.
         # hours_per_day = 8
@@ -2602,15 +2601,8 @@ class CreateScheduleTask(PlanTask):
         task_id_to_duration_dict2 = HierarchyEstimatorWBS.run(wbs_project, task_id_to_duration_dict)
 
         # Identify the tasks that should be treated as project activities.
-        task_ids_to_treat_as_project_activities = set()
-        def visit_task1(task: WBSTask):
-            if len(task.task_children) > 0:
-                task_ids_to_treat_as_project_activities.add(task.id)
-            for child in task.task_children:
-                visit_task1(child)
-        visit_task1(wbs_project.root_task)
-
-        logger.debug("task_ids_to_treat_as_project_activities", task_ids_to_treat_as_project_activities)
+        task_ids_to_treat_as_project_activities = wbs_project.task_ids_with_one_or_more_children()
+        # logger.debug(f"task_ids_to_treat_as_project_activities length: {len(task_ids_to_treat_as_project_activities)}")
 
         activities = []
 
@@ -2662,11 +2654,11 @@ class CreateScheduleTask(PlanTask):
 
         visit_task(wbs_project.root_task, 0, parent_id=None, prev_task_id=None, is_first_child=True, is_last_child=True)
 
-        logger.debug("activities", activities)
+        logger.debug(f"activities length: {len(activities)}")
 
         project_plan = ProjectPlan.create(activities)
 
-        logger.debug("project_plan", project_plan)
+        # logger.debug(f"project_plan {project_plan}")
 
         # ExportFrappeGantt.save(project_plan, self.output()['frappe'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
         ExportMermaidGantt.save(project_plan, self.output()['mermaid'].path)
