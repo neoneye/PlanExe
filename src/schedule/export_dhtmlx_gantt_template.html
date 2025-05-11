@@ -205,9 +205,13 @@
     };
     
     const gantt_data = PLACEHOLDER_GANTT_DATA;
-    gantt.plugins({
-        quick_info: true
-    });
+	gantt.plugins({
+		tooltip: true
+	});
+	gantt.attachEvent("onGanttReady", function(){
+		var tooltips = gantt.ext.tooltips;
+		tooltips.tooltip.setViewport(gantt.$task_data);
+	});
     gantt.init("gantt_container");
     gantt.parse(gantt_data);
 
