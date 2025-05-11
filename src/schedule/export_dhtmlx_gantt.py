@@ -1,5 +1,5 @@
 """
-Export Project Plan as Gantt chart, using the DHTMLX Gantt library.
+Export ProjectSchedule as Gantt chart, using the DHTMLX Gantt library.
 https://dhtmlx.com/docs/products/dhtmlxGantt/
 
 I'm a developer, not a license lawyer. DHTMLX Gantt is GPL. PlanExe is MIT.
@@ -41,7 +41,7 @@ class ExportDHTMLXGantt:
 
     @staticmethod
     def to_dhtmlx_gantt_data(
-        project_plan: ProjectSchedule,
+        project_schedule: ProjectSchedule,
         project_start: date | str | None,
         task_ids_to_treat_as_project_activities: set[str]
     ) -> dict:
@@ -50,8 +50,8 @@ class ExportDHTMLXGantt:
 
         Parameters
         ----------
-        project_plan
-            The project plan to visualize
+        project_schedule
+            The project schedule to visualize
         project_start
             • ``datetime.date`` → use it as day 0  
             • ``"YYYY‑MM‑DD"``  → parsed with ``date.fromisoformat``  
@@ -67,7 +67,7 @@ class ExportDHTMLXGantt:
         link_id = 1
 
         # order tasks by early‑start so the chart looks natural
-        for act in sorted(project_plan.activities.values(), key=lambda a: a.es):
+        for act in sorted(project_schedule.activities.values(), key=lambda a: a.es):
             start = project_start + timedelta(days=float(act.es))
             end = project_start + timedelta(days=float(act.ef))
             
@@ -114,15 +114,15 @@ class ExportDHTMLXGantt:
         }
 
     @staticmethod
-    def save(project_plan: ProjectSchedule, path: str, **kwargs) -> None:
+    def save(project_schedule: ProjectSchedule, path: str, **kwargs) -> None:
         """
         Write a self‑contained HTML page with an embedded DHTMLX Gantt chart.
         Simply open the resulting file in any modern browser.
 
         Parameters
         ----------
-        project_plan
-            The project plan to visualize
+        project_schedule
+            The project schedule to visualize
         path
             Where to save the HTML file
         project_start
@@ -136,7 +136,7 @@ class ExportDHTMLXGantt:
         project_start = kwargs.get("project_start", None)
         task_ids_to_treat_as_project_activities = kwargs.get("task_ids_to_treat_as_project_activities", set())
 
-        gantt_data = ExportDHTMLXGantt.to_dhtmlx_gantt_data(project_plan, project_start, task_ids_to_treat_as_project_activities)
+        gantt_data = ExportDHTMLXGantt.to_dhtmlx_gantt_data(project_schedule, project_start, task_ids_to_treat_as_project_activities)
         gantt_data_json = json.dumps(gantt_data, indent=2)
 
         path_to_template = Path(__file__).parent / 'export_dhtmlx_gantt_template.html'
@@ -166,5 +166,5 @@ if __name__ == "__main__":
         H;F(SF2),G;3;Multiple preds (G is FS default)
     """)
 
-    plan = ProjectSchedule.create(parse_schedule_input_data(input))
-    ExportDHTMLXGantt.save(plan, "dhtmlx_gantt.html") 
+    project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
+    ExportDHTMLXGantt.save(project_schedule, "dhtmlx_gantt.html") 

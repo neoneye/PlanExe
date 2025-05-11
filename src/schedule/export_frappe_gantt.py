@@ -1,5 +1,5 @@
 """
-Export Project Plan as Gantt chart, using Frappe Gantt chart library.
+Export ProjectSchedule as Gantt chart, using Frappe Gantt chart library.
 https://github.com/frappe/gantt
 
 As of 2025-May-08, I'm not satisfied with the Frappe Gantt chart library, it cannot show 
@@ -48,7 +48,7 @@ class ExportFrappeGantt:
 
     @staticmethod
     def to_frappe_gantt_tasks(
-        project_plan: ProjectSchedule,
+        project_schedule: ProjectSchedule,
         project_start: date | str | None = None,
     ) -> list[dict]:
         """
@@ -66,7 +66,7 @@ class ExportFrappeGantt:
             project_start = date.fromisoformat(project_start)
 
         tasks = []
-        for a in sorted(project_plan.activities.values(), key=lambda x: x.es):
+        for a in sorted(project_schedule.activities.values(), key=lambda x: x.es):
             start = project_start + timedelta(days=float(a.es))
             end   = project_start + timedelta(days=float(a.ef))
             fs_0  = [
@@ -90,15 +90,15 @@ class ExportFrappeGantt:
         return tasks
 
     @staticmethod
-    def save(project_plan: ProjectSchedule, path: str, **kwargs) -> None:
+    def save(project_schedule: ProjectSchedule, path: str, **kwargs) -> None:
         """
         Write a self‑contained HTML file that renders a Frappe‑Gantt chart.
         Open it directly in any modern browser.
 
         Parameters
         ----------
-        project_plan
-            The project plan to visualize
+        project_schedule
+            The project schedule to visualize
         path
             Where to save the HTML file
         project_start
@@ -112,7 +112,7 @@ class ExportFrappeGantt:
         project_start = kwargs.get("project_start", None)
 
         tasks_json = json.dumps(
-            ExportFrappeGantt.to_frappe_gantt_tasks(project_plan, project_start),
+            ExportFrappeGantt.to_frappe_gantt_tasks(project_schedule, project_start),
             indent=2
         )
         html_page = f"""<!DOCTYPE html>
@@ -179,5 +179,5 @@ if __name__ == "__main__":
         H;F(SF2),G;3;Multiple preds (G is FS default)
     """)
 
-    plan = ProjectSchedule.create(parse_schedule_input_data(input))
-    ExportFrappeGantt.save(plan, "frappe_gantt.html") 
+    project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
+    ExportFrappeGantt.save(project_schedule, "frappe_gantt.html") 

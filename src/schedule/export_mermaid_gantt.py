@@ -1,5 +1,5 @@
 """
-Export Project Plan as Gantt chart, using the Mermaid library.
+Export ProjectSchedule as Gantt chart, using the Mermaid library.
 https://github.com/mermaid-js/mermaid
 
 As of 2025-May-10, I'm not satisfied with the Mermaid Gantt chart library, it cannot show 
@@ -33,7 +33,7 @@ class ExportMermaidGantt:
     
     @staticmethod
     def to_mermaid_gantt(
-        project_plan: ProjectSchedule,
+        project_schedule: ProjectSchedule,
         project_start: date | str | None = None,
         *,
         title: str = "Project schedule",
@@ -43,8 +43,8 @@ class ExportMermaidGantt:
 
         Parameters
         ----------
-        project_plan
-            The project plan to visualize
+        project_schedule
+            The project schedule to visualize
         project_start
             • ``datetime.date`` → use it as day 0  
             • ``"YYYY‑MM‑DD"``  → parsed with ``date.fromisoformat``  
@@ -67,7 +67,7 @@ class ExportMermaidGantt:
         ]
 
         # order tasks by early‑start so the chart looks natural
-        activities = sorted(project_plan.activities.values(), key=lambda a: a.es)
+        activities = sorted(project_schedule.activities.values(), key=lambda a: a.es)
         for index, act in enumerate(activities):
             start   = project_start + timedelta(days=float(act.es))
             dur_txt = f"{int(act.duration)}d" if act.duration % 1 == 0 else f"{act.duration}d"
@@ -86,15 +86,15 @@ class ExportMermaidGantt:
         return "\n".join(lines)
 
     @staticmethod
-    def save(project_plan: ProjectSchedule, path: str, **kwargs) -> None:
+    def save(project_schedule: ProjectSchedule, path: str, **kwargs) -> None:
         """
         Write a self‑contained HTML page with an embedded Mermaid Gantt chart.
         Simply open the resulting file in any modern browser.
 
         Parameters
         ----------
-        project_plan
-            The project plan to visualize
+        project_schedule
+            The project schedule to visualize
         path
             Where to save the HTML file
         project_start
@@ -107,7 +107,7 @@ class ExportMermaidGantt:
         title = kwargs.get("title", "Project schedule")
         project_start = kwargs.get("project_start", None)
 
-        mermaid_code = ExportMermaidGantt.to_mermaid_gantt(project_plan, project_start, title=title)
+        mermaid_code = ExportMermaidGantt.to_mermaid_gantt(project_schedule, project_start, title=title)
 
         html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -169,5 +169,5 @@ if __name__ == "__main__":
         H;F(SF2),G;3;Multiple preds (G is FS default)
     """)
 
-    plan = ProjectSchedule.create(parse_schedule_input_data(input))
-    ExportMermaidGantt.save(plan, "mermaid_gantt.html") 
+    project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
+    ExportMermaidGantt.save(project_schedule, "mermaid_gantt.html") 

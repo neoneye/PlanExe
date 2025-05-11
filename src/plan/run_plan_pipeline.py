@@ -2656,13 +2656,13 @@ class CreateScheduleTask(PlanTask):
 
         logger.debug(f"activities length: {len(activities)}")
 
-        project_plan = ProjectSchedule.create(activities)
+        project_schedule = ProjectSchedule.create(activities)
 
-        # logger.debug(f"project_plan {project_plan}")
+        # logger.debug(f"project_schedule {project_schedule}")
 
-        # ExportFrappeGantt.save(project_plan, self.output()['frappe'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
-        ExportMermaidGantt.save(project_plan, self.output()['mermaid'].path)
-        ExportDHTMLXGantt.save(project_plan, self.output()['dhtmlx'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
+        # ExportFrappeGantt.save(project_schedule, self.output()['frappe'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
+        ExportMermaidGantt.save(project_schedule, self.output()['mermaid'].path)
+        ExportDHTMLXGantt.save(project_schedule, self.output()['dhtmlx'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
 
 class ReviewPlanTask(PlanTask):
     """
