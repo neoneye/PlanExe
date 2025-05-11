@@ -96,3 +96,14 @@ class WBSProject:
         instance = CreateWBSTableCSV(self)
         instance.execute()
         return instance.to_csv_string()
+
+    def task_ids_with_one_or_more_children(self) -> set[str]:
+        """id's of all tasks in the tree hierarchy that have one or more children."""
+        task_ids = set()
+        def visit_task(task: WBSTask):
+            if len(task.task_children) > 0:
+                task_ids.add(task.id)
+            for child in task.task_children:
+                visit_task(child)
+        visit_task(self.root_task)
+        return task_ids

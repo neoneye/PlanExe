@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PLACEHOLDER_TITLE</title>
+  <style>
+    body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        margin: 2rem;
+    }
+  </style>
+  <!--HTML_HEAD_START-->
+  <link rel="stylesheet" href="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.css">
+  <script src="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.js"></script>
+  <style>
+    .gantt_container_with_controls {
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+    .gantt_container {
+        width: 100%;
+        height: 80vh;
+        margin-bottom: 1rem;
+    }
+    .gantt_tooltip {
+        max-width: 30rem;
+        white-space: break-spaces;
+    }
+    .zoom-controls {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+    .zoom-controls button {
+        padding: 0.5rem 1rem;
+        border: 1px solid #ccc;
+        border-radius: 0.25rem;
+        background: white;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+    .zoom-controls button:hover {
+        background: #f5f5f5;
+    }
+    .project-task.gantt_task_line {
+        background-color: #b67134;
+        border-color: #f57c00;
+    }
+    .project-task .gantt_task_content {
+        color: white;
+    }
+    .project-task.gantt_project.gantt_task_line {
+        border-radius: 0;
+    }
+  </style>
+  <!--HTML_HEAD_END-->
+</head>
+<body>
+    <h1>PLACEHOLDER_TITLE</h1>
+<!--HTML_BODY_CONTENT_START-->
+<div class="gantt_container_with_controls">
+    <div id="gantt_container" class="gantt_container"></div>
+    <div class="zoom-controls">
+        <button id="zoomFitButton">Zoom Fit</button>
+        <button id="zoomInButton">Zoom In</button>
+        <button id="zoomOutButton">Zoom Out</button>
+    </div>
+</div>
+<!--HTML_BODY_CONTENT_END-->
+
+<!--HTML_BODY_SCRIPT_START-->
+<script type="module">
+    function zoomFit() {
+        const tasks = gantt.getTaskByTime();
+        if (tasks.length > 0) {
+            const firstTask = tasks[0];
+            const lastTask = tasks[tasks.length - 1];
+            gantt.showDate(firstTask.start_date);
+            
+            // Calculate total duration in days
+            const startDate = new Date(firstTask.start_date);
+            const endDate = new Date(lastTask.end_date);
+            const durationDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
+            
+            // Choose appropriate scale based on duration
+            if (durationDays > 3650) { // More than 10 years
+                gantt.config.scale_unit = "year";
+                gantt.config.step = 10;
+                gantt.config.subscales = [
+                    {unit: "year", step: 1, date: "%Y"}
+                ];
+            } else if (durationDays > 365) { // More than 1 year
+                gantt.config.scale_unit = "year";
+                gantt.config.step = 1;
+                gantt.config.subscales = [
+                    {unit: "month", step: 1, date: "%M"}
+                ];
+            } else if (durationDays > 30) { // More than 1 month
+                gantt.config.scale_unit = "month";
+                gantt.config.step = 1;
+                gantt.config.subscales = [
+                    {unit: "day", step: 1, date: "%d"}
+                ];
+            } else if (durationDays > 7) { // More than 1 week
+                gantt.config.scale_unit = "week";
+                gantt.config.step = 1;
+                gantt.config.subscales = [
+                    {unit: "day", step: 1, date: "%d"}
+                ];
+            } else {
+                gantt.config.scale_unit = "day";
+                gantt.config.step = 1;
+                gantt.config.subscales = [];
+            }
+            gantt.render();
+        }
+    }
+
+    function zoomIn() {
+        const currentUnit = gantt.config.scale_unit;
+        const currentStep = gantt.config.step;
+        
+        if (currentUnit === "year" && currentStep === 10) {
+            gantt.config.scale_unit = "year";
+            gantt.config.step = 1;
+            gantt.config.subscales = [
+                {unit: "month", step: 1, date: "%M"}
+            ];
+        } else if (currentUnit === "year") {
+            gantt.config.scale_unit = "month";
+            gantt.config.step = 1;
+            gantt.config.subscales = [
+                {unit: "day", step: 1, date: "%d"}
+            ];
+        } else if (currentUnit === "month") {
+            gantt.config.scale_unit = "week";
+            gantt.config.step = 1;
+            gantt.config.subscales = [
+                {unit: "day", step: 1, date: "%d"}
+            ];
+        } else if (currentUnit === "week") {
+            gantt.config.scale_unit = "day";
+            gantt.config.step = 1;
+            gantt.config.subscales = [];
+        }
+        gantt.render();
+    }
+
+    function zoomOut() {
+        const currentUnit = gantt.config.scale_unit;
+        const currentStep = gantt.config.step;
+        
+        if (currentUnit === "day") {
+            gantt.config.scale_unit = "week";
+            gantt.config.step = 1;
+            gantt.config.subscales = [
+                {unit: "day", step: 1, date: "%d"}
+            ];
+        } else if (currentUnit === "week") {
+            gantt.config.scale_unit = "month";
+            gantt.config.step = 1;
+            gantt.config.subscales = [
+                {unit: "day", step: 1, date: "%d"}
+            ];
+        } else if (currentUnit === "month") {
+            gantt.config.scale_unit = "year";
+            gantt.config.step = 1;
+            gantt.config.subscales = [
+                {unit: "month", step: 1, date: "%M"}
+            ];
+        } else if (currentUnit === "year") {
+            gantt.config.scale_unit = "year";
+            gantt.config.step = 10;
+            gantt.config.subscales = [
+                {unit: "year", step: 1, date: "%Y"}
+            ];
+        }
+        gantt.render();
+    }
+
+    // Gantt Initialization
+    gantt.config.readonly = true;
+    gantt.config.date_format = "%Y-%m-%d";
+    gantt.config.scale_unit = "month";
+    gantt.config.step = 1;
+    gantt.config.subscales = [
+        {unit: "day", step: 1, date: "%d"}
+    ];
+
+    gantt.config.columns = [
+        {name:"text", label:"Task name", width:"*", tree:true},
+        // {name:"start_date", label:"Start time", align: "center"},
+        // {name:"duration", label:"Duration", align: "center"}
+    ];
+
+    gantt.templates.task_class = function(start, end, task) {
+        if (task.type === "project") {
+            return "project-task";
+        }
+        return "";
+    };
+
+    gantt.templates.tooltip_text = function(start, end, task) {
+        return task.custom_tooltip || "No tooltip";
+    };
+    
+    const gantt_data = PLACEHOLDER_GANTT_DATA;
+	gantt.plugins({
+		tooltip: true
+	});
+	gantt.attachEvent("onGanttReady", function(){
+		var tooltips = gantt.ext.tooltips;
+		tooltips.tooltip.setViewport(gantt.$task_data);
+	});
+    gantt.init("gantt_container");
+    gantt.parse(gantt_data);
+
+    document.getElementById('zoomFitButton').addEventListener('click', zoomFit);
+    document.getElementById('zoomInButton').addEventListener('click', zoomIn);
+    document.getElementById('zoomOutButton').addEventListener('click', zoomOut);
+</script>
+<!--HTML_BODY_SCRIPT_END-->
+</body>
+</html>

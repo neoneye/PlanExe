@@ -90,5 +90,7 @@ class FilenameEnum(str, Enum):
     REVIEW_PLAN_MARKDOWN = "024-2-review_plan.md"
     EXECUTIVE_SUMMARY_RAW = "025-1-executive_summary_raw.json"
     EXECUTIVE_SUMMARY_MARKDOWN = "025-2-executive_summary.md"
-    REPORT = "026-report.html"
+    SCHEDULE_MERMAID_GANTT_HTML = "026-1-schedule_mermaid_gantt.html"
+    SCHEDULE_DHTMLX_GANTT_HTML = "026-2-schedule_dhtmlx_gantt.html"
+    REPORT = "027-report.html"
     PIPELINE_COMPLETE = "999-pipeline_complete.txt"

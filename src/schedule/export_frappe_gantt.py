@@ -1,16 +1,38 @@
 """
-Export Project Plan as Gantt chart, using Frappe Gantt chart library.
+Export ProjectSchedule as Gantt chart, using Frappe Gantt chart library.
 https://github.com/frappe/gantt
 
-As of 2025-Apr-22, I'm not satisfied with the Frappe Gantt chart library, it cannot show 
+As of 2025-May-08, I'm not satisfied with the Frappe Gantt chart library, it cannot show 
 the dependency types: FS, FF, SS, SF. It cannot show the lag. Essential stuff for a Gantt chart.
+
+With Frappe Gantt version 1.0.x the user can change the resolution of the x-axis: days, weeks, months.
+
+Unfortunately version 1.0.x's horizontal scrolling is only rendering the viewport area, 
+when scrolling outside the viewport, the gantt chart is blank.
+Awaiting fix for horizontal scrolling bug, until then version 1.0.x is not usable.
+https://github.com/frappe/gantt/issues/544
+
+Frappe Gantt's horizontal scrolling is broken, in versions: 1.0.3, 1.0.0.
+<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@1.0.3/dist/frappe-gantt.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@1.0.3/dist/frappe-gantt.min.css">
+
+Frappe Gantt's horizontal scrolling is working in versions: 0.9.0, 0.6.1.
+<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.9.0/dist/frappe-gantt.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.9.0/dist/frappe-gantt.css">
+<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.css">
+
+Frappe Gantt version 1.0.x, with +100 tasks, the scrolling is laggy.
+
+Frappe Gantt version 1.0.x, the activity durations are N time units. I prefer this behavior.
+However older versions have activity duration are N+1 time units. I don't like that behavior.
 
 PROMPT> python -m src.schedule.export_frappe_gantt
 """
 from datetime import date, timedelta
 import json
 import html
-from src.schedule.schedule import ProjectPlan, DependencyType, PredecessorInfo, ZERO
+from src.schedule.schedule import ProjectSchedule, DependencyType, PredecessorInfo
 
 class ExportFrappeGantt:
     @staticmethod
@@ -26,7 +48,7 @@ class ExportFrappeGantt:
 
     @staticmethod
     def to_frappe_gantt_tasks(
-        project_plan: ProjectPlan,
+        project_schedule: ProjectSchedule,
         project_start: date | str | None = None,
     ) -> list[dict]:
         """
@@ -44,7 +66,7 @@ class ExportFrappeGantt:
             project_start = date.fromisoformat(project_start)
 
         tasks = []
-        for a in sorted(project_plan.activities.values(), key=lambda x: x.es):
+        for a in sorted(project_schedule.activities.values(), key=lambda x: x.es):
             start = project_start + timedelta(days=float(a.es))
             end   = project_start + timedelta(days=float(a.ef))
             fs_0  = [
@@ -52,10 +74,11 @@ class ExportFrappeGantt:
                 for p in a.parsed_predecessors
                 if p.dep_type is DependencyType.FS and p.lag == 0
             ]
+            name = a.title if a.title else a.id
             tasks.append(
                 {
                     "id":          a.id,
-                    "name":        a.id,        # keep label short; full info is in pop‑up
+                    "name":        name,
                     "start":       start.isoformat(),
                     "end":         end.isoformat(),
                     "progress":    0,
@@ -67,15 +90,15 @@ class ExportFrappeGantt:
         return tasks
 
     @staticmethod
-    def save(project_plan: ProjectPlan, path: str, **kwargs) -> None:
+    def save(project_schedule: ProjectSchedule, path: str, **kwargs) -> None:
         """
         Write a self‑contained HTML file that renders a Frappe‑Gantt chart.
         Open it directly in any modern browser.
 
         Parameters
         ----------
-        project_plan
-            The project plan to visualize
+        project_schedule
+            The project schedule to visualize
         path
             Where to save the HTML file
         project_start
@@ -89,7 +112,7 @@ class ExportFrappeGantt:
         project_start = kwargs.get("project_start", None)
 
         tasks_json = json.dumps(
-            ExportFrappeGantt.to_frappe_gantt_tasks(project_plan, project_start),
+            ExportFrappeGantt.to_frappe_gantt_tasks(project_schedule, project_start),
             indent=2
         )
         html_page = f"""<!DOCTYPE html>
@@ -97,23 +120,34 @@ class ExportFrappeGantt:
 <head>
 <meta charset="utf-8">
 <title>{html.escape(title)}</title>
-<script src="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.umd.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.css">
+<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@1.0.3/dist/frappe-gantt.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@1.0.3/dist/frappe-gantt.min.css">
+
+<!-- <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.9.0/dist/frappe-gantt.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.9.0/dist/frappe-gantt.css"> -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.css"> -->
 <style>
- body {{font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        margin: 2rem;}}
- svg {{border: 1px solid #ccc; border-radius: .5rem;}}
+ body {{
+   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+   margin: 2rem;
+ }}
 </style>
 </head>
 <body>
 <h1>{html.escape(title)}</h1>
-<svg id="gantt"></svg>
+<div id="the-gantt-container"></div>
 
 <script type="module">
 const tasks = {tasks_json};
 
-const gantt = new Gantt('#gantt', tasks, {{
+const gantt = new Gantt('#the-gantt-container', tasks, {{
     view_mode: 'Day',
+    view_mode_select: true,
+    today_button: false,
+    readonly: true,
+    infinite_padding: false,
+    holidays: false,
     custom_popup_html: task => `
       <div style="padding:.5em 1em;max-width:18rem">
         <h4 style="margin:.2em 0">${{task.name}}</h4>
@@ -130,7 +164,7 @@ const gantt = new Gantt('#gantt', tasks, {{
 
 if __name__ == "__main__":
     from src.schedule.parse_schedule_input_data import parse_schedule_input_data
-    from src.schedule.schedule import ProjectPlan
+    from src.schedule.schedule import ProjectSchedule
     from src.utils.dedent_strip import dedent_strip
 
     input = dedent_strip("""
@@ -145,5 +179,5 @@ if __name__ == "__main__":
         H;F(SF2),G;3;Multiple preds (G is FS default)
     """)
 
-    plan = ProjectPlan.create(parse_schedule_input_data(input))
-    ExportFrappeGantt.save(plan, "frappe_gantt.html") 
+    project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
+    ExportFrappeGantt.save(project_schedule, "frappe_gantt.html") 

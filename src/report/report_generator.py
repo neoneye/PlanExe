@@ -25,7 +25,9 @@ class ReportDocumentItem:
 class ReportGenerator:
     def __init__(self):
         self.report_item_list: list[ReportDocumentItem] = []
-        
+        self.html_head_content: list[str] = []
+        self.html_body_script_content: list[str] = []
+
     def read_json_file(self, file_path: Path) -> Optional[Dict[str, Any]]:
         """Read a JSON file and return its contents."""
         try:
@@ -108,6 +110,37 @@ class ReportGenerator:
         html = df.to_html(classes='dataframe', index=False, na_rep='')
         self.report_item_list.append(ReportDocumentItem(document_title, html))
 
+    def append_html(self, document_title: str, file_path: Path):
+        """Append an HTML document to the report."""
+        with open(file_path, 'r') as f:
+            html_raw = f.read()
+        
+        # Extract the html_head content between <!--HTML_HEAD_START--> and <!--HTML_HEAD_END-->
+        html_head_match = re.search(r'<!--HTML_HEAD_START-->(.*)<!--HTML_HEAD_END-->', html_raw, re.DOTALL)
+        if html_head_match:
+            html_head = html_head_match.group(1)
+            self.html_head_content.append(html_head)
+        else:
+            logging.warning(f"Document: '{document_title}'. Could not find HTML_HEAD_START and HTML_HEAD_END in {file_path}")
+        
+        # Extract the html_body content between <!--HTML_BODY_CONTENT_START--> and <!--HTML_BODY_CONTENT_END-->
+        html_body_match = re.search(r'<!--HTML_BODY_CONTENT_START-->(.*)<!--HTML_BODY_CONTENT_END-->', html_raw, re.DOTALL)
+        if html_body_match:
+            html_body = html_body_match.group(1)
+            self.report_item_list.append(ReportDocumentItem(document_title, html_body))
+        else:
+            logging.warning(f"Document: '{document_title}'. Could not find HTML_BODY_CONTENT_START and HTML_BODY_CONTENT_END in {file_path}")
+            # If no markers found, use the entire content as the body
+            self.report_item_list.append(ReportDocumentItem(document_title, html_raw))
+
+        # Extract the html_body_script content between <!--HTML_BODY_SCRIPT_START--> and <!--HTML_BODY_SCRIPT_END-->
+        html_body_script_match = re.search(r'<!--HTML_BODY_SCRIPT_START-->(.*)<!--HTML_BODY_SCRIPT_END-->', html_raw, re.DOTALL)
+        if html_body_script_match:
+            html_body_script = html_body_script_match.group(1)
+            self.html_body_script_content.append(html_body_script)
+        else:
+            logging.warning(f"Document: '{document_title}'. Could not find HTML_BODY_SCRIPT_START and HTML_BODY_SCRIPT_END in {file_path}")
+
     def generate_html_report(self) -> str:
         """Generate an HTML report from the gathered data."""
 
@@ -115,11 +148,17 @@ class ReportGenerator:
         with open(path_to_template, 'r') as f:
             html_template = f.read()
         
+        html_head = '\n'.join(self.html_head_content)
+        html_template = html_template.replace('<!--HTML_HEAD_INSERT_HERE-->', html_head)        
+
+        html_body_script = '\n'.join(self.html_body_script_content)
+        html_template = html_template.replace('<!--HTML_BODY_SCRIPT_INSERT_HERE-->', html_body_script)
+
         html_parts = []
         # Title and Timestamp
         html_parts.append(f"""
         <h1>PlanExe Project Report</h1>
-        <p class="timestamp">Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p class="planexe-report-info">Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} with PlanExe. <a href="https://neoneye.github.io/PlanExe-web/discord.html">Discord</a>, <a href="https://github.com/neoneye/PlanExe">GitHub</a></p>
         """)
 
         def add_section(title: str, content: str):

@@ -7,8 +7,11 @@ If it's an already finished run, then remove the "999-pipeline_complete.txt" fil
 PROMPT> RUN_ID=PlanExe_20250216_150332 python -m src.plan.run_plan_pipeline
 """
 from datetime import datetime
+from decimal import Decimal
+import html
 import logging
 import json
+from typing import Optional
 import luigi
 from pathlib import Path
 
@@ -40,6 +43,8 @@ from src.governance.governance_phase4_decision_escalation_matrix import Governan
 from src.governance.governance_phase5_monitoring_progress import GovernancePhase5MonitoringProgress
 from src.governance.governance_phase6_extra import GovernancePhase6Extra
 from src.plan.related_resources import RelatedResources
+from src.schedule.export_frappe_gantt import ExportFrappeGantt
+from src.schedule.export_mermaid_gantt import ExportMermaidGantt
 from src.swot.swot_analysis import SWOTAnalysis
 from src.expert.expert_finder import ExpertFinder
 from src.expert.expert_criticism import ExpertCriticism
@@ -62,6 +67,9 @@ from src.team.team_markdown_document import TeamMarkdownDocumentBuilder
 from src.team.review_team import ReviewTeam
 from src.wbs.wbs_task import WBSTask, WBSProject
 from src.wbs.wbs_populate import WBSPopulate
+from src.schedule.hierarchy_estimator_wbs import HierarchyEstimatorWBS
+from src.schedule.export_dhtmlx_gantt import ExportDHTMLXGantt
+from src.schedule.project_schedule_wbs import ProjectScheduleWBS
 from src.llm_factory import get_llm
 from src.format_json_for_use_in_query import format_json_for_use_in_query
 from src.utils.get_env_as_string import get_env_as_string
@@ -2549,6 +2557,100 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
         with self.output()['csv'].open("w") as f:
             f.write(csv_representation)
 
+class CreateScheduleTask(PlanTask):
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
+    def output(self):
+        return {
+            'mermaid': luigi.LocalTarget(self.file_path(FilenameEnum.SCHEDULE_MERMAID_GANTT_HTML)),
+            'dhtmlx': luigi.LocalTarget(self.file_path(FilenameEnum.SCHEDULE_DHTMLX_GANTT_HTML))
+        }
+    
+    def requires(self):
+        return {
+            'dependencies': IdentifyTaskDependenciesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'durations': EstimateTaskDurationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+        }
+    
+    def run(self):
+        # Read inputs from required tasks.
+        with self.input()['dependencies'].open("r") as f:
+            dependencies_dict = json.load(f)
+        with self.input()['durations'].open("r") as f:
+            durations_dict = json.load(f)
+        wbs_project_path = self.input()['wbs_project123']['full'].path
+        with open(wbs_project_path, "r") as f:
+            wbs_project_dict = json.load(f)
+        wbs_project = WBSProject.from_dict(wbs_project_dict)
+
+        # logger.debug(f"dependencies_dict {dependencies_dict}")
+        # logger.debug(f"durations_dict {durations_dict}")
+        # logger.debug(f"wbs_project {wbs_project.to_dict()}")
+
+
+        def formal_list_as_html_bullet_points(list_of_items: list[str]) -> str:
+            return "<ul>" + "".join([f"<li>{html.escape(item)}</li>" for item in list_of_items]) + "</ul>"
+
+        task_id_to_tooltip_dict = {}
+
+        def visit_task(task: WBSTask):
+            fields = task.extra_fields
+
+            html_items = []
+
+            html_items.append(f"<b>{html.escape(task.description)}</b>")
+
+            if 'final_deliverable' in fields:
+                html_items.append("<b>Final deliverable:</b>")
+                html_items.append(html.escape(fields['final_deliverable']))
+
+            if 'detailed_description' in fields:
+                html_items.append(html.escape(fields['detailed_description']))
+
+            if 'resources_needed' in fields:
+                html_items.append("<b>Resources needed:</b>")
+                html_items.append(formal_list_as_html_bullet_points(fields['resources_needed']))
+
+            if len(html_items) > 0:
+                task_id_to_tooltip_dict[task.id] = "<br>".join(html_items)
+
+            for child in task.task_children:
+                visit_task(child)
+        visit_task(wbs_project.root_task)
+
+        # The number of hours per day is hardcoded. This should be determined by the task_duration agent. Is it 8 hours or 24 hours, or instead of days is it hours or weeks.
+        # hours_per_day = 8
+        hours_per_day = 1
+        task_id_to_duration_dict = {}
+        for duration_dict in durations_dict:
+            task_id = duration_dict['task_id']
+            duration = duration_dict['days_realistic'] * hours_per_day
+            if duration < 0:
+                logger.warning(f"Duration for task {task_id} is negative: {duration}. Setting to 1.")
+                duration = 1
+            task_id_to_duration_dict[task_id] = Decimal(duration)
+
+        # Estimate the durations for all tasks in the WBS project.
+        task_id_to_duration_dict2 = HierarchyEstimatorWBS.run(wbs_project, task_id_to_duration_dict)
+
+        # Convert the WBSProject to a ProjectSchedule.
+        project_schedule = ProjectScheduleWBS.convert(wbs_project, task_id_to_duration_dict2)
+        # logger.debug(f"project_schedule {project_schedule}")
+
+        # Identify the tasks that should be treated as project activities.
+        task_ids_to_treat_as_project_activities = wbs_project.task_ids_with_one_or_more_children()
+
+        # ExportFrappeGantt.save(project_schedule, self.output()['frappe'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
+        ExportMermaidGantt.save(project_schedule, self.output()['mermaid'].path)
+
+        ExportDHTMLXGantt.save(
+            project_schedule, 
+            self.output()['dhtmlx'].path, 
+            task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities,
+            task_id_to_tooltip_dict=task_id_to_tooltip_dict
+        )
+
 class ReviewPlanTask(PlanTask):
     """
     Ask questions about the almost finished plan.
@@ -2732,12 +2834,15 @@ class ReportTask(PlanTask):
             'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'review_plan': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'executive_summary': ExecutiveSummaryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'executive_summary': ExecutiveSummaryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'create_schedule': CreateScheduleTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
     
     def run(self):
         rg = ReportGenerator()
         rg.append_markdown('Executive Summary', self.input()['executive_summary']['markdown'].path)
+        rg.append_html('Gantt Overview', self.input()['create_schedule']['mermaid'].path)
+        rg.append_html('Gantt Interactive', self.input()['create_schedule']['dhtmlx'].path)
         rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
         rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
         rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown']['full'].path)
@@ -2803,6 +2908,7 @@ class FullPlanPipeline(PlanTask):
             'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'plan_evaluator': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'executive_summary': ExecutiveSummaryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'create_schedule': CreateScheduleTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'report': ReportTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
         }
 
