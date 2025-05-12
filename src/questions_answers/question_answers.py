@@ -25,7 +25,7 @@ class QuestionAnswerPair(BaseModel):
     answer: str = Field(
         description="The answer to the question."
     )
-    rationale_for_question_answer_pair: str = Field(
+    rationale: str = Field(
         description="Explain why this particular question answer pair is suggested."
     )
 
@@ -45,7 +45,7 @@ Analyze the provided project description thoroughly. Identify the core subject a
 For each Question and Answer pair:
 1.  Generate a clear `question` about a key concept, term, approach, or aspect **presented in the provided document**, especially those related to the project's domain or methodology. Frame the question as something a reader of *this report* might ask for better understanding.
 2.  Provide a concise, accurate, and relevant `answer` to the question. The answer should explain the concept or term **as it applies within the context of the project described in the document**, using appropriate language (not overly simplified, but defining necessary terms). Base the answer on the information available in the document or general knowledge required to understand the document's terminology. Strictly avoid unrelated, sensitive, or non-project-relevant information.
-3.  Provide a `rationale_for_question_answer_pair` that explains **why this specific Q&A is relevant and useful for a reader trying to understand the content of this project document**. Link the Q&A to the project's specific domain, goals, challenges, or methodologies as described in the text.
+3.  Provide a `rationale` that explains **why this specific Q&A is relevant and useful for a reader trying to understand the content of this project document**. Link the Q&A to the project's specific domain, goals, challenges, or methodologies as described in the text.
 
 Generate between 5 and 10 relevant Q&A pairs. Ensure `item_index` starts at 1 and increments for each pair.
 
@@ -59,7 +59,7 @@ Use the following JSON models:
 -   **item_index** (integer): Enumeration of the question answer pairs, starting from 1.
 -   **question** (string): A question about a key concept or term from the project document.
 -   **answer** (string): A clear explanation of the concept or term as it relates to the project, based on the document or relevant general knowledge.
--   **rationale_for_question_answer_pair** (string): An explanation of *why* this Q&A helps a reader understand the document's content.
+-   **rationale** (string): An explanation of *why* this Q&A helps a reader understand the document's content.
 
 ## Additional Instructions
 
@@ -67,7 +67,7 @@ Use the following JSON models:
 2.  **Generate Q&A from Document Concepts:** Generate Q&A that explain these specific concepts and terms *from the document's perspective*.
 3.  **Target Project-Relevant Level:** Assume the reader can handle some project or business terminology but needs clarification on domain-specific or methodology-specific terms used in the document. Do not oversimplify to an absolute beginner level, but define terms where necessary for context.
 4.  **Base Answers on Document/Relevant Knowledge:** Provide answers consistent with the document's content or general knowledge directly relevant to understanding the terms/concepts *in that project context*.
-5.  **Rationale Focus:** The `rationale_for_question_answer_pair` must explain the *value of the Q&A for understanding *this specific document's content*.
+5.  **Rationale Focus:** The `rationale` must explain the *value of the Q&A for understanding *this specific document's content*.
 6.  **Strict JSON Format:** The final output MUST be a JSON object strictly conforming to the `DocumentDetails` model. Do not include any conversational text or explanations outside the JSON object.
 7.  **Language:** Generate the Q&A in the language of the user's text.
 8.  **Avoid Unrelated Content:** Explicitly avoid generating Q&A about topics unrelated to the project's domain and concepts as presented, and strictly adhere to safety guidelines.
@@ -166,7 +166,7 @@ class QuestionAnswers:
             rows.append(f"\n## Question Answer Pair {index}")
             rows.append(f"**Question**: {qapair.question}")
             rows.append(f"**Answer**: {qapair.answer}")
-            rows.append(f"**Rationale**: {qapair.rationale_for_question_answer_pair}")
+            rows.append(f"**Rationale**: {qapair.rationale}")
         
         rows.append(f"\n## Summary\n{document_details.summary}")
         return "\n".join(rows)
