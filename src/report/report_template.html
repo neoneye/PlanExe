@@ -104,6 +104,30 @@
             overflow: hidden;
             transition: max-height 0.2s ease-out;
         }
+
+        /* The "Question/Answer" section */
+        .question-answer-pair {
+            margin-bottom: 20px; /* Adds vertical space between each Q&A pair */
+            padding-bottom: 15px; /* Adds space below the Answer text before the separator */
+            border-bottom: 1px solid #eee; /* Adds a subtle grey line to separate pairs */
+        }
+        .question-answer-pair:first-of-type {
+            padding-top: 10px;
+        }
+        .question-answer-pair:last-of-type {
+            margin-bottom: 0;
+            padding-bottom: 20px;
+            border-bottom: none;
+        }
+        .question-answer-pair p:first-child {
+            font-weight: bold; /* Ensures the whole Question line is bold */
+            margin-bottom: 5px; /* Adds a small space between the Question and the Answer */
+            color: #34495e; /* Optional: makes the question color slightly different */
+        }
+        .question-answer-pair p:last-child {
+            margin-top: 5px; /* Adds a small space between the Question and the Answer */
+            margin-bottom: 0; /* Removes default bottom margin from the last paragraph */
+        }
     </style>
     <!--HTML_HEAD_INSERT_HERE-->
 </head>

@@ -2818,7 +2818,8 @@ class QuestionsAndAnswersTask(PlanTask):
     def output(self):
         return {
             'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.QUESTIONS_AND_ANSWERS_RAW))),
-            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.QUESTIONS_AND_ANSWERS_MARKDOWN)))
+            'markdown': luigi.LocalTarget(str(self.file_path(FilenameEnum.QUESTIONS_AND_ANSWERS_MARKDOWN))),
+            'html': luigi.LocalTarget(str(self.file_path(FilenameEnum.QUESTIONS_AND_ANSWERS_HTML)))
         }
     
     def requires(self):
@@ -2884,6 +2885,8 @@ class QuestionsAndAnswersTask(PlanTask):
         question_answers.save_raw(json_path)
         markdown_path = self.output()['markdown'].path
         question_answers.save_markdown(markdown_path)
+        html_path = self.output()['html'].path
+        question_answers.save_html(html_path)
 
 class ReportTask(PlanTask):
     """
@@ -2930,7 +2933,7 @@ class ReportTask(PlanTask):
         rg.append_markdown('Expert Criticism', self.input()['expert_review'].path)
         rg.append_csv('Work Breakdown Structure', self.input()['wbs_project123']['csv'].path)
         rg.append_markdown('Review Plan', self.input()['review_plan']['markdown'].path)
-        rg.append_markdown('Questions & Answers', self.input()['questions_and_answers']['markdown'].path)
+        rg.append_html('Questions & Answers', self.input()['questions_and_answers']['html'].path)
         rg.save_report(self.output().path)
 
 class FullPlanPipeline(PlanTask):

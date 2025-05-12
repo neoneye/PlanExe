@@ -94,5 +94,6 @@ class FilenameEnum(str, Enum):
     SCHEDULE_DHTMLX_GANTT_HTML = "026-2-schedule_dhtmlx_gantt.html"
     QUESTIONS_AND_ANSWERS_RAW = "027-1-questions_and_answers_raw.json"
     QUESTIONS_AND_ANSWERS_MARKDOWN = "027-2-questions_and_answers.md"
+    QUESTIONS_AND_ANSWERS_HTML = "027-3-questions_and_answers.html"
     REPORT = "028-report.html"
     PIPELINE_COMPLETE = "999-pipeline_complete.txt"
