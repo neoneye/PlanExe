@@ -100,7 +100,7 @@ class QuestionAnswers:
 
         system_prompt = QUESTION_ANSWER_SYSTEM_PROMPT.strip()
 
-        chat_message_list = [
+        chat_message_list1 = [
             ChatMessage(
                 role=MessageRole.SYSTEM,
                 content=system_prompt,
@@ -114,31 +114,80 @@ class QuestionAnswers:
         sllm = llm.as_structured_llm(DocumentDetails)
         start_time = time.perf_counter()
         try:
-            chat_response = sllm.chat(chat_message_list)
+            chat_response1 = sllm.chat(chat_message_list1)
         except Exception as e:
             logger.debug(f"LLM chat interaction failed: {e}")
             logger.error("LLM chat interaction failed.", exc_info=True)
             raise ValueError("LLM chat interaction failed.") from e
 
         end_time = time.perf_counter()
-        duration = int(ceil(end_time - start_time))
-        response_byte_count = len(chat_response.message.content.encode('utf-8'))
-        logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
+        duration1 = int(ceil(end_time - start_time))
+        response_byte_count1 = len(chat_response1.message.content.encode('utf-8'))
+        logger.info(f"LLM chat interaction 1 completed in {duration1} seconds. Response byte count: {response_byte_count1}")
 
-        json_response = chat_response.raw.model_dump()
+        # Do a follow up question, for obtaining more Q&A pairs
+        chat_message_assistant2 = ChatMessage(
+            role=MessageRole.ASSISTANT,
+            content=chat_response1.message.content,
+        )
+        chat_message_user2 = ChatMessage(
+            role=MessageRole.USER,
+            content="Generate 5 additional question and answer pairs from the document, focusing on clarifying the steps, tasks, or processes described in the plan.",
+        )
+        chat_message_list2 = chat_message_list1.copy()
+        chat_message_list2.append(chat_message_assistant2)
+        chat_message_list2.append(chat_message_user2)
+
+        logger.debug("Starting LLM chat interaction 2.")
+        start_time = time.perf_counter()
+        try:
+            chat_response2 = sllm.chat(chat_message_list2)
+        except Exception as e:
+            logger.debug(f"LLM chat interaction 2 failed: {e}")
+            logger.error("LLM chat interaction 2 failed.", exc_info=True)
+            raise ValueError("LLM chat interaction 2 failed.") from e
+
+        end_time = time.perf_counter()
+        duration2 = int(ceil(end_time - start_time))
+        response_byte_count2 = len(chat_response2.message.content.encode('utf-8'))
+        logger.info(f"LLM chat interaction 2 completed in {duration2} seconds. Response byte count: {response_byte_count2}")
 
         metadata = dict(llm.metadata)
         metadata["llm_classname"] = llm.class_name()
-        metadata["duration"] = duration
-        metadata["response_byte_count"] = response_byte_count
+        metadata["duration1"] = duration1
+        metadata["duration2"] = duration2
+        metadata["response_byte_count1"] = response_byte_count1
+        metadata["response_byte_count2"] = response_byte_count2
 
-        markdown = cls.convert_to_markdown(chat_response.raw)
-        html = cls.convert_to_html(chat_response.raw)
+        # Merge the responses
+        json_response1 = chat_response1.raw.model_dump()
+        json_response2 = chat_response2.raw.model_dump()
+
+        # Combine the Q&A pairs from both responses
+        qa_pairs1 = json_response1.get('question_answer_pairs', [])
+        qa_pairs2 = json_response2.get('question_answer_pairs', [])
+        
+        # Update the item_index for the second set of Q&A pairs
+        for qa in qa_pairs2:
+            qa['item_index'] = len(qa_pairs1) + qa['item_index']
+
+        # Concatenate summaries from both responses
+        summary1 = json_response1.get('summary', '')
+        summary2 = json_response2.get('summary', '')
+        combined_summary = f"{summary1}\n\n{summary2}" if summary1 and summary2 else summary1 or summary2
+
+        merged_response = {
+            'question_answer_pairs': qa_pairs1 + qa_pairs2,
+            'summary': combined_summary
+        }
+
+        markdown = cls.convert_to_markdown(DocumentDetails(**merged_response))
+        html = cls.convert_to_html(DocumentDetails(**merged_response))
 
         result = QuestionAnswers(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            response=json_response,
+            response=merged_response,
             metadata=metadata,
             markdown=markdown,
             html=html
