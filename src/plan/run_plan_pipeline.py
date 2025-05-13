@@ -43,7 +43,7 @@ from src.governance.governance_phase4_decision_escalation_matrix import Governan
 from src.governance.governance_phase5_monitoring_progress import GovernancePhase5MonitoringProgress
 from src.governance.governance_phase6_extra import GovernancePhase6Extra
 from src.plan.related_resources import RelatedResources
-from src.questions_answers.question_answers import QuestionAnswers
+from src.questions_answers.questions_answers import QuestionsAnswers
 from src.schedule.export_frappe_gantt import ExportFrappeGantt
 from src.schedule.export_mermaid_gantt import ExportMermaidGantt
 from src.swot.swot_analysis import SWOTAnalysis
@@ -2878,7 +2878,7 @@ class QuestionsAndAnswersTask(PlanTask):
         llm = get_llm(self.llm_model)
 
         # Invoke the LLM
-        question_answers = QuestionAnswers.execute(llm, query)
+        question_answers = QuestionsAnswers.execute(llm, query)
 
         # Save the results.
         json_path = self.output()['raw'].path

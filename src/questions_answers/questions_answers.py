@@ -1,7 +1,7 @@
 """
 For a reader of the plan that is unfamiliar with the domain, provide a list of Q&A pairs that are relevant to the plan.
 
-PROMPT> python -m src.questions_answers.question_answers
+PROMPT> python -m src.questions_answers.questions_answers
 """
 import html
 import os
@@ -77,7 +77,7 @@ Use the following JSON models:
 SECOND_USER_PROMPT = "Generate 5 additional question and answer pairs from the document, focusing on clarifying the risks, ethical considerations, controversial aspects, or broader implications discussed in the plan."
 
 @dataclass
-class QuestionAnswers:
+class QuestionsAnswers:
     """
     Identify what questions and answers are relevant to the plan.
     """
@@ -89,7 +89,7 @@ class QuestionAnswers:
     html: str
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'QuestionAnswers':
+    def execute(cls, llm: LLM, user_prompt: str) -> 'QuestionsAnswers':
         """
         Invoke LLM with the project description.
         """
@@ -186,7 +186,7 @@ class QuestionAnswers:
         markdown = cls.convert_to_markdown(DocumentDetails(**merged_response))
         html = cls.convert_to_html(DocumentDetails(**merged_response))
 
-        result = QuestionAnswers(
+        result = QuestionsAnswers(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=merged_response,
@@ -259,7 +259,7 @@ if __name__ == "__main__":
     )
     print(f"Query: {query}")
 
-    physical_locations = QuestionAnswers.execute(llm, query)
+    physical_locations = QuestionsAnswers.execute(llm, query)
     json_response = physical_locations.to_dict(include_system_prompt=False, include_user_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
