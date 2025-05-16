@@ -1,4 +1,6 @@
 """
+Take a initial PlanExe draft plan, and refine it to a version 2 plan that includes more documents that was missing in the initial plan.
+
 Make adjustments to the plan over and over, hopefully improving the plan.
 
 PROMPT> python -m src.self_improve.self_improve_without_tasks
@@ -19,11 +21,11 @@ class DocumentDetails(BaseModel):
     range_end: int = Field(
         description="Line number where the change ends"
     )
-    text: str = Field(
-        description="New text"
-    )
     rationale: str = Field(
         description="Why make this change"
+    )
+    text: str = Field(
+        description="New text"
     )
     status: str = Field(
         description="Status of the file after the change"
@@ -39,6 +41,12 @@ You can only replace rows of text, with a new rows of text.
 
 Set the 'status' field to 'DONE' if the change is correct.
 Set the 'status' field to 'WIP' if the todo is still work-in-progress.
+
+In the 'rationale' field, explain why you made the change. What is your impression of the old text, was it incorrect, incomplete, misleading, etc?
+
+The 'text' field is the new text to replace the old text. You are a LLM and you context window is limited to 2048 tokens, so don't try to include the entire document in the 'text' field. Instead write the entire document as several small edits.
+
+The SMART criteria defines what the document should become after your editing/improvement process. It's the target state you're aiming for.
 """
 
 MY_USER_PROMPT = """
@@ -55,8 +63,9 @@ SMART Criteria:
 file 'edit-document.csv':
 LINE;TEXT
 1;placeholder, I'm an empty line
-2;placeholder, I'm an empty line
-3;placeholder, I'm an empty line
+2;Artificial Furtiliser (AF) refers to a farming system that with the ability to understand, learn, and apply knowledge across a wide range of tasks, similar to human intelligence. Unlike Narrow AI (ANI), which is designed to perform a specific task, such as image recognition or language translation, AGI would be capable of general reasoning, problem-solving, and learning.
+3;It surpasses the capabilities of Narrow AI (ANI).
+4;AGI is still a topic of ongoing research and debate in the field of artificial intelligence. Some experts believe that creating an AGI could have a profound impact on various aspects of society, from healthcare to education, while others raise concerns about its potential risks and consequences.', 'rationale': "The new text meets the SMART criteria: it's specific (defines AGI), measurable (clearly states its difference from ANI), achievable (using publicly available information), relevant (serves as starting content for document handling and editing capabilities), and time-bound (created now)
 """
 
 class SelfImprove:
