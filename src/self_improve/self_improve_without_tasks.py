@@ -42,7 +42,15 @@ Set the 'status' field to 'WIP' if the todo is still work-in-progress.
 """
 
 MY_USER_PROMPT = """
-explain what is AGI in 50 words
+Your task:
+explain what is AGI
+
+SMART Criteria:
+- S (Specific): Create a concise introductory document defining Artificial General Intelligence (AGI), highlighting its core concept, contrasting it with Narrow AI (ANI), and briefly mentioning its hypothetical status and potential.
+- M (Measurable): The document must clearly state a definition of AGI, explicitly mention its difference from ANI, and be between 150 and 250 words in length. It should also be presented as plain text.
+- A (Achievable): This is achievable using publicly available information about AGI and current AI concepts.
+- R (Relevant): The document serves as the necessary starting content for testing and developing the multi-agent system's document handling and editing capabilities in a realistic (though simple) context.
+- T (Time-bound): The document must be created now, before the multi-agent system begins its operational cycle.
 
 file 'edit-document.csv':
 LINE;TEXT
