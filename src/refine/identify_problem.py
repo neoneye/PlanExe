@@ -1,9 +1,7 @@
 """
-Take a initial PlanExe draft plan, and refine it to a version 2 plan that includes more documents that was missing in the initial plan.
+Figure out what is the problem with the document that needs to be fixed.
 
-Make adjustments to the plan over and over, hopefully improving the plan.
-
-PROMPT> python -m src.refine.refine_identify_area
+PROMPT> python -m src.refine.identify_problem
 """
 import logging
 import time
@@ -57,7 +55,7 @@ LINE;TEXT
 6;placeholder, I'm an empty line
 """
 
-class IdentifyActionWithoutTasks:
+class IdentifyProblem:
     def __init__(self, llm: LLM):
         self.llm = llm
 
@@ -114,5 +112,5 @@ if __name__ == "__main__":
 
     llm = get_llm("ollama-llama3.1")
 
-    refine = IdentifyActionWithoutTasks(llm)
+    refine = IdentifyProblem(llm)
     refine.run_loop(max_iterations=1)
