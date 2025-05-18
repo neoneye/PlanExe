@@ -45,6 +45,17 @@ Stuff after the REPLACE marker is ignored.
 
 """
 
+DOCUMENT_MARKDOWN = """
+# Introduction
+placeholder-introduction
+
+# Insights
+placeholder-insights
+
+# Conclusion
+placeholder-conclusion
+"""
+
 MY_USER_PROMPT = """
 SMART Criteria:
 - S (Specific): Create a concise introductory document defining Artificial General Intelligence (AGI), highlighting its core concept, contrasting it with Narrow AI (ANI), and briefly mentioning its hypothetical status and potential.
@@ -55,12 +66,7 @@ SMART Criteria:
 
 file 'document.md':
 <start-of-document>
-placeholder, I'm an empty line
-Artificial Furtiliser (AF) refers to a farming system that with the ability to understand, learn, and apply knowledge across a wide range of tasks, similar to human intelligence. Unlike Narrow AI (ANI), which is designed to perform a specific task, such as image recognition or language translation, AGI would be capable of general reasoning, problem-solving, and learning.
-It surpasses the capabilities of Narrow AI (ANI).
-AGI is still a topic of ongoing research and debate in the field of artificial intelligence. Some experts believe that creating an AGI could have a profound impact on various aspects of society, from healthcare to education, while others raise concerns about its potential risks and consequences.', 'rationale': "The new text meets the SMART criteria: it's specific (defines AGI), measurable (clearly states its difference from ANI), achievable (using publicly available information), relevant (serves as starting content for document handling and editing capabilities), and time-bound (created now)
-placeholder, I'm an empty line
-placeholder, I'm an empty line
+DOCUMENT_MARKDOWN_PLACEHOLDER
 <end-of-document>
 """
 
@@ -69,7 +75,9 @@ class SolveProblem:
         self.llm = llm
 
     def perform_refinement(self):
+        document_markdown = DOCUMENT_MARKDOWN.strip()
         user_prompt = MY_USER_PROMPT.strip()
+        user_prompt = user_prompt.replace("DOCUMENT_MARKDOWN_PLACEHOLDER", document_markdown)
 
         system_prompt = MY_SYSTEM_PROMPT.strip()
 
@@ -103,6 +111,9 @@ class SolveProblem:
 
         patch = Patch.create(chat_response.raw.patch)
         print(patch)
+
+        document_markdown_with_patch = patch.apply(document_markdown)
+        print(document_markdown_with_patch)
 
     def run_loop(self, max_iterations: int = 1):
         for i in range(max_iterations):
