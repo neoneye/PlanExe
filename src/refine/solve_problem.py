@@ -24,24 +24,21 @@ class DocumentDetails(BaseModel):
 
 
 MY_SYSTEM_PROMPT = """
-You can only modify the `document.md` between the <start-of-document> and <end-of-document> markers.
+You can only modify the `document.md` content found between the <start-of-document> and <end-of-document> markers.
 
 Over multiple refinements, the goal is that the document satisfies the SMART criteria.
 
-In the 'rationale' field, explain why it has to be changed.
+In the 'rationale' field, explain the reason for the proposed changes.
 
-Use the 'patch' field to create a patch to the `document.md`.
-Example of a patch:
+The 'patch' field must contain the proposed changes using the following specific patch format. This format indicates the text to *find* in the document and the text to *replace* it with.
 
-Stuff before the SEARCH marker is ignored.
 <<<<<<< SEARCH
-old content line 1, may span multiple lines
-old content line 2
+[The exact text currently in the document that needs to be replaced]
 =======
-new content line 1, may span multiple lines or be empty
-new content line 2
+[The exact new text that will replace the old text. This section can be empty.]
 >>>>>>> REPLACE
-Stuff after the REPLACE marker is ignored.
+
+Anything outside these specific markers (<<<<<<< SEARCH, =======, >>>>>>> REPLACE) within the 'patch' field content will be ignored. Ensure the content between the markers accurately reflects the FIND and REPLACE text.
 
 """
 
@@ -109,16 +106,39 @@ class SolveProblem:
         json_response = chat_response.raw.model_dump()
         print(json_response)
 
-        patch = Patch.create(chat_response.raw.patch)
-        print(patch)
+        # Ensure the patch string from the LLM is correctly extracted and parsed
+        # The LLM is expected to put the patch string into the 'patch' field of the Pydantic model
+        # The Patch.create method expects the string containing the patch markers
+        patch_string_from_llm = chat_response.raw.patch
+        
+        try:
+            patch = Patch.create(patch_string_from_llm)
+            print(patch)
 
-        document_markdown_with_patch = patch.apply(document_markdown)
-        print(document_markdown_with_patch)
+            document_markdown_with_patch = patch.apply(document_markdown)
+            print("\n--- Patched Document ---")
+            print(document_markdown_with_patch)
+            print("------------------------")
+
+        except ValueError as e:
+             logger.error(f"Failed to apply patch: {e}")
+             # Print the raw patch string from the LLM for debugging
+             print("\n--- Raw Patch String from LLM (Failed to Parse) ---")
+             print(patch_string_from_llm)
+             print("---------------------------------------------------")
+             raise e
+
 
     def run_loop(self, max_iterations: int = 1):
         for i in range(max_iterations):
             logger.info(f"Start iteration {i+1} of {max_iterations}.")
-            self.perform_refinement()
+            try:
+                self.perform_refinement()
+            except Exception as e:
+                logger.error(f"Iteration {i+1} failed: {e}")
+                # Decide if you want to stop or continue after failure
+                # For now, let's stop on failure
+                break
             logger.info(f"End iteration {i+1} of {max_iterations}.")
 
 if __name__ == "__main__":
