@@ -63,25 +63,25 @@ You have multiple options.
 #### Option 3A - Install Gradio UI
 
 ```bash
-(venv) pip install .[gradio-ui]
+(venv) pip install '.[gradio-ui]'
 ```
 
 #### Option 3B - Install Flask UI
 
 ```bash
-(venv) pip install .[flask-ui]
+(venv) pip install '.[flask-ui]'
 ```
 
 #### Option 3C - Install everything for non-developers
 
 ```bash
-(venv) pip install .[gradio-ui,flask-ui]
+(venv) pip install '.[gradio-ui,flask-ui]'
 ```
 
 #### Option 3D - Install everything for a developer
 
 ```bash
-(venv) pip install -e .[gradio-ui,flask-ui]
+(venv) pip install -e '.[gradio-ui,flask-ui]'
 ```
 
 ### Step 4 - Running PlanExe
