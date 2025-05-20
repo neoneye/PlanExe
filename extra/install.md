@@ -40,7 +40,7 @@ git clone https://github.com/neoneye/PlanExe.git
 
 You have multiple options.
 
-#### Step 2A - macOS or Linux
+#### Option 2A - macOS or Linux
 
 ```bash
 cd PlanExe
@@ -48,7 +48,7 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-#### Step 2B - Windows
+#### Option 2B - Windows
 
 ```bash
 cd PlanExe
@@ -60,25 +60,25 @@ python3 -m venv venv
 
 You have multiple options.
 
-#### Step 3A - Install Gradio UI
+#### Option 3A - Install Gradio UI
 
 ```bash
 (venv) pip install .[gradio-ui]
 ```
 
-#### Step 3B - Install Flask UI
+#### Option 3B - Install Flask UI
 
 ```bash
 (venv) pip install .[flask-ui]
 ```
 
-#### Step 3C - Install everything for non-developers
+#### Option 3C - Install everything for non-developers
 
 ```bash
 (venv) pip install .[gradio-ui,flask-ui]
 ```
 
-#### Step 3D - Install everything for a developer
+#### Option 3D - Install everything for a developer
 
 ```bash
 (venv) pip install -e .[gradio-ui,flask-ui]
@@ -86,7 +86,7 @@ You have multiple options.
 
 ### Step 4 - Running PlanExe
 
-#### Step 4A - Using PlanExe's Gradio UI
+#### Option 4A - Using PlanExe's Gradio UI
 
 ```bash
 (venv) python -m src.plan.app_text2plan
@@ -94,7 +94,7 @@ You have multiple options.
 
 Follow any on-screen instructions or open the specified URL in your web browser.
 
-#### Step 4B - Using PlanExe's Flask UI
+#### Option 4B - Using PlanExe's Flask UI
 
 ```bash
 (venv) python -m src.ui_flask.app
