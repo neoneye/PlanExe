@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+        }
+        .nav-links {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .nav-links a {
+            display: block;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            text-decoration: none;
+            color: #3498db;
+            background: #f8f9fa;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        .nav-links a:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+            color: #2980b9;
+        }
+        .description {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Developer</h1>
+    <div class="nav-links">
+        <a href="/demo1">
+            Demo 1 - End to end test - hardcoded input
+            <div class="description">Wraps the Run page inside an &lt;iframe&gt;</div>
+        </a>
+        <a href="/demo2">
+            Demo 2 - End to end test - textarea input
+            <div class="description">Wraps the Run page inside an &lt;iframe&gt;</div>
+        </a>
+        <a href="/run">
+            Run without UUID
+            <div class="description">Execute PlanExe</div>
+        </a>
+        <a href="/viewplan">
+            View Plan without UUID
+            <div class="description">View the generated PlanExe report</div>
+        </a>
+        <a href="/viewplan?uuid=junkuuid">
+            View Plan with UUID
+            <div class="description">View the generated PlanExe report with a specific UUID</div>
+        </a>
+    </div>
+</body>
+</html> 

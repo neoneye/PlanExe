@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Progress</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .progress-container {
+            text-align: center;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .progress-value {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #333;
+        }
+        .progress-label {
+            font-size: 1.2rem;
+            color: #666;
+            margin-top: 1rem;
+        }
+        .parameters {
+            margin-bottom: 1rem;
+        }
+        .parameter {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-container">
+        <div class="parameters">
+            <div class="parameter">
+                <strong>Prompt:</strong> {{ prompt }}
+            </div>
+            <div class="parameter">
+                <strong>UUID:</strong> {{ uuid }}
+            </div>
+        </div>
+        <div class="progress-value" id="progress">0</div>
+        <div class="progress-label">Server Progress</div>
+    </div>
+
+    <script>
+        const progressElement = document.getElementById('progress');
+        const eventSource = new EventSource(`/progress?uuid={{ uuid }}`);
+
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const is_done = data.done;
+            progressElement.textContent = data.progress;
+            if (is_done) {
+                // when the operation has completed redirect to the viewplan page
+                window.location.href = `/viewplan?uuid={{ uuid }}`;
+            }
+        };
+
+        eventSource.onerror = function(event) {
+            console.error('EventSource failed', event);
+            eventSource.close();
+        };
+    </script>
+</body>
+</html> 
