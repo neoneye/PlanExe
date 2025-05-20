@@ -49,7 +49,7 @@ git clone https://github.com/neoneye/PlanExe.git
 cd PlanExe
 python3 -m venv venv
 source venv/bin/activate
-(venv) pip install -r requirements.txt
+(venv) pip install .[gradio-ui]
 ```
 
 # Configuration
