@@ -131,7 +131,7 @@ gradio-ui = [
 ]
 
 flask-ui = [
-    "Flask==3.0.2",
+    "Flask==3.1.1",
 ]
 
 # Build system configuration
