@@ -1,4 +1,6 @@
 .env
 venv/
+build/
+*.egg-info/
 run/
 __pycache__/
