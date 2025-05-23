@@ -3078,6 +3078,9 @@ if __name__ == '__main__':
             logger.error(f"Invalid value for SPEED_VS_DETAIL: {speedvsdetail_value}")
     logger.info(f"Speed vs Detail: {speedvsdetail}")
 
+    if False:
+        raise Exception("This is a test exception.")
+
     task = FullPlanPipeline(speedvsdetail=speedvsdetail, llm_model=model)
     if run_id is not None:
         task.run_id = run_id
