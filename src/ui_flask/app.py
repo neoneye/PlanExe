@@ -34,13 +34,13 @@ class MyFlaskApp:
         def run():
             prompt_param = request.args.get('prompt', '')
             uuid_param = request.args.get('uuid', '')
-            print(f"Run endpoint. parameters: prompt={prompt_param}, uuid={uuid_param}")
+            logger.info(f"Run endpoint. parameters: prompt={prompt_param}, uuid={uuid_param}")
             return render_template('run.html', prompt=prompt_param, uuid=uuid_param)
 
         @self.app.route('/progress')
         def get_progress():
             uuid = request.args.get('uuid', '')
-            print(f"Progress endpoint received UUID: {uuid}")
+            logger.info(f"Progress endpoint received UUID: {uuid}")
             self.uuid_to_progress[uuid] = 0
             
             def generate():
@@ -53,7 +53,7 @@ class MyFlaskApp:
                     time.sleep(1)
                     self.uuid_to_progress[uuid] = (progress + 1) % len(self.MESSAGES)
                     if done:
-                        print(f"Progress endpoint received UUID: {uuid} is done")
+                        logger.info(f"Progress endpoint received UUID: {uuid} is done")
                         del self.uuid_to_progress[uuid]
                         break
 
@@ -62,7 +62,7 @@ class MyFlaskApp:
         @self.app.route('/viewplan')
         def viewplan():
             uuid_param = request.args.get('uuid', '')
-            print(f"ViewPlan endpoint. uuid={uuid_param}")
+            logger.info(f"ViewPlan endpoint. uuid={uuid_param}")
             return render_template('viewplan.html', uuid=uuid_param)
 
         @self.app.route('/demo1')
