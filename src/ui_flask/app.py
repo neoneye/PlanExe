@@ -79,8 +79,7 @@ class MyFlaskApp:
         self.jobs[run_id] = job
 
         # Start the job in a background thread
-        dummy = "dummy"
-        threading.Thread(target=self._run_job, args=(job, dummy)).start()
+        threading.Thread(target=self._run_job, args=[job]).start()
 
         return {
             "run_id": run_id,
@@ -176,7 +175,7 @@ class MyFlaskApp:
             session_uuid = str(uuid.uuid4())
             return render_template('demo2.html', uuid=session_uuid)
 
-    def _run_job(self, job: JobState, dummy: str):
+    def _run_job(self, job: JobState):
         """Run the actual job in a subprocess"""
         try:
             run_path = job.run_path
