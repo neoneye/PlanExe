@@ -10,19 +10,31 @@ from dataclasses import dataclass
 import subprocess
 import threading
 from flask import Flask, render_template, Response, request, jsonify
+from src.plan.generate_run_id import generate_run_id
+from src.plan.plan_file import PlanFile
+from src.plan.filenames import FilenameEnum
 
 logger = logging.getLogger(__name__)
 
 MODULE_PATH_PIPELINE = "src.plan.run_plan_pipeline"
+RUN_DIR = "run"
+
+@dataclass
+class Config:
+    use_uuid_as_run_id: bool
+
+CONFIG = Config(
+    use_uuid_as_run_id=False,
+)
 
 @dataclass
 class JobState:
     """State for a single job"""
     job_id: str
+    run_path: str
     process: Optional[subprocess.Popen] = None
     stop_event: threading.Event = threading.Event()
     status: str = "pending"
-    output_dir: Optional[str] = None
     error: Optional[str] = None
 
 class MyFlaskApp:
@@ -41,7 +53,7 @@ class MyFlaskApp:
         ]
         self._setup_routes()
 
-    def _create_job_internal(self, job_id: str, job_data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
+    def _create_job_internal(self, job_id: str, run_path: str, job_data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
         """
         Internal logic for creating a job.
         Called by both the /jobs endpoint and other internal functions.
@@ -53,8 +65,11 @@ class MyFlaskApp:
         if job_id in self.jobs:
             return {"error": "job_id already exists"}, 409
 
+        if not os.path.exists(run_path):
+            raise Exception(f"The run_path directory is supposed to exist at this point. However no run_path directory exists: {run_path}")
+
         # Create job state
-        job = JobState(job_id=job_id)
+        job = JobState(job_id=job_id, run_path=run_path)
         self.jobs[job_id] = job
 
         # Start the job in a background thread
@@ -80,7 +95,10 @@ class MyFlaskApp:
             try:
                 data = request.json
                 job_id = data.get("job_id")
-                response_data, status_code = self._create_job_internal(job_id, data)
+                run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
+                run_path = os.path.join(RUN_DIR, run_id)
+                absolute_path_to_run_dir = os.path.abspath(run_path)
+                response_data, status_code = self._create_job_internal(job_id, absolute_path_to_run_dir, data)
                 return jsonify(response_data), status_code            
             except Exception as e:
                 logger.error(f"Error creating job: {e}")
@@ -92,13 +110,32 @@ class MyFlaskApp:
             uuid_param = request.args.get('uuid', '')
             logger.info(f"Run endpoint. parameters: prompt={prompt_param}, uuid={uuid_param}")
 
+            run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
+            run_path = os.path.join(RUN_DIR, run_id)
+            absolute_path_to_run_dir = os.path.abspath(run_path)
+
+            if os.path.exists(run_path):
+                raise Exception(f"The run path is not supposed to exist at this point. However the run path already exists: {run_path}")
+            os.makedirs(run_path)
+
+            # Create the initial plan file.
+            plan_file = PlanFile.create(prompt_param)
+            plan_file.save(os.path.join(run_path, FilenameEnum.INITIAL_PLAN.value))
+
             # Check if it's string containing a-zA-Z0-9-_ so it can be used in a file name
             if not re.match(r'^[a-zA-Z0-9\-_]{1,80}$', uuid_param):
                 return jsonify({"error": "Invalid UUID"}), 400
 
-            job_payload = {"job_id": uuid_param}
+            job_payload = {
+                "job_id": uuid_param,
+                "env": {
+                    "RUN_ID": run_id,
+                    "LLM_MODEL": "openrouter-paid-gemini-2.0-flash-001",
+                    "SPEED_VS_DETAIL": "fast"
+                }
+            }
 
-            response_data, status_code = self._create_job_internal(uuid_param, job_payload)
+            response_data, status_code = self._create_job_internal(uuid_param, absolute_path_to_run_dir, job_payload)
             if status_code != 202:
                 logger.error(f"Error creating job internally: {response_data}")
                 return jsonify({"error": "Failed to create job", "details": response_data}), 500
@@ -150,10 +187,12 @@ class MyFlaskApp:
             env = os.environ.copy()
             env.update(data.get("env", {}))
 
-            # Create output directory
-            output_dir = os.path.join("run", job.job_id)
-            os.makedirs(output_dir, exist_ok=True)
-            job.output_dir = output_dir
+            run_path = job.run_path
+
+            if not os.path.exists(run_path):
+                raise Exception(f"The run_path directory is supposed to exist at this point. However the output directory does not exist: {run_path}")
+
+            job.run_path = run_path
 
             # Start the process
             command = [sys.executable, "-m", MODULE_PATH_PIPELINE]
