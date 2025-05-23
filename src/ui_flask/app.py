@@ -5,12 +5,11 @@ import sys
 import time
 import json
 import uuid
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple, Any
 from dataclasses import dataclass
 import subprocess
 import threading
 from flask import Flask, render_template, Response, request, jsonify
-import requests
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +41,31 @@ class MyFlaskApp:
         ]
         self._setup_routes()
 
+    def _create_job_internal(self, job_id: str, job_data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
+        """
+        Internal logic for creating a job.
+        Called by both the /jobs endpoint and other internal functions.
+        job_data is the full dictionary that would have come from request.json
+        """
+        if not job_id:
+            return {"error": "job_id is required"}, 400
+
+        if job_id in self.jobs:
+            return {"error": "job_id already exists"}, 409
+
+        # Create job state
+        job = JobState(job_id=job_id)
+        self.jobs[job_id] = job
+
+        # Start the job in a background thread
+        # Pass the full job_data dict as _run_job expects it
+        threading.Thread(target=self._run_job, args=(job, job_data)).start()
+
+        return {
+            "job_id": job_id,
+            "status": "pending"
+        }, 202
+    
     def _setup_routes(self):
         @self.app.route('/')
         def index():
@@ -56,24 +80,8 @@ class MyFlaskApp:
             try:
                 data = request.json
                 job_id = data.get("job_id")
-                if not job_id:
-                    return jsonify({"error": "job_id is required"}), 400
-
-                if job_id in self.jobs:
-                    return jsonify({"error": "job_id already exists"}), 409
-
-                # Create job state
-                job = JobState(job_id=job_id)
-                self.jobs[job_id] = job
-
-                # Start the job in a background thread
-                threading.Thread(target=self._run_job, args=(job, data)).start()
-
-                return jsonify({
-                    "job_id": job_id,
-                    "status": "pending"
-                }), 202
-
+                response_data, status_code = self._create_job_internal(job_id, data)
+                return jsonify(response_data), status_code            
             except Exception as e:
                 logger.error(f"Error creating job: {e}")
                 return jsonify({"error": str(e)}), 500
@@ -88,11 +96,12 @@ class MyFlaskApp:
             if not re.match(r'^[a-zA-Z0-9\-_]{1,80}$', uuid_param):
                 return jsonify({"error": "Invalid UUID"}), 400
 
-            # invoke the create_job endpoint
-            # response = requests.post(f"{self.app.root_path}/jobs", json={"job_id": uuid_param})
-            # if response.status_code != 202:
-            #     logger.error(f"Error creating job: {response.json()}")
-            #     return jsonify({"error": "Failed to create job"}), 500
+            job_payload = {"job_id": uuid_param}
+
+            response_data, status_code = self._create_job_internal(uuid_param, job_payload)
+            if status_code != 202:
+                logger.error(f"Error creating job internally: {response_data}")
+                return jsonify({"error": "Failed to create job", "details": response_data}), 500
 
             return render_template('run.html', prompt=prompt_param, uuid=uuid_param)
 
