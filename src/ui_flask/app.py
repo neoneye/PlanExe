@@ -13,11 +13,19 @@ from flask import Flask, render_template, Response, request, jsonify
 from src.plan.generate_run_id import generate_run_id
 from src.plan.plan_file import PlanFile
 from src.plan.filenames import FilenameEnum
+from src.prompt.prompt_catalog import PromptCatalog
 
 logger = logging.getLogger(__name__)
 
 MODULE_PATH_PIPELINE = "src.plan.run_plan_pipeline"
 RUN_DIR = "run"
+
+DEMO1_PROMPT_UUID = "4dc34d55-0d0d-4e9d-92f4-23765f49dd29"
+DEMO2_PROMPT_UUIDS = [
+    "0ad5ea63-cf38-4d10-a3f3-d51baa609abd",
+    "00e1c738-a663-476a-b950-62785922f6f0",
+    "3ca89453-e65b-4828-994f-dff0b679444a"
+]
 
 @dataclass
 class Config:
@@ -52,6 +60,11 @@ class MyFlaskApp:
             "step 6: completing task",
             "step 7: saving results",
         ]
+
+        # Load prompt catalog and examples.
+        self.prompt_catalog = PromptCatalog()
+        self.prompt_catalog.load_simple_plan_prompts()
+
         self._setup_routes()
 
     def _create_job_internal(self, run_id: str, run_path: str) -> Tuple[Dict[str, Any], int]:
@@ -167,13 +180,26 @@ class MyFlaskApp:
 
         @self.app.route('/demo1')
         def demo1():
-            return render_template('demo1.html')
+            prompt_uuid = DEMO1_PROMPT_UUID
+            prompt_item = self.prompt_catalog.find(prompt_uuid)
+            if prompt_item is None:
+                raise Exception(f"Prompt item not found for uuid: {prompt_uuid}")
+            return render_template('demo1.html', prompt=prompt_item.prompt)
 
         @self.app.route('/demo2')
         def demo2():
             # Assign a uuid to the user, so their data belongs to the right user
             session_uuid = str(uuid.uuid4())
-            return render_template('demo2.html', uuid=session_uuid)
+
+            # The prompts to be shown on the page.
+            prompts = []
+            for prompt_uuid in DEMO2_PROMPT_UUIDS:
+                prompt_item = self.prompt_catalog.find(prompt_uuid)
+                if prompt_item is None:
+                    raise Exception(f"Prompt item not found for uuid: {prompt_uuid}")
+                prompts.append(prompt_item.prompt)
+
+            return render_template('demo2.html', uuid=session_uuid, prompts=prompts)
 
     def _run_job(self, job: JobState):
         """Run the actual job in a subprocess"""

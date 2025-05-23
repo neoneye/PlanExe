@@ -117,9 +117,7 @@
         <a href="/developer" style="display: inline-block; margin-bottom: 20px; color: #0066cc; text-decoration: none;">← Back to Developer</a>
         <div class="input-container">
             <div class="example-prompt-buttons">
-                <button id="example-1-button">Example 1</button>
-                <button id="example-2-button">Example 2</button>
-                <button id="example-3-button">Example 3</button>
+                <!-- Buttons will be dynamically generated here -->
             </div>
             <textarea id="prompt"></textarea>
             <button id="submit-button">Submit</button>
@@ -131,13 +129,23 @@
     </div>
 
     <script>
-        const prompt1 = "Eurovision 2026 in Austria, following the country's 2025 victory. Budget of €30-40 million, funded by the European Broadcasting Union (EBU), Austrian broadcaster ORF, and host city contributions. Host city likely to be Vienna. Venue capable of accommodating 10,000-15,000 spectators.";
-        const prompt2 = "Establish a 1 million DKK pilot House Cricket (Acheta domesticus) farm in Western Jutland, Denmark, utilizing controlled environment agriculture for food-grade human consumption. Focused on mastering efficient, hygienic production processes, this project will gather essential operational data for scaling insect protein production in Northern Europe, while actively working to build consumer acceptance and awareness of this sustainable food source.";
-        const prompt3 = "It's 2025 and humanoid robots are entering mainstream society, with China already showcasing robotic athletes in sports events. Plan a 2026 Robot Olympics, outline innovative events, rules, and challenges to test the humanoid robots.";
+        const prompts = JSON.parse('{{ prompts|tojson|safe }}');
 
         // Set default prompt on page load
         window.onload = function() {
-            document.getElementById('prompt').value = prompt1;
+            document.getElementById('prompt').value = prompts[0];
+            
+            // Dynamically create example buttons
+            const buttonContainer = document.querySelector('.example-prompt-buttons');
+            prompts.forEach((prompt, index) => {
+                const button = document.createElement('button');
+                button.id = `example-${index + 1}-button`;
+                button.textContent = `Example ${index + 1}`;
+                button.addEventListener('click', function() {
+                    document.getElementById('prompt').value = prompts[index];
+                });
+                buttonContainer.appendChild(button);
+            });
         };
 
         document.getElementById('submit-button').addEventListener('click', function() {
@@ -152,19 +160,6 @@
             // Show the iframe container and hide the input container
             iframeContainer.style.display = 'block';
             inputContainer.style.display = 'none';
-        });
-
-        // Example buttons
-        document.getElementById('example-1-button').addEventListener('click', function() {
-            document.getElementById('prompt').value = prompt1;
-        });
-
-        document.getElementById('example-2-button').addEventListener('click', function() {
-            document.getElementById('prompt').value = prompt2;
-        });
-
-        document.getElementById('example-3-button').addEventListener('click', function() {
-            document.getElementById('prompt').value = prompt3;
         });
     </script>
 </body>
