@@ -1,7 +1,10 @@
-from flask import Flask, render_template, Response, request
+import logging
 import time
 import json
 import uuid
+from flask import Flask, render_template, Response, request
+
+logger = logging.getLogger(__name__)
 
 class MyFlaskApp:
     def __init__(self):
