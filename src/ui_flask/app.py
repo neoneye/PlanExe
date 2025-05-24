@@ -47,10 +47,16 @@ class JobState:
     error: Optional[str] = None
     progress_message: str = ""
 
+@dataclass
+class UserState:
+    """State for a single user"""
+    user_id: str
+
 class MyFlaskApp:
     def __init__(self):
         self.app = Flask(__name__)
         self.jobs: Dict[str, JobState] = {}
+        self.users: Dict[str, UserState] = {}
         self.uuid_to_progress = {}
         self.MESSAGES = [
             "step 1: initializing",
@@ -126,11 +132,17 @@ class MyFlaskApp:
         def run():
             prompt_param = request.args.get('prompt', '')
             user_id_param = request.args.get('user_id', '')
-            logger.info(f"Run endpoint. parameters: prompt={prompt_param}, user_id_param={user_id_param}")
 
             # Ensure the string contain a-zA-Z0-9-_ so it's safe to use in filenames/database
             if not re.match(r'^[a-zA-Z0-9\-_]{1,80}$', user_id_param):
+                logger.error(f"endpoint /run. Invalid formatting for user_id. parameters: prompt={prompt_param}, user_id_param={user_id_param}")
                 return jsonify({"error": "Invalid user_id"}), 400
+
+            if user_id_param not in self.users:
+                logger.error(f"endpoint /run. No such user_id. parameters: prompt={prompt_param}, user_id_param={user_id_param}")
+                return jsonify({"error": "Invalid user_id"}), 400
+
+            logger.info(f"endpoint /run. Starting run with parameters: prompt={prompt_param}, user_id_param={user_id_param}")
 
             run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
             run_path = os.path.join(RUN_DIR, run_id)
@@ -183,6 +195,8 @@ class MyFlaskApp:
         def demo1():
             # Assign a uuid to the user, so their data belongs to the right user
             user_id = str(uuid.uuid4())
+            user_state = UserState(user_id=user_id)
+            self.users[user_id] = user_state
 
             prompt_uuid = DEMO1_PROMPT_UUID
             prompt_item = self.prompt_catalog.find(prompt_uuid)
@@ -194,6 +208,8 @@ class MyFlaskApp:
         def demo2():
             # Assign a uuid to the user, so their data belongs to the right user
             user_id = str(uuid.uuid4())
+            user_state = UserState(user_id=user_id)
+            self.users[user_id] = user_state
 
             # The prompts to be shown on the page.
             prompts = []
