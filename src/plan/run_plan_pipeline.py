@@ -75,6 +75,7 @@ from src.llm_factory import get_llm
 from src.format_json_for_use_in_query import format_json_for_use_in_query
 from src.utils.get_env_as_string import get_env_as_string
 from src.report.report_generator import ReportGenerator
+from src.luigi_util.obtain_output_files import ObtainOutputFiles
 
 logger = logging.getLogger(__name__)
 DEFAULT_LLM_MODEL = "ollama-llama3.1"
@@ -3086,5 +3087,11 @@ if __name__ == '__main__':
         task.run_id = run_id
 
     # logger.info("Environment variables Luigi:\n" + get_env_as_string() + "\n\n\n")
+
+    # Obtain a list of all the expected output files of the FullPlanPipeline task and all its dependencies
+    obtain_output_files = ObtainOutputFiles.execute(task)
+    all_expected_files = obtain_output_files.get_all_filepaths()
+    logger.info(f"len(all_expected_files): {len(all_expected_files)}")    
+    logger.info(f"all_expected_files: {all_expected_files}")    
 
     luigi.build([task], local_scheduler=True, workers=1)
