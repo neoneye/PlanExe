@@ -45,6 +45,7 @@ class JobState:
     stop_event: threading.Event = threading.Event()
     status: str = "pending"
     error: Optional[str] = None
+    progress_message: str = ""
 
 class MyFlaskApp:
     def __init__(self):
@@ -235,6 +236,13 @@ class MyFlaskApp:
                         job.error = f"Process exited with code {job.process.returncode}"
                     break
 
+                # obtain list of files in the run_path directory
+                files = os.listdir(run_path)
+                logger.info(f"Files in run_path: {files}")
+                number_of_files = len(files)
+                logger.info(f"Number of files in run_path: {number_of_files}")
+                job.progress_message = f"File count: {files}"
+
                 time.sleep(1)
 
         except Exception as e:
@@ -246,5 +254,6 @@ class MyFlaskApp:
         self.app.run(debug=debug)
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     app = MyFlaskApp()
     app.run(debug=True) 
