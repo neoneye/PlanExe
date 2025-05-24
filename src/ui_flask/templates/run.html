@@ -59,9 +59,9 @@
 
         eventSource.onmessage = function(event) {
             const data = JSON.parse(event.data);
-            const is_done = data.done;
+            const is_completed = data.status == "completed";
             progressElement.textContent = data.progress;
-            if (is_done) {
+            if (is_completed) {
                 // when the operation has completed redirect to the viewplan page
                 window.location.href = `/viewplan?user_id={{ user_id }}`;
             }

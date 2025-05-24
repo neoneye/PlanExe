@@ -9,6 +9,7 @@ from typing import Dict, Optional, Tuple, Any
 from dataclasses import dataclass
 import subprocess
 import threading
+from enum import Enum
 from flask import Flask, render_template, Response, request, jsonify
 from src.plan.generate_run_id import generate_run_id
 from src.plan.plan_file import PlanFile
@@ -35,6 +36,13 @@ CONFIG = Config(
     use_uuid_as_run_id=False,
 )
 
+class JobStatus(str, Enum):
+    running = 'running'
+    completed = 'completed'
+    failed = 'failed'
+    cancelled = 'cancelled'
+    pending = 'pending'
+
 @dataclass
 class JobState:
     """State for a single job"""
@@ -43,7 +51,7 @@ class JobState:
     environment: Dict[str, str]
     process: Optional[subprocess.Popen] = None
     stop_event: threading.Event = threading.Event()
-    status: str = "pending"
+    status: JobStatus = JobStatus.pending
     error: Optional[str] = None
     progress_message: str = ""
 
@@ -58,16 +66,6 @@ class MyFlaskApp:
         self.app = Flask(__name__)
         self.jobs: Dict[str, JobState] = {}
         self.users: Dict[str, UserState] = {}
-        self.uuid_to_progress = {}
-        self.MESSAGES = [
-            "step 1: initializing",
-            "step 2: loading data",
-            "step 3: processing data",
-            "step 4: analyzing data",
-            "step 5: generating report",
-            "step 6: completing task",
-            "step 7: saving results",
-        ]
 
         # Load prompt catalog and examples.
         self.prompt_catalog = PromptCatalog()
@@ -174,7 +172,6 @@ class MyFlaskApp:
                 logger.error(f"Invalid User ID: {user_id}")
                 return jsonify({"error": "Invalid user_id"}), 400
             
-            self.uuid_to_progress[user_id] = 0
             user_state = self.users[user_id]
             if user_state.current_run_id is None:
                 logger.error(f"No current_run_id for user: {user_id}")
@@ -189,15 +186,14 @@ class MyFlaskApp:
             def generate():
                 while True:
                     # Send the current progress value
-                    progress = self.uuid_to_progress[user_id]
-                    done = progress == len(self.MESSAGES) - 1
-                    data = json.dumps({'progress': self.MESSAGES[progress], 'done': done})
+                    is_running = job.status == JobStatus.running
+                    logger.info(f"Current job status: {job.status}, is_running: {is_running}")
+                    progress = f"{job.status.value}, {job.progress_message}"
+                    data = json.dumps({'progress': progress, 'status': job.status.value})
                     yield f"data: {data}\n\n"
                     time.sleep(1)
-                    self.uuid_to_progress[user_id] = (progress + 1) % len(self.MESSAGES)
-                    if done:
+                    if not is_running:
                         logger.info(f"Progress endpoint received user_id: {user_id} is done")
-                        del self.uuid_to_progress[user_id]
                         break
 
             return Response(generate(), mimetype='text/event-stream')
@@ -255,20 +251,20 @@ class MyFlaskApp:
                 stderr=subprocess.DEVNULL
             )
 
-            job.status = "running"
+            job.status = JobStatus.running
 
             # Monitor the process
             while True:
                 if job.stop_event.is_set():
                     job.process.terminate()
-                    job.status = "cancelled"
+                    job.status = JobStatus.cancelled
                     break
 
                 if job.process.poll() is not None:
                     if job.process.returncode == 0:
-                        job.status = "completed"
+                        job.status = JobStatus.completed
                     else:
-                        job.status = "failed"
+                        job.status = JobStatus.failed
                         job.error = f"Process exited with code {job.process.returncode}"
                     break
 
@@ -277,13 +273,13 @@ class MyFlaskApp:
                 logger.info(f"Files in run_path: {files}")
                 number_of_files = len(files)
                 logger.info(f"Number of files in run_path: {number_of_files}")
-                job.progress_message = f"File count: {files}"
+                job.progress_message = f"File count: {number_of_files}"
 
                 time.sleep(1)
 
         except Exception as e:
             logger.error(f"Error running job: {e}")
-            job.status = "failed"
+            job.status = JobStatus.failed
             job.error = str(e)
 
     def run(self, debug=True):
