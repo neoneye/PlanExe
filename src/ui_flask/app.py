@@ -181,11 +181,14 @@ class MyFlaskApp:
 
         @self.app.route('/demo1')
         def demo1():
+            # Assign a uuid to the user, so their data belongs to the right user
+            user_id = str(uuid.uuid4())
+
             prompt_uuid = DEMO1_PROMPT_UUID
             prompt_item = self.prompt_catalog.find(prompt_uuid)
             if prompt_item is None:
                 raise Exception(f"Prompt item not found for uuid: {prompt_uuid}")
-            return render_template('demo1.html', prompt=prompt_item.prompt)
+            return render_template('demo1.html', prompt=prompt_item.prompt, user_id=user_id)
 
         @self.app.route('/demo2')
         def demo2():

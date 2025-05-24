@@ -33,6 +33,16 @@
             height: 100%;
             border: none;
         }
+        .userid-container {
+            text-align: center;
+            margin-top: 25px;
+            font-family: monospace;
+            font-size: 16px;
+            color: #666;
+        }
+        .userid-container span {
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -40,8 +50,9 @@
         <h1>Demo 1</h1>
         <a href="/developer" style="display: inline-block; margin-bottom: 20px; color: #0066cc; text-decoration: none;">← Back to Developer</a>
         <div class="iframe-container">
-            <iframe src="/run?prompt={{ prompt }}&user_id=USERID_PLACEHOLDER" title="Run Page"></iframe>
+            <iframe src="/run?prompt={{ prompt }}&user_id={{ user_id }}" title="Run Page"></iframe>
         </div>
+        <div class="userid-container">User ID: <span>{{ user_id }}</span></div>
     </div>
 </body>
 </html> 
