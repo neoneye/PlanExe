@@ -99,14 +99,14 @@
             transform: translateY(0);
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .uuid-container {
+        .userid-container {
             text-align: center;
             margin-top: 25px;
             font-family: monospace;
             font-size: 16px;
             color: #666;
         }
-        .uuid-container span {
+        .userid-container span {
             font-weight: bold;
         }
     </style>
@@ -125,7 +125,7 @@
         <div class="iframe-container">
             <iframe src="" title="Run Page"></iframe>
         </div>
-        <div class="uuid-container">Session ID: <span>{{ uuid }}</span></div>
+        <div class="userid-container">User ID: <span>{{ user_id }}</span></div>
     </div>
 
     <script>
@@ -155,7 +155,7 @@
             const iframe = iframeContainer.querySelector('iframe');
             
             // Update iframe src with the prompt
-            iframe.src = `/run?prompt=${encodeURIComponent(prompt)}&uuid={{ uuid }}`;
+            iframe.src = `/run?prompt=${encodeURIComponent(prompt)}&user_id={{ user_id }}`;
             
             // Show the iframe container and hide the input container
             iframeContainer.style.display = 'block';

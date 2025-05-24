@@ -46,7 +46,7 @@
                 <strong>Prompt:</strong> {{ prompt }}
             </div>
             <div class="parameter">
-                <strong>UUID:</strong> {{ uuid }}
+                <strong>User ID:</strong> {{ user_id }}
             </div>
         </div>
         <div class="progress-value" id="progress">0</div>
@@ -55,7 +55,7 @@
 
     <script>
         const progressElement = document.getElementById('progress');
-        const eventSource = new EventSource(`/progress?uuid={{ uuid }}`);
+        const eventSource = new EventSource(`/progress?user_id={{ user_id }}`);
 
         eventSource.onmessage = function(event) {
             const data = JSON.parse(event.data);
@@ -63,7 +63,7 @@
             progressElement.textContent = data.progress;
             if (is_done) {
                 // when the operation has completed redirect to the viewplan page
-                window.location.href = `/viewplan?uuid={{ uuid }}`;
+                window.location.href = `/viewplan?user_id={{ user_id }}`;
             }
         };
 

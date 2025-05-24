@@ -125,12 +125,12 @@ class MyFlaskApp:
         @self.app.route('/run')
         def run():
             prompt_param = request.args.get('prompt', '')
-            uuid_param = request.args.get('uuid', '')
-            logger.info(f"Run endpoint. parameters: prompt={prompt_param}, uuid={uuid_param}")
+            user_id_param = request.args.get('user_id', '')
+            logger.info(f"Run endpoint. parameters: prompt={prompt_param}, user_id_param={user_id_param}")
 
-            # Check if it's string containing a-zA-Z0-9-_ so it can be used in a file name
-            if not re.match(r'^[a-zA-Z0-9\-_]{1,80}$', uuid_param):
-                return jsonify({"error": "Invalid UUID"}), 400
+            # Ensure the string contain a-zA-Z0-9-_ so it's safe to use in filenames/database
+            if not re.match(r'^[a-zA-Z0-9\-_]{1,80}$', user_id_param):
+                return jsonify({"error": "Invalid user_id"}), 400
 
             run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
             run_path = os.path.join(RUN_DIR, run_id)
@@ -149,35 +149,35 @@ class MyFlaskApp:
                 logger.error(f"Error creating job internally: {response_data}")
                 return jsonify({"error": "Failed to create job", "details": response_data}), 500
 
-            return render_template('run.html', prompt=prompt_param, uuid=uuid_param)
+            return render_template('run.html', prompt=prompt_param, user_id=user_id_param)
 
         @self.app.route('/progress')
         def get_progress():
-            uuid = request.args.get('uuid', '')
-            logger.info(f"Progress endpoint received UUID: {uuid}")
-            self.uuid_to_progress[uuid] = 0
+            user_id = request.args.get('user_id', '')
+            logger.info(f"Progress endpoint received user_id: {user_id}")
+            self.uuid_to_progress[user_id] = 0
             
             def generate():
                 while True:
                     # Send the current progress value
-                    progress = self.uuid_to_progress[uuid]
+                    progress = self.uuid_to_progress[user_id]
                     done = progress == len(self.MESSAGES) - 1
                     data = json.dumps({'progress': self.MESSAGES[progress], 'done': done})
                     yield f"data: {data}\n\n"
                     time.sleep(1)
-                    self.uuid_to_progress[uuid] = (progress + 1) % len(self.MESSAGES)
+                    self.uuid_to_progress[user_id] = (progress + 1) % len(self.MESSAGES)
                     if done:
-                        logger.info(f"Progress endpoint received UUID: {uuid} is done")
-                        del self.uuid_to_progress[uuid]
+                        logger.info(f"Progress endpoint received user_id: {user_id} is done")
+                        del self.uuid_to_progress[user_id]
                         break
 
             return Response(generate(), mimetype='text/event-stream')
 
         @self.app.route('/viewplan')
         def viewplan():
-            uuid_param = request.args.get('uuid', '')
-            logger.info(f"ViewPlan endpoint. uuid={uuid_param}")
-            return render_template('viewplan.html', uuid=uuid_param)
+            user_id_param = request.args.get('user_id', '')
+            logger.info(f"ViewPlan endpoint. user_id={user_id_param}")
+            return render_template('viewplan.html', user_id=user_id_param)
 
         @self.app.route('/demo1')
         def demo1():
@@ -190,7 +190,7 @@ class MyFlaskApp:
         @self.app.route('/demo2')
         def demo2():
             # Assign a uuid to the user, so their data belongs to the right user
-            session_uuid = str(uuid.uuid4())
+            user_id = str(uuid.uuid4())
 
             # The prompts to be shown on the page.
             prompts = []
@@ -200,7 +200,7 @@ class MyFlaskApp:
                     raise Exception(f"Prompt item not found for uuid: {prompt_uuid}")
                 prompts.append(prompt_item.prompt)
 
-            return render_template('demo2.html', uuid=session_uuid, prompts=prompts)
+            return render_template('demo2.html', user_id=user_id, prompts=prompts)
 
     def _run_job(self, job: JobState):
         """Run the actual job in a subprocess"""
