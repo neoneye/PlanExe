@@ -51,6 +51,7 @@ class JobState:
 class UserState:
     """State for a single user"""
     user_id: str
+    current_run_id: Optional[str] = None
 
 class MyFlaskApp:
     def __init__(self):
@@ -161,13 +162,29 @@ class MyFlaskApp:
                 logger.error(f"Error creating job internally: {response_data}")
                 return jsonify({"error": "Failed to create job", "details": response_data}), 500
 
+            self.users[user_id_param].current_run_id = run_id
+
             return render_template('run.html', prompt=prompt_param, user_id=user_id_param)
 
         @self.app.route('/progress')
         def get_progress():
             user_id = request.args.get('user_id', '')
             logger.info(f"Progress endpoint received user_id: {user_id}")
+            if user_id not in self.users:
+                logger.error(f"Invalid User ID: {user_id}")
+                return jsonify({"error": "Invalid user_id"}), 400
+            
             self.uuid_to_progress[user_id] = 0
+            user_state = self.users[user_id]
+            if user_state.current_run_id is None:
+                logger.error(f"No current_run_id for user: {user_id}")
+                return jsonify({"error": "Invalid user_id"}), 400
+            run_id = user_state.current_run_id
+
+            job = self.jobs.get(run_id)
+            if not job:
+                logger.error(f"Job not found for run_id: {run_id}")
+                return jsonify({"error": "Job not found"}), 400
             
             def generate():
                 while True:
