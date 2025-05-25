@@ -54,6 +54,7 @@ class JobState:
     status: JobStatus = JobStatus.pending
     error: Optional[str] = None
     progress_message: str = ""
+    progress_percentage: int = 0
 
 @dataclass
 class UserState:
@@ -189,7 +190,7 @@ class MyFlaskApp:
                     is_running = job.status == JobStatus.running
                     logger.info(f"Current job status: {job.status}, is_running: {is_running}")
                     progress_message = f"{job.status.value}, {job.progress_message}"
-                    data = json.dumps({'progress_message': progress_message, 'progress_percentage': 50, 'status': job.status.value})
+                    data = json.dumps({'progress_message': progress_message, 'progress_percentage': job.progress_percentage, 'status': job.status.value})
                     yield f"data: {data}\n\n"
                     time.sleep(1)
                     if not is_running:
@@ -283,6 +284,7 @@ class MyFlaskApp:
                 # Determine the progress, by comparing the generated files with the expected_filenames1.json
                 expected_filenames_path = os.path.join(run_path, ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value)
                 assign_progress_message = f"File count: {number_of_files}"
+                assign_progress_percentage = 0
                 if os.path.exists(expected_filenames_path):
                     with open(expected_filenames_path, "r") as f:
                         expected_filenames = json.load(f)
@@ -290,8 +292,11 @@ class MyFlaskApp:
                     set_expected_files = set(expected_filenames)
                     intersection_files = set_files & set_expected_files
                     assign_progress_message = f"Progress: {len(intersection_files)} of {len(set_expected_files)}"
+                    if len(set_expected_files) > 0:
+                        assign_progress_percentage = (len(intersection_files) * 100) // len(set_expected_files)
 
                 job.progress_message = assign_progress_message
+                job.progress_percentage = assign_progress_percentage
 
                 time.sleep(1)
 
