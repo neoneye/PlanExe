@@ -188,8 +188,8 @@ class MyFlaskApp:
                     # Send the current progress value
                     is_running = job.status == JobStatus.running
                     logger.info(f"Current job status: {job.status}, is_running: {is_running}")
-                    progress = f"{job.status.value}, {job.progress_message}"
-                    data = json.dumps({'progress': progress, 'status': job.status.value})
+                    progress_message = f"{job.status.value}, {job.progress_message}"
+                    data = json.dumps({'progress_message': progress_message, 'progress_percentage': 50, 'status': job.status.value})
                     yield f"data: {data}\n\n"
                     time.sleep(1)
                     if not is_running:

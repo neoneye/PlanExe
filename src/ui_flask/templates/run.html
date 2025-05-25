@@ -21,7 +21,21 @@
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-        .progress-value {
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.3s ease-in-out;
+        }
+        .progress-message {
             font-size: 3rem;
             font-weight: bold;
             color: #333;
@@ -49,18 +63,29 @@
                 <strong>User ID:</strong> {{ user_id }}
             </div>
         </div>
-        <div class="progress-value" id="progress">0</div>
+        <div class="progress-bar" id="progress-bar"></div>
+        <div class="progress-message" id="progress-message"></div>
         <div class="progress-label">Server Progress</div>
     </div>
 
     <script>
-        const progressElement = document.getElementById('progress');
+        const progressMessageElement = document.getElementById('progress-message');
+        const progressBarElement = document.getElementById('progress-bar');
+        const progressBarFill = document.createElement('div');
+        progressBarFill.className = 'progress-bar-fill';
+        progressBarElement.appendChild(progressBarFill);
         const eventSource = new EventSource(`/progress?user_id={{ user_id }}`);
 
         eventSource.onmessage = function(event) {
             const data = JSON.parse(event.data);
             const is_completed = data.status == "completed";
-            progressElement.textContent = data.progress;
+            progressMessageElement.textContent = data.progress_message;
+            
+            // Update progress bar
+            if (data.progress_percentage !== undefined) {
+                progressBarFill.style.width = `${data.progress_percentage}%`;
+            }
+            
             if (is_completed) {
                 // when the operation has completed redirect to the viewplan page
                 window.location.href = `/viewplan?user_id={{ user_id }}`;
