@@ -165,7 +165,7 @@ class MyFlaskApp:
 
             self.users[user_id_param].current_run_id = run_id
 
-            return render_template('run.html', prompt=prompt_param, user_id=user_id_param)
+            return render_template('run.html', user_id=user_id_param)
 
         @self.app.route('/progress')
         def get_progress():
