@@ -157,6 +157,12 @@ class MyFlaskApp:
 
             logger.info(f"endpoint /run. Starting run with parameters: prompt={prompt_param}, user_id_param={user_id_param}")
 
+            current_user = self.users[user_id_param]
+            if current_user.current_run_id is not None:
+                logger.info(f"endpoint /run. User {user_id_param} already has a current run_id. Stopping it first.")
+                self.jobs[current_user.current_run_id].stop_event.set()
+                current_user.current_run_id = None
+
             run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
             run_path = os.path.join(RUN_DIR, run_id)
             absolute_path_to_run_dir = os.path.abspath(run_path)
@@ -174,7 +180,7 @@ class MyFlaskApp:
                 logger.error(f"Error creating job internally: {response_data}")
                 return jsonify({"error": "Failed to create job", "details": response_data}), 500
 
-            self.users[user_id_param].current_run_id = run_id
+            current_user.current_run_id = run_id
 
             return render_template('run.html', user_id=user_id_param)
 
@@ -342,6 +348,10 @@ class MyFlaskApp:
             logger.error(f"Error running job: {e}")
             job.status = JobStatus.failed
             job.error = str(e)
+
+        # End of the job. No matter what, clear the stop event, so that the user can start a new job.
+        job.stop_event.clear()
+
 
     def run(self, debug=True):
         self.app.run(debug=debug)
