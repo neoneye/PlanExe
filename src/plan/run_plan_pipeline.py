@@ -3090,8 +3090,8 @@ if __name__ == '__main__':
 
     # Obtain a list of all the expected output files of the FullPlanPipeline task and all its dependencies
     obtain_output_files = ObtainOutputFiles.execute(task)
-    all_expected_files = obtain_output_files.get_all_filepaths()
-    logger.info(f"len(all_expected_files): {len(all_expected_files)}")    
-    logger.info(f"all_expected_files: {all_expected_files}")    
+    all_expected_filenames = obtain_output_files.get_all_filenames()
+    logger.info(f"len(all_expected_filenames): {len(all_expected_filenames)}")    
+    logger.info(f"all_expected_filenames: {all_expected_filenames}")    
 
     luigi.build([task], local_scheduler=True, workers=1)

@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set, Union
 import luigi
 import logging
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -106,3 +107,15 @@ class ObtainOutputFiles:
                     if isinstance(item, str) and ("/" in item or "\\" in item):
                         filepaths.add(item)
         return sorted(list(filepaths))
+
+    def get_all_filenames(self) -> List[str]:
+        """Extracts all unique filenames (basenames) from the collected output filepaths."""
+        filepaths = self.get_all_filepaths()
+        filenames = set()
+        for f_path in filepaths:
+            try:
+                # Using pathlib.Path is more robust for path manipulations
+                filenames.add(Path(f_path).name)
+            except Exception as e: # Handle cases where f_path might not be a valid path string
+                logger.warning(f"Could not parse filename from '{f_path}': {e}")
+        return sorted(list(filenames))
