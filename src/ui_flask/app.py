@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import subprocess
 import threading
 from enum import Enum
-from flask import Flask, render_template, Response, request, jsonify
+from flask import Flask, render_template, Response, request, jsonify, send_file
 from src.plan.generate_run_id import generate_run_id
 from src.plan.plan_file import PlanFile
 from src.plan.filenames import FilenameEnum, ExtraFilenameEnum
@@ -205,9 +205,28 @@ class MyFlaskApp:
 
         @self.app.route('/viewplan')
         def viewplan():
-            user_id_param = request.args.get('user_id', '')
-            logger.info(f"ViewPlan endpoint. user_id={user_id_param}")
-            return render_template('viewplan.html', user_id=user_id_param)
+            user_id = request.args.get('user_id', '')
+            if user_id not in self.users:
+                logger.error(f"Invalid User ID: {user_id}")
+                return jsonify({"error": "Invalid user_id"}), 400
+            
+            user_state = self.users[user_id]
+            if user_state.current_run_id is None:
+                logger.error(f"No current_run_id for user: {user_id}")
+                return jsonify({"error": "Invalid user_id"}), 400
+            run_id = user_state.current_run_id
+
+            logger.info(f"ViewPlan endpoint. user_id={user_id} run_id={run_id}")
+
+            run_path = os.path.join(RUN_DIR, run_id)
+            absolute_path_to_run_dir = os.path.abspath(run_path)
+            if not os.path.exists(absolute_path_to_run_dir):
+                raise Exception(f"Run directory not found at {absolute_path_to_run_dir}. Please ensure the run directory exists before viewing the plan.")
+
+            path_to_html_file = os.path.join(absolute_path_to_run_dir, FilenameEnum.REPORT.value)
+            if not os.path.exists(path_to_html_file):
+                raise Exception(f"The html file does not exist at this point. However the html file should exist: {path_to_html_file}")
+            return send_file(path_to_html_file, mimetype='text/html')
 
         @self.app.route('/demo1')
         def demo1():
