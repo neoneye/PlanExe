@@ -97,3 +97,8 @@ class FilenameEnum(str, Enum):
     QUESTIONS_AND_ANSWERS_HTML = "027-3-questions_and_answers.html"
     REPORT = "028-report.html"
     PIPELINE_COMPLETE = "999-pipeline_complete.txt"
+
+class ExtraFilenameEnum(str, Enum):
+    LOG_TXT = "log.txt"
+    EXPECTED_FILENAMES1_JSON = "expected_filenames1.json"
+    

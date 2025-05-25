@@ -13,7 +13,7 @@ from enum import Enum
 from flask import Flask, render_template, Response, request, jsonify
 from src.plan.generate_run_id import generate_run_id
 from src.plan.plan_file import PlanFile
-from src.plan.filenames import FilenameEnum
+from src.plan.filenames import FilenameEnum, ExtraFilenameEnum
 from src.prompt.prompt_catalog import PromptCatalog
 
 logger = logging.getLogger(__name__)
@@ -271,14 +271,17 @@ class MyFlaskApp:
                 # obtain list of files in the run_path directory
                 files = os.listdir(run_path)
                 # filter out uninteresting files
-                ignore_files = ["expected_filenames1.json", "log.txt"]
+                ignore_files = [
+                    ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value,
+                    ExtraFilenameEnum.LOG_TXT.value
+                ]
                 files = [f for f in files if f not in ignore_files]
                 logger.info(f"Files in run_path: {files}")
                 number_of_files = len(files)
                 logger.info(f"Number of files in run_path: {number_of_files}")
 
                 # Determine the progress, by comparing the generated files with the expected_filenames1.json
-                expected_filenames_path = os.path.join(run_path, "expected_filenames1.json")
+                expected_filenames_path = os.path.join(run_path, ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value)
                 assign_progress_message = f"File count: {number_of_files}"
                 if os.path.exists(expected_filenames_path):
                     with open(expected_filenames_path, "r") as f:

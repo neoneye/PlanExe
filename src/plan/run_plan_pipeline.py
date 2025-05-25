@@ -15,7 +15,7 @@ from typing import Optional
 import luigi
 from pathlib import Path
 
-from src.plan.filenames import FilenameEnum
+from src.plan.filenames import FilenameEnum, ExtraFilenameEnum
 from src.plan.speedvsdetail import SpeedVsDetailEnum
 from src.plan.plan_file import PlanFile
 from src.plan.find_plan_prompt import find_plan_prompt
@@ -3040,7 +3040,7 @@ if __name__ == '__main__':
 
     # Capture logs messages to 'run/yyyymmdd_hhmmss/log.txt'
     file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    log_file = os.path.join(run_dir, "log.txt")
+    log_file = os.path.join(run_dir, ExtraFilenameEnum.LOG_TXT.value)
     file_handler = logging.FileHandler(log_file, mode='a')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(file_formatter)
@@ -3095,7 +3095,7 @@ if __name__ == '__main__':
     logger.info(f"all_expected_filenames: {all_expected_filenames}")
 
     # create a json file with the expected filenames. Save it to the run/run_id/expected_filenames1.json
-    expected_filenames_path = os.path.join(run_dir, "expected_filenames1.json")
+    expected_filenames_path = os.path.join(run_dir, ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value)
     with open(expected_filenames_path, "w") as f:
         json.dump(all_expected_filenames, f, indent=2)
     logger.info(f"Saved expected filenames to {expected_filenames_path}")
