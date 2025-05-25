@@ -204,21 +204,29 @@ class MyFlaskApp:
                 return jsonify({"error": "Job not found"}), 400
             
             def generate():
-                while True:
-                    # Send the current progress value
-                    is_running = job.status == JobStatus.running
-                    logger.info(f"Current job status: {job.status}, is_running: {is_running}")
-                    if is_running:
-                        progress_message = job.progress_message
-                    else:
-                        progress_message = f"{job.status.value}, {job.progress_message}"
+                try:
+                    while True:
+                        # Send the current progress value
+                        is_running = job.status == JobStatus.running
+                        logger.info(f"Current job status: {job.status}, is_running: {is_running}")
+                        if is_running:
+                            progress_message = job.progress_message
+                        else:
+                            progress_message = f"{job.status.value}, {job.progress_message}"
 
-                    data = json.dumps({'progress_message': progress_message, 'progress_percentage': job.progress_percentage, 'status': job.status.value})
-                    yield f"data: {data}\n\n"
-                    time.sleep(1)
-                    if not is_running:
-                        logger.info(f"Progress endpoint received user_id: {user_id} is done")
-                        break
+                        data = json.dumps({'progress_message': progress_message, 'progress_percentage': job.progress_percentage, 'status': job.status.value})
+                        yield f"data: {data}\n\n"
+                        time.sleep(1)
+                        if not is_running:
+                            logger.info(f"Progress endpoint received user_id: {user_id} is done")
+                            break
+                except GeneratorExit:
+                    # Client disconnected
+                    logger.info(f"Client disconnected for user_id: {user_id}")
+                    job.stop_event.set()
+                except Exception as e:
+                    logger.error(f"Error in progress stream for user_id {user_id}: {e}")
+                    job.stop_event.set()
 
             return Response(generate(), mimetype='text/event-stream')
 
