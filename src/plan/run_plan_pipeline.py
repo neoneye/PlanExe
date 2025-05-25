@@ -3092,6 +3092,12 @@ if __name__ == '__main__':
     obtain_output_files = ObtainOutputFiles.execute(task)
     all_expected_filenames = obtain_output_files.get_all_filenames()
     logger.info(f"len(all_expected_filenames): {len(all_expected_filenames)}")    
-    logger.info(f"all_expected_filenames: {all_expected_filenames}")    
+    logger.info(f"all_expected_filenames: {all_expected_filenames}")
+
+    # create a json file with the expected filenames. Save it to the run/run_id/expected_filenames1.json
+    expected_filenames_path = os.path.join(run_dir, "expected_filenames1.json")
+    with open(expected_filenames_path, "w") as f:
+        json.dump(all_expected_filenames, f, indent=2)
+    logger.info(f"Saved expected filenames to {expected_filenames_path}")
 
     luigi.build([task], local_scheduler=True, workers=1)
