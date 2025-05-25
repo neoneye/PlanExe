@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 MODULE_PATH_PIPELINE = "src.plan.run_plan_pipeline"
 RUN_DIR = "run"
 
+SHOW_DEMO_PLAN = True
+
 DEMO1_PROMPT_UUID = "4dc34d55-0d0d-4e9d-92f4-23765f49dd29"
 DEMO2_PROMPT_UUIDS = [
     "0ad5ea63-cf38-4d10-a3f3-d51baa609abd",
@@ -215,6 +217,8 @@ class MyFlaskApp:
                 logger.error(f"No current_run_id for user: {user_id}")
                 return jsonify({"error": "Invalid user_id"}), 400
             run_id = user_state.current_run_id
+            if SHOW_DEMO_PLAN:
+                run_id = '20250524_universal_manufacturing'
 
             logger.info(f"ViewPlan endpoint. user_id={user_id} run_id={run_id}")
 
