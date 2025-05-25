@@ -270,10 +270,25 @@ class MyFlaskApp:
 
                 # obtain list of files in the run_path directory
                 files = os.listdir(run_path)
+                # filter out uninteresting files
+                ignore_files = ["expected_filenames1.json", "log.txt"]
+                files = [f for f in files if f not in ignore_files]
                 logger.info(f"Files in run_path: {files}")
                 number_of_files = len(files)
                 logger.info(f"Number of files in run_path: {number_of_files}")
-                job.progress_message = f"File count: {number_of_files}"
+
+                # Determine the progress, by comparing the generated files with the expected_filenames1.json
+                expected_filenames_path = os.path.join(run_path, "expected_filenames1.json")
+                assign_progress_message = f"File count: {number_of_files}"
+                if os.path.exists(expected_filenames_path):
+                    with open(expected_filenames_path, "r") as f:
+                        expected_filenames = json.load(f)
+                    set_files = set(files)
+                    set_expected_files = set(expected_filenames)
+                    intersection_files = set_files & set_expected_files
+                    assign_progress_message = f"Progress: {len(intersection_files)} of {len(set_expected_files)}"
+
+                job.progress_message = assign_progress_message
 
                 time.sleep(1)
 
