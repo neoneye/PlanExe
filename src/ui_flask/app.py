@@ -133,9 +133,10 @@ class MyFlaskApp:
         @self.app.route("/jobs/stop_all", methods=["POST"])
         def stop_all_jobs():
             try:
-                for job in self.jobs.values():
-                    if job.status == JobStatus.running:
-                        job.stop_event.set()
+                running_jobs = [job for job in self.jobs.values() if job.status == JobStatus.running]
+                logger.info(f"Stopping {len(running_jobs)} running jobs")
+                for job in running_jobs:
+                    job.stop_event.set()
                 return jsonify({"message": "All jobs stopped"}), 200
             except Exception as e:
                 logger.error(f"Error stopping jobs: {e}")
