@@ -137,7 +137,7 @@ class MyFlaskApp:
                 logger.info(f"Stopping {len(running_jobs)} running jobs")
                 for job in running_jobs:
                     job.stop_event.set()
-                return jsonify({"message": "All jobs stopped"}), 200
+                return jsonify({"message": f"Stopped {len(running_jobs)} jobs"}), 200
             except Exception as e:
                 logger.error(f"Error stopping jobs: {e}")
                 return jsonify({"error": str(e)}), 500
