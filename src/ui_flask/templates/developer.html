@@ -46,11 +46,34 @@
             font-size: 0.9rem;
             margin-top: 0.5rem;
         }
+        .button {
+            display: block;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            text-decoration: none;
+            color: #fff;
+            background: #e74c3c;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        .button:hover {
+            background: #c0392b;
+            transform: translateX(5px);
+        }
     </style>
 </head>
 <body>
     <h1>Developer</h1>
     <div class="nav-links">
+        <button onclick="stopAllJobs()" class="button">
+            Stop All Jobs
+            <div class="description">Stop all currently running jobs</div>
+        </button>
         <a href="/demo1">
             Demo 1 - End to end test - hardcoded input
             <div class="description">Wraps the Run page inside an &lt;iframe&gt;</div>
@@ -68,5 +91,19 @@
             <div class="description">View the generated PlanExe report</div>
         </a>
     </div>
+    <script>
+        function stopAllJobs() {
+            fetch('/jobs/stop_all', {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message || data.error);
+            })
+            .catch(error => {
+                alert('Error stopping jobs: ' + error);
+            });
+        }
+    </script>
 </body>
 </html> 
