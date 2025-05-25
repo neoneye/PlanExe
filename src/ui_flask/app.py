@@ -189,7 +189,11 @@ class MyFlaskApp:
                     # Send the current progress value
                     is_running = job.status == JobStatus.running
                     logger.info(f"Current job status: {job.status}, is_running: {is_running}")
-                    progress_message = f"{job.status.value}, {job.progress_message}"
+                    if is_running:
+                        progress_message = job.progress_message
+                    else:
+                        progress_message = f"{job.status.value}, {job.progress_message}"
+
                     data = json.dumps({'progress_message': progress_message, 'progress_percentage': job.progress_percentage, 'status': job.status.value})
                     yield f"data: {data}\n\n"
                     time.sleep(1)
@@ -291,7 +295,7 @@ class MyFlaskApp:
                     set_files = set(files)
                     set_expected_files = set(expected_filenames)
                     intersection_files = set_files & set_expected_files
-                    assign_progress_message = f"Progress: {len(intersection_files)} of {len(set_expected_files)}"
+                    assign_progress_message = f"{len(intersection_files)} of {len(set_expected_files)}"
                     if len(set_expected_files) > 0:
                         assign_progress_percentage = (len(intersection_files) * 100) // len(set_expected_files)
 
