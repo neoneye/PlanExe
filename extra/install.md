@@ -45,3 +45,9 @@ PlanExe comes with a Gradio-based web interface. To start the local web server:
 This command launches a server at http://localhost:7860. Open that link in your browser, type a vague idea or description, and PlanExe will produce a detailed plan.
 
 To stop the server at any time, press `Ctrl+C` in your terminal.
+
+# Community 
+
+If need help getting PlanExe installed or troubleshooting.
+
+Have questions? Need help? Join the [PlanExe Discord](https://neoneye.github.io/PlanExe-web/discord) to chat about PlanExe, share ideas, and get support.
