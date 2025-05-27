@@ -2,7 +2,7 @@
 
 This guide explains how to get PlanExe up and running.
 
-## Minimal install on macOS or Linux
+## Install on macOS or Linux
 
 Clone this repo, then install and activate a virtual environment. Finally, install the required packages:
 
@@ -12,10 +12,9 @@ cd PlanExe
 python3 -m venv venv
 source venv/bin/activate
 (venv) pip install .[gradio-ui]
-(venv) python -m src.plan.app_text2plan
 ```
 
-## Minimal install on Windows
+## Install on Windows
 
 Clone this repo, then install and activate a virtual environment. Finally, install the required packages:
 
@@ -25,5 +24,24 @@ cd PlanExe
 python3 -m venv venv
 .venv\Scripts\activate
 (venv) pip install .[gradio-ui]
+```
+
+# Configuration
+
+**Config A:** Run a model in the cloud using a paid provider. Follow the instructions in [OpenRouter](extra/openrouter.md).
+
+**Config B:** Run models locally on a high-end computer. Follow the instructions for either [Ollama](extra/ollama.md) or [LM Studio](extra/lm_studio.md).
+
+Recommendation: I recommend **Config A** as it offers the most straightforward path to getting PlanExe working reliably.
+
+# Usage
+
+PlanExe comes with a Gradio-based web interface. To start the local web server:
+
+```bash
 (venv) python -m src.plan.app_text2plan
 ```
+
+This command launches a server at http://localhost:7860. Open that link in your browser, type a vague idea or description, and PlanExe will produce a detailed plan.
+
+To stop the server at any time, press `Ctrl+C` in your terminal.
