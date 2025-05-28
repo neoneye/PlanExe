@@ -8,6 +8,7 @@ from llama_index.core.callbacks.base_handler import BaseCallbackHandler
 from llama_index.core.instrumentation import get_dispatcher
 from llama_index.core.instrumentation.event_handlers.base import BaseEventHandler
 from llama_index.core.instrumentation.events.llm import LLMChatInProgressEvent
+from llama_index.core.instrumentation.dispatcher import instrument_tags
 
 from typing import (
     Any,
@@ -28,6 +29,7 @@ class ChatProgressPrinter(BaseEventHandler):
         if isinstance(event, LLMChatInProgressEvent):
             print(f"Δ  : {event.response.delta!r}")
             print(f"Acc : {event.response.message.content!r}")
+            print(f"Tags : {event.tags!r}")
 
 class MyHandler(BaseCallbackHandler):
 
@@ -111,18 +113,19 @@ sllm = llm.as_structured_llm(
 
 raw_text_chunks = []
 count = 0
-for chunk in sllm.stream_chat(messages):
-    print(f"chunk: {chunk}")
-    if chunk.delta:
-        raw_text_chunks.append(chunk.delta)
-    if chunk.raw:
-        print(f"type of raw: {type(chunk.raw)}")
-        print("raw: ", chunk.raw)
-        print("Partial object:", chunk.raw.model_dump())
+with instrument_tags({"tag1": "tag1"}):
+    for chunk in sllm.stream_chat(messages):
+        print(f"chunk: {chunk}")
+        if chunk.delta:
+            raw_text_chunks.append(chunk.delta)
+        if chunk.raw:
+            print(f"type of raw: {type(chunk.raw)}")
+            print("raw: ", chunk.raw)
+            print("Partial object:", chunk.raw.model_dump())
 
-    count += 1
-    if count % 10 == 0:
-        print(f"count: {count}  total_llm_token_count: {token_counter.total_llm_token_count}")
+        count += 1
+        if count % 10 == 0:
+            print(f"count: {count}  total_llm_token_count: {token_counter.total_llm_token_count}")
 
 response_str = "".join(raw_text_chunks)
 print(f"\n\nFull response str\n{response_str}\n")
