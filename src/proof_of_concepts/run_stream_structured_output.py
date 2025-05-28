@@ -5,6 +5,10 @@ from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.callbacks import CallbackManager, TokenCountingHandler
 from llama_index.core.callbacks.schema import CBEventType, EventPayload
 from llama_index.core.callbacks.base_handler import BaseCallbackHandler
+from llama_index.core.instrumentation import get_dispatcher
+from llama_index.core.instrumentation.event_handlers.base import BaseEventHandler
+from llama_index.core.instrumentation.events.llm import LLMChatInProgressEvent
+
 from typing import (
     Any,
     Dict,
@@ -12,6 +16,18 @@ from typing import (
     Optional
 )
 
+
+class ChatProgressPrinter(BaseEventHandler):
+    """Print every streamed delta and the partially–parsed message."""
+
+    @classmethod
+    def class_name(cls) -> str:
+        return "ChatProgressPrinter"
+
+    def handle(self, event):
+        if isinstance(event, LLMChatInProgressEvent):
+            print(f"Δ  : {event.response.delta!r}")
+            print(f"Acc : {event.response.message.content!r}")
 
 class MyHandler(BaseCallbackHandler):
 
@@ -66,6 +82,9 @@ class ExtractDetails(BaseModel):
 SYSTEM_PROMPT = """
 Fill out the details as best you can.
 """
+
+root = get_dispatcher()
+root.add_event_handler(ChatProgressPrinter())
 
 llm = get_llm("ollama-llama3.1")
 # llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
