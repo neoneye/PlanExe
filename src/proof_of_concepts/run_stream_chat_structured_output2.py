@@ -1,4 +1,5 @@
 from enum import Enum
+from dataclasses import dataclass, field
 from src.llm_factory import get_llm
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
@@ -15,6 +16,14 @@ from typing import (
     Optional
 )
 
+@dataclass
+class RawItem:
+    buffer: list[str] = field(default_factory=list)
+
+    @property
+    def full(self) -> str:
+        return "".join(self.buffer)
+
 class RawCollector(BaseEventHandler):
     model_config = {'extra': 'allow'} 
     
@@ -24,17 +33,32 @@ class RawCollector(BaseEventHandler):
     
     def __init__(self):
         super().__init__()
-        self._buffer: list[str] = []
-        self.full_raw: Optional[str] = None
+        self.raw_items: Dict[str, RawItem] = {}
 
     def handle(self, event: BaseEvent, **kwargs: Any) -> Any:
+        tags = event.tags
+        if "raw_collect_id" not in tags:
+            return
+        id = tags["raw_collect_id"]
+        if id not in self.raw_items:
+            return
+
         # The delta is None when the content is cleaned up json.
         # The delta is not None when the content is the raw response, that is incomplete json until reaching the end of the stream.
         if isinstance(event, LLMChatInProgressEvent) and event.response.delta:
-            self._buffer.append(event.response.delta)
+            self.add_to_raw_item_with_id(id, event.response.delta)
 
-        if isinstance(event, LLMChatEndEvent):
-            self.full_raw = "".join(self._buffer)
+    def register_raw_item_with_id(self, id: str) -> None:
+        self.raw_items[id] = RawItem()
+
+    def add_to_raw_item_with_id(self, id: str, delta: str) -> None:
+        self.raw_items[id].buffer.append(delta)
+
+    def get_raw_item_with_id(self, id: str) -> RawItem:
+        return self.raw_items[id]
+    
+    def remove_raw_item_with_id(self, id: str) -> None:
+        del self.raw_items[id]
 
 class CostType(str, Enum):
     cheap = 'cheap'
@@ -73,7 +97,9 @@ messages = [
 ]
 sllm = llm.as_structured_llm(ExtractDetails)
 
-with instrument_tags({"tag1": "tag1"}):
+track_id = "item1"
+raw_collector.register_raw_item_with_id(track_id)
+with instrument_tags({"raw_collect_id": track_id}):
     index = 0
     for chunk in sllm.stream_chat(messages):
         print(f"\nindex: {index} chunk: {chunk}")
@@ -84,4 +110,7 @@ with instrument_tags({"tag1": "tag1"}):
 
         index += 1
 
-print(f"\nRAW FROM SERVER ➜\n{raw_collector.full_raw!r}")
+raw_item = raw_collector.get_raw_item_with_id(track_id)
+print(f"\nRAW FROM SERVER:\n{raw_item.full!r}")
+
+raw_collector.remove_raw_item_with_id(track_id)
