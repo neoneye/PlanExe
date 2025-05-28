@@ -15,25 +15,6 @@ from typing import (
     Optional
 )
 
-
-@dataclass
-class InterceptedResponseOld:
-    chunks: list[str] = field(default_factory=list)
-
-    def last_chunk(self) -> Optional[str]:
-        if len(self.chunks) == 0:
-            return None
-        return self.chunks[-1]
-
-    def accumulated(self) -> str:
-        return "".join(self.chunks)
-
-    def add_chunk(self, chunk: str) -> None:
-        self.chunks.append(chunk)
-
-    def reset(self) -> None:
-        self.chunks = []
-
 @dataclass
 class InterceptedResponse:
     message_old: Optional[str] = None
@@ -46,7 +27,8 @@ class InterceptedResponse:
         self.message_new = message
 
 
-intercepted_response = InterceptedResponse()
+intercepted_response_delta_none = InterceptedResponse()
+intercepted_response_delta_not_none = InterceptedResponse()
 
 class ChatProgressPrinter(BaseEventHandler):
     """Print every streamed delta and the partially–parsed message."""
@@ -59,7 +41,12 @@ class ChatProgressPrinter(BaseEventHandler):
         if isinstance(event, LLMChatInProgressEvent):
             content = event.response.message.content
             if content is not None:
-                intercepted_response.push_message(content)
+                if event.response.delta is None:
+                    # When delta is None, then the content is cleaned up json.
+                    intercepted_response_delta_none.push_message(content)
+                else:
+                    # When delta is not None, then the content is the raw response, that is incomplete json until reaching the end of the stream.
+                    intercepted_response_delta_not_none.push_message(content)
             print(f"Δ  : {event.response.delta!r}")
             print(f"Acc : {event.response.message.content!r}")
             print(f"Tags : {event.tags!r}")
@@ -113,5 +100,7 @@ with instrument_tags({"tag1": "tag1"}):
 
         index += 1
 
-print(f"\n\nintercepted_response.message_old\n{intercepted_response.message_old}")
-print(f"\n\nintercepted_response.message_new\n{intercepted_response.message_new}\n")
+print(f"\nintercepted_response_delta_none.message_old\n{intercepted_response_delta_none.message_old!r}")
+print(f"\nintercepted_response_delta_none.message_new\n{intercepted_response_delta_none.message_new!r}")
+print(f"\nintercepted_response_delta_not_none.message_old\n{intercepted_response_delta_not_none.message_old!r}")
+print(f"\nintercepted_response_delta_not_none.message_new\n{intercepted_response_delta_not_none.message_new!r}")
