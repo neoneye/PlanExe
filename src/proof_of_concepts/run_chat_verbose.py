@@ -14,7 +14,8 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 llama_index.core.set_global_handler("simple")
 
-llm = get_llm("deepseek-chat")
+llm = get_llm("ollama-llama3.1")
+# llm = get_llm("deepseek-chat")
 
 messages = [
     ChatMessage(
@@ -26,4 +27,4 @@ chat_response = llm.chat(messages)
 
 print(f"\n\nResponse str\n{chat_response}")
 print(f"\n\nResponse repr\n{chat_response.__repr__()}")
-print(f"\n\nUSAGE:\n{chat_response.raw.usage}")
+# print(f"\n\nUSAGE:\n{chat_response.raw.usage}")
