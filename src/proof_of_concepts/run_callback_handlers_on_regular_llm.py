@@ -105,7 +105,7 @@ messages = [
     ),
 ]
 token_counter = TokenCountingHandler(verbose=True)
-intercept_last_response = InterceptLastResponse(event_starts_to_ignore=[], event_ends_to_ignore=[])
+intercept_last_response = InterceptLastResponse()
 llm.callback_manager.add_handler(intercept_last_response)
 llm.callback_manager.add_handler(token_counter)
 
