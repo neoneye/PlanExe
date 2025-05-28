@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
 from src.llm_util.intercept_last_response import InterceptLastResponse
+from src.llm_util.structured_llm_interaction import StructuredLLMInteraction
 
 logger = logging.getLogger(__name__)
 
@@ -80,47 +81,12 @@ class IdentifyPurpose:
 
         system_prompt = IDENTIFY_PURPOSE_SYSTEM_PROMPT.strip()
 
-        chat_message_list = [
-            ChatMessage(
-                role=MessageRole.SYSTEM,
-                content=system_prompt,
-            ),
-            ChatMessage(
-                role=MessageRole.USER,
-                content=user_prompt,
-            )
-        ]
+        structured_llm = StructuredLLMInteraction(llm, PlanPurposeInfo)
+        plan_purpose_instance, metadata = structured_llm.chat(system_prompt, user_prompt)
 
-        sllm = llm.as_structured_llm(PlanPurposeInfo)
-
-        intercept_last_response = InterceptLastResponse()
-        llm.callback_manager.add_handler(intercept_last_response)
-        start_time = time.perf_counter()
-        try:
-            chat_response = sllm.chat(chat_message_list)
-        except Exception as e:
-            logger.debug(f"LLM chat interaction failed: {e}")
-            logger.error("LLM chat interaction failed.", exc_info=True)
-            raise ValueError("LLM chat interaction failed.") from e
-        finally:
-            llm.callback_manager.remove_handler(intercept_last_response)
-
-        end_time = time.perf_counter()
-        duration = int(ceil(end_time - start_time))
-        response_byte_count = len(chat_response.message.content.encode('utf-8'))
-        logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
-
-        logger.info(f"RAW response:\n{intercept_last_response.intercepted_response!r}")
-
-        plan_purpose_instance: PlanPurposeInfo = chat_response.raw
         json_response = plan_purpose_instance.model_dump()
         purpose_value = plan_purpose_instance.purpose.value
         json_response['purpose'] = purpose_value
-
-        metadata = dict(llm.metadata)
-        metadata["llm_classname"] = llm.class_name()
-        metadata["duration"] = duration
-        metadata["response_byte_count"] = response_byte_count
 
         markdown = cls.convert_to_markdown(plan_purpose_instance)
 
