@@ -100,10 +100,8 @@ class IdentifyPurpose:
         raw_collector = RawCollector.singleton()
         raw_collector.register_raw_item_with_id(track_id)
         try:
-            chat_response = None
             with instrument_tags({RAW_COLLECTOR_ID_TAG: track_id}):
-                for current_chat_response in sllm.stream_chat(chat_message_list):
-                    chat_response = current_chat_response
+                chat_response = sllm.chat(chat_message_list)
         except Exception as e:
             logger.debug(f"LLM chat interaction failed: {e}")
             logger.error("LLM chat interaction failed.", exc_info=True)
