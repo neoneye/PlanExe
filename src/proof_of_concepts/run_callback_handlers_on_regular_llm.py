@@ -13,13 +13,13 @@ from typing import (
     Optional
 )
 
-class MyHandler(BaseCallbackHandler):
+class InterceptLastResponse(BaseCallbackHandler):
     def __init__(
         self,
         event_starts_to_ignore: Optional[List[CBEventType]] = None,
         event_ends_to_ignore: Optional[List[CBEventType]] = None,
     ) -> None:
-        self.last_response: Optional[str] = None
+        self.intercepted_response: Optional[str] = None
         super().__init__(
             event_starts_to_ignore=event_starts_to_ignore or [],
             event_ends_to_ignore=event_ends_to_ignore or [],
@@ -66,9 +66,9 @@ class MyHandler(BaseCallbackHandler):
         response = payload[EventPayload.RESPONSE]
         if not isinstance(response, ChatResponse):
             return
-        raw_response = response.message.content
-        # print(f"raw_response: {raw_response!r}")
-        self.last_response = raw_response
+        intercepted_response = response.message.content
+        # print(f"intercepted_response: {intercepted_response!r}")
+        self.intercepted_response = intercepted_response
 
 
 
@@ -105,8 +105,8 @@ messages = [
     ),
 ]
 token_counter = TokenCountingHandler(verbose=True)
-my_handler = MyHandler(event_starts_to_ignore=[], event_ends_to_ignore=[])
-llm.callback_manager.add_handler(my_handler)
+intercept_last_response = InterceptLastResponse(event_starts_to_ignore=[], event_ends_to_ignore=[])
+llm.callback_manager.add_handler(intercept_last_response)
 llm.callback_manager.add_handler(token_counter)
 
 sllm = llm.as_structured_llm(ExtractDetails)
@@ -114,7 +114,7 @@ chat_response = sllm.chat(messages)
 
 print(f"\n\nchat_response.raw:\n{chat_response.raw.model_dump()!r}")
 print(f"\n\nchat_response.message.content:\n{chat_response.message.content!r}")
-print(f"\n\nraw_llm_response:\n{my_handler.last_response!r}")
+print(f"\n\nintercept_last_response:\n{intercept_last_response.intercepted_response!r}")
 
 print("Token counts:")
 print(f"total_llm_token_count: {token_counter.total_llm_token_count}")
