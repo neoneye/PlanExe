@@ -1,4 +1,5 @@
 from enum import Enum
+from dataclasses import dataclass, field
 from src.llm_factory import get_llm
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
@@ -18,6 +19,31 @@ from typing import (
 )
 
 
+@dataclass
+class InterceptedResponseOld:
+    chunks: list[str] = field(default_factory=list)
+
+    def last_chunk(self) -> Optional[str]:
+        if len(self.chunks) == 0:
+            return None
+        return self.chunks[-1]
+
+    def accumulated(self) -> str:
+        return "".join(self.chunks)
+
+    def add_chunk(self, chunk: str) -> None:
+        self.chunks.append(chunk)
+
+    def reset(self) -> None:
+        self.chunks = []
+
+@dataclass
+class InterceptedResponse:
+    message: Optional[str] = None
+
+
+intercepted_response = InterceptedResponse()
+
 class ChatProgressPrinter(BaseEventHandler):
     """Print every streamed delta and the partially–parsed message."""
 
@@ -27,6 +53,8 @@ class ChatProgressPrinter(BaseEventHandler):
 
     def handle(self, event):
         if isinstance(event, LLMChatInProgressEvent):
+            chunk = f"{event.response.message.content!r}"
+            intercepted_response.message = chunk
             print(f"Δ  : {event.response.delta!r}")
             print(f"Acc : {event.response.message.content!r}")
             print(f"Tags : {event.tags!r}")
@@ -111,13 +139,10 @@ sllm = llm.as_structured_llm(
     callback_manager=CallbackManager([token_counter, my_handler])
 )
 
-raw_text_chunks = []
 count = 0
 with instrument_tags({"tag1": "tag1"}):
     for chunk in sllm.stream_chat(messages):
         print(f"chunk: {chunk}")
-        if chunk.delta:
-            raw_text_chunks.append(chunk.delta)
         if chunk.raw:
             print(f"type of raw: {type(chunk.raw)}")
             print("raw: ", chunk.raw)
@@ -127,7 +152,7 @@ with instrument_tags({"tag1": "tag1"}):
         if count % 10 == 0:
             print(f"count: {count}  total_llm_token_count: {token_counter.total_llm_token_count}")
 
-response_str = "".join(raw_text_chunks)
+response_str = intercepted_response.message
 print(f"\n\nFull response str\n{response_str}\n")
 
 print("Token counts:")
