@@ -39,7 +39,14 @@ class InterceptedResponseOld:
 
 @dataclass
 class InterceptedResponse:
-    message: Optional[str] = None
+    message_old: Optional[str] = None
+    message_new: Optional[str] = None
+
+    def push_message(self, message: str) -> None:
+        if message == self.message_new:
+            return
+        self.message_old = self.message_new
+        self.message_new = message
 
 
 intercepted_response = InterceptedResponse()
@@ -53,8 +60,9 @@ class ChatProgressPrinter(BaseEventHandler):
 
     def handle(self, event):
         if isinstance(event, LLMChatInProgressEvent):
-            chunk = f"{event.response.message.content!r}"
-            intercepted_response.message = chunk
+            content = event.response.message.content
+            if content is not None:
+                intercepted_response.push_message(content)
             print(f"Δ  : {event.response.delta!r}")
             print(f"Acc : {event.response.message.content!r}")
             print(f"Tags : {event.tags!r}")
@@ -152,8 +160,8 @@ with instrument_tags({"tag1": "tag1"}):
         if count % 10 == 0:
             print(f"count: {count}  total_llm_token_count: {token_counter.total_llm_token_count}")
 
-response_str = intercepted_response.message
-print(f"\n\nFull response str\n{response_str}\n")
+print(f"\n\nintercepted_response.message_old\n{intercepted_response.message_old}")
+print(f"\n\nintercepted_response.message_new\n{intercepted_response.message_new}\n")
 
 print("Token counts:")
 print(f"total_llm_token_count: {token_counter.total_llm_token_count}")
