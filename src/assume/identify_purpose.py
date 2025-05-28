@@ -18,7 +18,6 @@ from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
 from src.llm_util.raw_collector import RawCollector, RAW_COLLECTOR_ID_TAG
-from llama_index.core.instrumentation import get_dispatcher
 from llama_index.core.instrumentation.dispatcher import instrument_tags
 
 logger = logging.getLogger(__name__)
@@ -96,12 +95,9 @@ class IdentifyPurpose:
         sllm = llm.as_structured_llm(PlanPurposeInfo)
         start_time = time.perf_counter()
 
-        # TODO: don't install the RawCollector multiple times. The first time it's accessed, it's installed into the root dispatcher.
-        raw_collector = RawCollector()
-        get_dispatcher().add_event_handler(raw_collector)
-
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         track_id = f"identify_purpose_{timestamp}"
+        raw_collector = RawCollector.singleton()
         raw_collector.register_raw_item_with_id(track_id)
         try:
             chat_response = None

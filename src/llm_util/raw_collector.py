@@ -8,6 +8,7 @@ PROMPT> python -m src.llm_util.raw_collector
 """
 from dataclasses import dataclass, field
 from pydantic import BaseModel, Field
+from llama_index.core.instrumentation import get_dispatcher
 from llama_index.core.instrumentation.events.base import BaseEvent
 from llama_index.core.instrumentation.event_handlers.base import BaseEventHandler
 from llama_index.core.instrumentation.events.llm import LLMChatInProgressEvent
@@ -29,6 +30,19 @@ class RawCollector(BaseEventHandler):
     @classmethod
     def class_name(cls) -> str:
         return "RawCollector"
+
+    @classmethod
+    def singleton(cls) -> 'RawCollector':
+        """
+        This is a singleton.
+        On first access, it is installed into the root dispatcher of LlamaIndex.
+        Subsequent access will return the same instance.
+        """
+        if not hasattr(cls, '_instance'):
+            instance = cls()
+            cls._instance = instance
+            get_dispatcher().add_event_handler(instance)
+        return cls._instance
     
     def __init__(self):
         super().__init__()
@@ -63,7 +77,6 @@ class RawCollector(BaseEventHandler):
 if __name__ == "__main__":
     from src.llm_factory import get_llm
     from enum import Enum
-    from llama_index.core.instrumentation import get_dispatcher
     from llama_index.core.instrumentation.dispatcher import instrument_tags
     from llama_index.core.llms import ChatMessage, MessageRole
 
@@ -79,9 +92,6 @@ if __name__ == "__main__":
         summary: str = Field(description="What is this about.")
 
     SYSTEM_PROMPT = "Fill out the details as best you can."
-
-    raw_collector = RawCollector()
-    get_dispatcher().add_event_handler(raw_collector)
 
     llm = get_llm("ollama-llama3.1")
     # llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
@@ -102,6 +112,7 @@ if __name__ == "__main__":
     sllm = llm.as_structured_llm(ExtractDetails)
 
     track_id = "item1"
+    raw_collector = RawCollector.singleton()
     raw_collector.register_raw_item_with_id(track_id)
     with instrument_tags({RAW_COLLECTOR_ID_TAG: track_id}):
         index = 0
