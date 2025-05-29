@@ -71,7 +71,7 @@ from src.wbs.wbs_populate import WBSPopulate
 from src.schedule.hierarchy_estimator_wbs import HierarchyEstimatorWBS
 from src.schedule.export_dhtmlx_gantt import ExportDHTMLXGantt
 from src.schedule.project_schedule_wbs import ProjectScheduleWBS
-from src.llm_factory import get_llm
+from src.llm_factory import get_llm, get_llm_names_by_priority
 from src.format_json_for_use_in_query import format_json_for_use_in_query
 from src.utils.get_env_as_string import get_env_as_string
 from src.report.report_generator import ReportGenerator
@@ -2971,6 +2971,11 @@ if __name__ == '__main__':
         model = os.environ["LLM_MODEL"]
 
     logger.info(f"LLM model: {model}")
+
+    llm_names = get_llm_names_by_priority()
+    logger.info(f"LLM names by priority:")
+    for index, llm_name in enumerate(llm_names):
+        logger.info(f"{index}. {llm_name!r}")
 
     speedvsdetail = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW
     if "SPEED_VS_DETAIL" in os.environ:
