@@ -14,6 +14,7 @@ import json
 from typing import Optional
 import luigi
 from pathlib import Path
+from llama_index.core.llms.llm import LLM
 
 from src.plan.filenames import FilenameEnum, ExtraFilenameEnum
 from src.plan.speedvsdetail import SpeedVsDetailEnum
@@ -91,6 +92,9 @@ class PlanTask(luigi.Task):
     # The LLM model to use for inference
     llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
 
+    # List of LLM models to try, in order of priority.
+    llm_models = luigi.ListParameter(default=[DEFAULT_LLM_MODEL])
+
     @property
     def run_dir(self) -> Path:
         return Path('run') / self.run_id
@@ -101,6 +105,23 @@ class PlanTask(luigi.Task):
     def local_target(self, filename: FilenameEnum) -> luigi.LocalTarget:
         return luigi.LocalTarget(self.file_path(filename))
 
+    def run_with_llm(self, llm: LLM) -> None:
+        raise NotImplementedError("Subclasses must implement this method.")
+
+    def run(self):
+        class_name = self.__class__.__name__
+        attempt_count = len(self.llm_models)
+        for index, llm_model in enumerate(self.llm_models, start=1):
+            logger.info(f"Attempt {index} of {attempt_count}: Running {class_name} with LLM {llm_model!r}")
+            try:
+                llm = get_llm(llm_model)
+                self.run_with_llm(llm)
+                logger.info(f"Successfully ran {class_name} with LLM {llm_model!r}.")
+                return
+            except Exception as e:
+                logger.error(f"Error running {class_name}with LLM {llm_model!r}: {e}")
+                continue
+        raise Exception(f"Failed to run {class_name} with any of the LLMs in the list: {self.llm_models!r}")
 
 class SetupTask(PlanTask):
     def output(self):
@@ -2994,7 +3015,7 @@ if __name__ == '__main__':
     if False:
         raise Exception("This is a test exception.")
 
-    task = FullPlanPipeline(speedvsdetail=speedvsdetail, llm_model=model)
+    task = FullPlanPipeline(speedvsdetail=speedvsdetail, llm_model=model, llm_models=llm_names)
     if run_id is not None:
         task.run_id = run_id
 
