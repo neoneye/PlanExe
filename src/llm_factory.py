@@ -21,7 +21,7 @@ SEND_APP_INFO_TO_OPENROUTER = True
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["get_llm", "LLMInfo"]
+__all__ = ["get_llm", "LLMInfo", "get_llm_names_by_priority"]
 
 # Load .env values and merge with system environment variables.
 # This one-liner makes sure any secret injected by Hugging Face, like OPENROUTER_API_KEY
@@ -167,6 +167,16 @@ class LLMInfo:
             error_message_list=error_message_list,
         )
 
+def get_llm_names_by_priority() -> list[str]:
+    """
+    Returns a list of LLM names sorted by priority.
+    Lowest values comes first.
+    Highest values comes last.
+    """
+    configs = [(name, config) for name, config in _llm_configs.items() if config.get("priority") is not None]
+    configs.sort(key=lambda x: x[1].get("priority", 0))
+    return [name for name, _ in configs]
+
 def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
     """
     Returns an LLM instance based on the config.json file or a fallback default.
@@ -217,6 +227,11 @@ def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
         raise ValueError(f"Error instantiating {class_name} with arguments: {e}")
 
 if __name__ == '__main__':
+    llm_names = get_llm_names_by_priority()
+    print("LLM names by priority:")
+    for llm_name in llm_names:
+        print(f"- {llm_name}")
+    print("\n\nTesting the LLMs:")
     try:
         llm = get_llm(llm_name="ollama-llama3.1")
         print(f"Successfully loaded LLM: {llm.__class__.__name__}")
