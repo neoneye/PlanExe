@@ -89,9 +89,6 @@ class PlanTask(luigi.Task):
     # This can be overridden in developer mode, where a quick turnaround is needed, and the details are not important.
     speedvsdetail = luigi.EnumParameter(enum=SpeedVsDetailEnum, default=SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW)
 
-    # The LLM model to use for inference
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     # List of LLM models to try, in order of priority.
     llm_models = luigi.ListParameter(default=[DEFAULT_LLM_MODEL])
 
@@ -2880,19 +2877,20 @@ if __name__ == '__main__':
         logger.error("This is an error message.")
         logger.critical("This is a critical message.")
 
-    model = DEFAULT_LLM_MODEL # works
-    model = "openrouter-paid-gemini-2.0-flash-001" # works
-    # model = "openrouter-paid-openai-gpt-4o-mini" # often fails, I think it's not good at structured output
-
-    if "LLM_MODEL" in os.environ:
-        model = os.environ["LLM_MODEL"]
-
-    logger.info(f"LLM model: {model}")
 
     llm_names = get_llm_names_by_priority()
+    if len(llm_names) == 0:
+        llm_names = [DEFAULT_LLM_MODEL]
+
     logger.info(f"LLM names by priority:")
     for index, llm_name in enumerate(llm_names):
         logger.info(f"{index}. {llm_name!r}")
+
+    if "LLM_MODEL" in os.environ:
+        llm_model = os.environ["LLM_MODEL"]
+        logger.info(f"Using the specified LLM model: {llm_model!r}")
+        # TODO: make use of the specified LLM model.
+        # llm_names = [llm_model]
 
     speedvsdetail = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW
     if "SPEED_VS_DETAIL" in os.environ:
@@ -2911,7 +2909,7 @@ if __name__ == '__main__':
     if False:
         raise Exception("This is a test exception.")
 
-    task = FullPlanPipeline(speedvsdetail=speedvsdetail, llm_model=model, llm_models=llm_names)
+    task = FullPlanPipeline(speedvsdetail=speedvsdetail, llm_models=llm_names)
     if run_id is not None:
         task.run_id = run_id
 
