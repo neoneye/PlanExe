@@ -118,7 +118,7 @@ class IdentifyPurposeTask(PlanTask):
     Determine if this is this going to be a business/personal/other plan.
     """
     def requires(self):
-        return SetupTask(run_id=self.run_id, llm_model=self.llm_model)
+        return self.clone(SetupTask)
 
     def output(self):
         return {
@@ -148,8 +148,8 @@ class PlanTypeTask(PlanTask):
     """
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'identify_purpose': self.clone(IdentifyPurposeTask)
         }
 
     def output(self):
@@ -187,9 +187,9 @@ class PhysicalLocationsTask(PlanTask):
     """
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'plan_type': self.clone(PlanTypeTask)
         }
 
     def output(self):
@@ -244,10 +244,10 @@ class CurrencyStrategyTask(PlanTask):
     """
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'plan_type': self.clone(PlanTypeTask),
+            'physical_locations': self.clone(PhysicalLocationsTask)
         }
 
     def output(self):
@@ -294,11 +294,11 @@ class IdentifyRisksTask(PlanTask):
     """
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'currency_strategy': CurrencyStrategyTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'plan_type': self.clone(PlanTypeTask),
+            'physical_locations': self.clone(PhysicalLocationsTask),
+            'currency_strategy': self.clone(CurrencyStrategyTask)
         }
 
     def output(self):
@@ -347,12 +347,12 @@ class MakeAssumptionsTask(PlanTask):
     """
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'currency_strategy': CurrencyStrategyTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'identify_risks': IdentifyRisksTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'plan_type': self.clone(PlanTypeTask),
+            'physical_locations': self.clone(PhysicalLocationsTask),
+            'currency_strategy': self.clone(CurrencyStrategyTask),
+            'identify_risks': self.clone(IdentifyRisksTask)
         }
 
     def output(self):
@@ -407,9 +407,9 @@ class DistillAssumptionsTask(PlanTask):
     """
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'make_assumptions': MakeAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'make_assumptions': self.clone(MakeAssumptionsTask)
         }
 
     def output(self):
@@ -453,13 +453,13 @@ class ReviewAssumptionsTask(PlanTask):
     """
     def requires(self):
         return {
-            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'currency_strategy': CurrencyStrategyTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'identify_risks': IdentifyRisksTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'make_assumptions': MakeAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'distill_assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'plan_type': self.clone(PlanTypeTask),
+            'physical_locations': self.clone(PhysicalLocationsTask),
+            'currency_strategy': self.clone(CurrencyStrategyTask),
+            'identify_risks': self.clone(IdentifyRisksTask),
+            'make_assumptions': self.clone(MakeAssumptionsTask),
+            'distill_assumptions': self.clone(DistillAssumptionsTask)
         }
 
     def output(self):
