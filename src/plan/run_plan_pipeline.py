@@ -97,11 +97,14 @@ class PlanTask(luigi.Task):
 
     def file_path(self, filename: FilenameEnum) -> Path:
         return self.run_dir / filename.value
+    
+    def local_target(self, filename: FilenameEnum) -> luigi.LocalTarget:
+        return luigi.LocalTarget(self.file_path(filename))
 
 
 class SetupTask(PlanTask):
     def output(self):
-        return luigi.LocalTarget(self.file_path(FilenameEnum.INITIAL_PLAN))
+        return self.local_target(FilenameEnum.INITIAL_PLAN)
 
     def run(self):
         # Ensure the run directory exists.
@@ -122,8 +125,8 @@ class IdentifyPurposeTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.IDENTIFY_PURPOSE_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.IDENTIFY_PURPOSE_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.IDENTIFY_PURPOSE_RAW),
+            'markdown': self.local_target(FilenameEnum.IDENTIFY_PURPOSE_MARKDOWN)
         }
 
     def run(self):
@@ -154,8 +157,8 @@ class PlanTypeTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.PLAN_TYPE_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.PLAN_TYPE_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.PLAN_TYPE_RAW),
+            'markdown': self.local_target(FilenameEnum.PLAN_TYPE_MARKDOWN)
         }
 
     def run(self):
@@ -194,8 +197,8 @@ class PhysicalLocationsTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.PHYSICAL_LOCATIONS_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.PHYSICAL_LOCATIONS_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.PHYSICAL_LOCATIONS_RAW),
+            'markdown': self.local_target(FilenameEnum.PHYSICAL_LOCATIONS_MARKDOWN)
         }
 
     def run(self):
@@ -252,8 +255,8 @@ class CurrencyStrategyTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.CURRENCY_STRATEGY_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.CURRENCY_STRATEGY_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.CURRENCY_STRATEGY_RAW),
+            'markdown': self.local_target(FilenameEnum.CURRENCY_STRATEGY_MARKDOWN)
         }
 
     def run(self):
@@ -303,8 +306,8 @@ class IdentifyRisksTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.IDENTIFY_RISKS_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.IDENTIFY_RISKS_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.IDENTIFY_RISKS_RAW),
+            'markdown': self.local_target(FilenameEnum.IDENTIFY_RISKS_MARKDOWN)
         }
 
     def run(self):
@@ -357,9 +360,9 @@ class MakeAssumptionsTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.MAKE_ASSUMPTIONS_RAW)),
-            'clean': luigi.LocalTarget(self.file_path(FilenameEnum.MAKE_ASSUMPTIONS_CLEAN)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.MAKE_ASSUMPTIONS_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.MAKE_ASSUMPTIONS_RAW),
+            'clean': self.local_target(FilenameEnum.MAKE_ASSUMPTIONS_CLEAN),
+            'markdown': self.local_target(FilenameEnum.MAKE_ASSUMPTIONS_MARKDOWN)
         }
 
     def run(self):
@@ -414,8 +417,8 @@ class DistillAssumptionsTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.DISTILL_ASSUMPTIONS_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.DISTILL_ASSUMPTIONS_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.DISTILL_ASSUMPTIONS_RAW),
+            'markdown': self.local_target(FilenameEnum.DISTILL_ASSUMPTIONS_MARKDOWN)
         }
 
     def run(self):
@@ -464,8 +467,8 @@ class ReviewAssumptionsTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.REVIEW_ASSUMPTIONS_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.REVIEW_ASSUMPTIONS_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.REVIEW_ASSUMPTIONS_RAW),
+            'markdown': self.local_target(FilenameEnum.REVIEW_ASSUMPTIONS_MARKDOWN)
         }
 
     def run(self):
@@ -526,8 +529,8 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
 
     def output(self):
         return {
-            'full': luigi.LocalTarget(self.file_path(FilenameEnum.CONSOLIDATE_ASSUMPTIONS_FULL_MARKDOWN)),
-            'short': luigi.LocalTarget(self.file_path(FilenameEnum.CONSOLIDATE_ASSUMPTIONS_SHORT_MARKDOWN))
+            'full': self.local_target(FilenameEnum.CONSOLIDATE_ASSUMPTIONS_FULL_MARKDOWN),
+            'short': self.local_target(FilenameEnum.CONSOLIDATE_ASSUMPTIONS_SHORT_MARKDOWN)
         }
 
     def run(self):
@@ -595,8 +598,8 @@ class PreProjectAssessmentTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.PRE_PROJECT_ASSESSMENT_RAW)),
-            'clean': luigi.LocalTarget(self.file_path(FilenameEnum.PRE_PROJECT_ASSESSMENT))
+            'raw': self.local_target(FilenameEnum.PRE_PROJECT_ASSESSMENT_RAW),
+            'clean': self.local_target(FilenameEnum.PRE_PROJECT_ASSESSMENT)
         }
 
     def run(self):
@@ -646,8 +649,8 @@ class ProjectPlanTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.PROJECT_PLAN_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.PROJECT_PLAN_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.PROJECT_PLAN_RAW),
+            'markdown': self.local_target(FilenameEnum.PROJECT_PLAN_MARKDOWN)
         }
 
     def run(self):
@@ -699,8 +702,8 @@ class GovernancePhase1AuditTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.GOVERNANCE_PHASE1_AUDIT_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.GOVERNANCE_PHASE1_AUDIT_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.GOVERNANCE_PHASE1_AUDIT_RAW),
+            'markdown': self.local_target(FilenameEnum.GOVERNANCE_PHASE1_AUDIT_MARKDOWN)
         }
 
     def run(self):
@@ -745,8 +748,8 @@ class GovernancePhase2BodiesTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.GOVERNANCE_PHASE2_BODIES_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.GOVERNANCE_PHASE2_BODIES_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.GOVERNANCE_PHASE2_BODIES_RAW),
+            'markdown': self.local_target(FilenameEnum.GOVERNANCE_PHASE2_BODIES_MARKDOWN)
         }
 
     def run(self):
@@ -794,8 +797,8 @@ class GovernancePhase3ImplPlanTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.GOVERNANCE_PHASE3_IMPL_PLAN_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.GOVERNANCE_PHASE3_IMPL_PLAN_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.GOVERNANCE_PHASE3_IMPL_PLAN_RAW),
+            'markdown': self.local_target(FilenameEnum.GOVERNANCE_PHASE3_IMPL_PLAN_MARKDOWN)
         }
 
     def run(self):
@@ -843,8 +846,8 @@ class GovernancePhase4DecisionEscalationMatrixTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.GOVERNANCE_PHASE4_DECISION_ESCALATION_MATRIX_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.GOVERNANCE_PHASE4_DECISION_ESCALATION_MATRIX_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.GOVERNANCE_PHASE4_DECISION_ESCALATION_MATRIX_RAW),
+            'markdown': self.local_target(FilenameEnum.GOVERNANCE_PHASE4_DECISION_ESCALATION_MATRIX_MARKDOWN)
         }
 
     def run(self):
@@ -896,8 +899,8 @@ class GovernancePhase5MonitoringProgressTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.GOVERNANCE_PHASE5_MONITORING_PROGRESS_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.GOVERNANCE_PHASE5_MONITORING_PROGRESS_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.GOVERNANCE_PHASE5_MONITORING_PROGRESS_RAW),
+            'markdown': self.local_target(FilenameEnum.GOVERNANCE_PHASE5_MONITORING_PROGRESS_MARKDOWN)
         }
 
     def run(self):
@@ -954,8 +957,8 @@ class GovernancePhase6ExtraTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.GOVERNANCE_PHASE6_EXTRA_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.GOVERNANCE_PHASE6_EXTRA_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.GOVERNANCE_PHASE6_EXTRA_RAW),
+            'markdown': self.local_target(FilenameEnum.GOVERNANCE_PHASE6_EXTRA_MARKDOWN)
         }
 
     def run(self):
@@ -1015,7 +1018,7 @@ class ConsolidateGovernanceTask(PlanTask):
         }
 
     def output(self):
-        return luigi.LocalTarget(self.file_path(FilenameEnum.CONSOLIDATE_GOVERNANCE_MARKDOWN))
+        return self.local_target(FilenameEnum.CONSOLIDATE_GOVERNANCE_MARKDOWN)
 
     def run(self):
         # Read inputs from required tasks.
@@ -1056,8 +1059,8 @@ class RelatedResourcesTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.RELATED_RESOURCES_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.RELATED_RESOURCES_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.RELATED_RESOURCES_RAW),
+            'markdown': self.local_target(FilenameEnum.RELATED_RESOURCES_MARKDOWN)
         }
 
     def run(self):
@@ -1102,8 +1105,8 @@ class FindTeamMembersTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.FIND_TEAM_MEMBERS_RAW)),
-            'clean': luigi.LocalTarget(self.file_path(FilenameEnum.FIND_TEAM_MEMBERS_CLEAN))
+            'raw': self.local_target(FilenameEnum.FIND_TEAM_MEMBERS_RAW),
+            'clean': self.local_target(FilenameEnum.FIND_TEAM_MEMBERS_CLEAN)
         }
 
     def run(self):
@@ -1161,8 +1164,8 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.ENRICH_TEAM_MEMBERS_CONTRACT_TYPE_RAW)),
-            'clean': luigi.LocalTarget(self.file_path(FilenameEnum.ENRICH_TEAM_MEMBERS_CONTRACT_TYPE_CLEAN))
+            'raw': self.local_target(FilenameEnum.ENRICH_TEAM_MEMBERS_CONTRACT_TYPE_RAW),
+            'clean': self.local_target(FilenameEnum.ENRICH_TEAM_MEMBERS_CONTRACT_TYPE_CLEAN)
         }
 
     def run(self):
@@ -1223,8 +1226,8 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.ENRICH_TEAM_MEMBERS_BACKGROUND_STORY_RAW)),
-            'clean': luigi.LocalTarget(self.file_path(FilenameEnum.ENRICH_TEAM_MEMBERS_BACKGROUND_STORY_CLEAN))
+            'raw': self.local_target(FilenameEnum.ENRICH_TEAM_MEMBERS_BACKGROUND_STORY_RAW),
+            'clean': self.local_target(FilenameEnum.ENRICH_TEAM_MEMBERS_BACKGROUND_STORY_CLEAN)
         }
 
     def run(self):
@@ -1285,8 +1288,8 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_RAW)),
-            'clean': luigi.LocalTarget(self.file_path(FilenameEnum.ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_CLEAN))
+            'raw': self.local_target(FilenameEnum.ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_RAW),
+            'clean': self.local_target(FilenameEnum.ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_CLEAN)
         }
 
     def run(self):
@@ -1346,7 +1349,7 @@ class ReviewTeamTask(PlanTask):
         }
 
     def output(self):
-        return luigi.LocalTarget(self.file_path(FilenameEnum.REVIEW_TEAM_RAW))
+        return self.local_target(FilenameEnum.REVIEW_TEAM_RAW)
 
     def run(self):
         # Read inputs from required tasks.
@@ -1403,7 +1406,7 @@ class TeamMarkdownTask(PlanTask):
         }
 
     def output(self):
-        return luigi.LocalTarget(self.file_path(FilenameEnum.TEAM_MARKDOWN))
+        return self.local_target(FilenameEnum.TEAM_MARKDOWN)
 
     def run(self):
         logger.info("TeamMarkdownTask. Loading files...")
@@ -1440,8 +1443,8 @@ class SWOTAnalysisTask(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.SWOT_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.SWOT_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.SWOT_RAW),
+            'markdown': self.local_target(FilenameEnum.SWOT_MARKDOWN)
         }
 
     def run(self):
@@ -1515,7 +1518,7 @@ class ExpertReviewTask(PlanTask):
         }
 
     def output(self):
-        return luigi.LocalTarget(self.file_path(FilenameEnum.EXPERT_CRITICISM_MARKDOWN))
+        return self.local_target(FilenameEnum.EXPERT_CRITICISM_MARKDOWN)
 
     def run(self):
         logger.info("Finding experts to review the SWOT analysis, and having them provide criticism...")
@@ -1571,8 +1574,8 @@ class DataCollectionTask(PlanTask):
     """
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.DATA_COLLECTION_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.DATA_COLLECTION_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.DATA_COLLECTION_RAW),
+            'markdown': self.local_target(FilenameEnum.DATA_COLLECTION_MARKDOWN)
         }
     
     def requires(self):
@@ -1627,10 +1630,10 @@ class IdentifyDocumentsTask(PlanTask):
     """
     def output(self):
         return {
-            "raw": luigi.LocalTarget(self.file_path(FilenameEnum.IDENTIFIED_DOCUMENTS_RAW)),
-            "markdown": luigi.LocalTarget(self.file_path(FilenameEnum.IDENTIFIED_DOCUMENTS_MARKDOWN)),
-            "documents_to_find": luigi.LocalTarget(self.file_path(FilenameEnum.IDENTIFIED_DOCUMENTS_TO_FIND_JSON)),
-            "documents_to_create": luigi.LocalTarget(self.file_path(FilenameEnum.IDENTIFIED_DOCUMENTS_TO_CREATE_JSON)),
+            "raw": self.local_target(FilenameEnum.IDENTIFIED_DOCUMENTS_RAW),
+            "markdown": self.local_target(FilenameEnum.IDENTIFIED_DOCUMENTS_MARKDOWN),
+            "documents_to_find": self.local_target(FilenameEnum.IDENTIFIED_DOCUMENTS_TO_FIND_JSON),
+            "documents_to_create": self.local_target(FilenameEnum.IDENTIFIED_DOCUMENTS_TO_CREATE_JSON),
         }
 
     def requires(self):
@@ -1694,8 +1697,8 @@ class FilterDocumentsToFindTask(PlanTask):
     """
     def output(self):
         return {
-            "raw": luigi.LocalTarget(self.file_path(FilenameEnum.FILTER_DOCUMENTS_TO_FIND_RAW)),
-            "clean": luigi.LocalTarget(self.file_path(FilenameEnum.FILTER_DOCUMENTS_TO_FIND_CLEAN))
+            "raw": self.local_target(FilenameEnum.FILTER_DOCUMENTS_TO_FIND_RAW),
+            "clean": self.local_target(FilenameEnum.FILTER_DOCUMENTS_TO_FIND_CLEAN)
         }
 
     def requires(self):
@@ -1748,8 +1751,8 @@ class FilterDocumentsToCreateTask(PlanTask):
     """
     def output(self):
         return {
-            "raw": luigi.LocalTarget(self.file_path(FilenameEnum.FILTER_DOCUMENTS_TO_CREATE_RAW)),
-            "clean": luigi.LocalTarget(self.file_path(FilenameEnum.FILTER_DOCUMENTS_TO_CREATE_CLEAN))
+            "raw": self.local_target(FilenameEnum.FILTER_DOCUMENTS_TO_CREATE_RAW),
+            "clean": self.local_target(FilenameEnum.FILTER_DOCUMENTS_TO_CREATE_CLEAN)
         }
 
     def requires(self):
@@ -1800,7 +1803,7 @@ class DraftDocumentsToFindTask(PlanTask):
     The "documents to find". Write bullet points to what each document roughly should contain.
     """
     def output(self):
-        return luigi.LocalTarget(self.file_path(FilenameEnum.DRAFT_DOCUMENTS_TO_FIND_CONSOLIDATED))
+        return self.local_target(FilenameEnum.DRAFT_DOCUMENTS_TO_FIND_CONSOLIDATED)
 
     def requires(self):
         return {
@@ -1867,7 +1870,7 @@ class DraftDocumentsToCreateTask(PlanTask):
     The "documents to create". Write bullet points to what each document roughly should contain.
     """
     def output(self):
-        return luigi.LocalTarget(self.file_path(FilenameEnum.DRAFT_DOCUMENTS_TO_CREATE_CONSOLIDATED))
+        return self.local_target(FilenameEnum.DRAFT_DOCUMENTS_TO_CREATE_CONSOLIDATED)
 
     def requires(self):
         return {
@@ -1934,7 +1937,7 @@ class MarkdownWithDocumentsToCreateAndFindTask(PlanTask):
     Create markdown with the "documents to create and find"
     """
     def output(self):
-        return luigi.LocalTarget(self.file_path(FilenameEnum.DOCUMENTS_TO_CREATE_AND_FIND_MARKDOWN))
+        return self.local_target(FilenameEnum.DOCUMENTS_TO_CREATE_AND_FIND_MARKDOWN)
 
     def requires(self):
         return {
@@ -1983,8 +1986,8 @@ class CreateWBSLevel1Task(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.WBS_LEVEL1_RAW)),
-            'clean': luigi.LocalTarget(self.file_path(FilenameEnum.WBS_LEVEL1))
+            'raw': self.local_target(FilenameEnum.WBS_LEVEL1_RAW),
+            'clean': self.local_target(FilenameEnum.WBS_LEVEL1)
         }
 
     def run(self):
@@ -2034,8 +2037,8 @@ class CreateWBSLevel2Task(PlanTask):
 
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.WBS_LEVEL2_RAW)),
-            'clean': luigi.LocalTarget(self.file_path(FilenameEnum.WBS_LEVEL2))
+            'raw': self.local_target(FilenameEnum.WBS_LEVEL2_RAW),
+            'clean': self.local_target(FilenameEnum.WBS_LEVEL2)
         }
 
     def run(self):
@@ -2081,7 +2084,7 @@ class WBSProjectLevel1AndLevel2Task(PlanTask):
       - CreateWBSLevel2Task: providing the major phases with subtasks and the task UUIDs.
     """
     def output(self):
-        return luigi.LocalTarget(self.file_path(FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2))
+        return self.local_target(FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2)
     
     def requires(self):
         return {
@@ -2110,7 +2113,7 @@ class CreatePitchTask(PlanTask):
     The resulting pitch JSON is written to the file specified by FilenameEnum.PITCH.
     """
     def output(self):
-        return luigi.LocalTarget(self.file_path(FilenameEnum.PITCH_RAW))
+        return self.local_target(FilenameEnum.PITCH_RAW)
     
     def requires(self):
         return {
@@ -2163,8 +2166,8 @@ class ConvertPitchToMarkdownTask(PlanTask):
     """
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.PITCH_CONVERT_TO_MARKDOWN_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.PITCH_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.PITCH_CONVERT_TO_MARKDOWN_RAW),
+            'markdown': self.local_target(FilenameEnum.PITCH_MARKDOWN)
         }
     
     def requires(self):
@@ -2202,7 +2205,7 @@ class IdentifyTaskDependenciesTask(PlanTask):
     This task identifies the dependencies between WBS tasks.
     """
     def output(self):
-        return luigi.LocalTarget(self.file_path(FilenameEnum.TASK_DEPENDENCIES_RAW))
+        return self.local_target(FilenameEnum.TASK_DEPENDENCIES_RAW)
     
     def requires(self):
         return {
@@ -2257,8 +2260,7 @@ class EstimateTaskDurationsTask(PlanTask):
     repeat until all tasks have been estimated.
     """
     def output(self):
-        # The primary output is the aggregated task durations JSON.
-        return luigi.LocalTarget(self.file_path(FilenameEnum.TASK_DURATIONS))
+        return self.local_target(FilenameEnum.TASK_DURATIONS)
     
     def requires(self):
         return {
@@ -2347,7 +2349,7 @@ class CreateWBSLevel3Task(PlanTask):
     Finally, all individual results are accumulated and written as an aggregated JSON file.
     """
     def output(self):
-        return luigi.LocalTarget(self.file_path(FilenameEnum.WBS_LEVEL3))
+        return self.local_target(FilenameEnum.WBS_LEVEL3)
     
     def requires(self):
         return {
@@ -2449,8 +2451,8 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
     """
     def output(self):
         return {
-            'full': luigi.LocalTarget(self.file_path(FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_FULL)),
-            'csv': luigi.LocalTarget(self.file_path(FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_CSV))
+            'full': self.local_target(FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_FULL),
+            'csv': self.local_target(FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_CSV)
         }
     
     def requires(self):
@@ -2479,8 +2481,8 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
 class CreateScheduleTask(PlanTask):
     def output(self):
         return {
-            'mermaid': luigi.LocalTarget(self.file_path(FilenameEnum.SCHEDULE_MERMAID_GANTT_HTML)),
-            'dhtmlx': luigi.LocalTarget(self.file_path(FilenameEnum.SCHEDULE_DHTMLX_GANTT_HTML))
+            'mermaid': self.local_target(FilenameEnum.SCHEDULE_MERMAID_GANTT_HTML),
+            'dhtmlx': self.local_target(FilenameEnum.SCHEDULE_DHTMLX_GANTT_HTML)
         }
     
     def requires(self):
@@ -2574,8 +2576,8 @@ class ReviewPlanTask(PlanTask):
     """
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.REVIEW_PLAN_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.REVIEW_PLAN_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.REVIEW_PLAN_RAW),
+            'markdown': self.local_target(FilenameEnum.REVIEW_PLAN_MARKDOWN)
         }
     
     def requires(self):
@@ -2655,8 +2657,8 @@ class ExecutiveSummaryTask(PlanTask):
     """
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.EXECUTIVE_SUMMARY_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.EXECUTIVE_SUMMARY_MARKDOWN))
+            'raw': self.local_target(FilenameEnum.EXECUTIVE_SUMMARY_RAW),
+            'markdown': self.local_target(FilenameEnum.EXECUTIVE_SUMMARY_MARKDOWN)
         }
     
     def requires(self):
@@ -2727,9 +2729,9 @@ class ExecutiveSummaryTask(PlanTask):
 class QuestionsAndAnswersTask(PlanTask):
     def output(self):
         return {
-            'raw': luigi.LocalTarget(self.file_path(FilenameEnum.QUESTIONS_AND_ANSWERS_RAW)),
-            'markdown': luigi.LocalTarget(self.file_path(FilenameEnum.QUESTIONS_AND_ANSWERS_MARKDOWN)),
-            'html': luigi.LocalTarget(self.file_path(FilenameEnum.QUESTIONS_AND_ANSWERS_HTML))
+            'raw': self.local_target(FilenameEnum.QUESTIONS_AND_ANSWERS_RAW),
+            'markdown': self.local_target(FilenameEnum.QUESTIONS_AND_ANSWERS_MARKDOWN),
+            'html': self.local_target(FilenameEnum.QUESTIONS_AND_ANSWERS_HTML)
         }
     
     def requires(self):
@@ -2803,7 +2805,7 @@ class ReportTask(PlanTask):
     Generate a report html document.
     """
     def output(self):
-        return luigi.LocalTarget(self.file_path(FilenameEnum.REPORT))
+        return self.local_target(FilenameEnum.REPORT)
     
     def requires(self):
         return {
@@ -2899,7 +2901,7 @@ class FullPlanPipeline(PlanTask):
         }
 
     def output(self):
-        return luigi.LocalTarget(self.file_path(FilenameEnum.PIPELINE_COMPLETE))
+        return self.local_target(FilenameEnum.PIPELINE_COMPLETE)
 
     def run(self):
         with self.output().open("w") as f:
