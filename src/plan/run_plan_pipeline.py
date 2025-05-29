@@ -703,7 +703,7 @@ class GovernancePhase1AuditTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.GOVERNANCE_PHASE1_AUDIT_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -718,9 +718,6 @@ class GovernancePhase1AuditTask(PlanTask):
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}"
         )
-
-        # Create LLM instance.
-        llm = get_llm(self.llm_model)
 
         # Execute.
         try:
@@ -749,7 +746,7 @@ class GovernancePhase2BodiesTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.GOVERNANCE_PHASE2_BODIES_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -767,9 +764,6 @@ class GovernancePhase2BodiesTask(PlanTask):
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"File 'governance-phase1-audit.json':\n{format_json_for_use_in_query(governance_phase1_audit_dict)}"
         )
-
-        # Create LLM instance.
-        llm = get_llm(self.llm_model)
 
         # Execute.
         try:
@@ -798,7 +792,7 @@ class GovernancePhase3ImplPlanTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.GOVERNANCE_PHASE3_IMPL_PLAN_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.  
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -816,9 +810,6 @@ class GovernancePhase3ImplPlanTask(PlanTask):
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"File 'governance-phase2-bodies.json':\n{format_json_for_use_in_query(governance_phase2_bodies_dict)}"
         )
-
-        # Create LLM instance.
-        llm = get_llm(self.llm_model)
 
         # Execute.
         try:
@@ -847,7 +838,7 @@ class GovernancePhase4DecisionEscalationMatrixTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.GOVERNANCE_PHASE4_DECISION_ESCALATION_MATRIX_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.  
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -868,9 +859,6 @@ class GovernancePhase4DecisionEscalationMatrixTask(PlanTask):
             f"File 'governance-phase2-bodies.json':\n{format_json_for_use_in_query(governance_phase2_bodies_dict)}\n\n"
             f"File 'governance-phase3-impl-plan.json':\n{format_json_for_use_in_query(governance_phase3_impl_plan_dict)}"
         )
-
-        # Create LLM instance.
-        llm = get_llm(self.llm_model)
 
         # Execute.
         try:
@@ -900,7 +888,7 @@ class GovernancePhase5MonitoringProgressTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.GOVERNANCE_PHASE5_MONITORING_PROGRESS_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.  
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -924,9 +912,6 @@ class GovernancePhase5MonitoringProgressTask(PlanTask):
             f"File 'governance-phase3-impl-plan.json':\n{format_json_for_use_in_query(governance_phase3_impl_plan_dict)}\n\n"
             f"File 'governance-phase4-decision-escalation-matrix.json':\n{format_json_for_use_in_query(governance_phase4_decision_escalation_matrix_dict)}"
         )
-
-        # Create LLM instance.
-        llm = get_llm(self.llm_model)
 
         # Execute.
         try:
@@ -958,7 +943,7 @@ class GovernancePhase6ExtraTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.GOVERNANCE_PHASE6_EXTRA_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -988,9 +973,6 @@ class GovernancePhase6ExtraTask(PlanTask):
             f"File 'governance-phase4-decision-escalation-matrix.json':\n{format_json_for_use_in_query(governance_phase4_decision_escalation_matrix_dict)}\n\n"
             f"File 'governance-phase5-monitoring-progress.json':\n{format_json_for_use_in_query(governance_phase5_monitoring_progress_dict)}"
         )
-
-        # Create LLM instance.
-        llm = get_llm(self.llm_model)
 
         # Execute.
         try:
@@ -1060,7 +1042,7 @@ class RelatedResourcesTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.RELATED_RESOURCES_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -1075,9 +1057,6 @@ class RelatedResourcesTask(PlanTask):
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}"
         )
-
-        # Create LLM instance.
-        llm = get_llm(self.llm_model)
 
         # Execute.
         try:
@@ -1106,7 +1085,7 @@ class FindTeamMembersTask(PlanTask):
             'clean': self.local_target(FilenameEnum.FIND_TEAM_MEMBERS_CLEAN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -1127,9 +1106,6 @@ class FindTeamMembersTask(PlanTask):
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
         )
-
-        # Create LLM instance.
-        llm = get_llm(self.llm_model)
 
         # Execute.
         try:
@@ -1165,7 +1141,7 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
             'clean': self.local_target(FilenameEnum.ENRICH_TEAM_MEMBERS_CONTRACT_TYPE_CLEAN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -1189,9 +1165,6 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
             f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\n"
             f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
         )
-
-        # Create LLM instance.
-        llm = get_llm(self.llm_model)
 
         # Execute.
         try:
@@ -1227,7 +1200,7 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
             'clean': self.local_target(FilenameEnum.ENRICH_TEAM_MEMBERS_BACKGROUND_STORY_CLEAN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -1251,9 +1224,6 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
             f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\n"
             f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
         )
-
-        # Create LLM instance.
-        llm = get_llm(self.llm_model)
 
         # Execute.
         try:
@@ -1289,7 +1259,7 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
             'clean': self.local_target(FilenameEnum.ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_CLEAN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -1313,9 +1283,6 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
             f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\n"
             f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
         )
-
-        # Create LLM instance.
-        llm = get_llm(self.llm_model)
 
         # Execute.
         try:
@@ -1348,7 +1315,7 @@ class ReviewTeamTask(PlanTask):
     def output(self):
         return self.local_target(FilenameEnum.REVIEW_TEAM_RAW)
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -1377,9 +1344,6 @@ class ReviewTeamTask(PlanTask):
             f"File 'team-members.md':\n{team_document_markdown}\n\n"
             f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
         )
-
-        # Create LLM instance.
-        llm = get_llm(self.llm_model)
 
         # Execute.
         try:
@@ -1444,7 +1408,7 @@ class SWOTAnalysisTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.SWOT_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -1467,9 +1431,6 @@ class SWOTAnalysisTask(PlanTask):
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
         )
-
-        # Create LLM instances for SWOT analysis.
-        llm = get_llm(self.llm_model)
 
         # Execute the SWOT analysis.
         # Send the identify_purpose_dict to SWOTAnalysis, and use business/personal/other to select the system prompt
@@ -1517,7 +1478,7 @@ class ExpertReviewTask(PlanTask):
     def output(self):
         return self.local_target(FilenameEnum.EXPERT_CRITICISM_MARKDOWN)
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         logger.info("Finding experts to review the SWOT analysis, and having them provide criticism...")
 
         # Read inputs from required tasks.
@@ -1538,8 +1499,6 @@ class ExpertReviewTask(PlanTask):
             f"Project plan:\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"SWOT Analysis:\n{swot_markdown}"
         )
-
-        llm = get_llm(self.llm_model)
 
         # Define callback functions.
         def phase1_post_callback(expert_finder: ExpertFinder) -> None:
@@ -1585,7 +1544,7 @@ class DataCollectionTask(PlanTask):
             'expert_review': self.clone(ExpertReviewTask)
         }
     
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
@@ -1609,8 +1568,6 @@ class DataCollectionTask(PlanTask):
             f"File 'team.md':\n{team_markdown}\n\n"
             f"File 'expert-review.md':\n{expert_review}"
         )
-
-        llm = get_llm(self.llm_model)
 
         # Invoke the LLM.
         data_collection = DataCollection.execute(llm, query)
@@ -1644,7 +1601,7 @@ class IdentifyDocumentsTask(PlanTask):
             'expert_review': self.clone(ExpertReviewTask)
         }
     
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['identify_purpose']['raw'].open("r") as f:
             identify_purpose_dict = json.load(f)
@@ -1671,9 +1628,6 @@ class IdentifyDocumentsTask(PlanTask):
             f"File 'expert-review.md':\n{expert_review}"
         )
 
-        # Get an LLM instance.
-        llm = get_llm(self.llm_model)
-        
         # Invoke the LLM.
         identify_documents = IdentifyDocuments.execute(
             llm=llm,
@@ -1706,7 +1660,7 @@ class FilterDocumentsToFindTask(PlanTask):
             'identified_documents': self.clone(IdentifyDocumentsTask),
         }
     
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['identify_purpose']['raw'].open("r") as f:
             identify_purpose_dict = json.load(f)
@@ -1725,9 +1679,6 @@ class FilterDocumentsToFindTask(PlanTask):
             f"File 'documents.json':\n{process_documents}"
         )
 
-        # Get an LLM instance.
-        llm = get_llm(self.llm_model)
-        
         # Invoke the LLM.
         filter_documents = FilterDocumentsToFind.execute(
             llm=llm,
@@ -1760,7 +1711,7 @@ class FilterDocumentsToCreateTask(PlanTask):
             'identified_documents': self.clone(IdentifyDocumentsTask),
         }
     
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['identify_purpose']['raw'].open("r") as f:
             identify_purpose_dict = json.load(f)
@@ -1779,9 +1730,6 @@ class FilterDocumentsToCreateTask(PlanTask):
             f"File 'documents.json':\n{process_documents}"
         )
 
-        # Get an LLM instance.
-        llm = get_llm(self.llm_model)
-        
         # Invoke the LLM.
         filter_documents = FilterDocumentsToCreate.execute(
             llm=llm,
@@ -1810,7 +1758,7 @@ class DraftDocumentsToFindTask(PlanTask):
             'filter_documents_to_find': self.clone(FilterDocumentsToFindTask),
         }
     
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['identify_purpose']['raw'].open("r") as f:
             identify_purpose_dict = json.load(f)
@@ -1820,9 +1768,6 @@ class DraftDocumentsToFindTask(PlanTask):
             project_plan_markdown = f.read()
         with self.input()['filter_documents_to_find']['clean'].open("r") as f:
             documents_to_find = json.load(f)
-
-        # Get an LLM instance.
-        llm = get_llm(self.llm_model)
 
         accumulated_documents = documents_to_find.copy()
 
@@ -1877,7 +1822,7 @@ class DraftDocumentsToCreateTask(PlanTask):
             'filter_documents_to_create': self.clone(FilterDocumentsToCreateTask),
         }
     
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['identify_purpose']['raw'].open("r") as f:
             identify_purpose_dict = json.load(f)
@@ -1887,9 +1832,6 @@ class DraftDocumentsToCreateTask(PlanTask):
             project_plan_markdown = f.read()
         with self.input()['filter_documents_to_create']['clean'].open("r") as f:
             documents_to_create = json.load(f)
-
-        # Get an LLM instance.
-        llm = get_llm(self.llm_model)
 
         accumulated_documents = documents_to_create.copy()
 
@@ -1987,7 +1929,7 @@ class CreateWBSLevel1Task(PlanTask):
             'clean': self.local_target(FilenameEnum.WBS_LEVEL1)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         logger.info("Creating Work Breakdown Structure (WBS) Level 1...")
         
         # Read the project plan JSON from the dependency.
@@ -1996,9 +1938,6 @@ class CreateWBSLevel1Task(PlanTask):
         
         # Build the query using the project plan.
         query = format_json_for_use_in_query(project_plan_dict)
-        
-        # Get an LLM instance.
-        llm = get_llm(self.llm_model)
         
         # Execute the WBS Level 1 creation.
         create_wbs_level1 = CreateWBSLevel1.execute(llm, query)
@@ -2038,7 +1977,7 @@ class CreateWBSLevel2Task(PlanTask):
             'clean': self.local_target(FilenameEnum.WBS_LEVEL2)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         logger.info("Creating Work Breakdown Structure (WBS) Level 2...")
 
         # Read inputs from required tasks.
@@ -2054,9 +1993,6 @@ class CreateWBSLevel2Task(PlanTask):
         # Build the query using CreateWBSLevel2's format_query method.
         query = CreateWBSLevel2.format_query(project_plan_dict, wbs_level1_result_json)
         query += f"\n\nData collection:\n{data_collection_markdown}"
-        
-        # Get an LLM instance.
-        llm = get_llm(self.llm_model)
         
         # Execute the WBS Level 2 creation.
         create_wbs_level2 = CreateWBSLevel2.execute(llm, query)
@@ -2119,7 +2055,7 @@ class CreatePitchTask(PlanTask):
             'related_resources': self.clone(RelatedResourcesTask)
         }
     
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         logger.info("Creating pitch...")
         
         # Read the project plan JSON.
@@ -2140,9 +2076,6 @@ class CreatePitchTask(PlanTask):
             f"Work Breakdown Structure:\n{format_json_for_use_in_query(wbs_project_json)}\n\n"
             f"Similar projects:\n{format_json_for_use_in_query(related_resources_dict)}"
         )
-        
-        # Get the LLM instance.
-        llm = get_llm(self.llm_model)
         
         # Execute the pitch creation.
         create_pitch = CreatePitch.execute(llm, query)
@@ -2172,7 +2105,7 @@ class ConvertPitchToMarkdownTask(PlanTask):
             'pitch': self.clone(CreatePitchTask),
         }
     
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         logger.info("Converting raw pitch to markdown...")
         
         # Read the project plan JSON.
@@ -2182,10 +2115,7 @@ class ConvertPitchToMarkdownTask(PlanTask):
         # Build the query
         query = format_json_for_use_in_query(pitch_json)
         
-        # Get the LLM instance.
-        llm = get_llm(self.llm_model)
-        
-        # Execute the convertion.
+        # Execute the conversion.
         converted = ConvertPitchToMarkdown.execute(llm, query)
 
         # Save the results.
@@ -2211,7 +2141,7 @@ class IdentifyTaskDependenciesTask(PlanTask):
             'data_collection': self.clone(DataCollectionTask),
         }
     
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         logger.info("Identifying task dependencies...")
         
         # Read inputs from required tasks.
@@ -2227,9 +2157,6 @@ class IdentifyTaskDependenciesTask(PlanTask):
         # Build the query using the provided format method.
         query = IdentifyWBSTaskDependencies.format_query(project_plan_dict, major_phases_with_subtasks)
         query += f"\n\nData collection:\n{data_collection_markdown}"
-        
-        # Get the LLM instance.
-        llm = get_llm(self.llm_model)
         
         # Execute the dependency identification.
         identify_dependencies = IdentifyWBSTaskDependencies.execute(llm, query)
@@ -2265,7 +2192,7 @@ class EstimateTaskDurationsTask(PlanTask):
             'wbs_project': self.clone(WBSProjectLevel1AndLevel2Task),
         }
     
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         logger.info("Estimating task durations...")
         
         # Load the project plan JSON.
@@ -2300,9 +2227,6 @@ class EstimateTaskDurationsTask(PlanTask):
         else:
             logger.info("Processing all chunks.")
 
-        # Get the LLM instance.
-        llm = get_llm(self.llm_model)
-        
         # Process each chunk.
         accumulated_task_duration_list = []
         for index, task_ids_chunk in enumerate(task_ids_chunks, start=1):
@@ -2356,7 +2280,7 @@ class CreateWBSLevel3Task(PlanTask):
             'data_collection': self.clone(DataCollectionTask),
         }
     
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         logger.info("Creating Work Breakdown Structure (WBS) Level 3...")
         
         # Read inputs from required tasks.
@@ -2399,9 +2323,6 @@ class CreateWBSLevel3Task(PlanTask):
             decompose_task_id_list = decompose_task_id_list[:2]
         else:
             logger.info("Processing all chunks.")
-        
-        # Get an LLM instance.
-        llm = get_llm(self.llm_model)
         
         project_plan_str = format_json_for_use_in_query(project_plan_dict)
         wbs_project_str = format_json_for_use_in_query(wbs_project.to_dict())
@@ -2590,7 +2511,7 @@ class ReviewPlanTask(PlanTask):
             'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task)
         }
     
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
@@ -2623,8 +2544,6 @@ class ReviewPlanTask(PlanTask):
             f"File 'expert-review.md':\n{expert_review}\n\n"
             f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}"
         )
-
-        llm = get_llm(self.llm_model)
 
         # Perform the review.
         review_plan = ReviewPlan.execute(llm, query)
@@ -2672,7 +2591,7 @@ class ExecutiveSummaryTask(PlanTask):
             'review_plan': self.clone(ReviewPlanTask)
         }
     
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
@@ -2708,8 +2627,6 @@ class ExecutiveSummaryTask(PlanTask):
             f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}\n\n"
             f"File 'review-plan.md':\n{review_plan_markdown}"
         )
-
-        llm = get_llm(self.llm_model)
 
         # Create the executive summary.
         executive_summary = ExecutiveSummary.execute(llm, query)
@@ -2747,7 +2664,7 @@ class QuestionsAndAnswersTask(PlanTask):
             'review_plan': self.clone(ReviewPlanTask),
         }
     
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
@@ -2783,8 +2700,6 @@ class QuestionsAndAnswersTask(PlanTask):
             f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}\n\n"
             f"File 'review-plan.md':\n{review_plan_markdown}"
         )
-
-        llm = get_llm(self.llm_model)
 
         # Invoke the LLM
         question_answers = QuestionsAnswers.execute(llm, query)
