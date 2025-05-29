@@ -29,12 +29,12 @@
             "max_retries": 5
         }
     },
-    "openrouter-paid-qwen2.5-32b-instruct": {
-        "comment": "This is medium fast. It's paid, so check the pricing before use.",
+    "openrouter-paid-qwen3-30b-a3b": {
+        "comment": "This is slow. It's paid, so check the pricing before use. Created Apr 28, 2025. 40,960 context. $0.08/M input tokens. $0.29/M output tokens.",
         "priority": 3,
         "class": "OpenRouter",
         "arguments": {
-            "model": "qwen/qwen2.5-32b-instruct",
+            "model": "qwen/qwen3-30b-a3b",
             "api_key": "${OPENROUTER_API_KEY}",
             "temperature": 0.1,
             "timeout": 60.0,
