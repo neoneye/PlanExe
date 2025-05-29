@@ -1,6 +1,6 @@
 {
     "openrouter-paid-gemini-2.0-flash-001": {
-        "comment": "This is very fast. It's paid, so check the pricing before use.",
+        "comment": "This is very fast. It's paid, so check the pricing before use. Created Feb 25, 2025. 1,048,576 context. $0.075/M input tokens. $0.30/M output tokens.",
         "priority": 1,
         "class": "OpenRouter",
         "arguments": {
@@ -15,7 +15,7 @@
         }
     },
     "openrouter-paid-openai-gpt-4o-mini": {
-        "comment": "This is medium fast. It's paid, so check the pricing before use.",
+        "comment": "This is medium fast. It's paid, so check the pricing before use. Created Jul 18, 2024. 128,000 context. Starting at $0.15/M input tokens. Starting at $0.60/M output tokens.",
         "priority": 2,
         "class": "OpenRouter",
         "arguments": {
