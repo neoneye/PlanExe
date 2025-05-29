@@ -150,12 +150,10 @@ class IdentifyPurposeTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.IDENTIFY_PURPOSE_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input().open("r") as f:
             plan_prompt = f.read()
-
-        llm = get_llm(self.llm_model)
 
         identify_purpose = IdentifyPurpose.execute(llm, plan_prompt)
 
@@ -182,7 +180,7 @@ class PlanTypeTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.PLAN_TYPE_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -193,8 +191,6 @@ class PlanTypeTask(PlanTask):
             f"File 'plan.txt':\n{plan_prompt}\n\n"
             f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}"
         )
-
-        llm = get_llm(self.llm_model)
 
         identify_plan_type = IdentifyPlanType.execute(llm, query)
 
@@ -222,7 +218,7 @@ class PhysicalLocationsTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.PHYSICAL_LOCATIONS_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         logger.info("Identify/suggest physical locations for the plan...")
 
         # Read inputs from required tasks.
@@ -235,8 +231,6 @@ class PhysicalLocationsTask(PlanTask):
 
         output_raw_path = self.output()['raw'].path
         output_markdown_path = self.output()['markdown'].path
-
-        llm = get_llm(self.llm_model)
 
         plan_type = plan_type_dict.get("plan_type")
         if plan_type == "physical":
@@ -280,7 +274,7 @@ class CurrencyStrategyTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.CURRENCY_STRATEGY_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         logger.info("Currency strategy for the plan...")
 
         # Read inputs from required tasks.
@@ -300,8 +294,6 @@ class CurrencyStrategyTask(PlanTask):
             f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
             f"File 'physical_locations.json':\n{format_json_for_use_in_query(physical_locations_dict)}"
         )
-
-        llm = get_llm(self.llm_model)
 
         currency_strategy = CurrencyStrategy.execute(llm, query)
 
@@ -331,7 +323,7 @@ class IdentifyRisksTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.IDENTIFY_RISKS_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         logger.info("Identifying risks for the plan...")
 
         # Read inputs from required tasks.
@@ -353,8 +345,6 @@ class IdentifyRisksTask(PlanTask):
             f"File 'physical_locations.json':\n{format_json_for_use_in_query(physical_locations_dict)}\n\n"
             f"File 'currency_strategy.json':\n{format_json_for_use_in_query(currency_strategy_dict)}"
         )
-
-        llm = get_llm(self.llm_model)
 
         identify_risks = IdentifyRisks.execute(llm, query)
 
@@ -386,7 +376,7 @@ class MakeAssumptionsTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.MAKE_ASSUMPTIONS_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         logger.info("Making assumptions about the plan...")
 
         # Read inputs from required tasks.
@@ -411,8 +401,6 @@ class MakeAssumptionsTask(PlanTask):
             f"File 'currency_strategy.json':\n{format_json_for_use_in_query(currency_strategy_dict)}\n\n"
             f"File 'identify_risks.json':\n{format_json_for_use_in_query(identify_risks_dict)}"
         )
-
-        llm = get_llm(self.llm_model)
 
         make_assumptions = MakeAssumptions.execute(llm, query)
 
@@ -442,7 +430,7 @@ class DistillAssumptionsTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.DISTILL_ASSUMPTIONS_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         logger.info("Distilling assumptions...")
 
         # Read inputs from required tasks.
@@ -453,8 +441,6 @@ class DistillAssumptionsTask(PlanTask):
         make_assumptions_target = self.input()['make_assumptions']['clean']
         with make_assumptions_target.open("r") as f:
             assumptions_raw_data = json.load(f)
-
-        llm = get_llm(self.llm_model)
 
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
@@ -492,7 +478,7 @@ class ReviewAssumptionsTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.REVIEW_ASSUMPTIONS_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         # Define the list of (title, path) tuples
         title_path_list = [
             ('Purpose', self.input()['identify_purpose']['markdown'].path),
@@ -520,8 +506,6 @@ class ReviewAssumptionsTask(PlanTask):
 
         # Combine the markdown chunks
         full_markdown = "\n\n".join(markdown_chunks)
-
-        llm = get_llm(self.llm_model)
 
         review_assumptions = ReviewAssumptions.execute(llm, full_markdown)
 
@@ -554,9 +538,7 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
             'short': self.local_target(FilenameEnum.CONSOLIDATE_ASSUMPTIONS_SHORT_MARKDOWN)
         }
 
-    def run(self):
-        llm = get_llm(self.llm_model)
-
+    def run_with_llm(self, llm: LLM) -> None:
         # Define the list of (title, path) tuples
         title_path_list = [
             ('Purpose', self.input()['identify_purpose']['markdown'].path),
@@ -623,7 +605,7 @@ class PreProjectAssessmentTask(PlanTask):
             'clean': self.local_target(FilenameEnum.PRE_PROJECT_ASSESSMENT)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         logger.info("Conducting pre-project assessment...")
 
         # Read the plan prompt from the SetupTask's output.
@@ -638,9 +620,6 @@ class PreProjectAssessmentTask(PlanTask):
             f"File 'plan.txt':\n{plan_prompt}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}"
         )
-
-        # Get an instance of your LLM.
-        llm = get_llm(self.llm_model)
 
         # Execute the pre-project assessment.
         pre_project_assessment = PreProjectAssessment.execute(llm, query)
@@ -674,7 +653,7 @@ class ProjectPlanTask(PlanTask):
             'markdown': self.local_target(FilenameEnum.PROJECT_PLAN_MARKDOWN)
         }
 
-    def run(self):
+    def run_with_llm(self, llm: LLM) -> None:
         logger.info("Creating plan...")
 
         # Read the plan prompt from SetupTask's output.
@@ -697,9 +676,6 @@ class ProjectPlanTask(PlanTask):
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}"
         )
-
-        # Get an LLM instance.
-        llm = get_llm(self.llm_model)
 
         # Execute the plan creation.
         project_plan = ProjectPlan.execute(llm, query)
