@@ -514,14 +514,14 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
     """
     def requires(self):
         return {
-            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'currency_strategy': CurrencyStrategyTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'identify_risks': IdentifyRisksTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'make_assumptions': MakeAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'distill_assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'review_assumptions': ReviewAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'plan_type': self.clone(PlanTypeTask),
+            'physical_locations': self.clone(PhysicalLocationsTask),
+            'currency_strategy': self.clone(CurrencyStrategyTask),
+            'identify_risks': self.clone(IdentifyRisksTask),
+            'make_assumptions': self.clone(MakeAssumptionsTask),
+            'distill_assumptions': self.clone(DistillAssumptionsTask),
+            'review_assumptions': self.clone(ReviewAssumptionsTask)
         }
 
     def output(self):
@@ -589,8 +589,8 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
 class PreProjectAssessmentTask(PlanTask):
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask)
         }
 
     def output(self):
@@ -639,9 +639,9 @@ class ProjectPlanTask(PlanTask):
           - PreProjectAssessmentTask: produces the pre‑project assessment files
         """
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'preproject': self.clone(PreProjectAssessmentTask)
         }
 
     def output(self):
@@ -692,9 +692,9 @@ class ProjectPlanTask(PlanTask):
 class GovernancePhase1AuditTask(PlanTask):
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'project_plan': self.clone(ProjectPlanTask)
         }
 
     def output(self):
@@ -737,10 +737,10 @@ class GovernancePhase1AuditTask(PlanTask):
 class GovernancePhase2BodiesTask(PlanTask):
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase1_audit': GovernancePhase1AuditTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'governance_phase1_audit': self.clone(GovernancePhase1AuditTask)
         }
 
     def output(self):
@@ -786,10 +786,10 @@ class GovernancePhase2BodiesTask(PlanTask):
 class GovernancePhase3ImplPlanTask(PlanTask):
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase2_bodies': GovernancePhase2BodiesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'governance_phase2_bodies': self.clone(GovernancePhase2BodiesTask)
         }
 
     def output(self):
@@ -834,11 +834,11 @@ class GovernancePhase3ImplPlanTask(PlanTask):
 class GovernancePhase4DecisionEscalationMatrixTask(PlanTask):
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase2_bodies': GovernancePhase2BodiesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase3_impl_plan': GovernancePhase3ImplPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'governance_phase2_bodies': self.clone(GovernancePhase2BodiesTask),
+            'governance_phase3_impl_plan': self.clone(GovernancePhase3ImplPlanTask)
         }
 
     def output(self):
@@ -886,12 +886,12 @@ class GovernancePhase4DecisionEscalationMatrixTask(PlanTask):
 class GovernancePhase5MonitoringProgressTask(PlanTask):
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase2_bodies': GovernancePhase2BodiesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase3_impl_plan': GovernancePhase3ImplPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase4_decision_escalation_matrix': GovernancePhase4DecisionEscalationMatrixTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'governance_phase2_bodies': self.clone(GovernancePhase2BodiesTask),
+            'governance_phase3_impl_plan': self.clone(GovernancePhase3ImplPlanTask),
+            'governance_phase4_decision_escalation_matrix': self.clone(GovernancePhase4DecisionEscalationMatrixTask)
         }
 
     def output(self):
@@ -942,14 +942,14 @@ class GovernancePhase5MonitoringProgressTask(PlanTask):
 class GovernancePhase6ExtraTask(PlanTask):
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase1_audit': GovernancePhase1AuditTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase2_bodies': GovernancePhase2BodiesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase3_impl_plan': GovernancePhase3ImplPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase4_decision_escalation_matrix': GovernancePhase4DecisionEscalationMatrixTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase5_monitoring_progress': GovernancePhase5MonitoringProgressTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'governance_phase1_audit': self.clone(GovernancePhase1AuditTask),
+            'governance_phase2_bodies': self.clone(GovernancePhase2BodiesTask),
+            'governance_phase3_impl_plan': self.clone(GovernancePhase3ImplPlanTask),
+            'governance_phase4_decision_escalation_matrix': self.clone(GovernancePhase4DecisionEscalationMatrixTask),
+            'governance_phase5_monitoring_progress': self.clone(GovernancePhase5MonitoringProgressTask)
         }
 
     def output(self):
@@ -1006,12 +1006,12 @@ class GovernancePhase6ExtraTask(PlanTask):
 class ConsolidateGovernanceTask(PlanTask):
     def requires(self):
         return {
-            'governance_phase1_audit': GovernancePhase1AuditTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase2_bodies': GovernancePhase2BodiesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase3_impl_plan': GovernancePhase3ImplPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase4_decision_escalation_matrix': GovernancePhase4DecisionEscalationMatrixTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase5_monitoring_progress': GovernancePhase5MonitoringProgressTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase6_extra': GovernancePhase6ExtraTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'governance_phase1_audit': self.clone(GovernancePhase1AuditTask),
+            'governance_phase2_bodies': self.clone(GovernancePhase2BodiesTask),
+            'governance_phase3_impl_plan': self.clone(GovernancePhase3ImplPlanTask),
+            'governance_phase4_decision_escalation_matrix': self.clone(GovernancePhase4DecisionEscalationMatrixTask),
+            'governance_phase5_monitoring_progress': self.clone(GovernancePhase5MonitoringProgressTask),
+            'governance_phase6_extra': self.clone(GovernancePhase6ExtraTask)
         }
 
     def output(self):
@@ -1049,9 +1049,9 @@ class ConsolidateGovernanceTask(PlanTask):
 class RelatedResourcesTask(PlanTask):
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'project_plan': self.clone(ProjectPlanTask)
         }
 
     def output(self):
@@ -1093,11 +1093,11 @@ class RelatedResourcesTask(PlanTask):
 class FindTeamMembersTask(PlanTask):
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'setup': self.clone(SetupTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'preproject': self.clone(PreProjectAssessmentTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'related_resources': self.clone(RelatedResourcesTask),
         }
 
     def output(self):
@@ -1151,12 +1151,12 @@ class FindTeamMembersTask(PlanTask):
 class EnrichTeamMembersWithContractTypeTask(PlanTask):
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'preproject': self.clone(PreProjectAssessmentTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'find_team_members': self.clone(FindTeamMembersTask),
+            'related_resources': self.clone(RelatedResourcesTask)
         }
 
     def output(self):
@@ -1213,12 +1213,12 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
 class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'enrich_team_members_with_contract_type': EnrichTeamMembersWithContractTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'preproject': self.clone(PreProjectAssessmentTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'enrich_team_members_with_contract_type': self.clone(EnrichTeamMembersWithContractTypeTask),
+            'related_resources': self.clone(RelatedResourcesTask)
         }
 
     def output(self):
@@ -1275,12 +1275,12 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
 class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'enrich_team_members_with_background_story': EnrichTeamMembersWithBackgroundStoryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'preproject': self.clone(PreProjectAssessmentTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'enrich_team_members_with_background_story': self.clone(EnrichTeamMembersWithBackgroundStoryTask),
+            'related_resources': self.clone(RelatedResourcesTask)
         }
 
     def output(self):
@@ -1337,12 +1337,12 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
 class ReviewTeamTask(PlanTask):
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'enrich_team_members_with_environment_info': EnrichTeamMembersWithEnvironmentInfoTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'preproject': self.clone(PreProjectAssessmentTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'enrich_team_members_with_environment_info': self.clone(EnrichTeamMembersWithEnvironmentInfoTask),
+            'related_resources': self.clone(RelatedResourcesTask)
         }
 
     def output(self):
@@ -1398,8 +1398,8 @@ class ReviewTeamTask(PlanTask):
 class TeamMarkdownTask(PlanTask):
     def requires(self):
         return {
-            'enrich_team_members_with_environment_info': EnrichTeamMembersWithEnvironmentInfoTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'review_team': ReviewTeamTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'enrich_team_members_with_environment_info': self.clone(EnrichTeamMembersWithEnvironmentInfoTask),
+            'review_team': self.clone(ReviewTeamTask)
         }
 
     def output(self):
@@ -1430,12 +1430,12 @@ class TeamMarkdownTask(PlanTask):
 class SWOTAnalysisTask(PlanTask):
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'preproject': self.clone(PreProjectAssessmentTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'related_resources': self.clone(RelatedResourcesTask)
         }
 
     def output(self):
@@ -1508,10 +1508,10 @@ class ExpertReviewTask(PlanTask):
     """
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'setup': self.clone(SetupTask),
+            'preproject': self.clone(PreProjectAssessmentTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'swot_analysis': self.clone(SWOTAnalysisTask)
         }
 
     def output(self):
@@ -1577,12 +1577,12 @@ class DataCollectionTask(PlanTask):
     
     def requires(self):
         return {
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'related_resources': self.clone(RelatedResourcesTask),
+            'swot_analysis': self.clone(SWOTAnalysisTask),
+            'team_markdown': self.clone(TeamMarkdownTask),
+            'expert_review': self.clone(ExpertReviewTask)
         }
     
     def run(self):
@@ -1635,13 +1635,13 @@ class IdentifyDocumentsTask(PlanTask):
 
     def requires(self):
         return {
-            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'related_resources': self.clone(RelatedResourcesTask),
+            'swot_analysis': self.clone(SWOTAnalysisTask),
+            'team_markdown': self.clone(TeamMarkdownTask),
+            'expert_review': self.clone(ExpertReviewTask)
         }
     
     def run(self):
@@ -1700,10 +1700,10 @@ class FilterDocumentsToFindTask(PlanTask):
 
     def requires(self):
         return {
-            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'identified_documents': IdentifyDocumentsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'identified_documents': self.clone(IdentifyDocumentsTask),
         }
     
     def run(self):
@@ -1754,10 +1754,10 @@ class FilterDocumentsToCreateTask(PlanTask):
 
     def requires(self):
         return {
-            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'identified_documents': IdentifyDocumentsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'identified_documents': self.clone(IdentifyDocumentsTask),
         }
     
     def run(self):
@@ -1804,10 +1804,10 @@ class DraftDocumentsToFindTask(PlanTask):
 
     def requires(self):
         return {
-            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'filter_documents_to_find': FilterDocumentsToFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'filter_documents_to_find': self.clone(FilterDocumentsToFindTask),
         }
     
     def run(self):
@@ -1871,10 +1871,10 @@ class DraftDocumentsToCreateTask(PlanTask):
 
     def requires(self):
         return {
-            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'filter_documents_to_create': FilterDocumentsToCreateTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'filter_documents_to_create': self.clone(FilterDocumentsToCreateTask),
         }
     
     def run(self):
@@ -1938,8 +1938,8 @@ class MarkdownWithDocumentsToCreateAndFindTask(PlanTask):
 
     def requires(self):
         return {
-            'draft_documents_to_create': DraftDocumentsToCreateTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'draft_documents_to_find': DraftDocumentsToFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'draft_documents_to_create': self.clone(DraftDocumentsToCreateTask),
+            'draft_documents_to_find': self.clone(DraftDocumentsToFindTask),
         }
     
     def run(self):
@@ -1978,7 +1978,7 @@ class CreateWBSLevel1Task(PlanTask):
     """
     def requires(self):
         return {
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'project_plan': self.clone(ProjectPlanTask)
         }
 
     def output(self):
@@ -2027,9 +2027,9 @@ class CreateWBSLevel2Task(PlanTask):
     """
     def requires(self):
         return {
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': self.clone(ProjectPlanTask),
+            'wbs_level1': self.clone(CreateWBSLevel1Task),
+            'data_collection': self.clone(DataCollectionTask),
         }
 
     def output(self):
@@ -2085,8 +2085,8 @@ class WBSProjectLevel1AndLevel2Task(PlanTask):
     
     def requires(self):
         return {
-            'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_level2': CreateWBSLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'wbs_level1': self.clone(CreateWBSLevel1Task),
+            'wbs_level2': self.clone(CreateWBSLevel2Task),
         }
     
     def run(self):
@@ -2114,9 +2114,9 @@ class CreatePitchTask(PlanTask):
     
     def requires(self):
         return {
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_project': WBSProjectLevel1AndLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'project_plan': self.clone(ProjectPlanTask),
+            'wbs_project': self.clone(WBSProjectLevel1AndLevel2Task),
+            'related_resources': self.clone(RelatedResourcesTask)
         }
     
     def run(self):
@@ -2169,7 +2169,7 @@ class ConvertPitchToMarkdownTask(PlanTask):
     
     def requires(self):
         return {
-            'pitch': CreatePitchTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'pitch': self.clone(CreatePitchTask),
         }
     
     def run(self):
@@ -2206,9 +2206,9 @@ class IdentifyTaskDependenciesTask(PlanTask):
     
     def requires(self):
         return {
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_level2': CreateWBSLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': self.clone(ProjectPlanTask),
+            'wbs_level2': self.clone(CreateWBSLevel2Task),
+            'data_collection': self.clone(DataCollectionTask),
         }
     
     def run(self):
@@ -2262,8 +2262,8 @@ class EstimateTaskDurationsTask(PlanTask):
     
     def requires(self):
         return {
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_project': WBSProjectLevel1AndLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': self.clone(ProjectPlanTask),
+            'wbs_project': self.clone(WBSProjectLevel1AndLevel2Task),
         }
     
     def run(self):
@@ -2351,10 +2351,10 @@ class CreateWBSLevel3Task(PlanTask):
     
     def requires(self):
         return {
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_project': WBSProjectLevel1AndLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'task_durations': EstimateTaskDurationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'project_plan': self.clone(ProjectPlanTask),
+            'wbs_project': self.clone(WBSProjectLevel1AndLevel2Task),
+            'task_durations': self.clone(EstimateTaskDurationsTask),
+            'data_collection': self.clone(DataCollectionTask),
         }
     
     def run(self):
@@ -2455,8 +2455,8 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
     
     def requires(self):
         return {
-            'wbs_project12': WBSProjectLevel1AndLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_level3': CreateWBSLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'wbs_project12': self.clone(WBSProjectLevel1AndLevel2Task),
+            'wbs_level3': self.clone(CreateWBSLevel3Task),
         }
     
     def run(self):
@@ -2485,9 +2485,9 @@ class CreateScheduleTask(PlanTask):
     
     def requires(self):
         return {
-            'dependencies': IdentifyTaskDependenciesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'durations': EstimateTaskDurationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'dependencies': self.clone(IdentifyTaskDependenciesTask),
+            'durations': self.clone(EstimateTaskDurationsTask),
+            'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task)
         }
     
     def run(self):
@@ -2580,15 +2580,15 @@ class ReviewPlanTask(PlanTask):
     
     def requires(self):
         return {
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'data_collection': self.clone(DataCollectionTask),
+            'related_resources': self.clone(RelatedResourcesTask),
+            'swot_analysis': self.clone(SWOTAnalysisTask),
+            'team_markdown': self.clone(TeamMarkdownTask),
+            'pitch_markdown': self.clone(ConvertPitchToMarkdownTask),
+            'expert_review': self.clone(ExpertReviewTask),
+            'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task)
         }
     
     def run(self):
@@ -2661,16 +2661,16 @@ class ExecutiveSummaryTask(PlanTask):
     
     def requires(self):
         return {
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'review_plan': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'data_collection': self.clone(DataCollectionTask),
+            'related_resources': self.clone(RelatedResourcesTask),
+            'swot_analysis': self.clone(SWOTAnalysisTask),
+            'team_markdown': self.clone(TeamMarkdownTask),
+            'pitch_markdown': self.clone(ConvertPitchToMarkdownTask),
+            'expert_review': self.clone(ExpertReviewTask),
+            'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task),
+            'review_plan': self.clone(ReviewPlanTask)
         }
     
     def run(self):
@@ -2734,18 +2734,18 @@ class QuestionsAndAnswersTask(PlanTask):
     
     def requires(self):
         return {
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_governance': ConsolidateGovernanceTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'documents_to_create_and_find': MarkdownWithDocumentsToCreateAndFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'review_plan': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'team_markdown': self.clone(TeamMarkdownTask),
+            'related_resources': self.clone(RelatedResourcesTask),
+            'consolidate_governance': self.clone(ConsolidateGovernanceTask),
+            'swot_analysis': self.clone(SWOTAnalysisTask),
+            'pitch_markdown': self.clone(ConvertPitchToMarkdownTask),
+            'data_collection': self.clone(DataCollectionTask),
+            'documents_to_create_and_find': self.clone(MarkdownWithDocumentsToCreateAndFindTask),
+            'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task),
+            'expert_review': self.clone(ExpertReviewTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'review_plan': self.clone(ReviewPlanTask),
         }
     
     def run(self):
@@ -2807,21 +2807,21 @@ class ReportTask(PlanTask):
     
     def requires(self):
         return {
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_governance': ConsolidateGovernanceTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'documents_to_create_and_find': MarkdownWithDocumentsToCreateAndFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'review_plan': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'executive_summary': ExecutiveSummaryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'create_schedule': CreateScheduleTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'questions_and_answers': QuestionsAndAnswersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'team_markdown': self.clone(TeamMarkdownTask),
+            'related_resources': self.clone(RelatedResourcesTask),
+            'consolidate_governance': self.clone(ConsolidateGovernanceTask),
+            'swot_analysis': self.clone(SWOTAnalysisTask),
+            'pitch_markdown': self.clone(ConvertPitchToMarkdownTask),
+            'data_collection': self.clone(DataCollectionTask),
+            'documents_to_create_and_find': self.clone(MarkdownWithDocumentsToCreateAndFindTask),
+            'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task),
+            'expert_review': self.clone(ExpertReviewTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'review_plan': self.clone(ReviewPlanTask),
+            'executive_summary': self.clone(ExecutiveSummaryTask),
+            'create_schedule': self.clone(CreateScheduleTask),
+            'questions_and_answers': self.clone(QuestionsAndAnswersTask)
         }
     
     def run(self):
@@ -2847,55 +2847,55 @@ class ReportTask(PlanTask):
 class FullPlanPipeline(PlanTask):
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'currency_strategy': CurrencyStrategyTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'identify_risks': IdentifyRisksTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'make_assumptions': MakeAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'assumptions': DistillAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'review_assumptions': ReviewAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'pre_project_assessment': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase1_audit': GovernancePhase1AuditTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase2_bodies': GovernancePhase2BodiesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase3_impl_plan': GovernancePhase3ImplPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase4_decision_escalation_matrix': GovernancePhase4DecisionEscalationMatrixTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase5_monitoring_progress': GovernancePhase5MonitoringProgressTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'governance_phase6_extra': GovernancePhase6ExtraTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'consolidate_governance': ConsolidateGovernanceTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'related_resources': RelatedResourcesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'find_team_members': FindTeamMembersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'enrich_team_members_with_contract_type': EnrichTeamMembersWithContractTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'enrich_team_members_with_background_story': EnrichTeamMembersWithBackgroundStoryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'enrich_team_members_with_environment_info': EnrichTeamMembersWithEnvironmentInfoTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'review_team': ReviewTeamTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'team_markdown': TeamMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'expert_review': ExpertReviewTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'data_collection': DataCollectionTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'identified_documents': IdentifyDocumentsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'filter_documents_to_find': FilterDocumentsToFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'filter_documents_to_create': FilterDocumentsToCreateTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'draft_documents_to_find': DraftDocumentsToFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'draft_documents_to_create': DraftDocumentsToCreateTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'documents_to_create_and_find': MarkdownWithDocumentsToCreateAndFindTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_level1': CreateWBSLevel1Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_level2': CreateWBSLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_project12': WBSProjectLevel1AndLevel2Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'pitch_raw': CreatePitchTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'pitch_markdown': ConvertPitchToMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'dependencies': IdentifyTaskDependenciesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'durations': EstimateTaskDurationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_level3': CreateWBSLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'wbs_project123': WBSProjectLevel1AndLevel2AndLevel3Task(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'plan_evaluator': ReviewPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'executive_summary': ExecutiveSummaryTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'create_schedule': CreateScheduleTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'questions_and_answers': QuestionsAndAnswersTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
-            'report': ReportTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
+            'setup': self.clone(SetupTask),
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'plan_type': self.clone(PlanTypeTask),
+            'physical_locations': self.clone(PhysicalLocationsTask),
+            'currency_strategy': self.clone(CurrencyStrategyTask),
+            'identify_risks': self.clone(IdentifyRisksTask),
+            'make_assumptions': self.clone(MakeAssumptionsTask),
+            'assumptions': self.clone(DistillAssumptionsTask),
+            'review_assumptions': self.clone(ReviewAssumptionsTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'pre_project_assessment': self.clone(PreProjectAssessmentTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'governance_phase1_audit': self.clone(GovernancePhase1AuditTask),
+            'governance_phase2_bodies': self.clone(GovernancePhase2BodiesTask),
+            'governance_phase3_impl_plan': self.clone(GovernancePhase3ImplPlanTask),
+            'governance_phase4_decision_escalation_matrix': self.clone(GovernancePhase4DecisionEscalationMatrixTask),
+            'governance_phase5_monitoring_progress': self.clone(GovernancePhase5MonitoringProgressTask),
+            'governance_phase6_extra': self.clone(GovernancePhase6ExtraTask),
+            'consolidate_governance': self.clone(ConsolidateGovernanceTask),
+            'related_resources': self.clone(RelatedResourcesTask),
+            'find_team_members': self.clone(FindTeamMembersTask),
+            'enrich_team_members_with_contract_type': self.clone(EnrichTeamMembersWithContractTypeTask),
+            'enrich_team_members_with_background_story': self.clone(EnrichTeamMembersWithBackgroundStoryTask),
+            'enrich_team_members_with_environment_info': self.clone(EnrichTeamMembersWithEnvironmentInfoTask),
+            'review_team': self.clone(ReviewTeamTask),
+            'team_markdown': self.clone(TeamMarkdownTask),
+            'swot_analysis': self.clone(SWOTAnalysisTask),
+            'expert_review': self.clone(ExpertReviewTask),
+            'data_collection': self.clone(DataCollectionTask),
+            'identified_documents': self.clone(IdentifyDocumentsTask),
+            'filter_documents_to_find': self.clone(FilterDocumentsToFindTask),
+            'filter_documents_to_create': self.clone(FilterDocumentsToCreateTask),
+            'draft_documents_to_find': self.clone(DraftDocumentsToFindTask),
+            'draft_documents_to_create': self.clone(DraftDocumentsToCreateTask),
+            'documents_to_create_and_find': self.clone(MarkdownWithDocumentsToCreateAndFindTask),
+            'wbs_level1': self.clone(CreateWBSLevel1Task),
+            'wbs_level2': self.clone(CreateWBSLevel2Task),
+            'wbs_project12': self.clone(WBSProjectLevel1AndLevel2Task),
+            'pitch_raw': self.clone(CreatePitchTask),
+            'pitch_markdown': self.clone(ConvertPitchToMarkdownTask),
+            'dependencies': self.clone(IdentifyTaskDependenciesTask),
+            'durations': self.clone(EstimateTaskDurationsTask),
+            'wbs_level3': self.clone(CreateWBSLevel3Task),
+            'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task),
+            'plan_evaluator': self.clone(ReviewPlanTask),
+            'executive_summary': self.clone(ExecutiveSummaryTask),
+            'create_schedule': self.clone(CreateScheduleTask),
+            'questions_and_answers': self.clone(QuestionsAndAnswersTask),
+            'report': self.clone(ReportTask),
         }
 
     def output(self):
