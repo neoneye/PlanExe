@@ -1514,6 +1514,7 @@ class ExpertReviewTask(PlanTask):
         # Execute the expert orchestration.
         expert_orchestrator = ExpertOrchestrator()
         # IDEA: max_expert_count. don't truncate to 2 experts. Interview them all in production mode.
+        # IDEA: If the expert file for expert_index already exist, then there is no need to run the LLM again.
         expert_orchestrator.phase1_post_callback = phase1_post_callback
         expert_orchestrator.phase2_post_callback = phase2_post_callback
         expert_orchestrator.execute(llm, query)
@@ -1788,6 +1789,7 @@ class DraftDocumentsToFindTask(PlanTask):
                 f"File 'document.json':\n{document}"
             )
 
+            # IDEA: If the document already exist, then there is no need to run the LLM again.
             draft_document = DraftDocumentToFind.execute(llm=llm, user_prompt=query, identify_purpose_dict=identify_purpose_dict)
             json_response = draft_document.to_dict()
 
@@ -1852,6 +1854,7 @@ class DraftDocumentsToCreateTask(PlanTask):
                 f"File 'document.json':\n{document}"
             )
 
+            # IDEA: If the document already exist, then there is no need to run the LLM again.
             draft_document = DraftDocumentToCreate.execute(llm=llm, user_prompt=query, identify_purpose_dict=identify_purpose_dict)
             json_response = draft_document.to_dict()
 
@@ -2238,6 +2241,7 @@ class EstimateTaskDurationsTask(PlanTask):
                 task_ids_chunk
             )
             
+            # IDEA: If the chunk file already exist, then there is no need to run the LLM again.
             estimate_durations = EstimateWBSTaskDurations.execute(llm, query)
             durations_raw_dict = estimate_durations.raw_response_dict()
             
@@ -2340,6 +2344,7 @@ class CreateWBSLevel3Task(PlanTask):
                 f"Only decompose this task:\n\"{task_id}\""
             )
 
+            # IDEA: If the chunk file already exist, then there is no need to run the LLM again.
             create_wbs_level3 = CreateWBSLevel3.execute(llm, query, task_id)
             wbs_level3_raw_dict = create_wbs_level3.raw_response_dict()
             
