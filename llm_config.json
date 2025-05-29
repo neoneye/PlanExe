@@ -1,6 +1,7 @@
 {
     "openrouter-paid-gemini-2.0-flash-001": {
         "comment": "This is very fast. It's paid, so check the pricing before use.",
+        "priority": 1,
         "class": "OpenRouter",
         "arguments": {
             "model": "google/gemini-2.0-flash-001",
@@ -15,6 +16,7 @@
     },
     "openrouter-paid-openai-gpt-4o-mini": {
         "comment": "This is medium fast. It's paid, so check the pricing before use.",
+        "priority": 2,
         "class": "OpenRouter",
         "arguments": {
             "model": "openai/gpt-4o-mini",
@@ -29,6 +31,7 @@
     },
     "openrouter-paid-qwen2.5-32b-instruct": {
         "comment": "This is medium fast. It's paid, so check the pricing before use.",
+        "priority": 3,
         "class": "OpenRouter",
         "arguments": {
             "model": "qwen/qwen2.5-32b-instruct",
