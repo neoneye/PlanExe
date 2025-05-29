@@ -88,6 +88,9 @@ class PlanTask(luigi.Task):
     # This can be overridden in developer mode, where a quick turnaround is needed, and the details are not important.
     speedvsdetail = luigi.EnumParameter(enum=SpeedVsDetailEnum, default=SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW)
 
+    # The LLM model to use for inference
+    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
+
     @property
     def run_dir(self) -> Path:
         return Path('run') / self.run_id
@@ -114,10 +117,8 @@ class IdentifyPurposeTask(PlanTask):
     """
     Determine if this is this going to be a business/personal/other plan.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
-        return SetupTask(run_id=self.run_id)
+        return SetupTask(run_id=self.run_id, llm_model=self.llm_model)
 
     def output(self):
         return {
@@ -145,11 +146,9 @@ class PlanTypeTask(PlanTask):
     """
     Determine if the plan is purely digital or requires physical locations.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
@@ -186,11 +185,9 @@ class PhysicalLocationsTask(PlanTask):
     """
     Identify/suggest physical locations for the plan.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
@@ -245,11 +242,9 @@ class CurrencyStrategyTask(PlanTask):
     """
     Identify/suggest what currency to use for the plan, depending on the physical locations.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
@@ -297,11 +292,9 @@ class IdentifyRisksTask(PlanTask):
     """
     Identify risks for the plan, depending on the physical locations.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -352,11 +345,9 @@ class MakeAssumptionsTask(PlanTask):
     """
     Make assumptions about the plan.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -414,11 +405,9 @@ class DistillAssumptionsTask(PlanTask):
     """
     Distill raw assumption data.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'make_assumptions': MakeAssumptionsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
@@ -462,8 +451,6 @@ class ReviewAssumptionsTask(PlanTask):
     """
     Find issues with the assumptions.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
             'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -525,8 +512,6 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
     """
     Combines multiple small markdown documents into a single big document.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
             'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -602,11 +587,9 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
 
 
 class PreProjectAssessmentTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
 
@@ -648,8 +631,6 @@ class PreProjectAssessmentTask(PlanTask):
 
 
 class ProjectPlanTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         """
         This task depends on:
@@ -658,7 +639,7 @@ class ProjectPlanTask(PlanTask):
           - PreProjectAssessmentTask: produces the pre‑project assessment files
         """
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
@@ -709,11 +690,9 @@ class ProjectPlanTask(PlanTask):
 
 
 class GovernancePhase1AuditTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
@@ -756,11 +735,9 @@ class GovernancePhase1AuditTask(PlanTask):
 
 
 class GovernancePhase2BodiesTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase1_audit': GovernancePhase1AuditTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
@@ -807,11 +784,9 @@ class GovernancePhase2BodiesTask(PlanTask):
 
 
 class GovernancePhase3ImplPlanTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase2_bodies': GovernancePhase2BodiesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
@@ -857,11 +832,9 @@ class GovernancePhase3ImplPlanTask(PlanTask):
         governance_phase3_impl_plan.save_markdown(self.output()['markdown'].path)
 
 class GovernancePhase4DecisionEscalationMatrixTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase2_bodies': GovernancePhase2BodiesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -911,11 +884,9 @@ class GovernancePhase4DecisionEscalationMatrixTask(PlanTask):
         governance_phase4_decision_escalation_matrix.save_markdown(self.output()['markdown'].path)
 
 class GovernancePhase5MonitoringProgressTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase2_bodies': GovernancePhase2BodiesTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -969,11 +940,9 @@ class GovernancePhase5MonitoringProgressTask(PlanTask):
         governance_phase5_monitoring_progress.save_markdown(self.output()['markdown'].path)
 
 class GovernancePhase6ExtraTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'governance_phase1_audit': GovernancePhase1AuditTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1035,8 +1004,6 @@ class GovernancePhase6ExtraTask(PlanTask):
         governance_phase6_extra.save_markdown(self.output()['markdown'].path)
 
 class ConsolidateGovernanceTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
             'governance_phase1_audit': GovernancePhase1AuditTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1080,11 +1047,9 @@ class ConsolidateGovernanceTask(PlanTask):
             f.write(content)
 
 class RelatedResourcesTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
         }
@@ -1126,11 +1091,9 @@ class RelatedResourcesTask(PlanTask):
         related_resources.save_markdown(self.output()['markdown'].path)
 
 class FindTeamMembersTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1186,11 +1149,9 @@ class FindTeamMembersTask(PlanTask):
             json.dump(team_member_list, f, indent=2)
 
 class EnrichTeamMembersWithContractTypeTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1250,11 +1211,9 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
             json.dump(team_member_list, f, indent=2)
 
 class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1314,11 +1273,9 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
             json.dump(team_member_list, f, indent=2)
 
 class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1378,11 +1335,9 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
             json.dump(team_member_list, f, indent=2)
 
 class ReviewTeamTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1441,8 +1396,6 @@ class ReviewTeamTask(PlanTask):
         logger.info("ReviewTeamTask complete.")
 
 class TeamMarkdownTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
             'enrich_team_members_with_environment_info': EnrichTeamMembersWithEnvironmentInfoTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1475,11 +1428,9 @@ class TeamMarkdownTask(PlanTask):
         logger.info("TeamMarkdownTask complete.")
 
 class SWOTAnalysisTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'consolidate_assumptions_markdown': ConsolidateAssumptionsMarkdownTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -1555,11 +1506,9 @@ class ExpertReviewTask(PlanTask):
       - For each expert, a raw expert criticism file (008-XX-expert_criticism_raw.json) [side effects via callbacks]
       - Final expert criticism markdown (009-expert_criticism.md)
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'preproject': PreProjectAssessmentTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'swot_analysis': SWOTAnalysisTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
@@ -1620,8 +1569,6 @@ class DataCollectionTask(PlanTask):
     """
     Determine what kind of data is to be collected.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def output(self):
         return {
             'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.DATA_COLLECTION_RAW))),
@@ -1678,8 +1625,6 @@ class IdentifyDocumentsTask(PlanTask):
     """
     Identify documents that need to be created or found for the project.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def output(self):
         return {
             "raw": luigi.LocalTarget(self.file_path(FilenameEnum.IDENTIFIED_DOCUMENTS_RAW)),
@@ -1747,8 +1692,6 @@ class FilterDocumentsToFindTask(PlanTask):
     The "documents to find" may be a long list of documents, some duplicates, irrelevant, not needed at an early stage of the project.
     This task narrows down to a handful of relevant documents.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def output(self):
         return {
             "raw": luigi.LocalTarget(self.file_path(FilenameEnum.FILTER_DOCUMENTS_TO_FIND_RAW)),
@@ -1803,8 +1746,6 @@ class FilterDocumentsToCreateTask(PlanTask):
     The "documents to create" may be a long list of documents, some duplicates, irrelevant, not needed at an early stage of the project.
     This task narrows down to a handful of relevant documents.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def output(self):
         return {
             "raw": luigi.LocalTarget(self.file_path(FilenameEnum.FILTER_DOCUMENTS_TO_CREATE_RAW)),
@@ -1858,8 +1799,6 @@ class DraftDocumentsToFindTask(PlanTask):
     """
     The "documents to find". Write bullet points to what each document roughly should contain.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def output(self):
         return luigi.LocalTarget(self.file_path(FilenameEnum.DRAFT_DOCUMENTS_TO_FIND_CONSOLIDATED))
 
@@ -1927,8 +1866,6 @@ class DraftDocumentsToCreateTask(PlanTask):
     """
     The "documents to create". Write bullet points to what each document roughly should contain.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def output(self):
         return luigi.LocalTarget(self.file_path(FilenameEnum.DRAFT_DOCUMENTS_TO_CREATE_CONSOLIDATED))
 
@@ -1996,8 +1933,6 @@ class MarkdownWithDocumentsToCreateAndFindTask(PlanTask):
     """
     Create markdown with the "documents to create and find"
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def output(self):
         return luigi.LocalTarget(self.file_path(FilenameEnum.DOCUMENTS_TO_CREATE_AND_FIND_MARKDOWN))
 
@@ -2041,8 +1976,6 @@ class CreateWBSLevel1Task(PlanTask):
       - Raw WBS Level 1 output file (xxx-wbs_level1_raw.json)
       - Cleaned up WBS Level 1 file (xxx-wbs_level1.json)
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model)
@@ -2092,8 +2025,6 @@ class CreateWBSLevel2Task(PlanTask):
       - Raw WBS Level 2 output (007-wbs_level2_raw.json)
       - Cleaned WBS Level 2 output (008-wbs_level2.json)
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
             'project_plan': ProjectPlanTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
@@ -2149,8 +2080,6 @@ class WBSProjectLevel1AndLevel2Task(PlanTask):
       - CreateWBSLevel1Task: providing the cleaned WBS Level 1 JSON.
       - CreateWBSLevel2Task: providing the major phases with subtasks and the task UUIDs.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def output(self):
         return luigi.LocalTarget(str(self.file_path(FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2)))
     
@@ -2180,8 +2109,6 @@ class CreatePitchTask(PlanTask):
     
     The resulting pitch JSON is written to the file specified by FilenameEnum.PITCH.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-    
     def output(self):
         return luigi.LocalTarget(str(self.file_path(FilenameEnum.PITCH_RAW)))
     
@@ -2234,8 +2161,6 @@ class ConvertPitchToMarkdownTask(PlanTask):
     This task depends on:
       - CreatePitchTask: Creates the pitch JSON.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-    
     def output(self):
         return {
             'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.PITCH_CONVERT_TO_MARKDOWN_RAW))),
@@ -2276,8 +2201,6 @@ class IdentifyTaskDependenciesTask(PlanTask):
     """
     This task identifies the dependencies between WBS tasks.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-    
     def output(self):
         return luigi.LocalTarget(str(self.file_path(FilenameEnum.TASK_DEPENDENCIES_RAW)))
     
@@ -2333,8 +2256,6 @@ class EstimateTaskDurationsTask(PlanTask):
     2nd estimate tasks that have children where all children have been estimated.
     repeat until all tasks have been estimated.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-    
     def output(self):
         # The primary output is the aggregated task durations JSON.
         return luigi.LocalTarget(str(self.file_path(FilenameEnum.TASK_DURATIONS)))
@@ -2425,8 +2346,6 @@ class CreateWBSLevel3Task(PlanTask):
     The raw JSON result for each task is written to a file using the template from FilenameEnum. 
     Finally, all individual results are accumulated and written as an aggregated JSON file.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-    
     def output(self):
         return luigi.LocalTarget(str(self.file_path(FilenameEnum.WBS_LEVEL3)))
     
@@ -2528,8 +2447,6 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
       - WBSProjectLevel1AndLevel2Task: providing the major phases with subtasks and the task UUIDs.
       - CreateWBSLevel3Task: providing the decomposed tasks.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def output(self):
         return {
             'full': luigi.LocalTarget(str(self.file_path(FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_FULL))),
@@ -2560,8 +2477,6 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
             f.write(csv_representation)
 
 class CreateScheduleTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def output(self):
         return {
             'mermaid': luigi.LocalTarget(self.file_path(FilenameEnum.SCHEDULE_MERMAID_GANTT_HTML)),
@@ -2657,8 +2572,6 @@ class ReviewPlanTask(PlanTask):
     """
     Ask questions about the almost finished plan.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def output(self):
         return {
             'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.REVIEW_PLAN_RAW))),
@@ -2740,8 +2653,6 @@ class ExecutiveSummaryTask(PlanTask):
       - WBSProjectLevel1AndLevel2AndLevel3Task: provides the table csv file.
       - ReviewPlanTask: provides the reviewed plan as Markdown.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def output(self):
         return {
             'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.EXECUTIVE_SUMMARY_RAW))),
@@ -2814,8 +2725,6 @@ class ExecutiveSummaryTask(PlanTask):
 
 
 class QuestionsAndAnswersTask(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def output(self):
         return {
             'raw': luigi.LocalTarget(str(self.file_path(FilenameEnum.QUESTIONS_AND_ANSWERS_RAW))),
@@ -2893,8 +2802,6 @@ class ReportTask(PlanTask):
     """
     Generate a report html document.
     """
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def output(self):
         return luigi.LocalTarget(str(self.file_path(FilenameEnum.REPORT)))
     
@@ -2938,11 +2845,9 @@ class ReportTask(PlanTask):
         rg.save_report(self.output().path)
 
 class FullPlanPipeline(PlanTask):
-    llm_model = luigi.Parameter(default=DEFAULT_LLM_MODEL)
-
     def requires(self):
         return {
-            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail),
+            'setup': SetupTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'identify_purpose': IdentifyPurposeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'plan_type': PlanTypeTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
             'physical_locations': PhysicalLocationsTask(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_model=self.llm_model),
