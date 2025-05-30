@@ -15,9 +15,10 @@ from src.plan.generate_run_id import generate_run_id
 from src.plan.plan_file import PlanFile
 from src.plan.filenames import FilenameEnum, ExtraFilenameEnum
 from src.prompt.prompt_catalog import PromptCatalog
-from src.llm_factory import SPECIAL_AUTO_ID
+from src.llm_factory import SPECIAL_AUTO_ID, get_llm_names_by_priority, get_llm
 from src.plan.speedvsdetail import SpeedVsDetailEnum
 from src.plan.pipeline_environment import PipelineEnvironmentEnum
+from llama_index.core.llms import ChatMessage, MessageRole
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +120,65 @@ class MyFlaskApp:
         @self.app.route('/developer')
         def developer():
             return render_template('developer.html')
+
+        @self.app.route('/ping')
+        def ping():
+            return render_template('ping.html')
+
+        @self.app.route('/ping/stream')
+        def ping_stream():
+            def generate():
+                llm_names = get_llm_names_by_priority()
+
+                for llm_name in llm_names:
+                    # Send "pinging" status
+                    yield f"data: {json.dumps({
+                        'name': llm_name,
+                        'status': 'pinging',
+                        'response_time': 0,
+                        'response': 'Pinging model...'
+                    })}\n\n"
+
+                    try:
+                        start_time = time.time()
+                        llm = get_llm(llm_name)
+                        
+                        # Test message
+                        chat_message_list = [
+                            ChatMessage(
+                                role=MessageRole.USER,
+                                content="Hello, this is a test message. Please respond with 'OK' if you can read this."
+                            )
+                        ]
+                        
+                        response = llm.chat(chat_message_list)
+                        end_time = time.time()
+                        
+                        result = {
+                            'name': llm_name,
+                            'status': 'success',
+                            'response_time': int((end_time - start_time) * 1000),  # Convert to milliseconds
+                            'response': response.message.content
+                        }
+                    except Exception as e:
+                        result = {
+                            'name': llm_name,
+                            'status': 'error',
+                            'response_time': 0,
+                            'response': str(e)
+                        }
+                    
+                    yield f"data: {json.dumps(result)}\n\n"
+
+                # Send final "done" status
+                yield f"data: {json.dumps({
+                    'name': 'server',
+                    'status': 'done',
+                    'response_time': 0,
+                    'response': ''
+                })}\n\n"
+
+            return Response(generate(), mimetype='text/event-stream')
 
         @self.app.route("/jobs", methods=["POST"])
         def create_job():

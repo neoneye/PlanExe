@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ping LLMs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .status-success {
+            color: green;
+        }
+        .status-error {
+            color: red;
+        }
+        .status-pinging {
+            color: #666;
+            font-style: italic;
+        }
+        .back-link {
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        @keyframes ellipsis {
+            0% { content: '.'; }
+            33% { content: '..'; }
+            66% { content: '...'; }
+            100% { content: '.'; }
+        }
+        .pinging::after {
+            content: '.';
+            animation: ellipsis 1.5s infinite;
+            display: inline-block;
+            width: 1em;
+            text-align: left;
+        }
+        .server-status {
+            font-size: 0.8em;
+            font-weight: normal;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-left: 10px;
+            display: inline-block;
+        }
+        .server-status.working {
+            background-color: #2196F3;
+            color: white;
+        }
+        .server-status.done {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .server-status.error {
+            background-color: #f44336;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <a href="/developer" class="back-link">← Back to Developer Page</a>
+    <h1>LLM Ping Results <span id="serverStatus" class="server-status working">Working...</span></h1>
+    <table>
+        <thead>
+            <tr>
+                <th>LLM Name</th>
+                <th>Status</th>
+                <th>Response Time</th>
+                <th>Response</th>
+            </tr>
+        </thead>
+        <tbody id="results">
+            <tr>
+                <td colspan="4" class="loading">Loading results...</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <script>
+        const resultsTable = document.getElementById('results');
+        const serverStatus = document.getElementById('serverStatus');
+        const results = new Map();
+
+        const eventSource = new EventSource('/ping/stream');
+        
+        eventSource.onmessage = function(event) {
+            const result = JSON.parse(event.data);
+            
+            if (result.name === 'server') {
+                if (result.status === 'done') {
+                    serverStatus.textContent = 'Done';
+                    serverStatus.className = 'server-status done';
+                    eventSource.close();
+                }
+                return;
+            }
+            
+            results.set(result.name, result);
+            updateTable();
+        };
+
+        eventSource.onerror = function() {
+            eventSource.close();
+            if (results.size === 0) {
+                resultsTable.innerHTML = '<tr><td colspan="4" class="status-error">Error connecting to server</td></tr>';
+            }
+            serverStatus.textContent = 'Error';
+            serverStatus.className = 'server-status error';
+        };
+
+        function updateTable() {
+            if (results.size === 0) return;
+
+            let html = '';
+            for (const result of results.values()) {
+                const statusClass = result.status === 'pinging' ? 'pinging' : `status-${result.status}`;
+                html += `
+                    <tr>
+                        <td>${result.name}</td>
+                        <td class="${statusClass}">${result.status}</td>
+                        <td>${result.response_time}ms</td>
+                        <td>${result.response}</td>
+                    </tr>
+                `;
+            }
+            resultsTable.innerHTML = html;
+        }
+    </script>
+</body>
+</html> 
