@@ -77,6 +77,7 @@ from src.format_json_for_use_in_query import format_json_for_use_in_query
 from src.utils.get_env_as_string import get_env_as_string
 from src.report.report_generator import ReportGenerator
 from src.luigi_util.obtain_output_files import ObtainOutputFiles
+from src.plan.pipeline_environment import PipelineEnvironment, PipelineEnvironmentEnum
 
 logger = logging.getLogger(__name__)
 DEFAULT_LLM_MODEL = "ollama-llama3.1"
@@ -2832,9 +2833,11 @@ if __name__ == '__main__':
     # specify a hardcoded, and it will resume work on that directory
     # run_id = "20250205_141025"
 
+    pipeline_environment = PipelineEnvironment.from_env()
+
     # if env contains "RUN_ID" then use that as the run_id
-    if "RUN_ID" in os.environ:
-        run_id = os.environ["RUN_ID"]
+    if pipeline_environment.run_id:
+        run_id = pipeline_environment.run_id
 
     run_dir = os.path.join("run", run_id)
     os.makedirs(run_dir, exist_ok=True)
@@ -2867,6 +2870,7 @@ if __name__ == '__main__':
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
 
+    logger.info(f"pipeline_environment: {pipeline_environment!r}")
     logger.info(f"run_id: {run_id}")
 
     # Example logging messages
@@ -2883,8 +2887,8 @@ if __name__ == '__main__':
         logger.error("No LLM models found. Please check your llm_config.json file and add 'priority' values.")
         llm_names = [DEFAULT_LLM_MODEL]
 
-    if "LLM_MODEL" in os.environ:
-        llm_model = os.environ["LLM_MODEL"]
+    if pipeline_environment.llm_model:
+        llm_model = pipeline_environment.llm_model
         logger.info(f"Using the specified LLM model: {llm_model!r}")
         if llm_model != SPECIAL_AUTO_ID:
             if not is_valid_llm_name(llm_model):
@@ -2897,8 +2901,8 @@ if __name__ == '__main__':
         logger.info(f"{index}. {llm_name!r}")
 
     speedvsdetail = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW
-    if "SPEED_VS_DETAIL" in os.environ:
-        speedvsdetail_value = os.environ["SPEED_VS_DETAIL"]
+    speedvsdetail_value = pipeline_environment.speed_vs_detail
+    if speedvsdetail_value:
         found = False
         for e in SpeedVsDetailEnum:
             if e.value == speedvsdetail_value:
