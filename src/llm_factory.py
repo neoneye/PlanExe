@@ -138,8 +138,14 @@ class LLMInfo:
 
         # The rest are the LLM models specified in the llm_config.json file.
         for config_id, config in _llm_configs.items():
+            priority = config.get("priority", None)
+            if priority:
+                label_with_priority = f"{config_id} (prio: {priority})"
+            else:
+                label_with_priority = config_id
+
             if config.get("class") != "Ollama":
-                item = LLMConfigItem(id=config_id, label=config_id)
+                item = LLMConfigItem(id=config_id, label=label_with_priority)
                 llm_config_items.append(item)
                 continue
 
@@ -152,9 +158,9 @@ class LLMInfo:
 
             is_model_available = ollama_info.is_model_available(model)
             if is_model_available:
-                label = config_id
+                label = label_with_priority
             else:
-                label = f"{config_id} ❌ unavailable"
+                label = f"{label_with_priority} ❌ unavailable"
             
             if ollama_info.is_running and not is_model_available:
                 error_message = f"Problem with config `\"{config_id}\"`: The model `\"{model}\"` is not available in Ollama. Compare model names in `llm_config.json` with the names available in Ollama."
