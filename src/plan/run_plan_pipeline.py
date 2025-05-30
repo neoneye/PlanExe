@@ -72,7 +72,7 @@ from src.wbs.wbs_populate import WBSPopulate
 from src.schedule.hierarchy_estimator_wbs import HierarchyEstimatorWBS
 from src.schedule.export_dhtmlx_gantt import ExportDHTMLXGantt
 from src.schedule.project_schedule_wbs import ProjectScheduleWBS
-from src.llm_factory import get_llm, get_llm_names_by_priority
+from src.llm_factory import get_llm, get_llm_names_by_priority, SPECIAL_AUTO_ID, is_valid_llm_name
 from src.format_json_for_use_in_query import format_json_for_use_in_query
 from src.utils.get_env_as_string import get_env_as_string
 from src.report.report_generator import ReportGenerator
@@ -2880,17 +2880,21 @@ if __name__ == '__main__':
 
     llm_names = get_llm_names_by_priority()
     if len(llm_names) == 0:
+        logger.error("No LLM models found. Please check your llm_config.json file and add 'priority' values.")
         llm_names = [DEFAULT_LLM_MODEL]
-
-    logger.info(f"LLM names by priority:")
-    for index, llm_name in enumerate(llm_names):
-        logger.info(f"{index}. {llm_name!r}")
 
     if "LLM_MODEL" in os.environ:
         llm_model = os.environ["LLM_MODEL"]
         logger.info(f"Using the specified LLM model: {llm_model!r}")
-        # TODO: make use of the specified LLM model.
-        # llm_names = [llm_model]
+        if llm_model != SPECIAL_AUTO_ID:
+            if not is_valid_llm_name(llm_model):
+                logger.error(f"Invalid LLM model: {llm_model!r}. Please check your llm_config.json file and add the model.")
+                raise ValueError(f"Invalid LLM model: {llm_model!r}. Please check your llm_config.json file and add the model.")
+            llm_names = [llm_model]
+
+    logger.info(f"These are the LLM models that will be used in the pipeline:")
+    for index, llm_name in enumerate(llm_names):
+        logger.info(f"{index}. {llm_name!r}")
 
     speedvsdetail = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW
     if "SPEED_VS_DETAIL" in os.environ:
