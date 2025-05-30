@@ -25,7 +25,7 @@ SPECIAL_AUTO_LABEL = 'Auto'
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["get_llm", "LLMInfo", "get_llm_names_by_priority", "SPECIAL_AUTO_ID"]
+__all__ = ["get_llm", "LLMInfo", "get_llm_names_by_priority", "SPECIAL_AUTO_ID", "is_valid_llm_name"]
 
 # Load .env values and merge with system environment variables.
 # This one-liner makes sure any secret injected by Hugging Face, like OPENROUTER_API_KEY
@@ -188,6 +188,12 @@ def get_llm_names_by_priority() -> list[str]:
     configs.sort(key=lambda x: x[1].get("priority", 0))
     return [name for name, _ in configs]
 
+def is_valid_llm_name(llm_name: str) -> bool:
+    """
+    Returns True if the LLM name is valid, False otherwise.
+    """
+    return llm_name in _llm_configs
+
 def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
     """
     Returns an LLM instance based on the config.json file or a fallback default.
@@ -204,10 +210,10 @@ def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
         logger.error(f"The special {SPECIAL_AUTO_ID!r} is not a LLM model that can be created. Please use a valid LLM name.")
         raise ValueError(f"The special {SPECIAL_AUTO_ID!r} is not a LLM model that can be created. Please use a valid LLM name.")
 
-    if llm_name not in _llm_configs:
+    if not is_valid_llm_name(llm_name):
         # If llm_name doesn't exits in _llm_configs, then we go through default settings
-        logger.error(f"LLM '{llm_name}' not found in config.json. Falling back to hardcoded defaults.")
-        raise ValueError(f"Unsupported LLM name: {llm_name}")
+        logger.error(f"Cannot create LLM, the llm_name {llm_name!r} is not found in config.json.")
+        raise ValueError(f"Cannot create LLM, the llm_name {llm_name!r} is not found in config.json.")
 
     config = _llm_configs[llm_name]
     class_name = config.get("class")
