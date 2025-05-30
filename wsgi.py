@@ -17,8 +17,18 @@ if project_home not in sys.path:
 # Debug llama_index installation
 try:
     import llama_index
-    logger.debug(f"llama_index version: {llama_index.__version__}")
     logger.debug(f"llama_index path: {llama_index.__file__}")
+    # Try to get version from pkg_resources instead
+    import pkg_resources
+    version = pkg_resources.get_distribution("llama-index").version
+    logger.debug(f"llama_index version (from pkg_resources): {version}")
+    
+    # List all llama-index related packages
+    llama_packages = [dist for dist in pkg_resources.working_set if dist.key.startswith('llama-index')]
+    logger.debug("Installed llama-index related packages:")
+    for package in llama_packages:
+        logger.debug(f"  {package.key} {package.version}")
+        
 except ImportError as e:
     logger.error(f"Failed to import llama_index: {e}")
     # List all installed packages
