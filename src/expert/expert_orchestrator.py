@@ -42,6 +42,14 @@ class ExpertOrchestrator:
             expert_title = expert_copy.get('title', 'Missing title')
             logger.info(f"Getting criticism from expert {expert_index + 1} of {expert_list_truncated_count}. expert_title: {expert_title}")
             system_prompt = ExpertCriticism.format_system(expert_dict)
+
+            # IDEA: Cycle through the available LLM models, if the first one fails, try the next one. Currently it's done by the run_plan_pipeline.py, but it should be done here.
+            # Doing it in the run_plan_pipeline. There are several llm invocations here, in case the LLM fails, then it quickly exhausts the available LLM models. Fragile approach.
+            # Doing it here, and it will start out with the preferred LLM model, move on to the next one if it fails. 
+            # For next expert, it will again start out with the preferred LLM model.
+            # Thus doing it here, is more likely to succeed.
+
+            # IDEA: If the expert file for expert_index already exist, then there is no need to run the LLM again.
             expert_criticism = ExpertCriticism.execute(llm, query, system_prompt)
             if self.phase2_post_callback:
                 self.phase2_post_callback(expert_criticism, expert_index)
