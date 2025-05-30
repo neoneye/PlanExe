@@ -285,21 +285,17 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
     # Create a SpeedVsDetailEnum instance from the session_state.speedvsdetail.
     # Sporadic I have experienced that session_state.speedvsdetail is a string and other times it's a SpeedVsDetailEnum.
     speedvsdetail = session_state.speedvsdetail
+    speedvsdetail_string = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW.value
     if isinstance(speedvsdetail, str):
-        try:
-            speedvsdetail = SpeedVsDetailEnum(speedvsdetail)
-        except Exception as e:
-            print(f"ERROR: for some reason the speedvsdetail is not a SpeedVsDetailEnum: {speedvsdetail!r}")
-            speedvsdetail = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW
-    if not isinstance(speedvsdetail, SpeedVsDetailEnum):
-        print(f"ERROR: for some reason the speedvsdetail is not a SpeedVsDetailEnum: {speedvsdetail!r}")
-        speedvsdetail = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW
+        speedvsdetail_string = speedvsdetail
+    elif isinstance(speedvsdetail, SpeedVsDetailEnum):
+        speedvsdetail_string = speedvsdetail.value
 
     # Set environment variables for the pipeline.
     env = os.environ.copy()
     env[PipelineEnvironmentEnum.RUN_ID.value] = run_id
     env[PipelineEnvironmentEnum.LLM_MODEL.value] = session_state.llm_model
-    env[PipelineEnvironmentEnum.SPEED_VS_DETAIL.value] = speedvsdetail.value
+    env[PipelineEnvironmentEnum.SPEED_VS_DETAIL.value] = speedvsdetail_string
 
     # If there is a non-empty OpenRouter API key, set it as an environment variable.
     if session_state.openrouter_api_key and len(session_state.openrouter_api_key) > 0:
