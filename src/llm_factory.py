@@ -19,9 +19,13 @@ from src.llm_util.ollama_info import OllamaInfo
 # You can disable this if you don't want to send app info to OpenRouter.
 SEND_APP_INFO_TO_OPENROUTER = True
 
+# This is a special case. It will cycle through the available LLM models, if the first one fails, try the next one.
+SPECIAL_AUTO_ID = 'auto'
+SPECIAL_AUTO_LABEL = 'Auto'
+
 logger = logging.getLogger(__name__)
 
-__all__ = ["get_llm", "LLMInfo", "get_llm_names_by_priority"]
+__all__ = ["get_llm", "LLMInfo", "get_llm_names_by_priority", "SPECIAL_AUTO_ID"]
 
 # Load .env values and merge with system environment variables.
 # This one-liner makes sure any secret injected by Hugging Face, like OPENROUTER_API_KEY
@@ -126,13 +130,20 @@ class LLMInfo:
                 print(f"Error message: {ollama_info.error_message}")
                 error_message_list.append(ollama_info.error_message)
 
-        # Get info about the each LLM config item that is using Ollama.
+        # Prepare the list of available LLM config items.
         llm_config_items = []
+
+        # This is a special case. It will cycle through the available LLM models, if the first one fails, try the next one.
+        llm_config_items.append(LLMConfigItem(id=SPECIAL_AUTO_ID, label=SPECIAL_AUTO_LABEL))
+
+        # The rest are the LLM models specified in the llm_config.json file.
         for config_id, config in _llm_configs.items():
             if config.get("class") != "Ollama":
                 item = LLMConfigItem(id=config_id, label=config_id)
                 llm_config_items.append(item)
                 continue
+
+            # Get info about the each LLM config item that is using Ollama.
             arguments = config.get("arguments", {})
             model = arguments.get("model", None)
             base_url = arguments.get("base_url", None)
@@ -188,6 +199,10 @@ def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
     """
     if not llm_name:
         llm_name = _dotenv_dict.get("DEFAULT_LLM", "ollama-llama3.1")
+
+    if llm_name == SPECIAL_AUTO_ID:
+        logger.error(f"The special {SPECIAL_AUTO_ID!r} is not a LLM model that can be created. Please use a valid LLM name.")
+        raise ValueError(f"The special {SPECIAL_AUTO_ID!r} is not a LLM model that can be created. Please use a valid LLM name.")
 
     if llm_name not in _llm_configs:
         # If llm_name doesn't exits in _llm_configs, then we go through default settings
