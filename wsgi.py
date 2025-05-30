@@ -18,25 +18,21 @@ if project_home not in sys.path:
 try:
     import llama_index
     logger.debug(f"llama_index path: {llama_index.__file__}")
-    # Try to get version from pkg_resources instead
-    import pkg_resources
-    version = pkg_resources.get_distribution("llama-index").version
-    logger.debug(f"llama_index version (from pkg_resources): {version}")
     
-    # List all llama-index related packages
-    llama_packages = [dist for dist in pkg_resources.working_set if dist.key.startswith('llama-index')]
-    logger.debug("Installed llama-index related packages:")
-    for package in llama_packages:
-        logger.debug(f"  {package.key} {package.version}")
-        
+    # Try to import the specific module that's failing
+    try:
+        from llama_index.core.llms.llm import LLM
+        logger.debug("Successfully imported LLM from llama_index.core.llms.llm")
+    except ImportError as e:
+        logger.error(f"Failed to import LLM: {e}")
+        logger.debug("Trying to list available modules in llama_index:")
+        import inspect
+        for name, obj in inspect.getmembers(llama_index):
+            if not name.startswith('_'):  # Skip private members
+                logger.debug(f"  {name}: {type(obj)}")
+    
 except ImportError as e:
     logger.error(f"Failed to import llama_index: {e}")
-    # List all installed packages
-    import pkg_resources
-    installed_packages = [f"{dist.key} {dist.version}" for dist in pkg_resources.working_set]
-    logger.debug("Installed packages:")
-    for package in installed_packages:
-        logger.debug(package)
 
 # Import the Flask app
 logger.debug("Attempting to import MyFlaskApp...")
