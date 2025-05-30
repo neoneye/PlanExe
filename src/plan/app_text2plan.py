@@ -21,6 +21,7 @@ from src.plan.create_zip_archive import create_zip_archive
 from src.plan.filenames import FilenameEnum
 from src.plan.plan_file import PlanFile
 from src.plan.speedvsdetail import SpeedVsDetailEnum
+from src.plan.pipeline_environment import PipelineEnvironmentEnum
 from src.prompt.prompt_catalog import PromptCatalog
 from src.purge.purge_old_runs import start_purge_scheduler
 from src.utils.get_env_as_string import get_env_as_string
@@ -281,11 +282,24 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
         plan_file = PlanFile.create(plan_prompt)
         plan_file.save(os.path.join(run_path, FilenameEnum.INITIAL_PLAN.value))
 
+    # Create a SpeedVsDetailEnum instance from the session_state.speedvsdetail.
+    # Sporadic I have experienced that session_state.speedvsdetail is a string and other times it's a SpeedVsDetailEnum.
+    speedvsdetail = session_state.speedvsdetail
+    if isinstance(speedvsdetail, str):
+        try:
+            speedvsdetail = SpeedVsDetailEnum(speedvsdetail)
+        except Exception as e:
+            print(f"ERROR: for some reason the speedvsdetail is not a SpeedVsDetailEnum: {speedvsdetail!r}")
+            speedvsdetail = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW
+    if not isinstance(speedvsdetail, SpeedVsDetailEnum):
+        print(f"ERROR: for some reason the speedvsdetail is not a SpeedVsDetailEnum: {speedvsdetail!r}")
+        speedvsdetail = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW
+
     # Set environment variables for the pipeline.
     env = os.environ.copy()
-    env["RUN_ID"] = run_id
-    env["LLM_MODEL"] = session_state.llm_model
-    env["SPEED_VS_DETAIL"] = session_state.speedvsdetail
+    env[PipelineEnvironmentEnum.RUN_ID.value] = run_id
+    env[PipelineEnvironmentEnum.LLM_MODEL.value] = session_state.llm_model
+    env[PipelineEnvironmentEnum.SPEED_VS_DETAIL.value] = speedvsdetail.value
 
     # If there is a non-empty OpenRouter API key, set it as an environment variable.
     if session_state.openrouter_api_key and len(session_state.openrouter_api_key) > 0:
