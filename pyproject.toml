@@ -5,11 +5,6 @@ description = "Transform ideas to plans"
 authors = [{ name="Simon Strandgaard", email="neoneye@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.13"
-
-[project.urls]
-"Homepage" = "https://github.com/neoneye/planexe"
-"Discord" = "https://neoneye.github.io/PlanExe-web/discord.html"
-
 # Core dependencies needed regardless of UI
 dependencies = [
     "aiofiles==23.2.1",
@@ -126,6 +121,10 @@ dependencies = [
     "wrapt==1.17.0",
     "yarl==1.18.3",
 ]
+
+[project.urls]
+"Homepage" = "https://github.com/neoneye/planexe"
+"Discord" = "https://neoneye.github.io/PlanExe-web/discord.html"
 
 # Optional dependencies for different UI configurations
 [project.optional-dependencies]
