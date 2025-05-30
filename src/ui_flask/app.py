@@ -17,6 +17,7 @@ from src.plan.filenames import FilenameEnum, ExtraFilenameEnum
 from src.prompt.prompt_catalog import PromptCatalog
 from src.llm_factory import SPECIAL_AUTO_ID
 from src.plan.speedvsdetail import SpeedVsDetailEnum
+from src.plan.pipeline_environment import PipelineEnvironmentEnum
 
 logger = logging.getLogger(__name__)
 
@@ -94,9 +95,9 @@ class MyFlaskApp:
             raise Exception(f"The run_path directory is supposed to exist at this point. However no run_path directory exists: {run_path}")
 
         environment = os.environ.copy()
-        environment["RUN_ID"] = run_id
-        environment["LLM_MODEL"] = SPECIAL_AUTO_ID
-        environment["SPEED_VS_DETAIL"] = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW.value
+        environment[PipelineEnvironmentEnum.RUN_ID.value] = run_id
+        environment[PipelineEnvironmentEnum.LLM_MODEL.value] = SPECIAL_AUTO_ID
+        environment[PipelineEnvironmentEnum.SPEED_VS_DETAIL.value] = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW.value
 
         # Create job state
         job = JobState(run_id=run_id, run_path=run_path, environment=environment)
