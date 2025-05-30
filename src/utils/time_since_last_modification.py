@@ -10,8 +10,12 @@ def time_since_last_modification(path_dir: str) -> float:
     all_mtimes = []
     for filename in os.listdir(path_dir):
         filepath = os.path.join(path_dir, filename)
-        st = os.stat(filepath)
-        all_mtimes.append(st.st_mtime)
+        try:
+            st = os.stat(filepath)
+            all_mtimes.append(st.st_mtime)
+        except FileNotFoundError:
+            # Skip files that no longer exist
+            continue
 
     if not all_mtimes:
         return 0.0  # No files at all, treat as 0 or handle specially
