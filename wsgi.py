@@ -1,8 +1,8 @@
-print("----- WSGI SCRIPT IS BEING ACCESSED -----", file=sys.stderr)
-
 import sys
 import os
 import logging
+
+print("----- WSGI SCRIPT IS BEING ACCESSED -----", file=sys.stderr)
 
 # Configure logging VERY EARLY - this might help catch early issues
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG) # Log to stderr
