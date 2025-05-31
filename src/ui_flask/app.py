@@ -367,6 +367,7 @@ class MyFlaskApp:
 
             # Start the process
             command = [sys.executable, "-m", MODULE_PATH_PIPELINE]
+            logger.info(f"_run_job. subprocess.Popen before command: {command!r}")
             job.process = subprocess.Popen(
                 command,
                 cwd=".",
@@ -374,6 +375,7 @@ class MyFlaskApp:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
+            logger.info(f"_run_job. subprocess.Popen after command: {command!r}")
 
             job.status = JobStatus.running
 
