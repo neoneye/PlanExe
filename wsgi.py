@@ -15,20 +15,18 @@ project_home = os.path.dirname(os.path.abspath(__file__))
 logger.debug(f"Project home: {project_home}")
 
 if project_home not in sys.path:
-    sys.path.insert(0, project_home) # Use insert(0, ...) for higher precedence
+    sys.path.insert(0, project_home)
     logger.debug(f"Updated sys.path: {sys.path}")
-
-# Make sure this import is correct for your project structure
-# If app.py is in src/ui_flask/app.py relative to project_home:
-# from src.ui_flask.app import MyFlaskApp
-# If app.py is in the same directory as wsgi.py:
-# from app import MyFlaskApp
 
 logger.debug("Attempting to import MyFlaskApp...")
 try:
-    # from src.ui_flask.app import MyFlaskApp # Comment this out temporarily
-    logger.info("SKIPPING MyFlaskApp import for bus error test") # Add this
-    # application = None # Temporarily set application to None or a dummy
+    logger.info("Importing MyFlaskApp...")
+    from src.ui_flask.app import MyFlaskApp
+    logger.info("Creating MyFlaskApp instance...")
+    my_flask_app_wrapper = MyFlaskApp()
+    logger.info("Successfully created MyFlaskApp instance")
+    app = my_flask_app_wrapper.app
+    logger.info("Successfully set 'app' variable")
 except Exception as e:
     logger.error(f"CRITICAL ERROR IN WSGI FILE: {e}", exc_info=True)
     raise
