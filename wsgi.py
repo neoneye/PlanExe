@@ -38,16 +38,18 @@ except ImportError as e:
 logger.debug("Attempting to import MyFlaskApp...")
 from src.ui_flask.app import MyFlaskApp
 logger.debug("Successfully imported MyFlaskApp")
-
-# Create the application instance
 logger.debug("Creating MyFlaskApp instance...")
-app = MyFlaskApp()
+my_flask_app_wrapper = MyFlaskApp() # Use a different name to avoid confusion
 logger.debug("Successfully created MyFlaskApp instance")
 
-# Enable debug mode
-app.app.debug = True
-logger.debug("Debug mode enabled")
+# Enable debug mode for the underlying Flask app
+# Note: PythonAnywhere generally handles debug mode. Setting it here might be overridden or unnecessary for production.
+# For PythonAnywhere, it's better to rely on their settings and logs.
+# However, it shouldn't break startup.
+my_flask_app_wrapper.app.debug = True
+logger.debug("Debug mode enabled on Flask app instance")
 
 # This is the variable that PythonAnywhere will look for
-application = app
-logger.debug("WSGI application configured") 
+app = my_flask_app_wrapper.app
+application = my_flask_app_wrapper.app
+logger.debug("WSGI application configured with Flask app instance")
