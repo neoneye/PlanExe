@@ -26,24 +26,9 @@ if project_home not in sys.path:
 
 logger.debug("Attempting to import MyFlaskApp...")
 try:
-    # ADJUST THIS IMPORT PATH BASED ON YOUR ACTUAL FILE STRUCTURE
-    # Assuming wsgi.py is in the root and app.py is in src/ui_flask/
-    from src.ui_flask.app import MyFlaskApp
-    logger.debug("Successfully imported MyFlaskApp")
-
-    logger.debug("Creating MyFlaskApp instance...")
-    my_flask_app_wrapper = MyFlaskApp()
-    logger.debug("Successfully created MyFlaskApp instance")
-
-    # This is the variable that PythonAnywhere will look for
-    application = my_flask_app_wrapper.app # CRITICAL: it must be the Flask app instance
-    logger.debug("WSGI 'application' configured with Flask app instance")
-    app = application
-    logger.debug("WSGI 'app' configured with Flask app instance")
-
+    # from src.ui_flask.app import MyFlaskApp # Comment this out temporarily
+    logger.info("SKIPPING MyFlaskApp import for bus error test") # Add this
+    # application = None # Temporarily set application to None or a dummy
 except Exception as e:
     logger.error(f"CRITICAL ERROR IN WSGI FILE: {e}", exc_info=True)
-    # If you have an error here, the 'application' object might not be set,
-    # and uWSGI will fail silently from the perspective of your error.log
-    # This error *should* go to stderr, which PythonAnywhere *should* capture.
-    raise # Re-raise the exception to make sure it's visible if possible
+    raise
