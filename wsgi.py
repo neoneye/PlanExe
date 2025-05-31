@@ -1,3 +1,5 @@
+print("----- WSGI SCRIPT IS BEING ACCESSED -----", file=sys.stderr)
+
 import sys
 import os
 import logging
