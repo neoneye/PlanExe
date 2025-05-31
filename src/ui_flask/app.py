@@ -231,9 +231,14 @@ class MyFlaskApp:
             run_path = os.path.join(RUN_DIR, run_id)
             absolute_path_to_run_dir = os.path.abspath(run_path)
 
+            logger.info(f"endpoint /run. current working directory: {os.getcwd()}")
+            logger.info(f"endpoint /run. run_id: {run_id}")
+            logger.info(f"endpoint /run. run_path: {run_path}")
+            logger.info(f"endpoint /run. absolute_path_to_run_dir: {absolute_path_to_run_dir}")
+
             if os.path.exists(run_path):
                 raise Exception(f"The run path is not supposed to exist at this point. However the run path already exists: {run_path}")
-            os.makedirs(run_path)
+            os.makedirs(run_path, exist_ok=True)
 
             # Create the initial plan file.
             plan_file = PlanFile.create(prompt_param)
@@ -245,6 +250,8 @@ class MyFlaskApp:
                 return jsonify({"error": "Failed to create job", "details": response_data}), 500
 
             current_user.current_run_id = run_id
+
+            logger.info(f"endpoint /run. render_template. run_id={run_id} user_id={user_id_param}")
 
             return render_template('run.html', user_id=user_id_param)
 
