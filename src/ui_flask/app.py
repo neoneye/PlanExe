@@ -428,10 +428,9 @@ class MyFlaskApp:
             # python_executable = self.path_to_python
             # command = [python_executable, "--version"]
             logger.info(f"_run_job. subprocess.Popen before command: {command!r}")
-            logger.info(f"_run_job. CWD for subprocess: {os.path.abspath('.')}") # Log current working directory for Popen
+            logger.info(f"_run_job. CWD for subprocess: {self.planexe_dir_path!r}")
             logger.info(f"_run_job. Environment keys for subprocess (sample): "
-                        f"RUN_ID={job.environment.get(PipelineEnvironmentEnum.RUN_ID.value)}, "
-                        f"VIRTUAL_ENV={job.environment.get('VIRTUAL_ENV')}")
+                        f"RUN_ID={job.environment.get(PipelineEnvironmentEnum.RUN_ID.value)!r}")
 
 
             job.process = subprocess.Popen(
