@@ -23,6 +23,7 @@ from src.plan.pipeline_environment import PipelineEnvironmentEnum
 logger = logging.getLogger(__name__)
 
 PYTHONANYWHERE_PATH_TO_PYTHON = "/home/neoneye/.virtualenvs/myvirtualenv/bin/python"
+PYTHONANYWHERE_SUBPROCESS_CWD = "/home/neoneye/git/PlanExe"
 PROJECT_ROOT_DIR = "/home/neoneye/git/PlanExe"
 
 MODULE_PATH_PIPELINE = "src.plan.run_plan_pipeline"
@@ -80,6 +81,11 @@ class MyFlaskApp:
         else:
             self.path_to_python = sys.executable
         
+        if self.is_pythonanywhere:
+            self.subprocess_cwd = PYTHONANYWHERE_SUBPROCESS_CWD
+        else:
+            self.subprocess_cwd = "."
+        
         self._start_check()
 
         self.app = Flask(__name__)
@@ -95,6 +101,7 @@ class MyFlaskApp:
     def _start_check(self):
         logger.info(f"_start_check. is_pythonanywhere: {self.is_pythonanywhere}")
         logger.info(f"_start_check. path_to_python: {self.path_to_python}")
+        logger.info(f"_start_check. subprocess_cwd: {self.subprocess_cwd}")
 
         # print the environment variables
         logger.info(f"_start_check. environment variables: {os.environ}")
@@ -102,6 +109,9 @@ class MyFlaskApp:
         issue_count = 0
         if not os.path.exists(self.path_to_python):
             logger.error(f"The python executable does not exist at this point. However the python executable should exist: {self.path_to_python!r}")
+            issue_count += 1
+        if not os.path.exists(self.subprocess_cwd):
+            logger.error(f"The subprocess cwd does not exist at this point. However the subprocess cwd should exist: {self.subprocess_cwd!r}")
             issue_count += 1
         # if not os.path.exists(PROJECT_ROOT_DIR):
         #     logger.error(f"The project root directory does not exist at this point. However the project root directory should exist: {PROJECT_ROOT_DIR}!r")
@@ -432,7 +442,7 @@ class MyFlaskApp:
 
             job.process = subprocess.Popen(
                 command,
-                cwd=".", # Run from the project root, so `src.plan...` can be found
+                cwd=self.subprocess_cwd,
                 env=job.environment, # This passes the parent's environment, including VIRTUAL_ENV if set
                 stdout=subprocess.PIPE, # Capture stdout
                 stderr=subprocess.PIPE, # Capture stderr
