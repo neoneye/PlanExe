@@ -389,7 +389,9 @@ class MyFlaskApp:
 
             # Start the process
             # command = [python_executable, "-m", MODULE_PATH_PIPELINE]
-            command = [python_executable, "--version"]
+            # command = [python_executable, "--version"]
+            python_executable = "/home/neoneye/git/PlanExe/planexe_run.sh"
+            command = [python_executable]
             logger.info(f"_run_job. subprocess.Popen before command: {command!r}")
             logger.info(f"_run_job. CWD for subprocess: {os.path.abspath('.')}") # Log current working directory for Popen
             logger.info(f"_run_job. Environment keys for subprocess (sample): "

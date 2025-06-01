@@ -1,0 +1,2 @@
+workon myvirtualenv
+python --version
