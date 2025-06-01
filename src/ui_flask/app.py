@@ -202,7 +202,7 @@ class MyFlaskApp:
                     job.stop_event.set()
                 return jsonify({"message": f"Stopped {len(running_jobs)} jobs"}), 200
             except Exception as e:
-                logger.error(f"Error stopping jobs: {e}")
+                logger.error(f"Error stopping jobs: {e}", exc_info=True)
                 return jsonify({"error": str(e)}), 500
 
         @self.app.route('/run')
@@ -338,7 +338,8 @@ class MyFlaskApp:
             prompt_uuid = DEMO1_PROMPT_UUID
             prompt_item = self.prompt_catalog.find(prompt_uuid)
             if prompt_item is None:
-                raise Exception(f"Prompt item not found for uuid: {prompt_uuid}")
+                logger.error(f"Prompt item not found for uuid: {prompt_uuid} in demo1")
+                return "Error: Demo prompt configuration missing.", 500
             return render_template('demo1.html', prompt=prompt_item.prompt, user_id=user_id)
 
         @self.app.route('/demo2')
@@ -353,7 +354,8 @@ class MyFlaskApp:
             for prompt_uuid in DEMO2_PROMPT_UUIDS:
                 prompt_item = self.prompt_catalog.find(prompt_uuid)
                 if prompt_item is None:
-                    raise Exception(f"Prompt item not found for uuid: {prompt_uuid}")
+                    logger.error(f"Prompt item not found for uuid: {prompt_uuid} in demo2")
+                    return "Error: Demo prompt configuration missing.", 500
                 prompts.append(prompt_item.prompt)
 
             return render_template('demo2.html', user_id=user_id, prompts=prompts)
@@ -426,7 +428,7 @@ class MyFlaskApp:
                 time.sleep(1)
 
         except Exception as e:
-            logger.error(f"Error running job: {e}")
+            logger.error(f"Error running job {job.run_id}: {e}", exc_info=True)
             job.status = JobStatus.failed
             job.error = str(e)
 
