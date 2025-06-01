@@ -24,7 +24,8 @@ logger = logging.getLogger(__name__)
 
 PYTHONANYWHERE_PATH_TO_PYTHON = "/home/neoneye/.virtualenvs/myvirtualenv/bin/python"
 
-MODULE_PATH_PIPELINE = "src.plan.run_plan_pipeline"
+# MODULE_PATH_PIPELINE = "src.plan.run_plan_pipeline"
+MODULE_PATH_PIPELINE = "src.plan.run_plan_pipeline_find_buserror"
 RUN_DIR = "run"
 
 SHOW_DEMO_PLAN = True
