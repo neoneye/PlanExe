@@ -95,6 +95,10 @@ class MyFlaskApp:
     def _start_check(self):
         logger.info(f"_start_check. is_pythonanywhere: {self.is_pythonanywhere}")
         logger.info(f"_start_check. path_to_python: {self.path_to_python}")
+
+        # print the environment variables
+        logger.info(f"_start_check. environment variables: {os.environ}")
+
         issue_count = 0
         if not os.path.exists(self.path_to_python):
             logger.error(f"The python executable does not exist at this point. However the python executable should exist: {self.path_to_python!r}")
