@@ -64,65 +64,65 @@ class IdentifyPurpose:
     metadata: dict
     markdown: str
 
-    @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'IdentifyPurpose':
-        """
-        Invoke LLM with the project description.
-        """
-        if not isinstance(llm, LLM):
-            raise ValueError("Invalid LLM instance.")
-        if not isinstance(user_prompt, str):
-            raise ValueError("Invalid user_prompt.")
+    # @classmethod
+    # def execute(cls, llm: LLM, user_prompt: str) -> 'IdentifyPurpose':
+    #     """
+    #     Invoke LLM with the project description.
+    #     """
+    #     if not isinstance(llm, LLM):
+    #         raise ValueError("Invalid LLM instance.")
+    #     if not isinstance(user_prompt, str):
+    #         raise ValueError("Invalid user_prompt.")
 
-        logger.debug(f"User Prompt:\n{user_prompt}")
+    #     logger.debug(f"User Prompt:\n{user_prompt}")
 
-        system_prompt = IDENTIFY_PURPOSE_SYSTEM_PROMPT.strip()
+    #     system_prompt = IDENTIFY_PURPOSE_SYSTEM_PROMPT.strip()
 
-        chat_message_list = [
-            ChatMessage(
-                role=MessageRole.SYSTEM,
-                content=system_prompt,
-            ),
-            ChatMessage(
-                role=MessageRole.USER,
-                content=user_prompt,
-            )
-        ]
+    #     chat_message_list = [
+    #         ChatMessage(
+    #             role=MessageRole.SYSTEM,
+    #             content=system_prompt,
+    #         ),
+    #         ChatMessage(
+    #             role=MessageRole.USER,
+    #             content=user_prompt,
+    #         )
+    #     ]
 
-        sllm = llm.as_structured_llm(PlanPurposeInfo)
-        start_time = time.perf_counter()
-        try:
-            chat_response = sllm.chat(chat_message_list)
-        except Exception as e:
-            logger.debug(f"LLM chat interaction failed: {e}")
-            logger.error("LLM chat interaction failed.", exc_info=True)
-            raise ValueError("LLM chat interaction failed.") from e
+    #     sllm = llm.as_structured_llm(PlanPurposeInfo)
+    #     start_time = time.perf_counter()
+    #     try:
+    #         chat_response = sllm.chat(chat_message_list)
+    #     except Exception as e:
+    #         logger.debug(f"LLM chat interaction failed: {e}")
+    #         logger.error("LLM chat interaction failed.", exc_info=True)
+    #         raise ValueError("LLM chat interaction failed.") from e
 
-        end_time = time.perf_counter()
-        duration = int(ceil(end_time - start_time))
-        response_byte_count = len(chat_response.message.content.encode('utf-8'))
-        logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
+    #     end_time = time.perf_counter()
+    #     duration = int(ceil(end_time - start_time))
+    #     response_byte_count = len(chat_response.message.content.encode('utf-8'))
+    #     logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
 
-        plan_purpose_instance: PlanPurposeInfo = chat_response.raw
-        json_response = plan_purpose_instance.model_dump()
-        purpose_value = plan_purpose_instance.purpose.value
-        json_response['purpose'] = purpose_value
+    #     plan_purpose_instance: PlanPurposeInfo = chat_response.raw
+    #     json_response = plan_purpose_instance.model_dump()
+    #     purpose_value = plan_purpose_instance.purpose.value
+    #     json_response['purpose'] = purpose_value
 
-        metadata = dict(llm.metadata)
-        metadata["llm_classname"] = llm.class_name()
-        metadata["duration"] = duration
-        metadata["response_byte_count"] = response_byte_count
+    #     metadata = dict(llm.metadata)
+    #     metadata["llm_classname"] = llm.class_name()
+    #     metadata["duration"] = duration
+    #     metadata["response_byte_count"] = response_byte_count
 
-        markdown = cls.convert_to_markdown(plan_purpose_instance)
+    #     markdown = cls.convert_to_markdown(plan_purpose_instance)
 
-        result = IdentifyPurpose(
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
-            response=json_response,
-            metadata=metadata,
-            markdown=markdown
-        )
-        return result
+    #     result = IdentifyPurpose(
+    #         system_prompt=system_prompt,
+    #         user_prompt=user_prompt,
+    #         response=json_response,
+    #         metadata=metadata,
+    #         markdown=markdown
+    #     )
+    #     return result
     
     def to_dict(self, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
         d = self.response.copy()
