@@ -23,8 +23,6 @@ from src.plan.pipeline_environment import PipelineEnvironmentEnum
 logger = logging.getLogger(__name__)
 
 PYTHONANYWHERE_PATH_TO_PYTHON = "/home/neoneye/.virtualenvs/myvirtualenv/bin/python"
-PYTHONANYWHERE_SUBPROCESS_CWD = "/home/neoneye/git/PlanExe"
-PROJECT_ROOT_DIR = "/home/neoneye/git/PlanExe"
 
 MODULE_PATH_PIPELINE = "src.plan.run_plan_pipeline"
 RUN_DIR = "run"
@@ -75,24 +73,20 @@ class UserState:
 class MyFlaskApp:
     def __init__(self):
         self.is_pythonanywhere = os.environ.get("PYTHONANYWHERE_DOMAIN") is not None
+        logger.info(f"MyFlaskApp.__init__. is_pythonanywhere: {self.is_pythonanywhere}")
 
         if self.is_pythonanywhere:
             self.path_to_python = PYTHONANYWHERE_PATH_TO_PYTHON
         else:
             self.path_to_python = sys.executable
+        logger.info(f"MyFlaskApp.__init__. path_to_python: {self.path_to_python}")
         
-        root_path = os.path.join(os.path.dirname(__file__), '..', '..')
-        self.planexe_dir_path = os.path.abspath(root_path)
-        logger.info(f"MyFlaskApp.__init__. planexe_dir_path: {self.planexe_dir_path}")
+        self.planexe_dir_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        logger.info(f"MyFlaskApp.__init__. planexe_dir_path: {self.planexe_dir_path!r}")
 
         self.run_dir_path = os.path.abspath(os.path.join(self.planexe_dir_path, RUN_DIR))
-        logger.info(f"MyFlaskApp.__init__. run_dir_path: {self.run_dir_path}")
+        logger.info(f"MyFlaskApp.__init__. run_dir_path: {self.run_dir_path!r}")
 
-        if self.is_pythonanywhere:
-            self.subprocess_cwd = PYTHONANYWHERE_SUBPROCESS_CWD
-        else:
-            self.subprocess_cwd = "."
-        
         self._start_check()
 
         self.app = Flask(__name__)
@@ -106,24 +100,16 @@ class MyFlaskApp:
         self._setup_routes()
 
     def _start_check(self):
-        logger.info(f"_start_check. is_pythonanywhere: {self.is_pythonanywhere}")
-        logger.info(f"_start_check. path_to_python: {self.path_to_python}")
-        logger.info(f"_start_check. subprocess_cwd: {self.subprocess_cwd}")
-        logger.info(f"_start_check. planexe_dir_path: {self.planexe_dir_path}")
-
         # print the environment variables
-        logger.info(f"_start_check. environment variables: {os.environ}")
+        logger.info(f"MyFlaskApp._start_check. environment variables: {os.environ}")
 
         issue_count = 0
         if not os.path.exists(self.path_to_python):
             logger.error(f"The python executable does not exist at this point. However the python executable should exist: {self.path_to_python!r}")
             issue_count += 1
-        if not os.path.exists(self.subprocess_cwd):
-            logger.error(f"The subprocess cwd does not exist at this point. However the subprocess cwd should exist: {self.subprocess_cwd!r}")
+        if not os.path.exists(self.planexe_dir_path):
+            logger.error(f"The planexe_dir_path does not exist at this point. However the planexe_dir_path should exist: {self.planexe_dir_path!r}")
             issue_count += 1
-        # if not os.path.exists(PROJECT_ROOT_DIR):
-        #     logger.error(f"The project root directory does not exist at this point. However the project root directory should exist: {PROJECT_ROOT_DIR}!r")
-        #     issue_count += 1
         if issue_count > 0:
             raise Exception(f"There are {issue_count} issues with the python executable and project root directory")
 
