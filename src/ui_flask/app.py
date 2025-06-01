@@ -388,7 +388,8 @@ class MyFlaskApp:
                 raise Exception(f"The run_path directory is supposed to exist at this point. However the output directory does not exist: {run_path}")
 
             # Start the process
-            command = [python_executable, "-m", MODULE_PATH_PIPELINE]
+            # command = [python_executable, "-m", MODULE_PATH_PIPELINE]
+            command = [python_executable, "--version"]
             logger.info(f"_run_job. subprocess.Popen before command: {command!r}")
             logger.info(f"_run_job. CWD for subprocess: {os.path.abspath('.')}") # Log current working directory for Popen
             logger.info(f"_run_job. Environment keys for subprocess (sample): "
