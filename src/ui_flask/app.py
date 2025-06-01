@@ -333,7 +333,9 @@ class MyFlaskApp:
                     logger.error(f"Error in progress stream for user_id {user_id}: {e}")
                     job.stop_event.set()
 
-            return Response(generate(), mimetype='text/event-stream')
+            response = Response(generate(), mimetype='text/event-stream')
+            response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
+            return response
 
         @self.app.route('/viewplan')
         def viewplan():
@@ -433,7 +435,9 @@ class MyFlaskApp:
                     # Client disconnected, stop the stream
                     logger.info("Client disconnected from demo_eventsource stream")
                     return
-            return Response(event_stream(), mimetype='text/event-stream')
+            response = Response(event_stream(), mimetype='text/event-stream')
+            response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
+            return response
 
     def _run_job(self, job: JobState):
         """Run the actual job in a subprocess"""
