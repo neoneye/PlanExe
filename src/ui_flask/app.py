@@ -434,10 +434,13 @@ class MyFlaskApp:
         job.stop_event.clear()
 
 
-    def run(self, debug=True):
-        self.app.run(debug=debug)
+    def run_server(self, debug=True, host='127.0.0.1', port=5000):
+        self.app.run(debug=debug, host=host, port=port)
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    app = MyFlaskApp()
-    app.run(debug=True) 
+    logging.basicConfig(
+        level=logging.INFO, 
+        format='%(asctime)s - %(name)s - %(levelname)s - %(process)d - %(threadName)s - %(message)s'
+    )
+    flask_app_instance = MyFlaskApp()
+    flask_app_instance.run_server(debug=True)
