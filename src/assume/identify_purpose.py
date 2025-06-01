@@ -14,8 +14,8 @@ from typing import Optional
 from enum import Enum
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
-from llama_index.core.llms import ChatMessage, MessageRole
-from llama_index.core.llms.llm import LLM
+# from llama_index.core.llms import ChatMessage, MessageRole
+# from llama_index.core.llms.llm import LLM
 
 logger = logging.getLogger(__name__)
 
