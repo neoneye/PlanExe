@@ -376,6 +376,24 @@ class MyFlaskApp:
 
             return render_template('demo2.html', user_id=user_id, prompts=prompts)
 
+        @self.app.route('/demo_subprocess_run')
+        def demo_subprocess_run():
+            try:
+                result = subprocess.run(
+                    ["/usr/bin/uname", "-a"],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                output = result.stdout.strip()
+                return render_template('demo_subprocess_run.html', output=output, error=None)
+            except subprocess.CalledProcessError as e:
+                error_msg = f"Error running: {e.stderr}"
+                return render_template('demo_subprocess_run.html', output=None, error=error_msg)
+            except Exception as e:
+                error_msg = f"Unexpected error: {str(e)}"
+                return render_template('demo_subprocess_run.html', output=None, error=error_msg)
+
     def _run_job(self, job: JobState):
         """Run the actual job in a subprocess"""
         python_executable = sys.executable  # Default
