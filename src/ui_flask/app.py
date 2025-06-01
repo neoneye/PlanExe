@@ -81,6 +81,13 @@ class MyFlaskApp:
         else:
             self.path_to_python = sys.executable
         
+        root_path = os.path.join(os.path.dirname(__file__), '..', '..')
+        self.planexe_dir_path = os.path.abspath(root_path)
+        logger.info(f"MyFlaskApp.__init__. planexe_dir_path: {self.planexe_dir_path}")
+
+        self.run_dir_path = os.path.abspath(os.path.join(self.planexe_dir_path, RUN_DIR))
+        logger.info(f"MyFlaskApp.__init__. run_dir_path: {self.run_dir_path}")
+
         if self.is_pythonanywhere:
             self.subprocess_cwd = PYTHONANYWHERE_SUBPROCESS_CWD
         else:
@@ -102,6 +109,7 @@ class MyFlaskApp:
         logger.info(f"_start_check. is_pythonanywhere: {self.is_pythonanywhere}")
         logger.info(f"_start_check. path_to_python: {self.path_to_python}")
         logger.info(f"_start_check. subprocess_cwd: {self.subprocess_cwd}")
+        logger.info(f"_start_check. planexe_dir_path: {self.planexe_dir_path}")
 
         # print the environment variables
         logger.info(f"_start_check. environment variables: {os.environ}")
@@ -224,7 +232,7 @@ class MyFlaskApp:
             try:
                 data = request.json
                 run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
-                run_path = os.path.join(RUN_DIR, run_id)
+                run_path = os.path.join(self.run_dir_path, run_id)
                 absolute_path_to_run_dir = os.path.abspath(run_path)
                 response_data, status_code = self._create_job_internal(run_id, absolute_path_to_run_dir)
                 return jsonify(response_data), status_code            
@@ -267,7 +275,7 @@ class MyFlaskApp:
                 current_user.current_run_id = None
 
             run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
-            run_path = os.path.join(RUN_DIR, run_id)
+            run_path = os.path.join(self.run_dir_path, run_id)
             absolute_path_to_run_dir = os.path.abspath(run_path)
 
             logger.info(f"endpoint /run. current working directory: {os.getcwd()}")
@@ -357,7 +365,7 @@ class MyFlaskApp:
 
             logger.info(f"ViewPlan endpoint. user_id={user_id} run_id={run_id}")
 
-            run_path = os.path.join(RUN_DIR, run_id)
+            run_path = os.path.join(self.run_dir_path, run_id)
             absolute_path_to_run_dir = os.path.abspath(run_path)
             if not os.path.exists(absolute_path_to_run_dir):
                 raise Exception(f"Run directory not found at {absolute_path_to_run_dir}. Please ensure the run directory exists before viewing the plan.")
@@ -442,7 +450,7 @@ class MyFlaskApp:
 
             job.process = subprocess.Popen(
                 command,
-                cwd=self.subprocess_cwd,
+                cwd=self.planexe_dir_path,
                 env=job.environment, # This passes the parent's environment, including VIRTUAL_ENV if set
                 stdout=subprocess.PIPE, # Capture stdout
                 stderr=subprocess.PIPE, # Capture stderr
