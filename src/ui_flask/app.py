@@ -22,7 +22,7 @@ from src.plan.pipeline_environment import PipelineEnvironmentEnum
 
 logger = logging.getLogger(__name__)
 
-PATH_TO_PYTHON = "/home/neoneye/.virtualenvs/myvirtualenv/bin/python"
+PYTHONANYWHERE_PATH_TO_PYTHON = "/home/neoneye/.virtualenvs/myvirtualenv/bin/python"
 PROJECT_ROOT_DIR = "/home/neoneye/git/PlanExe"
 
 MODULE_PATH_PIPELINE = "src.plan.run_plan_pipeline"
@@ -73,6 +73,13 @@ class UserState:
 
 class MyFlaskApp:
     def __init__(self):
+        self.is_pythonanywhere = os.environ.get("PYTHONANYWHERE_DOMAIN") is not None
+
+        if self.is_pythonanywhere:
+            self.path_to_python = PYTHONANYWHERE_PATH_TO_PYTHON
+        else:
+            self.path_to_python = sys.executable
+        
         self._start_check()
 
         self.app = Flask(__name__)
@@ -86,13 +93,15 @@ class MyFlaskApp:
         self._setup_routes()
 
     def _start_check(self):
+        logger.info(f"_start_check. is_pythonanywhere: {self.is_pythonanywhere}")
+        logger.info(f"_start_check. path_to_python: {self.path_to_python}")
         issue_count = 0
-        if not os.path.exists(PATH_TO_PYTHON):
-            logger.error(f"The python executable does not exist at this point. However the python executable should exist: {PATH_TO_PYTHON!r}")
+        if not os.path.exists(self.path_to_python):
+            logger.error(f"The python executable does not exist at this point. However the python executable should exist: {self.path_to_python!r}")
             issue_count += 1
-        if not os.path.exists(PROJECT_ROOT_DIR):
-            logger.error(f"The project root directory does not exist at this point. However the project root directory should exist: {PROJECT_ROOT_DIR}!r")
-            issue_count += 1
+        # if not os.path.exists(PROJECT_ROOT_DIR):
+        #     logger.error(f"The project root directory does not exist at this point. However the project root directory should exist: {PROJECT_ROOT_DIR}!r")
+        #     issue_count += 1
         if issue_count > 0:
             raise Exception(f"There are {issue_count} issues with the python executable and project root directory")
 
@@ -427,7 +436,7 @@ class MyFlaskApp:
             # python_executable = "/home/neoneye/git/PlanExe/planexe_run.sh"
             # command = [python_executable]
             # python_executable = "/usr/bin/git"
-            python_executable = PATH_TO_PYTHON
+            python_executable = self.path_to_python
             command = [python_executable, "--version"]
             logger.info(f"_run_job. subprocess.Popen before command: {command!r}")
             logger.info(f"_run_job. CWD for subprocess: {os.path.abspath('.')}") # Log current working directory for Popen
