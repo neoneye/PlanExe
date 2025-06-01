@@ -18,6 +18,8 @@ from pathlib import Path
 
 from src.plan.filenames import FilenameEnum, ExtraFilenameEnum
 from src.plan.speedvsdetail import SpeedVsDetailEnum
+
+"""
 from src.plan.plan_file import PlanFile
 from src.plan.find_plan_prompt import find_plan_prompt
 from src.assume.identify_purpose import IdentifyPurpose
@@ -77,6 +79,7 @@ from src.format_json_for_use_in_query import format_json_for_use_in_query
 from src.utils.get_env_as_string import get_env_as_string
 from src.report.report_generator import ReportGenerator
 from src.luigi_util.obtain_output_files import ObtainOutputFiles
+"""
 from src.plan.pipeline_environment import PipelineEnvironment, PipelineEnvironmentEnum
 
 logger = logging.getLogger(__name__)
