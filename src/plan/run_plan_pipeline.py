@@ -2872,6 +2872,8 @@ if __name__ == '__main__':
 
     logger.info(f"pipeline_environment: {pipeline_environment!r}")
     logger.info(f"run_id: {run_id}")
+    logging.shutdown()
+    exit(1)
 
     # Example logging messages
     if False:
