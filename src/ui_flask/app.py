@@ -362,51 +362,99 @@ class MyFlaskApp:
 
     def _run_job(self, job: JobState):
         """Run the actual job in a subprocess"""
+        python_executable = sys.executable  # Default
+        
+        # On PythonAnywhere (and other setups using virtualenvs properly),
+        # VIRTUAL_ENV environment variable points to the venv directory.
+        # The python interpreter is then typically at $VIRTUAL_ENV/bin/python.
+        virtual_env_path = os.environ.get("VIRTUAL_ENV")
+        if virtual_env_path:
+            venv_python_path = os.path.join(virtual_env_path, "bin", "python")
+            if os.path.exists(venv_python_path):
+                python_executable = venv_python_path
+                logger.info(f"_run_job: Using Python from VIRTUAL_ENV: {python_executable}")
+            else:
+                logger.warning(f"_run_job: VIRTUAL_ENV set to {virtual_env_path}, "
+                               f"but {venv_python_path} not found. "
+                               f"Falling back to sys.executable: {sys.executable}")
+        else:
+            logger.info(f"_run_job: VIRTUAL_ENV not set. Using sys.executable: {sys.executable}. "
+                        f"This might be problematic if sys.executable is not the desired Python interpreter (e.g., uWSGI binary).")
+
+
         try:
             run_path = job.run_path
             if not os.path.exists(run_path):
                 raise Exception(f"The run_path directory is supposed to exist at this point. However the output directory does not exist: {run_path}")
 
             # Start the process
-            command = [sys.executable, "-m", MODULE_PATH_PIPELINE]
+            command = [python_executable, "-m", MODULE_PATH_PIPELINE]
             logger.info(f"_run_job. subprocess.Popen before command: {command!r}")
+            logger.info(f"_run_job. CWD for subprocess: {os.path.abspath('.')}") # Log current working directory for Popen
+            logger.info(f"_run_job. Environment keys for subprocess (sample): "
+                        f"RUN_ID={job.environment.get(PipelineEnvironmentEnum.RUN_ID.value)}, "
+                        f"VIRTUAL_ENV={job.environment.get('VIRTUAL_ENV')}")
+
+
             job.process = subprocess.Popen(
                 command,
-                cwd=".",
-                env=job.environment,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
+                cwd=".", # Run from the project root, so `src.plan...` can be found
+                env=job.environment, # This passes the parent's environment, including VIRTUAL_ENV if set
+                stdout=subprocess.PIPE, # Capture stdout
+                stderr=subprocess.PIPE, # Capture stderr
+                text=True # Decode stdout/stderr as text
             )
-            logger.info(f"_run_job. subprocess.Popen after command: {command!r}")
+            logger.info(f"_run_job. subprocess.Popen after command: {command!r} with PID: {job.process.pid}")
 
             job.status = JobStatus.running
 
             # Monitor the process
             while True:
                 if job.stop_event.is_set():
+                    logger.info(f"_run_job: Stop event set for run_id {job.run_id}. Terminating process.")
                     job.process.terminate()
+                    try:
+                        # Wait a bit for graceful termination
+                        job.process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        logger.warning(f"_run_job: Process {job.process.pid} did not terminate gracefully. Killing.")
+                        job.process.kill()
                     job.status = JobStatus.cancelled
                     break
 
-                if job.process.poll() is not None:
-                    if job.process.returncode == 0:
+                return_code = job.process.poll()
+                if return_code is not None:
+                    stdout, stderr = job.process.communicate() # Get remaining output
+                    if stdout:
+                        logger.info(f"_run_job {job.run_id} STDOUT:\n{stdout}")
+                    if stderr:
+                        logger.error(f"_run_job {job.run_id} STDERR:\n{stderr}")
+
+                    if return_code == 0:
                         job.status = JobStatus.completed
+                        logger.info(f"_run_job: Process for run_id {job.run_id} completed successfully.")
                     else:
                         job.status = JobStatus.failed
-                        job.error = f"Process exited with code {job.process.returncode}"
+                        job.error = f"Process exited with code {return_code}. Stderr: {stderr[:500]}" # Log part of stderr
+                        logger.error(f"_run_job: Process for run_id {job.run_id} failed with code {return_code}.")
                     break
 
-                # obtain list of files in the run_path directory
-                files = os.listdir(run_path)
-                # filter out uninteresting files
+                # Update progress (same logic as before)
+                files = []
+                try:
+                    if os.path.exists(run_path) and os.path.isdir(run_path):
+                        files = os.listdir(run_path)
+                except OSError as e:
+                    logger.warning(f"_run_job: Could not list files in {run_path}: {e}")
+
                 ignore_files = [
                     ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value,
                     ExtraFilenameEnum.LOG_TXT.value
                 ]
                 files = [f for f in files if f not in ignore_files]
-                logger.info(f"Files in run_path: {files}")
+                # logger.debug(f"Files in run_path for {job.run_id}: {files}") # Debug, can be noisy
                 number_of_files = len(files)
-                logger.info(f"Number of files in run_path: {number_of_files}")
+                # logger.debug(f"Number of files in run_path for {job.run_id}: {number_of_files}") # Debug
 
                 # Determine the progress, by comparing the generated files with the expected_filenames1.json
                 expected_filenames_path = os.path.join(run_path, ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value)
@@ -431,9 +479,14 @@ class MyFlaskApp:
             logger.error(f"Error running job {job.run_id}: {e}", exc_info=True)
             job.status = JobStatus.failed
             job.error = str(e)
-
-        # End of the job. No matter what, clear the stop event, so that the user can start a new job.
-        job.stop_event.clear()
+        finally:
+            # End of the job. No matter what, clear the stop event, so that the user can start a new job.
+            job.stop_event.clear()
+            logger.info(f"_run_job: Finished processing job {job.run_id} with status {job.status}.")
+            if job.process and job.process.poll() is None: # Ensure process is cleaned up if loop exited abnormally
+                logger.warning(f"_run_job: Job {job.run_id} loop exited but process {job.process.pid} still running. Terminating.")
+                job.process.terminate()
+                job.process.wait() # Wait for termination
 
 
     def run_server(self, debug=True, host='127.0.0.1', port=5000):
