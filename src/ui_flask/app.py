@@ -405,39 +405,20 @@ class MyFlaskApp:
 
     def _run_job(self, job: JobState):
         """Run the actual job in a subprocess"""
-        python_executable = sys.executable  # Default
         
-        # On PythonAnywhere (and other setups using virtualenvs properly),
-        # VIRTUAL_ENV environment variable points to the venv directory.
-        # The python interpreter is then typically at $VIRTUAL_ENV/bin/python.
-        virtual_env_path = os.environ.get("VIRTUAL_ENV")
-        if virtual_env_path:
-            venv_python_path = os.path.join(virtual_env_path, "bin", "python")
-            if os.path.exists(venv_python_path):
-                python_executable = venv_python_path
-                logger.info(f"_run_job: Using Python from VIRTUAL_ENV: {python_executable}")
-            else:
-                logger.warning(f"_run_job: VIRTUAL_ENV set to {virtual_env_path}, "
-                               f"but {venv_python_path} not found. "
-                               f"Falling back to sys.executable: {sys.executable}")
-        else:
-            logger.info(f"_run_job: VIRTUAL_ENV not set. Using sys.executable: {sys.executable}. "
-                        f"This might be problematic if sys.executable is not the desired Python interpreter (e.g., uWSGI binary).")
-
-
         try:
             run_path = job.run_path
             if not os.path.exists(run_path):
                 raise Exception(f"The run_path directory is supposed to exist at this point. However the output directory does not exist: {run_path}")
 
             # Start the process
-            # command = [python_executable, "-m", MODULE_PATH_PIPELINE]
-            # command = [python_executable, "--version"]
+            command = [self.path_to_python, "-m", MODULE_PATH_PIPELINE]
+            # command = [self.path_to_python, "--version"]
             # python_executable = "/home/neoneye/git/PlanExe/planexe_run.sh"
             # command = [python_executable]
             # python_executable = "/usr/bin/git"
-            python_executable = self.path_to_python
-            command = [python_executable, "--version"]
+            # python_executable = self.path_to_python
+            # command = [python_executable, "--version"]
             logger.info(f"_run_job. subprocess.Popen before command: {command!r}")
             logger.info(f"_run_job. CWD for subprocess: {os.path.abspath('.')}") # Log current working directory for Popen
             logger.info(f"_run_job. Environment keys for subprocess (sample): "
