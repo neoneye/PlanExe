@@ -292,7 +292,9 @@ class MyFlaskApp:
                     logger.error(f"Error in progress stream for user_id {user_id}: {e}")
                     job.stop_event.set()
 
-            return Response(generate(), mimetype='text/event-stream')
+            response = Response(generate(), mimetype='text/event-stream')
+            response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
+            return response
 
         @self.app.route('/viewplan')
         def viewplan():
@@ -350,6 +352,49 @@ class MyFlaskApp:
                 prompts.append(prompt_item.prompt)
 
             return render_template('demo2.html', user_id=user_id, prompts=prompts)
+
+        @self.app.route('/demo_subprocess_run')
+        def demo_subprocess_run():
+            try:
+                result = subprocess.run(
+                    ["/usr/bin/uname", "-a"],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                output = result.stdout.strip()
+                return render_template('demo_subprocess_run.html', output=output, error=None)
+            except subprocess.CalledProcessError as e:
+                error_msg = f"Error running: {e.stderr}"
+                return render_template('demo_subprocess_run.html', output=None, error=error_msg)
+            except Exception as e:
+                error_msg = f"Unexpected error: {str(e)}"
+                return render_template('demo_subprocess_run.html', output=None, error=error_msg)
+
+        @self.app.route('/demo_eventsource')
+        def demo_eventsource():
+            return render_template('demo_eventsource.html')
+
+        @self.app.route('/demo_eventsource/stream')
+        def demo_eventsource_stream():
+            def event_stream():
+                start_time = time.time()
+                count = 0
+                try:
+                    while time.time() - start_time < 30:  # Run for 30 seconds
+                        time.sleep(1)  # Send an event every second
+                        count += 1
+                        # CRITICAL: Ensure you have two newlines at the end of each message
+                        yield f"data: Message number {count}\n\n"
+                    # Send a final message to indicate completion
+                    yield f"data: Stream completed after {count} messages\n\n"
+                except GeneratorExit:
+                    # Client disconnected, stop the stream
+                    logger.info("Client disconnected from demo_eventsource stream")
+                    return
+            response = Response(event_stream(), mimetype='text/event-stream')
+            response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
+            return response
 
     def _run_job(self, job: JobState):
         """Run the actual job in a subprocess"""
@@ -425,10 +470,13 @@ class MyFlaskApp:
         job.stop_event.clear()
 
 
-    def run(self, debug=True):
-        self.app.run(debug=debug)
+    def run_server(self, debug=True, host='127.0.0.1', port=5000):
+        self.app.run(debug=debug, host=host, port=port)
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    app = MyFlaskApp()
-    app.run(debug=True) 
+    logging.basicConfig(
+        level=logging.INFO, 
+        format='%(asctime)s - %(name)s - %(levelname)s - %(process)d - %(threadName)s - %(message)s'
+    )
+    flask_app_instance = MyFlaskApp()
+    flask_app_instance.run_server(debug=True)
