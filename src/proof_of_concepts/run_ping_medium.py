@@ -3,11 +3,19 @@ Ping the LLM to check if it is running. Depends on the external dependencies: Ll
 No use of PlanExe's llm_factory.
 No use of Pydantic for structured output.
 
+If you use venv:
 PROMPT> python -m venv venv
 PROMPT> source venv/bin/activate
 (venv) PROMPT> pip install llama-index llama-index-llms-openrouter
 (venv) PROMPT> export OPENROUTER_API_KEY=sk-or-v1-your-openrouter-api-key-here
 (venv) PROMPT> python -m src.proof_of_concepts.run_ping_medium
+
+If you use virtualenvwrapper, remove the virtualenv afterwards:
+PROMPT> mkvirtualenv mypingenv --python=/usr/bin/python3.13
+(mypingenv) PROMPT> pip install llama-index llama-index-llms-openrouter
+(mypingenv) PROMPT> export OPENROUTER_API_KEY=sk-or-v1-your-openrouter-api-key-here
+(mypingenv) PROMPT> python -m src.proof_of_concepts.run_ping_medium
+(mypingenv) PROMPT> rm -rf ~/.virtualenvs/mypingenv
 """
 from llama_index.llms.openrouter import OpenRouter
 from llama_index.core.llms import ChatMessage, MessageRole
