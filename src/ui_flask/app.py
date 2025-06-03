@@ -411,7 +411,7 @@ class MyFlaskApp:
                 output = result.stdout.strip()
                 return render_template(template, topic=topic, output=output, error=None)
             except subprocess.CalledProcessError as e:
-                logger.error(f"demo_subprocess_run_simple. Subprocess failed with exit code {e.returncode}. Error: {e.stderr}")
+                logger.error(f"demo_subprocess_run_simple. Subprocess failed with exit code {e.returncode}. stdout: {e.stdout!r}, stderr: {e.stderr!r}")
                 message = "subprocess.CalledProcessError, see log for details."
                 return render_template(template, topic=topic, output=None, error=message)
             except Exception as e:
@@ -441,7 +441,7 @@ class MyFlaskApp:
                 output = result.stdout.strip()
                 return render_template(template, topic=topic, output=output, error=None)
             except subprocess.CalledProcessError as e:
-                logger.error(f"demo_subprocess_run_medium. Subprocess failed with exit code {e.returncode}. Error: {e.stderr}")
+                logger.error(f"demo_subprocess_run_medium. Subprocess failed with exit code {e.returncode}. stdout: {e.stdout!r}, stderr: {e.stderr!r}")
                 message = "subprocess.CalledProcessError, see log for details."
                 return render_template(template, topic=topic, output=None, error=message)
             except Exception as e:
@@ -471,7 +471,7 @@ class MyFlaskApp:
                 output = result.stdout.strip()
                 return render_template(template, topic=topic, output=output, error=None)
             except subprocess.CalledProcessError as e:
-                logger.error(f"demo_subprocess_run_advanced. Subprocess failed with exit code {e.returncode}. Error: {e.stderr}")
+                logger.error(f"demo_subprocess_run_advanced. Subprocess failed with exit code {e.returncode}. stdout: {e.stdout!r}, stderr: {e.stderr!r}")
                 message = "subprocess.CalledProcessError, see log for details."
                 return render_template(template, topic=topic, output=None, error=message)
             except Exception as e:
