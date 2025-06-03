@@ -5,7 +5,7 @@ Make assumptions about the project. Identify what the project *will* and *will n
 ## 1. Identify Purpose
 
 - **Business:** Involving multiple people, companies, money, for profit.
-- **Personal:** One individual that wants to loose weight or the nearest family that makes some change to their life.
+- **Personal:** One individual that wants to lose weight or the nearest family that makes some change to their life.
 - **Other:** When the plan doesn't fit into the business/personal categories, such as a small programming project.
 
 ## 2. Identify Plan Type
