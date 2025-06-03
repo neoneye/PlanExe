@@ -23,7 +23,7 @@ from src.plan.pipeline_environment import PipelineEnvironmentEnum
 
 logger = logging.getLogger(__name__)
 
-PYTHONANYWHERE_PATH_TO_PYTHON = "/home/neoneye/.virtualenvs/myvirtualenv/bin/python"
+PYTHONANYWHERE_PATH_TO_PYTHON = "/home/neoneye/.virtualenvs/myfixbuserrorenv/bin/python"
 
 MODULE_PATH_PIPELINE = "src.plan.run_plan_pipeline"
 # MODULE_PATH_PIPELINE = "src.plan.run_plan_pipeline_find_buserror"
