@@ -396,8 +396,10 @@ class MyFlaskApp:
 
             return render_template('demo2.html', user_id=user_id, prompts=prompts)
 
-        @self.app.route('/demo_subprocess_run')
-        def demo_subprocess_run():
+        @self.app.route('/demo_subprocess_run_simple')
+        def demo_subprocess_run_simple():
+            topic = 'subprocess.run with simple command'
+            template = 'check_is_working.html'
             try:
                 result = subprocess.run(
                     ["/usr/bin/uname", "-a"],
@@ -406,13 +408,13 @@ class MyFlaskApp:
                     check=True
                 )
                 output = result.stdout.strip()
-                return render_template('demo_subprocess_run.html', output=output, error=None)
+                return render_template(template, topic=topic, output=output, error=None)
             except subprocess.CalledProcessError as e:
                 error_msg = f"Error running: {e.stderr}"
-                return render_template('demo_subprocess_run.html', output=None, error=error_msg)
+                return render_template(template, topic=topic, output=None, error=error_msg)
             except Exception as e:
                 error_msg = f"Unexpected error: {str(e)}"
-                return render_template('demo_subprocess_run.html', output=None, error=error_msg)
+                return render_template(template, topic=topic, output=None, error=error_msg)
 
         @self.app.route('/demo_eventsource')
         def demo_eventsource():
