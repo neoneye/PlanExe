@@ -1,3 +1,9 @@
+"""
+Flask UI for PlanExe.
+
+When deployed to PythonAnywhere, this file is used to run the Flask app.
+It has to be named wsgi.py, and be in the root directory of the project.
+"""
 import sys
 import os
 import logging
