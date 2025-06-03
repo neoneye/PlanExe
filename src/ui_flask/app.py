@@ -411,10 +411,12 @@ class MyFlaskApp:
                 output = result.stdout.strip()
                 return render_template(template, topic=topic, output=output, error=None)
             except subprocess.CalledProcessError as e:
-                error_msg = f"Error running: {e.stderr}"
+                error_msg = f"Subprocess failed with exit code {e.returncode}. Error: {e.stderr}"
+                logger.error(f"demo_subprocess_run_simple. {error_msg}")
                 return render_template(template, topic=topic, output=None, error=error_msg)
             except Exception as e:
                 error_msg = f"Unexpected error: {str(e)}"
+                logger.error(f"demo_subprocess_run_simple. {error_msg}")
                 return render_template(template, topic=topic, output=None, error=error_msg)
 
         @self.app.route('/demo_subprocess_run_medium')
@@ -439,10 +441,12 @@ class MyFlaskApp:
                 output = result.stdout.strip()
                 return render_template(template, topic=topic, output=output, error=None)
             except subprocess.CalledProcessError as e:
-                error_msg = f"Error running: {e.stderr}"
+                error_msg = f"Subprocess failed with exit code {e.returncode}. Error: {e.stderr}"
+                logger.error(f"demo_subprocess_run_medium. {error_msg}")
                 return render_template(template, topic=topic, output=None, error=error_msg)
             except Exception as e:
                 error_msg = f"Unexpected error: {str(e)}"
+                logger.error(f"demo_subprocess_run_medium. {error_msg}")
                 return render_template(template, topic=topic, output=None, error=error_msg)
 
         @self.app.route('/demo_subprocess_run_advanced')
@@ -467,10 +471,12 @@ class MyFlaskApp:
                 output = result.stdout.strip()
                 return render_template(template, topic=topic, output=output, error=None)
             except subprocess.CalledProcessError as e:
-                error_msg = f"Error running: {e.stderr}"
+                error_msg = f"Subprocess failed with exit code {e.returncode}. Error: {e.stderr}"
+                logger.error(f"demo_subprocess_run_advanced. {error_msg}")
                 return render_template(template, topic=topic, output=None, error=error_msg)
             except Exception as e:
                 error_msg = f"Unexpected error: {str(e)}"
+                logger.error(f"demo_subprocess_run_advanced. {error_msg}")
                 return render_template(template, topic=topic, output=None, error=error_msg)
 
         @self.app.route('/demo_eventsource')
