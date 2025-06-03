@@ -424,14 +424,17 @@ class MyFlaskApp:
             try:
                 env = os.environ.copy()
                 planexe_dotenv = PlanExeDotEnv.load()
-                logger.info(f"demo_subprocess_run. planexe_dotenv: {planexe_dotenv!r}")
+                logger.info(f"demo_subprocess_run_medium. planexe_dotenv: {planexe_dotenv!r}")
+                logger.info(f"demo_subprocess_run_medium. planexe_dir_path: {self.planexe_dir_path!r}")
+                logger.info(f"demo_subprocess_run_medium. path_to_python: {self.path_to_python!r}")
                 env["OPENROUTER_API_KEY"] = planexe_dotenv.get("OPENROUTER_API_KEY")
                 result = subprocess.run(
                     [self.path_to_python, "-m", "src.proof_of_concepts.run_ping_simple"],
                     capture_output=True,
                     text=True,
                     check=True,
-                    env=env
+                    env=env,
+                    cwd=self.planexe_dir_path
                 )
                 output = result.stdout.strip()
                 return render_template(template, topic=topic, output=output, error=None)
