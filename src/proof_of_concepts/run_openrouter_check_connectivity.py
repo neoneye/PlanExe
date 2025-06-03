@@ -1,3 +1,9 @@
+"""
+Check connectivity to OpenRouter.
+
+PROMPT> export OPENROUTER_API_KEY=sk-or-v1-your-openrouter-api-key-here
+PROMPT> python -m src.proof_of_concepts.run_openrouter_check_connectivity
+"""
 import requests
 import json
 import os
@@ -19,8 +25,7 @@ response = requests.post(
         "role": "user",
         "content": "List names of 3 planets in the solar system. Comma separated. No other text."
       }
-    ],
-    
+    ]
   })
 )
 print(f"response:\n{response.json()}")
