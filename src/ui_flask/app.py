@@ -23,8 +23,6 @@ from llama_index.core.llms import ChatMessage, MessageRole
 
 logger = logging.getLogger(__name__)
 
-PYTHONANYWHERE_PATH_TO_PYTHON = "/home/neoneye/.virtualenvs/myfixbuserrorenv/bin/python"
-
 MODULE_PATH_PIPELINE = "src.plan.run_plan_pipeline"
 RUN_DIR = "run"
 
@@ -73,12 +71,13 @@ class UserState:
 
 class MyFlaskApp:
     def __init__(self):
-        self.is_pythonanywhere = os.environ.get("PYTHONANYWHERE_DOMAIN") is not None
-        logger.info(f"MyFlaskApp.__init__. is_pythonanywhere: {self.is_pythonanywhere}")
+        logger.info(f"MyFlaskApp.__init__. Starting...")
 
-        if self.is_pythonanywhere:
-            self.path_to_python = PYTHONANYWHERE_PATH_TO_PYTHON
-        else:
+        self.planexe_dotenv = PlanExeDotEnv.load()
+        logger.info(f"MyFlaskApp.__init__. planexe_dotenv: {self.planexe_dotenv!r}")
+
+        self.path_to_python = self.planexe_dotenv.get("OVERRIDE_PATH_TO_PYTHON")
+        if self.path_to_python is None:
             self.path_to_python = sys.executable
         logger.info(f"MyFlaskApp.__init__. path_to_python: {self.path_to_python}")
         
@@ -426,11 +425,10 @@ class MyFlaskApp:
             template = 'check_is_working.html'
             try:
                 env = os.environ.copy()
-                planexe_dotenv = PlanExeDotEnv.load()
-                logger.info(f"demo_subprocess_run_medium. planexe_dotenv: {planexe_dotenv!r}")
+                logger.info(f"demo_subprocess_run_medium. planexe_dotenv: {self.planexe_dotenv!r}")
                 logger.info(f"demo_subprocess_run_medium. planexe_dir_path: {self.planexe_dir_path!r}")
                 logger.info(f"demo_subprocess_run_medium. path_to_python: {self.path_to_python!r}")
-                env["OPENROUTER_API_KEY"] = planexe_dotenv.get("OPENROUTER_API_KEY")
+                env["OPENROUTER_API_KEY"] = self.planexe_dotenv.get("OPENROUTER_API_KEY")
                 result = subprocess.run(
                     [self.path_to_python, "-m", "src.proof_of_concepts.run_ping_simple"],
                     capture_output=True,
@@ -456,11 +454,10 @@ class MyFlaskApp:
             template = 'check_is_working.html'
             try:
                 env = os.environ.copy()
-                planexe_dotenv = PlanExeDotEnv.load()
-                logger.info(f"demo_subprocess_run_advanced. planexe_dotenv: {planexe_dotenv!r}")
+                logger.info(f"demo_subprocess_run_advanced. planexe_dotenv: {self.planexe_dotenv!r}")
                 logger.info(f"demo_subprocess_run_advanced. planexe_dir_path: {self.planexe_dir_path!r}")
                 logger.info(f"demo_subprocess_run_advanced. path_to_python: {self.path_to_python!r}")
-                env["OPENROUTER_API_KEY"] = planexe_dotenv.get("OPENROUTER_API_KEY")
+                env["OPENROUTER_API_KEY"] = self.planexe_dotenv.get("OPENROUTER_API_KEY")
                 result = subprocess.run(
                     [self.path_to_python, "-m", "src.proof_of_concepts.run_ping_medium"],
                     capture_output=True,
