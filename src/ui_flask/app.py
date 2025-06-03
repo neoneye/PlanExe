@@ -11,6 +11,7 @@ import subprocess
 import threading
 from enum import Enum
 from flask import Flask, render_template, Response, request, jsonify, send_file
+from utils.planexe_dotenv import PlanExeDotEnv
 from src.plan.generate_run_id import generate_run_id
 from src.plan.plan_file import PlanFile
 from src.plan.filenames import FilenameEnum, ExtraFilenameEnum
@@ -406,6 +407,31 @@ class MyFlaskApp:
                     capture_output=True,
                     text=True,
                     check=True
+                )
+                output = result.stdout.strip()
+                return render_template(template, topic=topic, output=output, error=None)
+            except subprocess.CalledProcessError as e:
+                error_msg = f"Error running: {e.stderr}"
+                return render_template(template, topic=topic, output=None, error=error_msg)
+            except Exception as e:
+                error_msg = f"Unexpected error: {str(e)}"
+                return render_template(template, topic=topic, output=None, error=error_msg)
+
+        @self.app.route('/demo_subprocess_run_medium')
+        def demo_subprocess_run_medium():
+            topic = 'subprocess.run with python pinging OpenRouter'
+            template = 'check_is_working.html'
+            try:
+                env = os.environ.copy()
+                planexe_dotenv = PlanExeDotEnv.load()
+                logger.info(f"demo_subprocess_run. planexe_dotenv: {planexe_dotenv!r}")
+                env["OPENROUTER_API_KEY"] = planexe_dotenv.get("OPENROUTER_API_KEY")
+                result = subprocess.run(
+                    [self.path_to_python, "-m", "src.proof_of_concepts.run_ping_simple"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    env=env
                 )
                 output = result.stdout.strip()
                 return render_template(template, topic=topic, output=output, error=None)
