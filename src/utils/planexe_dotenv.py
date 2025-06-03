@@ -5,6 +5,7 @@ PROMPT> python -m src.utils.planexe_dotenv
 """
 from dataclasses import dataclass
 import os
+from typing import Optional
 from dotenv import dotenv_values
 
 @dataclass
@@ -24,8 +25,8 @@ class PlanExeDotEnv:
             dotenv_dict=dotenv_dict
         )
 
-    def get(self, key: str) -> str:
-        return self.dotenv_dict[key]
+    def get(self, key: str) -> Optional[str]:
+        return self.dotenv_dict.get(key)
     
     def __repr__(self):
         return f"PlanExeDotEnv(dotenv_path={self.dotenv_path}, dotenv_isfile={self.dotenv_isfile}, dotenv_dict.keys()={self.dotenv_dict.keys()})"
