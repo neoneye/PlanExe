@@ -3,7 +3,7 @@ import os
 import json
 from enum import Enum
 from dataclasses import dataclass
-from dotenv import dotenv_values
+from src.utils.planexe_dotenv import PlanExeDotEnv
 from typing import Optional, Any, Dict
 from llama_index.core.llms.llm import LLM
 from llama_index.llms.mistralai import MistralAI
@@ -27,11 +27,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["get_llm", "LLMInfo", "get_llm_names_by_priority", "SPECIAL_AUTO_ID", "is_valid_llm_name"]
 
-# Load .env values and merge with system environment variables.
-# This one-liner makes sure any secret injected by Hugging Face, like OPENROUTER_API_KEY
-# overrides what’s in your .env file.
-_dotenv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
-_dotenv_dict = {**dotenv_values(dotenv_path=_dotenv_path), **os.environ}
+planexe_dotenv = PlanExeDotEnv.load()
 
 _config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "llm_config.json"))
 
@@ -210,7 +206,7 @@ def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
     :return: An instance of a LlamaIndex LLM class.
     """
     if not llm_name:
-        llm_name = _dotenv_dict.get("DEFAULT_LLM", "ollama-llama3.1")
+        llm_name = planexe_dotenv.get("DEFAULT_LLM", "ollama-llama3.1")
 
     if llm_name == SPECIAL_AUTO_ID:
         logger.error(f"The special {SPECIAL_AUTO_ID!r} is not a LLM model that can be created. Please use a valid LLM name.")
@@ -226,7 +222,7 @@ def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
     arguments = config.get("arguments", {})
 
     # Substitute environment variables
-    arguments = substitute_env_vars(arguments, _dotenv_dict)
+    arguments = substitute_env_vars(arguments, planexe_dotenv.dotenv_dict)
 
     # Override with any kwargs passed to get_llm()
     arguments.update(kwargs)
