@@ -1,8 +1,8 @@
 """
-Check connectivity to OpenRouter.
+Check connectivity to OpenRouter. No external dependencies.
 
 PROMPT> export OPENROUTER_API_KEY=sk-or-v1-your-openrouter-api-key-here
-PROMPT> python -m src.proof_of_concepts.run_openrouter_check_connectivity
+PROMPT> python -m src.proof_of_concepts.run_ping_simple
 """
 import requests
 import json
