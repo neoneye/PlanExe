@@ -297,7 +297,11 @@ class ProjectSchedule:
                 return format(val.normalize(), "f")  # fixed‑point, no exponent
             return str(val)
 
-        if sort_by not in Activity.__dict__ and sort_by != "id":
+        # ``Activity`` is a dataclass so most attributes are stored in
+        # ``Activity.__dataclass_fields__`` rather than ``Activity.__dict__``.
+        # Using ``__dict__`` means valid fields like ``duration`` are rejected.
+        valid_fields = set(Activity.__dataclass_fields__.keys()) | {"id"}
+        if sort_by not in valid_fields:
             raise ValueError(f"Unknown sort key: {sort_by!r}")
 
         acts = sorted(self.activities.values(), key=lambda a: getattr(a, sort_by))

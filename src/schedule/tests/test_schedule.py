@@ -281,5 +281,19 @@ class TestSchedule(unittest.TestCase):
         self.assertEqual(project_schedule.project_duration, D("6"))
         self.assertListEqual(project_schedule.obtain_critical_path(), ["A", "B"])
 
+    def test_to_csv_sort_by_duration(self):
+        """Ensure sorting by dataclass field like 'duration' works."""
+        input = dedent_strip("""
+            Activity;Predecessor;Duration
+            A;-;2
+            B;-;5
+            C;-;3
+        """)
+
+        project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
+        csv_output = project_schedule.to_csv(sort_by="duration")
+        durations = [line.split(";")[1] for line in csv_output.splitlines()[1:]]
+        self.assertEqual(durations, ["2", "3", "5"])
+
 if __name__ == "__main__":
     unittest.main(argv=["first-arg-is-ignored"], exit=False)
