@@ -212,7 +212,9 @@ class MyFlaskApp:
                     'response': ''
                 })}\n\n"
 
-            return Response(generate(), mimetype='text/event-stream')
+            response = Response(generate(), mimetype='text/event-stream')
+            response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
+            return response
 
         @self.app.route("/jobs", methods=["POST"])
         def create_job():
