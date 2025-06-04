@@ -6,6 +6,7 @@ Insert the run_id of the thing you want to resume.
 If it's an already finished run, then remove the "999-pipeline_complete.txt" file.
 PROMPT> RUN_ID=PlanExe_20250216_150332 python -m src.plan.run_plan_pipeline
 """
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 import html
@@ -2823,6 +2824,31 @@ class FullPlanPipeline(PlanTask):
             f.write("Full pipeline executed successfully.\n")
 
 
+@dataclass
+class ExecutePipeline:
+    run_id: str
+    run_dir: str
+    speedvsdetail: SpeedVsDetailEnum
+    llm_models: list[str]
+    
+    def run(self):
+        task = FullPlanPipeline(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_models=self.llm_models)
+
+        # Obtain a list of all the expected output files of the FullPlanPipeline task and all its dependencies
+        obtain_output_files = ObtainOutputFiles.execute(task)
+        all_expected_filenames = obtain_output_files.get_all_filenames()
+        # logger.info(f"len(all_expected_filenames): {len(all_expected_filenames)}")
+        # logger.info(f"all_expected_filenames: {all_expected_filenames}")
+
+        # create a json file with the expected filenames. Save it to the run/run_id/expected_filenames1.json
+        expected_filenames_path = os.path.join(self.run_dir, ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value)
+        with open(expected_filenames_path, "w") as f:
+            json.dump(all_expected_filenames, f, indent=2)
+        logger.info(f"Saved {len(all_expected_filenames)} expected filenames to {expected_filenames_path}")
+
+        luigi.build([task], local_scheduler=True, workers=1)
+
+
 if __name__ == '__main__':
     import colorlog
     import sys
@@ -2917,22 +2943,8 @@ if __name__ == '__main__':
     if False:
         raise Exception("This is a test exception.")
 
-    task = FullPlanPipeline(speedvsdetail=speedvsdetail, llm_models=llm_names)
-    if run_id is not None:
-        task.run_id = run_id
-
     # logger.info("Environment variables Luigi:\n" + get_env_as_string() + "\n\n\n")
 
-    # Obtain a list of all the expected output files of the FullPlanPipeline task and all its dependencies
-    obtain_output_files = ObtainOutputFiles.execute(task)
-    all_expected_filenames = obtain_output_files.get_all_filenames()
-    logger.info(f"len(all_expected_filenames): {len(all_expected_filenames)}")    
-    logger.info(f"all_expected_filenames: {all_expected_filenames}")
-
-    # create a json file with the expected filenames. Save it to the run/run_id/expected_filenames1.json
-    expected_filenames_path = os.path.join(run_dir, ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value)
-    with open(expected_filenames_path, "w") as f:
-        json.dump(all_expected_filenames, f, indent=2)
-    logger.info(f"Saved expected filenames to {expected_filenames_path}")
-
-    luigi.build([task], local_scheduler=True, workers=1)
+    execute_pipeline = ExecutePipeline(run_id=run_id, run_dir=run_dir, speedvsdetail=speedvsdetail, llm_models=llm_names)
+    logger.info(f"execute_pipeline: {execute_pipeline!r}")
+    execute_pipeline.run()
