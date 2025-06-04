@@ -2830,7 +2830,28 @@ class ExecutePipeline:
     run_dir: str
     speedvsdetail: SpeedVsDetailEnum
     llm_models: list[str]
-    
+
+    @classmethod
+    def resolve_llm_models(cls, specified_llm_model: Optional[str]) -> list[str]:
+        llm_models = get_llm_names_by_priority()
+        if len(llm_models) == 0:
+            logger.error("No LLM models found. Please check your llm_config.json file and add 'priority' values.")
+            llm_models = [DEFAULT_LLM_MODEL]
+
+        if specified_llm_model:
+            llm_model = specified_llm_model
+            logger.info(f"Using the specified LLM model: {llm_model!r}")
+            if llm_model != SPECIAL_AUTO_ID:
+                if not is_valid_llm_name(llm_model):
+                    logger.error(f"Invalid LLM model: {llm_model!r}. Please check your llm_config.json file and add the model.")
+                    raise ValueError(f"Invalid LLM model: {llm_model!r}. Please check your llm_config.json file and add the model.")
+                llm_models = [llm_model]
+
+        logger.info(f"These are the LLM models that will be used in the pipeline:")
+        for index, llm_name in enumerate(llm_models):
+            logger.info(f"{index}. {llm_name!r}")
+        return llm_models
+
     def run(self):
         task = FullPlanPipeline(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_models=self.llm_models)
 
@@ -2907,25 +2928,6 @@ if __name__ == '__main__':
         logger.error("This is an error message.")
         logger.critical("This is a critical message.")
 
-
-    llm_names = get_llm_names_by_priority()
-    if len(llm_names) == 0:
-        logger.error("No LLM models found. Please check your llm_config.json file and add 'priority' values.")
-        llm_names = [DEFAULT_LLM_MODEL]
-
-    if pipeline_environment.llm_model:
-        llm_model = pipeline_environment.llm_model
-        logger.info(f"Using the specified LLM model: {llm_model!r}")
-        if llm_model != SPECIAL_AUTO_ID:
-            if not is_valid_llm_name(llm_model):
-                logger.error(f"Invalid LLM model: {llm_model!r}. Please check your llm_config.json file and add the model.")
-                raise ValueError(f"Invalid LLM model: {llm_model!r}. Please check your llm_config.json file and add the model.")
-            llm_names = [llm_model]
-
-    logger.info(f"These are the LLM models that will be used in the pipeline:")
-    for index, llm_name in enumerate(llm_names):
-        logger.info(f"{index}. {llm_name!r}")
-
     speedvsdetail = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW
     speedvsdetail_value = pipeline_environment.speed_vs_detail
     if speedvsdetail_value:
@@ -2945,6 +2947,8 @@ if __name__ == '__main__':
 
     # logger.info("Environment variables Luigi:\n" + get_env_as_string() + "\n\n\n")
 
-    execute_pipeline = ExecutePipeline(run_id=run_id, run_dir=run_dir, speedvsdetail=speedvsdetail, llm_models=llm_names)
+    llm_models = ExecutePipeline.resolve_llm_models(pipeline_environment.llm_model)
+
+    execute_pipeline = ExecutePipeline(run_id=run_id, run_dir=run_dir, speedvsdetail=speedvsdetail, llm_models=llm_models)
     logger.info(f"execute_pipeline: {execute_pipeline!r}")
     execute_pipeline.run()
