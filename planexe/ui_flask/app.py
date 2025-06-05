@@ -11,6 +11,7 @@ import subprocess
 import threading
 from enum import Enum
 from flask import Flask, render_template, Response, request, jsonify, send_file
+import importlib.resources
 from planexe.utils.planexe_dotenv import PlanExeDotEnv
 from planexe.plan.generate_run_id import generate_run_id
 from planexe.plan.plan_file import PlanFile
@@ -96,10 +97,18 @@ class MyFlaskApp:
         self.prompt_catalog = PromptCatalog()
         self.prompt_catalog.load_simple_plan_prompts()
 
-        # Set the template folder explicitly
-        template_dir = os.path.join(os.path.dirname(__file__), "templates")
-        logger.info(f"MyFlaskApp.__init__. template_dir: {template_dir!r}")
-        self.app = Flask(__name__, template_folder=template_dir)
+        # Point to the "templates" dir.
+        template_folder = None
+        try:
+            resource_path = 'planexe.ui_flask.templates'
+            template_dir_traversable = importlib.resources.files(resource_path)
+            template_folder = str(template_dir_traversable)
+            logger.info(f"MyFlaskApp.__init__. found resource: {resource_path!r}")
+        except Exception as e:
+            logger.error(f"MyFlaskApp.__init__. Error loading template_dir_traversable: {e}. Using default template folder.")
+
+        logger.info(f"MyFlaskApp.__init__. template_folder: {template_folder!r}")
+        self.app = Flask(__name__, template_folder=template_folder)
 
         self._setup_routes()
 
