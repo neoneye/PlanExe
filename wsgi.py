@@ -27,7 +27,7 @@ if project_home not in sys.path:
 logger.debug("Attempting to import MyFlaskApp...")
 try:
     logger.info("Importing MyFlaskApp...")
-    from src.ui_flask.app import MyFlaskApp
+    from planexe.ui_flask.app import MyFlaskApp
     logger.info("Creating MyFlaskApp instance...")
     my_flask_app_wrapper = MyFlaskApp()
     logger.info("Successfully created MyFlaskApp instance")

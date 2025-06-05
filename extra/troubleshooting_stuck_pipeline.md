@@ -2,7 +2,7 @@
 
 The gradio app (`app_text2plan.py`) starts the `run_plan_pipeline` process via a `Popen` call. 
 
-- **Environment**, if the gradio app runs in a slightly different environment than when running via commandline `python -m src.plan.run_plan_pipeline`, then the child process may behave differently. I have verified that the parent process and child process runs with the same environment variables.
+- **Environment**, if the gradio app runs in a slightly different environment than when running via commandline `python -m planexe.plan.run_plan_pipeline`, then the child process may behave differently. I have verified that the parent process and child process runs with the same environment variables.
 - **Buffering**, if the parent process isn't reading stdout/stderr fast enough, the child process may freeze. I have reworked the `Popen` code so the stdout/stderr goes to `/dev/null`.
 - **Other issues**, if the pipeline still hangs, let me know, it may be some issue I'm not aware of.
 
@@ -13,7 +13,7 @@ In the UI copy/paste the run_id that is stuck, eg: `20250209_030626`
 Insert it on commandline, and run the pipeline, like this:
 
 ```bash
-PROMPT> RUN_ID=20250209_030626 python -m src.plan.run_plan_pipeline
+PROMPT> RUN_ID=20250209_030626 python -m planexe.plan.run_plan_pipeline
 ```
 
 ## Why does the pipeline get stuck?

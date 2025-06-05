@@ -39,7 +39,7 @@ Recommendation: I recommend **Config A** as it offers the most straightforward p
 PlanExe comes with a Gradio-based web interface. To start the local web server:
 
 ```bash
-(venv) python -m src.plan.app_text2plan
+(venv) python -m planexe.plan.app_text2plan
 ```
 
 This command launches a server at http://localhost:7860. Open that link in your browser, type a vague idea or description, and PlanExe will produce a detailed plan.
