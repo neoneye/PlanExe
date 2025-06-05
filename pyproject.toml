@@ -147,3 +147,4 @@ include = ["planexe*"]
 
 [tool.setuptools.package-data]
 "planexe.prompt.data" = ["simple_plan_prompts.jsonl"]
+"planexe.ui_flask.templates" = ["*.html"]
