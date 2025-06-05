@@ -146,5 +146,5 @@ build-backend = "setuptools.build_meta"
 include = ["planexe*"]
 
 [tool.setuptools.package-data]
-"planexe.prompt.data" = ["simple_plan_prompts.jsonl"]
+"planexe.prompt.data" = ["*.jsonl"]
 "planexe.ui_flask.templates" = ["*.html"]

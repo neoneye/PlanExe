@@ -1,6 +1,10 @@
+"""
+PROMPT> python3 -m planexe.prompt.prompt_catalog
+"""
 import json
 import logging
 import os
+import importlib.resources
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 from planexe.uuid_util.is_valid_uuid import is_valid_uuid
@@ -30,6 +34,7 @@ class PromptCatalog:
         fields like 'id', 'prompt', 'tags', etc.
         Logs an error if 'id' or 'prompt' is missing/empty, then skips that row.
         """
+        logger.debug(f"PromptCatalog.load. filepath: {filepath!r}")
         with open(filepath, 'r', encoding='utf-8') as f:
             for line_num, line in enumerate(f, start=1):
                 line = line.strip()
@@ -83,12 +88,37 @@ class PromptCatalog:
         """Return a list of all PromptItems in the order they were inserted."""
         return list(self._catalog.values())
 
+    @classmethod
+    def path_to_prompt_file(cls, filename: str) -> str:
+        """Return the path to a prompt file."""
+        resource_path = 'planexe.prompt.data'
+        filepath = None
+        try:
+            dir_traversable = importlib.resources.files(resource_path)
+            logger.debug(f"PromptCatalog.path_to_prompt_file. found resource: {resource_path!r}")
+            filepath = os.path.join(dir_traversable, filename)
+        except Exception as e:
+            logger.error(f"PromptCatalog.path_to_prompt_file. resource_path: {resource_path!r}. Error finding resource: {e}. Using default template folder.")
+            filepath = os.path.join(os.path.dirname(__file__), 'data', filename)
+        if not os.path.isfile(filepath):
+            logger.error(f"PromptCatalog.path_to_prompt_file. filepath: {filepath!r} does not exist or is not a file.")
+            raise FileNotFoundError(f"PromptCatalog.path_to_prompt_file. filepath: {filepath!r} does not exist or is not a file.")
+        return filepath
+
     def load_example_swot_prompts(self) -> None:
         """Load example SWOT prompts from a JSONL file."""
-        filepath = os.path.join(os.path.dirname(__file__), 'data', 'example_swot_prompt.jsonl')
+        filepath = PromptCatalog.path_to_prompt_file('example_swot_prompt.jsonl')
         self.load(filepath)
     
     def load_simple_plan_prompts(self) -> None:
         """Load simple plan prompts from a JSONL file."""
-        filepath = os.path.join(os.path.dirname(__file__), 'data', 'simple_plan_prompts.jsonl')
+        filepath = PromptCatalog.path_to_prompt_file('simple_plan_prompts.jsonl')
         self.load(filepath)
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    pc = PromptCatalog()
+    pc.load_simple_plan_prompts()
+    pc.load_example_swot_prompts()
+    count = len(pc.all())
+    print(f"PromptCatalog.load_simple_plan_prompts. loaded {count} prompts")
