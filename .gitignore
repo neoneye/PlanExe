@@ -4,3 +4,4 @@ build/
 *.egg-info/
 run/
 __pycache__/
+.vscode/
