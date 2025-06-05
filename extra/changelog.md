@@ -1,5 +1,23 @@
 # PlanExe changelog
 
+## 2025-june-5
+
+I have renamed the root dir of the project from `src` to `planexe`.
+Since `import planexe` makes more sense than `import src`.
+
+When running the Gradio UI. The new way is:
+
+```bash
+PROMPT> python -m planexe.plan.app_text2plan
+```
+
+The old way was like this:
+
+```bash
+PROMPT> python -m src.plan.app_text2plan
+```
+
+
 ## 2025-may-27
 
 I have migrated from `requirements.txt` to `pyproject.toml`.
