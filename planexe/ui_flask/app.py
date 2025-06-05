@@ -89,13 +89,17 @@ class MyFlaskApp:
 
         self._start_check()
 
-        self.app = Flask(__name__)
         self.jobs: Dict[str, JobState] = {}
         self.users: Dict[str, UserState] = {}
 
         # Load prompt catalog and examples.
         self.prompt_catalog = PromptCatalog()
         self.prompt_catalog.load_simple_plan_prompts()
+
+        # Set the template folder explicitly
+        template_dir = os.path.join(os.path.dirname(__file__), "templates")
+        logger.info(f"MyFlaskApp.__init__. template_dir: {template_dir!r}")
+        self.app = Flask(__name__, template_folder=template_dir)
 
         self._setup_routes()
 
