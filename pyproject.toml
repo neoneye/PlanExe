@@ -144,3 +144,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["planexe*"]
+
+[tool.setuptools.package-data]
+"planexe.prompt.data" = ["simple_plan_prompts.jsonl"]
