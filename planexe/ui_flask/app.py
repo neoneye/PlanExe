@@ -13,6 +13,7 @@ from enum import Enum
 from flask import Flask, render_template, Response, request, jsonify, send_file
 import importlib.resources
 from planexe.utils.planexe_dotenv import PlanExeDotEnv
+from planexe.utils.planexe_config import PlanExeConfig
 from planexe.plan.generate_run_id import generate_run_id
 from planexe.plan.plan_file import PlanFile
 from planexe.plan.filenames import FilenameEnum, ExtraFilenameEnum
@@ -73,6 +74,9 @@ class UserState:
 class MyFlaskApp:
     def __init__(self):
         logger.info(f"MyFlaskApp.__init__. Starting...")
+
+        self.planexe_config = PlanExeConfig.load()
+        logger.info(f"MyFlaskApp.__init__. planexe_config: {self.planexe_config!r}")
 
         self.planexe_dotenv = PlanExeDotEnv.load()
         logger.info(f"MyFlaskApp.__init__. planexe_dotenv: {self.planexe_dotenv!r}")
