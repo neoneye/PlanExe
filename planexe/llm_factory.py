@@ -1,9 +1,14 @@
+"""
+Create a LLM instances.
+
+PROMPT> python -m planexe.llm_factory
+"""
 import logging
-import os
-import json
 from enum import Enum
 from dataclasses import dataclass
 from planexe.utils.planexe_dotenv import PlanExeDotEnv
+from planexe.utils.planexe_config import PlanExeConfig, PlanExeConfigError
+from planexe.utils.planexe_llmconfig import PlanExeLLMConfig
 from typing import Optional, Any, Dict
 from llama_index.core.llms.llm import LLM
 from llama_index.llms.mistralai import MistralAI
@@ -27,48 +32,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["get_llm", "LLMInfo", "get_llm_names_by_priority", "SPECIAL_AUTO_ID", "is_valid_llm_name"]
 
-planexe_dotenv = PlanExeDotEnv.load()
-
-_config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "llm_config.json"))
-
-
-def load_config(config_path: str) -> Dict[str, Any]:
-    """Loads the configuration from a JSON file."""
-    try:
-        with open(config_path, "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logger.error(f"Warning: llm_config.json not found at {config_path}. Using default settings.")
-        return {}
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Error decoding JSON from {config_path}: {e}")
-
-
-_llm_configs = load_config(_config_path)
-
-
-def substitute_env_vars(config: Dict[str, Any], env_vars: Dict[str, str]) -> Dict[str, Any]:
-    """Recursively substitutes environment variables in the configuration."""
-
-    def replace_value(value: Any) -> Any:
-        if isinstance(value, str) and value.startswith("${") and value.endswith("}"):
-            var_name = value[2:-1]  # Extract variable name
-            if var_name in env_vars:
-                return env_vars[var_name]
-            else:
-                print(f"Warning: Environment variable '{var_name}' not found.")
-                return value  # Or raise an error if you prefer strict enforcement
-        return value
-
-    def process_item(item):
-        if isinstance(item, dict):
-            return {k: process_item(v) for k, v in item.items()}
-        elif isinstance(item, list):
-            return [process_item(i) for i in item]
-        else:
-            return replace_value(item)
-
-    return process_item(config)
+planexe_llmconfig = PlanExeLLMConfig.load()
 
 class OllamaStatus(str, Enum):
     no_ollama_models = 'no ollama models in the llm_config.json file'
@@ -99,7 +63,7 @@ class LLMInfo:
         ollama_info_per_host = {}
         count_running = 0
         count_not_running = 0
-        for config_id, config in _llm_configs.items():
+        for config_id, config in planexe_llmconfig.llm_config_dict.items():
             if config.get("class") != "Ollama":
                 continue
             arguments = config.get("arguments", {})
@@ -133,7 +97,7 @@ class LLMInfo:
         llm_config_items.append(LLMConfigItem(id=SPECIAL_AUTO_ID, label=SPECIAL_AUTO_LABEL))
 
         # The rest are the LLM models specified in the llm_config.json file.
-        for config_id, config in _llm_configs.items():
+        for config_id, config in planexe_llmconfig.llm_config_dict.items():
             priority = config.get("priority", None)
             if priority:
                 label_with_priority = f"{config_id} (prio: {priority})"
@@ -186,7 +150,7 @@ def get_llm_names_by_priority() -> list[str]:
     Lowest values comes first.
     Highest values comes last.
     """
-    configs = [(name, config) for name, config in _llm_configs.items() if config.get("priority") is not None]
+    configs = [(name, config) for name, config in planexe_llmconfig.llm_config_dict.items() if config.get("priority") is not None]
     configs.sort(key=lambda x: x[1].get("priority", 0))
     return [name for name, _ in configs]
 
@@ -194,7 +158,7 @@ def is_valid_llm_name(llm_name: str) -> bool:
     """
     Returns True if the LLM name is valid, False otherwise.
     """
-    return llm_name in _llm_configs
+    return llm_name in planexe_llmconfig.llm_config_dict
 
 def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
     """
@@ -206,6 +170,7 @@ def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
     :return: An instance of a LlamaIndex LLM class.
     """
     if not llm_name:
+        planexe_dotenv = PlanExeDotEnv.load()
         llm_name = planexe_dotenv.get("DEFAULT_LLM", "ollama-llama3.1")
 
     if llm_name == SPECIAL_AUTO_ID:
@@ -213,16 +178,13 @@ def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
         raise ValueError(f"The special {SPECIAL_AUTO_ID!r} is not a LLM model that can be created. Please use a valid LLM name.")
 
     if not is_valid_llm_name(llm_name):
-        # If llm_name doesn't exits in _llm_configs, then we go through default settings
+        # If llm_name doesn't exits in llm_config.json, then we go through default settings
         logger.error(f"Cannot create LLM, the llm_name {llm_name!r} is not found in config.json.")
         raise ValueError(f"Cannot create LLM, the llm_name {llm_name!r} is not found in config.json.")
 
-    config = _llm_configs[llm_name]
+    config = planexe_llmconfig.llm_config_dict[llm_name]
     class_name = config.get("class")
     arguments = config.get("arguments", {})
-
-    # Substitute environment variables
-    arguments = substitute_env_vars(arguments, planexe_dotenv.dotenv_dict)
 
     # Override with any kwargs passed to get_llm()
     arguments.update(kwargs)
