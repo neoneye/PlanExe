@@ -178,9 +178,8 @@ def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
         raise ValueError(f"The special {SPECIAL_AUTO_ID!r} is not a LLM model that can be created. Please use a valid LLM name.")
 
     if not is_valid_llm_name(llm_name):
-        # If llm_name doesn't exits in llm_config.json, then we go through default settings
-        logger.error(f"Cannot create LLM, the llm_name {llm_name!r} is not found in config.json.")
-        raise ValueError(f"Cannot create LLM, the llm_name {llm_name!r} is not found in config.json.")
+        logger.error(f"Cannot create LLM, the llm_name {llm_name!r} is not found in llm_config.json.")
+        raise ValueError(f"Cannot create LLM, the llm_name {llm_name!r} is not found in llm_config.json.")
 
     config = planexe_llmconfig.llm_config_dict[llm_name]
     class_name = config.get("class")
