@@ -643,7 +643,7 @@ class MyFlaskApp:
 
 if __name__ == '__main__':
     logging.basicConfig(
-        level=logging.INFO, 
+        level=logging.DEBUG, 
         format='%(asctime)s - %(name)s - %(levelname)s - %(process)d - %(threadName)s - %(message)s'
     )
     flask_app_instance = MyFlaskApp()
