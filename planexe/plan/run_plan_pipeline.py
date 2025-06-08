@@ -85,8 +85,6 @@ DEFAULT_LLM_MODEL = "ollama-llama3.1"
 
 class PlanTask(luigi.Task):
     # Default it to the current timestamp, eg. 19841231_235959
-    run_id = luigi.Parameter(default=datetime.now().strftime("%Y%m%d_%H%M%S"))
-
     # Path to the 'run/{run_id}' directory
     run_id_dir = luigi.Parameter(default=Path('run') / datetime.now().strftime("%Y%m%d_%H%M%S"))
 
@@ -2825,7 +2823,6 @@ class FullPlanPipeline(PlanTask):
 
 @dataclass
 class ExecutePipeline:
-    run_id: str
     run_id_dir: Path
     speedvsdetail: SpeedVsDetailEnum
     llm_models: list[str]
@@ -2852,7 +2849,7 @@ class ExecutePipeline:
         return llm_models
 
     def run(self):
-        task = FullPlanPipeline(run_id=self.run_id, run_id_dir=self.run_id_dir, speedvsdetail=self.speedvsdetail, llm_models=self.llm_models)
+        task = FullPlanPipeline(run_id_dir=self.run_id_dir, speedvsdetail=self.speedvsdetail, llm_models=self.llm_models)
 
         # Obtain a list of all the expected output files of the FullPlanPipeline task and all its dependencies
         obtain_output_files = ObtainOutputFiles.execute(task)
@@ -2948,6 +2945,6 @@ if __name__ == '__main__':
 
     llm_models = ExecutePipeline.resolve_llm_models(pipeline_environment.llm_model)
 
-    execute_pipeline = ExecutePipeline(run_id=run_id, run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models)
+    execute_pipeline = ExecutePipeline(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models)
     logger.info(f"execute_pipeline: {execute_pipeline!r}")
     execute_pipeline.run()
