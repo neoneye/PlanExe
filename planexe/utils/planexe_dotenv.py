@@ -32,6 +32,33 @@ class PlanExeDotEnv:
     def get(self, key: str) -> Optional[str]:
         return self.dotenv_dict.get(key)
 
+    def get_absolute_path_to_file(self, key: str) -> Optional[Path]:
+        """
+        Resolves and validates the "key" variable.
+        It's expected to be an absolute path to a file.
+        If the key is not found, returns None.
+        
+        :return: A Path object if valid, otherwise None.
+        """
+        path_str = self.dotenv_dict.get(key)
+        if path_str is None:
+            logger.debug(f"{key} is not set")
+            return None
+            
+        try:
+            path_obj = Path(path_str)
+        except Exception as e: # If path_str is bizarre
+            logger.error(f"Invalid {key} string '{path_str!r}': {e!r}")
+            return None
+        if not path_obj.is_absolute():
+            logger.error(f"{key} must be an absolute path: {path_obj!r}")
+            return None
+        if not path_obj.is_file():
+            logger.error(f"{key} must be a file: {path_obj!r}")
+            return None
+        logger.debug(f"Using {key}: {path_obj!r}")
+        return path_obj
+
     def get_absolute_path_to_dir(self, key: str) -> Optional[Path]:
         """
         Resolves and validates the "key" variable.
@@ -67,8 +94,14 @@ if __name__ == "__main__":
     dotenv = PlanExeDotEnv.load()
     print(dotenv)
 
-    path0 = dotenv.get_absolute_path_to_dir("TMP_DIR")
-    print(f"BEFORE: {path0!r}")
-    dotenv.dotenv_dict["TMP_DIR"] = "/tmp"
-    path1 = dotenv.get_absolute_path_to_dir("TMP_DIR")
-    print(f"AFTER: {path1!r}")
+    path_dir0 = dotenv.get_absolute_path_to_dir("SOME_DIR")
+    print(f"DIR BEFORE: {path_dir0!r}")
+    dotenv.dotenv_dict["SOME_DIR"] = "/tmp"
+    path_dir1 = dotenv.get_absolute_path_to_dir("SOME_DIR")
+    print(f"DIR AFTER: {path_dir1!r}")
+
+    path_file0 = dotenv.get_absolute_path_to_file("SOME_FILE")
+    print(f"FILE BEFORE: {path_file0!r}")
+    dotenv.dotenv_dict["SOME_FILE"] = "/bin/sh"
+    path_file1 = dotenv.get_absolute_path_to_file("SOME_FILE")
+    print(f"FILE AFTER: {path_file1!r}")
