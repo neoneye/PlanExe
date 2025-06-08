@@ -174,7 +174,7 @@ class MyFlaskApp:
             raise Exception(f"The run_path directory is supposed to exist at this point. However no run_path directory exists: {run_path}")
 
         environment = os.environ.copy()
-        environment[PipelineEnvironmentEnum.RUN_ID.value] = run_id
+        environment[PipelineEnvironmentEnum.RUN_ID_DIR.value] = run_path
         environment[PipelineEnvironmentEnum.LLM_MODEL.value] = SPECIAL_AUTO_ID
         environment[PipelineEnvironmentEnum.SPEED_VS_DETAIL.value] = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW.value
 
@@ -560,7 +560,7 @@ class MyFlaskApp:
             logger.info(f"_run_job. subprocess.Popen before command: {command!r}")
             logger.info(f"_run_job. CWD for subprocess: {self.planexe_project_root!r}")
             logger.info(f"_run_job. Environment keys for subprocess (sample): "
-                        f"RUN_ID={job.environment.get(PipelineEnvironmentEnum.RUN_ID.value)!r}")
+                        f"RUN_ID_DIR={job.environment.get(PipelineEnvironmentEnum.RUN_ID_DIR.value)!r}")
 
             job.process = subprocess.Popen(
                 command,

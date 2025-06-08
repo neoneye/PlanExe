@@ -2,9 +2,9 @@
 PROMPT> python -m planexe.plan.run_plan_pipeline
 
 In order to resume an unfinished run.
-Insert the run_id of the thing you want to resume.
+Insert the run_id_dir of the thing you want to resume.
 If it's an already finished run, then remove the "999-pipeline_complete.txt" file.
-PROMPT> RUN_ID=PlanExe_20250216_150332 python -m planexe.plan.run_plan_pipeline
+PROMPT> RUN_ID_DIR=/absolute/path/to/PlanExe_20250216_150332 python -m planexe.plan.run_plan_pipeline
 """
 from dataclasses import dataclass
 from datetime import datetime
@@ -2869,21 +2869,15 @@ class ExecutePipeline:
 if __name__ == '__main__':
     import colorlog
     import sys
-    import os
-
-    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-    # specify a hardcoded, and it will resume work on that directory
-    # run_id = "20250205_141025"
 
     pipeline_environment = PipelineEnvironment.from_env()
-
-    # if env contains "RUN_ID" then use that as the run_id
-    if pipeline_environment.run_id:
-        run_id = pipeline_environment.run_id
-
-    run_id_dir = Path("run") / run_id
-    run_id_dir.mkdir(exist_ok=True)
+    try:
+        run_id_dir = pipeline_environment.get_run_id_dir()
+    except ValueError as e:
+        msg = f"RUN_ID_DIR is not set or invalid. Error getting run_id_dir: {e!r}"
+        logger.error(msg)
+        print(f"Exiting... {msg}")
+        sys.exit(1)
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
@@ -2914,7 +2908,6 @@ if __name__ == '__main__':
     logger.addHandler(file_handler)
 
     logger.info(f"pipeline_environment: {pipeline_environment!r}")
-    logger.info(f"run_id: {run_id}")
 
     # Example logging messages
     if False:

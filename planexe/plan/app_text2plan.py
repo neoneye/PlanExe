@@ -293,7 +293,7 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
 
     # Set environment variables for the pipeline.
     env = os.environ.copy()
-    env[PipelineEnvironmentEnum.RUN_ID.value] = run_id
+    env[PipelineEnvironmentEnum.RUN_ID_DIR.value] = absolute_path_to_run_dir
     env[PipelineEnvironmentEnum.LLM_MODEL.value] = session_state.llm_model
     env[PipelineEnvironmentEnum.SPEED_VS_DETAIL.value] = speedvsdetail_string
 
