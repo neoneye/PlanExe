@@ -4,6 +4,7 @@ Load PlanExe's .env file, containing secrets such as API keys, like: OPENROUTER_
 PROMPT> python -m planexe.utils.planexe_dotenv
 """
 from dataclasses import dataclass
+import os
 from pathlib import Path
 from typing import Optional
 from dotenv import dotenv_values
@@ -28,7 +29,14 @@ class PlanExeDotEnv:
         if config.dotenv_path is None:
             raise PlanExeConfigError("Required configuration file '.env' was not found. Cannot create a PlanExeDotEnv instance.")
         dotenv_path = config.dotenv_path
+        env_before = os.environ.copy()
         dotenv_dict = dotenv_values(dotenv_path=dotenv_path)
+        if env_before != os.environ:
+            logger.error("PlanExeDotEnv.load() The dotenv_values() modified the environment variables. My assumption is that it doesn't do that. If you see this, please report it as a bug.")
+            logger.error(f"PlanExeDotEnv.load() The dotenv_values() modified the environment variables. count before: {len(env_before)}, count after: {len(os.environ)}")
+            logger.error(f"PlanExeDotEnv.load() The dotenv_values() modified the environment variables. content before: {env_before!r}, content after: {os.environ!r}")
+        else:
+            logger.debug(f"PlanExeDotEnv.load() Great!This is what is expected. The dotenv_values() did not modify the environment variables. number of items: {len(os.environ)}")
         return cls(
             dotenv_path=dotenv_path, 
             dotenv_dict=dotenv_dict
