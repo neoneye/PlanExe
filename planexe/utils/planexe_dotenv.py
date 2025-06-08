@@ -7,7 +7,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 from dotenv import dotenv_values
+import logging
 from planexe.utils.planexe_config import PlanExeConfig, PlanExeConfigError
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class PlanExeDotEnv:
@@ -28,10 +31,44 @@ class PlanExeDotEnv:
 
     def get(self, key: str) -> Optional[str]:
         return self.dotenv_dict.get(key)
-    
+
+    def get_absolute_path_to_dir(self, key: str) -> Optional[Path]:
+        """
+        Resolves and validates the "key" variable.
+        It's expected to be an absolute path to a directory.
+        If the key is not found, returns None.
+        
+        :return: A Path object if valid, otherwise None.
+        """
+        path_str = self.dotenv_dict.get(key)
+        if path_str is None:
+            logger.debug(f"{key} is not set")
+            return None
+            
+        try:
+            path_obj = Path(path_str)
+        except Exception as e: # If path_str is bizarre
+            logger.error(f"Invalid {key} string '{path_str!r}': {e!r}")
+            return None
+        if not path_obj.is_absolute():
+            logger.error(f"{key} must be an absolute path: {path_obj!r}")
+            return None
+        if not path_obj.is_dir():
+            logger.error(f"{key} must be a directory: {path_obj!r}")
+            return None
+        logger.debug(f"Using {key}: {path_obj!r}")
+        return path_obj
+
     def __repr__(self):
         return f"PlanExeDotEnv(dotenv_path={self.dotenv_path!r}, dotenv_dict.keys()={self.dotenv_dict.keys()!r})"
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     dotenv = PlanExeDotEnv.load()
     print(dotenv)
+
+    path0 = dotenv.get_absolute_path_to_dir("TMP_DIR")
+    print(f"BEFORE: {path0!r}")
+    dotenv.dotenv_dict["TMP_DIR"] = "/tmp"
+    path1 = dotenv.get_absolute_path_to_dir("TMP_DIR")
+    print(f"AFTER: {path1!r}")
