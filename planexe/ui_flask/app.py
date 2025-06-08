@@ -57,7 +57,7 @@ class JobStatus(str, Enum):
 class JobState:
     """State for a single job"""
     run_id: str
-    run_path: Path
+    run_id_dir: Path
     environment: Dict[str, str]
     process: Optional[subprocess.Popen] = None
     stop_event: threading.Event = threading.Event()
@@ -158,7 +158,7 @@ class MyFlaskApp:
         if issue_count > 0:
             raise Exception(f"There are {issue_count} issues with the python executable and project root directory")
 
-    def _create_job_internal(self, run_id: str, run_path: Path) -> Tuple[Dict[str, Any], int]:
+    def _create_job_internal(self, run_id: str, run_id_dir: Path) -> Tuple[Dict[str, Any], int]:
         """
         Internal logic for creating a job.
         Called by both the /jobs endpoint and other internal functions.
@@ -170,16 +170,16 @@ class MyFlaskApp:
         if run_id in self.jobs:
             return {"error": "run_id already exists"}, 409
 
-        if not run_path.exists():
-            raise Exception(f"The run_path directory is supposed to exist at this point. However no run_path directory exists: {run_path}")
+        if not run_id_dir.exists():
+            raise Exception(f"The run_id_dir directory is supposed to exist at this point. However no run_id_dir directory exists: {run_id_dir!r}")
 
         environment = os.environ.copy()
-        environment[PipelineEnvironmentEnum.RUN_ID_DIR.value] = run_path
+        environment[PipelineEnvironmentEnum.RUN_ID_DIR.value] = str(run_id_dir)
         environment[PipelineEnvironmentEnum.LLM_MODEL.value] = SPECIAL_AUTO_ID
         environment[PipelineEnvironmentEnum.SPEED_VS_DETAIL.value] = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW.value
 
         # Create job state
-        job = JobState(run_id=run_id, run_path=run_path, environment=environment)
+        job = JobState(run_id=run_id, run_id_dir=run_id_dir, environment=environment)
         self.jobs[run_id] = job
 
         # Start the job in a background thread
@@ -265,9 +265,8 @@ class MyFlaskApp:
             try:
                 data = request.json
                 run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
-                run_path = self.planexe_run_dir / run_id
-                absolute_path_to_run_dir = run_path.absolute()
-                response_data, status_code = self._create_job_internal(run_id, absolute_path_to_run_dir)
+                run_id_dir = (self.planexe_run_dir / run_id).absolute()
+                response_data, status_code = self._create_job_internal(run_id, run_id_dir)
                 return jsonify(response_data), status_code            
             except Exception as e:
                 logger.error(f"Error creating job: {e}")
@@ -308,23 +307,21 @@ class MyFlaskApp:
                 current_user.current_run_id = None
 
             run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
-            run_path = self.planexe_run_dir / run_id
-            absolute_path_to_run_dir = run_path.absolute()
+            run_id_dir = (self.planexe_run_dir / run_id).absolute()
 
             logger.info(f"endpoint /run. current working directory: {Path.cwd()}")
             logger.info(f"endpoint /run. run_id: {run_id}")
-            logger.info(f"endpoint /run. run_path: {run_path}")
-            logger.info(f"endpoint /run. absolute_path_to_run_dir: {absolute_path_to_run_dir}")
+            logger.info(f"endpoint /run. run_id_dir: {run_id_dir!r}")
 
-            if run_path.exists():
-                raise Exception(f"The run path is not supposed to exist at this point. However the run path already exists: {run_path}")
-            run_path.mkdir(parents=True, exist_ok=True)
+            if run_id_dir.exists():
+                raise Exception(f"The run_id_dir is not supposed to exist at this point. However the run_id_dir already exists: {run_id_dir!r}")
+            run_id_dir.mkdir(parents=True, exist_ok=True)
 
             # Create the initial plan file.
             plan_file = PlanFile.create(prompt_param)
-            plan_file.save(str(run_path / FilenameEnum.INITIAL_PLAN.value))
+            plan_file.save(str(run_id_dir / FilenameEnum.INITIAL_PLAN.value))
 
-            response_data, status_code = self._create_job_internal(run_id, absolute_path_to_run_dir)
+            response_data, status_code = self._create_job_internal(run_id, run_id_dir)
             if status_code != 202:
                 logger.error(f"Error creating job internally: {response_data}")
                 return jsonify({"error": "Failed to create job", "details": response_data}), 500
@@ -400,14 +397,13 @@ class MyFlaskApp:
 
             logger.info(f"ViewPlan endpoint. user_id={user_id} run_id={run_id}")
 
-            run_path = self.planexe_run_dir / run_id
-            absolute_path_to_run_dir = run_path.absolute()
-            if not absolute_path_to_run_dir.exists():
-                raise Exception(f"Run directory not found at {absolute_path_to_run_dir}. Please ensure the run directory exists before viewing the plan.")
+            run_id_dir = (self.planexe_run_dir / run_id).absolute()
+            if not run_id_dir.exists():
+                raise Exception(f"Run directory not found at {run_id_dir!r}. Please ensure the run directory exists before viewing the plan.")
 
-            path_to_html_file = absolute_path_to_run_dir / FilenameEnum.REPORT.value
+            path_to_html_file = run_id_dir / FilenameEnum.REPORT.value
             if not path_to_html_file.exists():
-                raise Exception(f"The html file does not exist at this point. However the html file should exist: {path_to_html_file}")
+                raise Exception(f"The html file does not exist at this point. However the html file should exist: {path_to_html_file!r}")
             return send_file(str(path_to_html_file), mimetype='text/html')
 
         @self.app.route('/demo1')
@@ -551,9 +547,9 @@ class MyFlaskApp:
         """Run the actual job in a subprocess"""
         
         try:
-            run_path = job.run_path
-            if not run_path.exists():
-                raise Exception(f"The run_path directory is supposed to exist at this point. However the output directory does not exist: {run_path!r}")
+            run_id_dir = job.run_id_dir
+            if not run_id_dir.exists():
+                raise Exception(f"The run_id_dir directory is supposed to exist at this point. However the output directory does not exist: {run_id_dir!r}")
 
             # Start the process
             command = [str(self.path_to_python), "-m", MODULE_PATH_PIPELINE]
@@ -608,22 +604,22 @@ class MyFlaskApp:
                 # Update progress (same logic as before)
                 files = []
                 try:
-                    if run_path.exists() and run_path.is_dir():
-                        files = [f.name for f in run_path.iterdir()]
+                    if run_id_dir.exists() and run_id_dir.is_dir():
+                        files = [f.name for f in run_id_dir.iterdir()]
                 except OSError as e:
-                    logger.warning(f"_run_job: Could not list files in {run_path}: {e}")
+                    logger.warning(f"_run_job: Could not list files in {run_id_dir}: {e}")
 
                 ignore_files = [
                     ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value,
                     ExtraFilenameEnum.LOG_TXT.value
                 ]
                 files = [f for f in files if f not in ignore_files]
-                # logger.debug(f"Files in run_path for {job.run_id}: {files}") # Debug, can be noisy
+                # logger.debug(f"Files in run_id_dir for {job.run_id}: {files}") # Debug, can be noisy
                 number_of_files = len(files)
-                # logger.debug(f"Number of files in run_path for {job.run_id}: {number_of_files}") # Debug
+                # logger.debug(f"Number of files in run_id_dir for {job.run_id}: {number_of_files}") # Debug
 
                 # Determine the progress, by comparing the generated files with the expected_filenames1.json
-                expected_filenames_path = run_path / ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value
+                expected_filenames_path = run_id_dir / ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value
                 assign_progress_message = f"File count: {number_of_files}"
                 assign_progress_percentage = 0
                 if expected_filenames_path.exists():
