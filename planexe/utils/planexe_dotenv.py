@@ -42,6 +42,15 @@ class PlanExeDotEnv:
             dotenv_dict=dotenv_dict
         )
 
+    def update_os_environ(self):
+        """
+        Update the os.environ with the .env file content.
+        """
+        count_before = len(os.environ)
+        os.environ.update(self.dotenv_dict)
+        count_after = len(os.environ)
+        logger.debug(f"PlanExeDotEnv.update_os_environ() Updated os.environ with the .env file content. number of items before: {count_before}, number of items after: {count_after}")
+
     def get(self, key: str) -> Optional[str]:
         return self.dotenv_dict.get(key)
 

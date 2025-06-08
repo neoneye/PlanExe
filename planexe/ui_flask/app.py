@@ -82,6 +82,18 @@ class MyFlaskApp:
         self.planexe_dotenv = PlanExeDotEnv.load()
         logger.info(f"MyFlaskApp.__init__. planexe_dotenv: {self.planexe_dotenv!r}")
 
+        # This is a workaround to fix the inconsistency.
+        # Workaround-problem: When the Flask app launches in debug mode it runs __init__ twice, so that the app can hot reload.
+        # However there is this inconsistency.
+        # 1st time, the os.environ is the original environment of the shell.
+        # 2nd time, the os.environ is the original environment of the shell + the .env content.
+        # If it was the same in both cases, it would be easier to reason about the environment variables.
+        # On following hot reloads, the os.environ continues to be the original environment of the shell + the .env content.
+        # Workaround-solution: Every time update the os.environ with the .env content, so that the os.environ is always the 
+        # original environment of the shell + the .env content.
+        # I prefer NEVER to modify the os.environ for the current process, and instead spawn a child process with the modified os.environ.
+        self.planexe_dotenv.update_os_environ()
+
         override_path_to_python = self.planexe_dotenv.get_absolute_path_to_file(DotEnvKeyEnum.PATH_TO_PYTHON.value)
         if isinstance(override_path_to_python, Path):
             debug_path_to_python = 'override'
