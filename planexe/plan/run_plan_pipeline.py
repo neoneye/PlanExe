@@ -2827,7 +2827,7 @@ class FullPlanPipeline(PlanTask):
 @dataclass
 class ExecutePipeline:
     run_id: str
-    run_id_dir: str
+    run_id_dir: Path
     speedvsdetail: SpeedVsDetailEnum
     llm_models: list[str]
 
@@ -2862,7 +2862,7 @@ class ExecutePipeline:
         # logger.info(f"all_expected_filenames: {all_expected_filenames}")
 
         # create a json file with the expected filenames. Save it to the run/run_id/expected_filenames1.json
-        expected_filenames_path = os.path.join(self.run_id_dir, ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value)
+        expected_filenames_path = self.run_id_dir / ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value
         with open(expected_filenames_path, "w") as f:
             json.dump(all_expected_filenames, f, indent=2)
         logger.info(f"Saved {len(all_expected_filenames)} expected filenames to {expected_filenames_path}")
@@ -2886,8 +2886,8 @@ if __name__ == '__main__':
     if pipeline_environment.run_id:
         run_id = pipeline_environment.run_id
 
-    run_id_dir = os.path.join("run", run_id)
-    os.makedirs(run_id_dir, exist_ok=True)
+    run_id_dir = Path("run") / run_id
+    run_id_dir.mkdir(exist_ok=True)
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
@@ -2911,7 +2911,7 @@ if __name__ == '__main__':
 
     # Capture logs messages to 'run/yyyymmdd_hhmmss/log.txt'
     file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    log_file = os.path.join(run_id_dir, ExtraFilenameEnum.LOG_TXT.value)
+    log_file = Path(run_id_dir) / ExtraFilenameEnum.LOG_TXT.value
     file_handler = logging.FileHandler(log_file, mode='a')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(file_formatter)
