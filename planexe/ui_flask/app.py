@@ -89,8 +89,8 @@ class MyFlaskApp:
         self.planexe_project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
         logger.info(f"MyFlaskApp.__init__. planexe_project_root: {self.planexe_project_root!r}")
 
-        self.run_dir_path = os.path.abspath(os.path.join(self.planexe_project_root, RUN_DIR))
-        logger.info(f"MyFlaskApp.__init__. run_dir_path: {self.run_dir_path!r}")
+        self.planexe_run_dir = os.path.abspath(os.path.join(self.planexe_project_root, RUN_DIR))
+        logger.info(f"MyFlaskApp.__init__. planexe_run_dir: {self.planexe_run_dir!r}")
 
         self._start_check()
 
@@ -237,7 +237,7 @@ class MyFlaskApp:
             try:
                 data = request.json
                 run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
-                run_path = os.path.join(self.run_dir_path, run_id)
+                run_path = os.path.join(self.planexe_run_dir, run_id)
                 absolute_path_to_run_dir = os.path.abspath(run_path)
                 response_data, status_code = self._create_job_internal(run_id, absolute_path_to_run_dir)
                 return jsonify(response_data), status_code            
@@ -280,7 +280,7 @@ class MyFlaskApp:
                 current_user.current_run_id = None
 
             run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
-            run_path = os.path.join(self.run_dir_path, run_id)
+            run_path = os.path.join(self.planexe_run_dir, run_id)
             absolute_path_to_run_dir = os.path.abspath(run_path)
 
             logger.info(f"endpoint /run. current working directory: {os.getcwd()}")
@@ -372,7 +372,7 @@ class MyFlaskApp:
 
             logger.info(f"ViewPlan endpoint. user_id={user_id} run_id={run_id}")
 
-            run_path = os.path.join(self.run_dir_path, run_id)
+            run_path = os.path.join(self.planexe_run_dir, run_id)
             absolute_path_to_run_dir = os.path.abspath(run_path)
             if not os.path.exists(absolute_path_to_run_dir):
                 raise Exception(f"Run directory not found at {absolute_path_to_run_dir}. Please ensure the run directory exists before viewing the plan.")
