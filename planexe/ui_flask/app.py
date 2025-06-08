@@ -128,7 +128,12 @@ class MyFlaskApp:
         self._setup_routes()
 
     def _start_check(self):
-        # print the environment variables
+        # When the Flask app launches in debug mode it runs __init__ twice, so that the app can hot reload.
+        # However there is this inconsistency.
+        # 1st time, the os.environ is the original environment of the shell.
+        # 2nd time, the os.environ is the original environment of the shell + the .env content.
+        # If it was the same in both cases, it would be easier to reason about the environment variables.
+        # On following hot reloads, the os.environ continues to be the original environment of the shell + the .env content.
         logger.info(f"MyFlaskApp._start_check. environment variables: {os.environ}")
 
         issue_count = 0
