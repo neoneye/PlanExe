@@ -87,16 +87,15 @@ class PlanTask(luigi.Task):
     # Default it to the current timestamp, eg. 19841231_235959
     run_id = luigi.Parameter(default=datetime.now().strftime("%Y%m%d_%H%M%S"))
 
+    # Path to the 'run/{run_id}' directory
+    run_id_dir = luigi.Parameter(default=Path('run') / datetime.now().strftime("%Y%m%d_%H%M%S"))
+
     # By default, run everything but it's slow.
     # This can be overridden in developer mode, where a quick turnaround is needed, and the details are not important.
     speedvsdetail = luigi.EnumParameter(enum=SpeedVsDetailEnum, default=SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW)
 
     # List of LLM models to try, in order of priority.
     llm_models = luigi.ListParameter(default=[DEFAULT_LLM_MODEL])
-
-    @property
-    def run_id_dir(self) -> Path:
-        return Path('run') / self.run_id
 
     def file_path(self, filename: FilenameEnum) -> Path:
         return self.run_id_dir / filename.value
@@ -2853,7 +2852,7 @@ class ExecutePipeline:
         return llm_models
 
     def run(self):
-        task = FullPlanPipeline(run_id=self.run_id, speedvsdetail=self.speedvsdetail, llm_models=self.llm_models)
+        task = FullPlanPipeline(run_id=self.run_id, run_id_dir=self.run_id_dir, speedvsdetail=self.speedvsdetail, llm_models=self.llm_models)
 
         # Obtain a list of all the expected output files of the FullPlanPipeline task and all its dependencies
         obtain_output_files = ObtainOutputFiles.execute(task)
