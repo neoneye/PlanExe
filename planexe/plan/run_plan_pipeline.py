@@ -95,11 +95,11 @@ class PlanTask(luigi.Task):
     llm_models = luigi.ListParameter(default=[DEFAULT_LLM_MODEL])
 
     @property
-    def run_dir(self) -> Path:
+    def run_id_dir(self) -> Path:
         return Path('run') / self.run_id
 
     def file_path(self, filename: FilenameEnum) -> Path:
-        return self.run_dir / filename.value
+        return self.run_id_dir / filename.value
     
     def local_target(self, filename: FilenameEnum) -> luigi.LocalTarget:
         return luigi.LocalTarget(self.file_path(filename))
@@ -128,7 +128,7 @@ class SetupTask(PlanTask):
 
     def run(self):
         # Ensure the run directory exists.
-        self.run_dir.mkdir(parents=True, exist_ok=True)
+        self.run_id_dir.mkdir(parents=True, exist_ok=True)
 
         # Pick a random prompt.
         plan_prompt = find_plan_prompt("4dc34d55-0d0d-4e9d-92f4-23765f49dd29")
@@ -1501,13 +1501,13 @@ class ExpertReviewTask(PlanTask):
 
         # Define callback functions.
         def phase1_post_callback(expert_finder: ExpertFinder) -> None:
-            raw_path = self.run_dir / FilenameEnum.EXPERTS_RAW.value
-            cleaned_path = self.run_dir / FilenameEnum.EXPERTS_CLEAN.value
+            raw_path = self.run_id_dir / FilenameEnum.EXPERTS_RAW.value
+            cleaned_path = self.run_id_dir / FilenameEnum.EXPERTS_CLEAN.value
             expert_finder.save_raw(str(raw_path))
             expert_finder.save_cleanedup(str(cleaned_path))
 
         def phase2_post_callback(expert_criticism: ExpertCriticism, expert_index: int) -> None:
-            file_path = self.run_dir / FilenameEnum.EXPERT_CRITICISM_RAW_TEMPLATE.format(expert_index + 1)
+            file_path = self.run_id_dir / FilenameEnum.EXPERT_CRITICISM_RAW_TEMPLATE.format(expert_index + 1)
             expert_criticism.save_raw(str(file_path))
 
         # Execute the expert orchestration.
@@ -1794,7 +1794,7 @@ class DraftDocumentsToFindTask(PlanTask):
 
             # Write the raw JSON for this document using the FilenameEnum template.
             raw_filename = FilenameEnum.DRAFT_DOCUMENTS_TO_FIND_RAW_TEMPLATE.value.format(index+1)
-            raw_chunk_path = self.run_dir / raw_filename
+            raw_chunk_path = self.run_id_dir / raw_filename
             with open(raw_chunk_path, 'w') as f:
                 json.dump(json_response, f, indent=2)
 
@@ -1859,7 +1859,7 @@ class DraftDocumentsToCreateTask(PlanTask):
 
             # Write the raw JSON for this document using the FilenameEnum template.
             raw_filename = FilenameEnum.DRAFT_DOCUMENTS_TO_CREATE_RAW_TEMPLATE.value.format(index+1)
-            raw_chunk_path = self.run_dir / raw_filename
+            raw_chunk_path = self.run_id_dir / raw_filename
             with open(raw_chunk_path, 'w') as f:
                 json.dump(json_response, f, indent=2)
 
@@ -2246,7 +2246,7 @@ class EstimateTaskDurationsTask(PlanTask):
             
             # Write the raw JSON for this chunk.
             filename = FilenameEnum.TASK_DURATIONS_RAW_TEMPLATE.format(index)
-            raw_chunk_path = self.run_dir / filename
+            raw_chunk_path = self.run_id_dir / filename
             with open(raw_chunk_path, "w") as f:
                 json.dump(durations_raw_dict, f, indent=2)
             
@@ -2349,7 +2349,7 @@ class CreateWBSLevel3Task(PlanTask):
             
             # Write the raw JSON for this task using the FilenameEnum template.
             raw_filename = FilenameEnum.WBS_LEVEL3_RAW_TEMPLATE.value.format(index)
-            raw_chunk_path = self.run_dir / raw_filename
+            raw_chunk_path = self.run_id_dir / raw_filename
             with open(raw_chunk_path, 'w') as f:
                 json.dump(wbs_level3_raw_dict, f, indent=2)
             
@@ -2827,7 +2827,7 @@ class FullPlanPipeline(PlanTask):
 @dataclass
 class ExecutePipeline:
     run_id: str
-    run_dir: str
+    run_id_dir: str
     speedvsdetail: SpeedVsDetailEnum
     llm_models: list[str]
 
@@ -2862,7 +2862,7 @@ class ExecutePipeline:
         # logger.info(f"all_expected_filenames: {all_expected_filenames}")
 
         # create a json file with the expected filenames. Save it to the run/run_id/expected_filenames1.json
-        expected_filenames_path = os.path.join(self.run_dir, ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value)
+        expected_filenames_path = os.path.join(self.run_id_dir, ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value)
         with open(expected_filenames_path, "w") as f:
             json.dump(all_expected_filenames, f, indent=2)
         logger.info(f"Saved {len(all_expected_filenames)} expected filenames to {expected_filenames_path}")
@@ -2886,8 +2886,8 @@ if __name__ == '__main__':
     if pipeline_environment.run_id:
         run_id = pipeline_environment.run_id
 
-    run_dir = os.path.join("run", run_id)
-    os.makedirs(run_dir, exist_ok=True)
+    run_id_dir = os.path.join("run", run_id)
+    os.makedirs(run_id_dir, exist_ok=True)
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
@@ -2911,7 +2911,7 @@ if __name__ == '__main__':
 
     # Capture logs messages to 'run/yyyymmdd_hhmmss/log.txt'
     file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    log_file = os.path.join(run_dir, ExtraFilenameEnum.LOG_TXT.value)
+    log_file = os.path.join(run_id_dir, ExtraFilenameEnum.LOG_TXT.value)
     file_handler = logging.FileHandler(log_file, mode='a')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(file_formatter)
@@ -2949,6 +2949,6 @@ if __name__ == '__main__':
 
     llm_models = ExecutePipeline.resolve_llm_models(pipeline_environment.llm_model)
 
-    execute_pipeline = ExecutePipeline(run_id=run_id, run_dir=run_dir, speedvsdetail=speedvsdetail, llm_models=llm_models)
+    execute_pipeline = ExecutePipeline(run_id=run_id, run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models)
     logger.info(f"execute_pipeline: {execute_pipeline!r}")
     execute_pipeline.run()
