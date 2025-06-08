@@ -9,8 +9,13 @@ from typing import Optional
 from dotenv import dotenv_values
 import logging
 from planexe.utils.planexe_config import PlanExeConfig, PlanExeConfigError
+from enum import Enum
 
 logger = logging.getLogger(__name__)
+
+class DotEnvKeyEnum(str, Enum):
+    PATH_TO_PYTHON = "PATH_TO_PYTHON"
+    PLANEXE_RUN_DIR = "PLANEXE_RUN_DIR"
 
 @dataclass
 class PlanExeDotEnv:

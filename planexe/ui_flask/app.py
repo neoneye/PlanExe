@@ -13,7 +13,7 @@ from enum import Enum
 from pathlib import Path
 from flask import Flask, render_template, Response, request, jsonify, send_file
 import importlib.resources
-from planexe.utils.planexe_dotenv import PlanExeDotEnv
+from planexe.utils.planexe_dotenv import DotEnvKeyEnum, PlanExeDotEnv
 from planexe.utils.planexe_config import PlanExeConfig
 from planexe.plan.generate_run_id import generate_run_id
 from planexe.plan.plan_file import PlanFile
@@ -82,21 +82,26 @@ class MyFlaskApp:
         self.planexe_dotenv = PlanExeDotEnv.load()
         logger.info(f"MyFlaskApp.__init__. planexe_dotenv: {self.planexe_dotenv!r}")
 
-        if self.planexe_dotenv.get("OVERRIDE_PATH_TO_PYTHON"):
-            self.path_to_python = Path(self.planexe_dotenv.get("OVERRIDE_PATH_TO_PYTHON"))
+        override_path_to_python = self.planexe_dotenv.get_absolute_path_to_file(DotEnvKeyEnum.PATH_TO_PYTHON.value)
+        if isinstance(override_path_to_python, Path):
+            debug_path_to_python = 'override'
+            self.path_to_python = override_path_to_python
         else:
+            debug_path_to_python = 'default'
             self.path_to_python = Path(sys.executable)
-        logger.info(f"MyFlaskApp.__init__. path_to_python: {self.path_to_python}")
+        logger.info(f"MyFlaskApp.__init__. path_to_python ({debug_path_to_python}): {self.path_to_python!r}")
         
         self.planexe_project_root = Path(__file__).parent.parent.parent.absolute()
         logger.info(f"MyFlaskApp.__init__. planexe_project_root: {self.planexe_project_root!r}")
 
-        override_planexe_run_dir = self.planexe_dotenv.get_absolute_path_to_dir("PLANEXE_RUN_DIR")
+        override_planexe_run_dir = self.planexe_dotenv.get_absolute_path_to_dir(DotEnvKeyEnum.PLANEXE_RUN_DIR.value)
         if isinstance(override_planexe_run_dir, Path):
+            debug_planexe_run_dir = 'override'
             self.planexe_run_dir = override_planexe_run_dir
         else:
+            debug_planexe_run_dir = 'default'
             self.planexe_run_dir = self.planexe_project_root / RUN_DIR
-        logger.info(f"MyFlaskApp.__init__. planexe_run_dir: {self.planexe_run_dir!r}")
+        logger.info(f"MyFlaskApp.__init__. planexe_run_dir ({debug_planexe_run_dir}): {self.planexe_run_dir!r}")
 
         self._start_check()
 
