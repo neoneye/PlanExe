@@ -10,6 +10,7 @@ from dataclasses import dataclass
 import subprocess
 import threading
 from enum import Enum
+from pathlib import Path
 from flask import Flask, render_template, Response, request, jsonify, send_file
 import importlib.resources
 from planexe.utils.planexe_dotenv import PlanExeDotEnv
@@ -56,7 +57,7 @@ class JobStatus(str, Enum):
 class JobState:
     """State for a single job"""
     run_id: str
-    run_path: str
+    run_path: Path
     environment: Dict[str, str]
     process: Optional[subprocess.Popen] = None
     stop_event: threading.Event = threading.Event()
@@ -81,15 +82,20 @@ class MyFlaskApp:
         self.planexe_dotenv = PlanExeDotEnv.load()
         logger.info(f"MyFlaskApp.__init__. planexe_dotenv: {self.planexe_dotenv!r}")
 
-        self.path_to_python = self.planexe_dotenv.get("OVERRIDE_PATH_TO_PYTHON")
-        if self.path_to_python is None:
-            self.path_to_python = sys.executable
+        if self.planexe_dotenv.get("OVERRIDE_PATH_TO_PYTHON"):
+            self.path_to_python = Path(self.planexe_dotenv.get("OVERRIDE_PATH_TO_PYTHON"))
+        else:
+            self.path_to_python = Path(sys.executable)
         logger.info(f"MyFlaskApp.__init__. path_to_python: {self.path_to_python}")
         
-        self.planexe_project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        self.planexe_project_root = Path(__file__).parent.parent.parent.absolute()
         logger.info(f"MyFlaskApp.__init__. planexe_project_root: {self.planexe_project_root!r}")
 
-        self.planexe_run_dir = os.path.abspath(os.path.join(self.planexe_project_root, RUN_DIR))
+        override_planexe_run_dir = self.planexe_dotenv.get_absolute_path_to_dir("PLANEXE_RUN_DIR")
+        if isinstance(override_planexe_run_dir, Path):
+            self.planexe_run_dir = override_planexe_run_dir
+        else:
+            self.planexe_run_dir = self.planexe_project_root / RUN_DIR
         logger.info(f"MyFlaskApp.__init__. planexe_run_dir: {self.planexe_run_dir!r}")
 
         self._start_check()
@@ -121,16 +127,16 @@ class MyFlaskApp:
         logger.info(f"MyFlaskApp._start_check. environment variables: {os.environ}")
 
         issue_count = 0
-        if not os.path.exists(self.path_to_python):
+        if not self.path_to_python.exists():
             logger.error(f"The python executable does not exist at this point. However the python executable should exist: {self.path_to_python!r}")
             issue_count += 1
-        if not os.path.exists(self.planexe_project_root):
+        if not self.planexe_project_root.exists():
             logger.error(f"The planexe_project_root does not exist at this point. However the planexe_project_root should exist: {self.planexe_project_root!r}")
             issue_count += 1
         if issue_count > 0:
             raise Exception(f"There are {issue_count} issues with the python executable and project root directory")
 
-    def _create_job_internal(self, run_id: str, run_path: str) -> Tuple[Dict[str, Any], int]:
+    def _create_job_internal(self, run_id: str, run_path: Path) -> Tuple[Dict[str, Any], int]:
         """
         Internal logic for creating a job.
         Called by both the /jobs endpoint and other internal functions.
@@ -142,7 +148,7 @@ class MyFlaskApp:
         if run_id in self.jobs:
             return {"error": "run_id already exists"}, 409
 
-        if not os.path.exists(run_path):
+        if not run_path.exists():
             raise Exception(f"The run_path directory is supposed to exist at this point. However no run_path directory exists: {run_path}")
 
         environment = os.environ.copy()
@@ -237,8 +243,8 @@ class MyFlaskApp:
             try:
                 data = request.json
                 run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
-                run_path = os.path.join(self.planexe_run_dir, run_id)
-                absolute_path_to_run_dir = os.path.abspath(run_path)
+                run_path = self.planexe_run_dir / run_id
+                absolute_path_to_run_dir = run_path.absolute()
                 response_data, status_code = self._create_job_internal(run_id, absolute_path_to_run_dir)
                 return jsonify(response_data), status_code            
             except Exception as e:
@@ -280,21 +286,21 @@ class MyFlaskApp:
                 current_user.current_run_id = None
 
             run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
-            run_path = os.path.join(self.planexe_run_dir, run_id)
-            absolute_path_to_run_dir = os.path.abspath(run_path)
+            run_path = self.planexe_run_dir / run_id
+            absolute_path_to_run_dir = run_path.absolute()
 
-            logger.info(f"endpoint /run. current working directory: {os.getcwd()}")
+            logger.info(f"endpoint /run. current working directory: {Path.cwd()}")
             logger.info(f"endpoint /run. run_id: {run_id}")
             logger.info(f"endpoint /run. run_path: {run_path}")
             logger.info(f"endpoint /run. absolute_path_to_run_dir: {absolute_path_to_run_dir}")
 
-            if os.path.exists(run_path):
+            if run_path.exists():
                 raise Exception(f"The run path is not supposed to exist at this point. However the run path already exists: {run_path}")
-            os.makedirs(run_path, exist_ok=True)
+            run_path.mkdir(parents=True, exist_ok=True)
 
             # Create the initial plan file.
             plan_file = PlanFile.create(prompt_param)
-            plan_file.save(os.path.join(run_path, FilenameEnum.INITIAL_PLAN.value))
+            plan_file.save(str(run_path / FilenameEnum.INITIAL_PLAN.value))
 
             response_data, status_code = self._create_job_internal(run_id, absolute_path_to_run_dir)
             if status_code != 202:
@@ -372,15 +378,15 @@ class MyFlaskApp:
 
             logger.info(f"ViewPlan endpoint. user_id={user_id} run_id={run_id}")
 
-            run_path = os.path.join(self.planexe_run_dir, run_id)
-            absolute_path_to_run_dir = os.path.abspath(run_path)
-            if not os.path.exists(absolute_path_to_run_dir):
+            run_path = self.planexe_run_dir / run_id
+            absolute_path_to_run_dir = run_path.absolute()
+            if not absolute_path_to_run_dir.exists():
                 raise Exception(f"Run directory not found at {absolute_path_to_run_dir}. Please ensure the run directory exists before viewing the plan.")
 
-            path_to_html_file = os.path.join(absolute_path_to_run_dir, FilenameEnum.REPORT.value)
-            if not os.path.exists(path_to_html_file):
+            path_to_html_file = absolute_path_to_run_dir / FilenameEnum.REPORT.value
+            if not path_to_html_file.exists():
                 raise Exception(f"The html file does not exist at this point. However the html file should exist: {path_to_html_file}")
-            return send_file(path_to_html_file, mimetype='text/html')
+            return send_file(str(path_to_html_file), mimetype='text/html')
 
         @self.app.route('/demo1')
         def demo1():
@@ -447,12 +453,12 @@ class MyFlaskApp:
                 logger.info(f"demo_subprocess_run_medium. path_to_python: {self.path_to_python!r}")
                 env["OPENROUTER_API_KEY"] = self.planexe_dotenv.get("OPENROUTER_API_KEY")
                 result = subprocess.run(
-                    [self.path_to_python, "-m", "planexe.proof_of_concepts.run_ping_simple"],
+                    [str(self.path_to_python), "-m", "planexe.proof_of_concepts.run_ping_simple"],
                     capture_output=True,
                     text=True,
                     check=True,
                     env=env,
-                    cwd=self.planexe_project_root
+                    cwd=str(self.planexe_project_root)
                 )
                 output = result.stdout.strip()
                 return render_template(template, topic=topic, output=output, error=None)
@@ -476,12 +482,12 @@ class MyFlaskApp:
                 logger.info(f"demo_subprocess_run_advanced. path_to_python: {self.path_to_python!r}")
                 env["OPENROUTER_API_KEY"] = self.planexe_dotenv.get("OPENROUTER_API_KEY")
                 result = subprocess.run(
-                    [self.path_to_python, "-m", "planexe.proof_of_concepts.run_ping_medium"],
+                    [str(self.path_to_python), "-m", "planexe.proof_of_concepts.run_ping_medium"],
                     capture_output=True,
                     text=True,
                     check=True,
                     env=env,
-                    cwd=self.planexe_project_root
+                    cwd=str(self.planexe_project_root)
                 )
                 output = result.stdout.strip()
                 return render_template(template, topic=topic, output=output, error=None)
@@ -524,17 +530,11 @@ class MyFlaskApp:
         
         try:
             run_path = job.run_path
-            if not os.path.exists(run_path):
-                raise Exception(f"The run_path directory is supposed to exist at this point. However the output directory does not exist: {run_path}")
+            if not run_path.exists():
+                raise Exception(f"The run_path directory is supposed to exist at this point. However the output directory does not exist: {run_path!r}")
 
             # Start the process
-            command = [self.path_to_python, "-m", MODULE_PATH_PIPELINE]
-            # command = [self.path_to_python, "--version"]
-            # python_executable = "/home/neoneye/git/PlanExe/planexe_run.sh"
-            # command = [python_executable]
-            # python_executable = "/usr/bin/git"
-            # python_executable = self.path_to_python
-            # command = [python_executable, "--version"]
+            command = [str(self.path_to_python), "-m", MODULE_PATH_PIPELINE]
             logger.info(f"_run_job. subprocess.Popen before command: {command!r}")
             logger.info(f"_run_job. CWD for subprocess: {self.planexe_project_root!r}")
             logger.info(f"_run_job. Environment keys for subprocess (sample): "
@@ -542,11 +542,11 @@ class MyFlaskApp:
 
             job.process = subprocess.Popen(
                 command,
-                cwd=self.planexe_project_root,
-                env=job.environment, # This passes the parent's environment, including VIRTUAL_ENV if set
-                stdout=subprocess.PIPE, # Capture stdout
-                stderr=subprocess.PIPE, # Capture stderr
-                text=True # Decode stdout/stderr as text
+                cwd=str(self.planexe_project_root),
+                env=job.environment,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
             )
             logger.info(f"_run_job. subprocess.Popen after command: {command!r} with PID: {job.process.pid}")
 
@@ -586,8 +586,8 @@ class MyFlaskApp:
                 # Update progress (same logic as before)
                 files = []
                 try:
-                    if os.path.exists(run_path) and os.path.isdir(run_path):
-                        files = os.listdir(run_path)
+                    if run_path.exists() and run_path.is_dir():
+                        files = [f.name for f in run_path.iterdir()]
                 except OSError as e:
                     logger.warning(f"_run_job: Could not list files in {run_path}: {e}")
 
@@ -601,10 +601,10 @@ class MyFlaskApp:
                 # logger.debug(f"Number of files in run_path for {job.run_id}: {number_of_files}") # Debug
 
                 # Determine the progress, by comparing the generated files with the expected_filenames1.json
-                expected_filenames_path = os.path.join(run_path, ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value)
+                expected_filenames_path = run_path / ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value
                 assign_progress_message = f"File count: {number_of_files}"
                 assign_progress_percentage = 0
-                if os.path.exists(expected_filenames_path):
+                if expected_filenames_path.exists():
                     with open(expected_filenames_path, "r") as f:
                         expected_filenames = json.load(f)
                     set_files = set(files)
