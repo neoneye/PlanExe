@@ -86,10 +86,10 @@ class MyFlaskApp:
             self.path_to_python = sys.executable
         logger.info(f"MyFlaskApp.__init__. path_to_python: {self.path_to_python}")
         
-        self.planexe_dir_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        logger.info(f"MyFlaskApp.__init__. planexe_dir_path: {self.planexe_dir_path!r}")
+        self.planexe_project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        logger.info(f"MyFlaskApp.__init__. planexe_project_root: {self.planexe_project_root!r}")
 
-        self.run_dir_path = os.path.abspath(os.path.join(self.planexe_dir_path, RUN_DIR))
+        self.run_dir_path = os.path.abspath(os.path.join(self.planexe_project_root, RUN_DIR))
         logger.info(f"MyFlaskApp.__init__. run_dir_path: {self.run_dir_path!r}")
 
         self._start_check()
@@ -124,8 +124,8 @@ class MyFlaskApp:
         if not os.path.exists(self.path_to_python):
             logger.error(f"The python executable does not exist at this point. However the python executable should exist: {self.path_to_python!r}")
             issue_count += 1
-        if not os.path.exists(self.planexe_dir_path):
-            logger.error(f"The planexe_dir_path does not exist at this point. However the planexe_dir_path should exist: {self.planexe_dir_path!r}")
+        if not os.path.exists(self.planexe_project_root):
+            logger.error(f"The planexe_project_root does not exist at this point. However the planexe_project_root should exist: {self.planexe_project_root!r}")
             issue_count += 1
         if issue_count > 0:
             raise Exception(f"There are {issue_count} issues with the python executable and project root directory")
@@ -443,7 +443,7 @@ class MyFlaskApp:
             try:
                 env = os.environ.copy()
                 logger.info(f"demo_subprocess_run_medium. planexe_dotenv: {self.planexe_dotenv!r}")
-                logger.info(f"demo_subprocess_run_medium. planexe_dir_path: {self.planexe_dir_path!r}")
+                logger.info(f"demo_subprocess_run_medium. planexe_project_root: {self.planexe_project_root!r}")
                 logger.info(f"demo_subprocess_run_medium. path_to_python: {self.path_to_python!r}")
                 env["OPENROUTER_API_KEY"] = self.planexe_dotenv.get("OPENROUTER_API_KEY")
                 result = subprocess.run(
@@ -452,7 +452,7 @@ class MyFlaskApp:
                     text=True,
                     check=True,
                     env=env,
-                    cwd=self.planexe_dir_path
+                    cwd=self.planexe_project_root
                 )
                 output = result.stdout.strip()
                 return render_template(template, topic=topic, output=output, error=None)
@@ -472,7 +472,7 @@ class MyFlaskApp:
             try:
                 env = os.environ.copy()
                 logger.info(f"demo_subprocess_run_advanced. planexe_dotenv: {self.planexe_dotenv!r}")
-                logger.info(f"demo_subprocess_run_advanced. planexe_dir_path: {self.planexe_dir_path!r}")
+                logger.info(f"demo_subprocess_run_advanced. planexe_project_root: {self.planexe_project_root!r}")
                 logger.info(f"demo_subprocess_run_advanced. path_to_python: {self.path_to_python!r}")
                 env["OPENROUTER_API_KEY"] = self.planexe_dotenv.get("OPENROUTER_API_KEY")
                 result = subprocess.run(
@@ -481,7 +481,7 @@ class MyFlaskApp:
                     text=True,
                     check=True,
                     env=env,
-                    cwd=self.planexe_dir_path
+                    cwd=self.planexe_project_root
                 )
                 output = result.stdout.strip()
                 return render_template(template, topic=topic, output=output, error=None)
@@ -536,14 +536,13 @@ class MyFlaskApp:
             # python_executable = self.path_to_python
             # command = [python_executable, "--version"]
             logger.info(f"_run_job. subprocess.Popen before command: {command!r}")
-            logger.info(f"_run_job. CWD for subprocess: {self.planexe_dir_path!r}")
+            logger.info(f"_run_job. CWD for subprocess: {self.planexe_project_root!r}")
             logger.info(f"_run_job. Environment keys for subprocess (sample): "
                         f"RUN_ID={job.environment.get(PipelineEnvironmentEnum.RUN_ID.value)!r}")
 
-
             job.process = subprocess.Popen(
                 command,
-                cwd=self.planexe_dir_path,
+                cwd=self.planexe_project_root,
                 env=job.environment, # This passes the parent's environment, including VIRTUAL_ENV if set
                 stdout=subprocess.PIPE, # Capture stdout
                 stderr=subprocess.PIPE, # Capture stderr
