@@ -14,6 +14,7 @@ from pathlib import Path
 from datetime import datetime
 import markdown
 from typing import Dict, Any, Optional
+import importlib.resources
 
 logger = logging.getLogger(__name__)
 
@@ -144,9 +145,10 @@ class ReportGenerator:
     def generate_html_report(self) -> str:
         """Generate an HTML report from the gathered data."""
 
-        path_to_template = Path(__file__).parent / 'report_template.html'
-        with open(path_to_template, 'r') as f:
-            html_template = f.read()
+        path_to_template = importlib.resources.files('planexe.report') / 'report_template.html'
+        with importlib.resources.as_file(path_to_template) as path_to_template:
+            with open(path_to_template, 'r') as f:
+                html_template = f.read()
         
         html_head = '\n'.join(self.html_head_content)
         html_template = html_template.replace('<!--HTML_HEAD_INSERT_HERE-->', html_head)        

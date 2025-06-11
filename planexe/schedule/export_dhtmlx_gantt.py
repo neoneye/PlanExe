@@ -12,6 +12,7 @@ from datetime import date, timedelta
 import json
 import html
 from pathlib import Path
+import importlib.resources
 from planexe.schedule.schedule import ProjectSchedule, DependencyType, PredecessorInfo
 from planexe.utils.dedent_strip import dedent_strip
 
@@ -154,9 +155,10 @@ class ExportDHTMLXGantt:
         )
         gantt_data_json = json.dumps(gantt_data, indent=2)
 
-        path_to_template = Path(__file__).parent / 'export_dhtmlx_gantt_template.html'
-        with open(path_to_template, "r", encoding="utf-8") as f:
-            html_template = f.read()
+        template_path = importlib.resources.files('planexe.schedule') / 'export_dhtmlx_gantt_template.html'
+        with importlib.resources.as_file(template_path) as path_to_template:
+            with open(path_to_template, "r", encoding="utf-8") as f:
+                html_template = f.read()
         
         html_content = html_template.replace("PLACEHOLDER_TITLE", html.escape(title))
         html_content = html_content.replace("PLACEHOLDER_GANTT_DATA", gantt_data_json)
