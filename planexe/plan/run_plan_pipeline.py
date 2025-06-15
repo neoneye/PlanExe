@@ -2820,6 +2820,32 @@ class FullPlanPipeline(PlanTask):
         with self.output().open("w") as f:
             f.write("Full pipeline executed successfully.\n")
 
+@luigi.Task.event_handler(luigi.Event.SUCCESS)
+def on_task_success(task):
+    """
+    Callback executed when a task successfully completes.
+    """
+    logger.info(f"CALLBACK: Task SUCCEEDED: {task.task_id}")
+    # Example: Log output paths
+    try:
+        outputs = task.output()
+        if isinstance(outputs, luigi.Target):
+            logger.debug(f"  Task {task.task_id} output: {outputs.path}")
+        elif isinstance(outputs, dict):
+            for key, target in outputs.items():
+                if isinstance(target, luigi.Target):
+                    logger.debug(f"  Task {task.task_id} output '{key}': {target.path}")
+    except Exception as e:
+        logger.error(f"  Error in SUCCESS callback for {task.task_id}: {e}")
+
+@luigi.Task.event_handler(luigi.Event.FAILURE)
+def on_task_failure(task, exception):
+    """
+    Callback executed when a task fails.
+    """
+    logger.error(f"CALLBACK: Task FAILED: {task.task_id}")
+    logger.error(f"  Exception type: {type(exception).__name__}")
+    logger.error(f"  Exception details: {exception}")
 
 @dataclass
 class ExecutePipeline:
