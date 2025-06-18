@@ -2901,23 +2901,28 @@ class ExecutePipeline:
 
         ignore_files = [
             ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value,
-            ExtraFilenameEnum.LOG_TXT.value
+            ExtraFilenameEnum.LOG_TXT.value,
+            '.DS_Store',
         ]
         files = [f for f in files if f not in ignore_files]
         # logger.debug(f"Files in run_id_dir for {job.run_id}: {files}") # Debug, can be noisy
-        number_of_files = len(files)
-        # logger.debug(f"Number of files in run_id_dir for {job.run_id}: {number_of_files}") # Debug
+        # logger.debug(f"Number of files in run_id_dir for {job.run_id}: {len(files)}") # Debug
 
         # Determine the progress, by comparing the generated files with the expected_filenames1.json
         set_files = set(files)
         set_expected_files = set(self.all_expected_filenames)
         intersection_files = set_files & set_expected_files
-        assign_progress_message = f"{len(intersection_files)} of {len(set_expected_files)}. Files: {number_of_files}"
-        assign_progress_percentage: float = 0.0
+        extra_files = set_files - set_expected_files
+        # if len(extra_files) > 0:
+        #     logger.debug(f"Extra files: {extra_files}")
+        progress_message_long = f"{len(intersection_files)} of {len(set_expected_files)}. Extra files: {len(extra_files)}"
+        progress_message_short = f"{len(intersection_files)} of {len(set_expected_files)}"
+        progress_message = progress_message_short if len(extra_files) == 0 else progress_message_long
+        progress_percentage: float = 0.0
         if len(set_expected_files) > 0:
-            assign_progress_percentage = (len(intersection_files) * 100.0) / len(set_expected_files)
+            progress_percentage = (len(intersection_files) * 100.0) / len(set_expected_files)
 
-        return PipelineProgress(progress_message=assign_progress_message, progress_percentage=assign_progress_percentage)
+        return PipelineProgress(progress_message=progress_message, progress_percentage=progress_percentage)
 
     def _handle_task_completion(self, parameters: HandleTaskCompletionParameters) -> bool:
         """
