@@ -108,14 +108,6 @@ class PlanTask(luigi.Task):
         raise NotImplementedError("Subclasses must implement this method.")
 
     def run(self):
-
-        # access the scheduler and count the number of pending tasks
-        # access the worker and obtain the scheduler
-        # scheduler = self.worker.scheduler
-        # pending_tasks = scheduler.get_pending_tasks()
-        # pending_task_count = len(pending_tasks)
-        # logger.info(f"!!!!!!! Pending task count: {pending_task_count}")
-
         class_name = self.__class__.__name__
         attempt_count = len(self.llm_models)
         for index, llm_model in enumerate(self.llm_models, start=1):
@@ -2837,48 +2829,6 @@ class FullPlanPipeline(PlanTask):
         with self.output().open("w") as f:
             f.write("Full pipeline executed successfully.\n")
 
-@luigi.Task.event_handler(luigi.Event.SUCCESS)
-def on_task_success(task):
-    """
-    Callback executed when a task successfully completes.
-    """
-    logger.info(f"CALLBACK: Task SUCCEEDED: {task.task_id}")
-    # Example: Log output paths
-    try:
-        outputs = task.output()
-        if isinstance(outputs, luigi.Target):
-            logger.debug(f"  Task {task.task_id} output: {outputs.path}")
-        elif isinstance(outputs, dict):
-            for key, target in outputs.items():
-                if isinstance(target, luigi.Target):
-                    logger.debug(f"  Task {task.task_id} output '{key}': {target.path}")
-        # TODO: Add custom logic here, e.g.:
-        # - Increment a counter for a progress bar
-        # - Update a database record for this task
-    except Exception as e:
-        logger.error(f"  Error in SUCCESS callback for {task.task_id}: {e}")
-
-@luigi.Task.event_handler(luigi.Event.FAILURE)
-def on_task_failure(task, exception):
-    """
-    Callback executed when a task fails.
-    """
-    logger.error(f"CALLBACK: Task FAILED: {task.task_id}")
-    logger.error(f"  Exception type: {type(exception).__name__}")
-    logger.error(f"  Exception details: {exception}")
-    # TODO: Add custom logic here, e.g.:
-    # - Send a notification (email, Slack)
-    # - Log detailed error information to a specific system
-    # - If implementing cooperative stopping, this might be a place to check
-    #   if the failure warrants setting a global stop flag.
-
-class MyScheduler(luigi.scheduler.Scheduler):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.pending_tasks = []
-    
-    def get_pending_tasks(self):
-        return self.pending_tasks
 
 @dataclass
 class ExecutePipeline:
@@ -2930,9 +2880,6 @@ class ExecutePipeline:
             json.dump(all_expected_filenames, f, indent=2)
         logger.info(f"Saved {len(all_expected_filenames)} expected filenames to {expected_filenames_path}")
 
-        # TODO: custom callback whenever a task is completed, so I can update progress bar, and decide wether to continue or stop, by checking the database.
-        # scheduler = MyScheduler()
-        # luigi.build([task], local_scheduler=True, workers=1, scheduler=scheduler)
         luigi.build([task], local_scheduler=True, workers=1)
 
 
