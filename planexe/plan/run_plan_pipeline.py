@@ -2838,6 +2838,12 @@ class PipelineProgress:
     progress_message: str
     progress_percentage: float
 
+
+@dataclass
+class HandleTaskCompletionParameters:
+    task: PlanTask
+    progress: PipelineProgress
+
 @dataclass
 class ExecutePipeline:
     run_id_dir: Path
@@ -2908,17 +2914,41 @@ class ExecutePipeline:
 
         return PipelineProgress(progress_message=assign_progress_message, progress_percentage=assign_progress_percentage)
 
+    def _handle_task_completion(self, parameters: HandleTaskCompletionParameters) -> bool:
+        """
+        Protected hook method for custom logic after a task completes.
+        This method is called by callback_run_task.
+        Subclasses can override this to implement custom behaviors such as:
+        - Updating a database with the latest progress.
+        - Checking an external source (like a database flag) to determine if the pipeline should continue or be aborted.
+
+        Args:
+            parameters: Details about the PlanTask instance that has successfully completed.
+                 The `self` of this method is the ExecutePipeline instance,
+                 so you can access `self.run_id_dir`, `self.get_progress_percentage()`, etc.
+
+        Returns:
+            bool: True to continue the pipeline, False to abort.
+                  If False is returned, PlanTask.run() will raise a RuntimeError.
+        """
+        logger.debug(f"ExecutePipeline._handle_task_completion: Default behavior for task {parameters.task.task_id} in run {self.run_id_dir}. Pipeline will continue.")
+        # Default implementation simply allows the pipeline to continue.
+        # Subclasses will provide meaningful implementations here.
+        return True
+
     def callback_run_task(self, task: PlanTask) -> bool:
-        logger.info(f"ExecutePipeline.callback_run_task: Task SUCCEEDED: {task.task_id}")
+        logger.debug(f"ExecutePipeline.callback_run_task: Task SUCCEEDED: {task.task_id}")
 
-        progress = self.get_progress_percentage()
-        logger.info(f"ExecutePipeline.callback_run_task: Progress: {progress!r}")
+        progress: PipelineProgress = self.get_progress_percentage()
+        logger.debug(f"ExecutePipeline.callback_run_task: Current progress for run {self.run_id_dir}: {progress!r}")
 
-        # Subclass this class and override this method.
-        # I can use this callback to update the progress bar, by updating the database.
-        # I can use this callback to decide wether to continue or stop, by checking the database.
-        return True # Continue running the pipeline.
-        # return False # Abort the pipeline
+        parameters = HandleTaskCompletionParameters(task=task, progress=progress)
+
+        # Delegate custom handling (like DB updates or stop checks) to the hook method.
+        should_continue = self._handle_task_completion(parameters)
+        # Return True to continue running the pipeline.
+        # Return False to abort the pipeline.
+        return should_continue
 
     def run(self):
         # create a json file with the expected filenames. Save it to the run/run_id/expected_filenames1.json
