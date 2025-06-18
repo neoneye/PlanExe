@@ -95,7 +95,10 @@ class PlanTask(luigi.Task):
     # List of LLM models to try, in order of priority.
     llm_models = luigi.ListParameter(default=[DEFAULT_LLM_MODEL])
 
-    # Callback for progress updates.
+    # Optional callback for updating progress bar and aborting the pipeline.
+    # If the callback returns True, the pipeline will continue.
+    # If the callback returns False, the pipeline will be aborted.
+    # If the callback is not provided, the pipeline will run until completion.
     _pipeline_executor_callback = luigi.Parameter(default=None, significant=False, visibility=luigi.parameter.ParameterVisibility.PRIVATE)
 
     def file_path(self, filename: FilenameEnum) -> Path:
