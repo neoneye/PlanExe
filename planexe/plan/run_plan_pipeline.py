@@ -95,6 +95,9 @@ class PlanTask(luigi.Task):
     # List of LLM models to try, in order of priority.
     llm_models = luigi.ListParameter(default=[DEFAULT_LLM_MODEL])
 
+    # Callback for progress updates.
+    _pipeline_executor_callback = luigi.Parameter(default=None, significant=False, visibility=luigi.parameter.ParameterVisibility.PRIVATE)
+
     def file_path(self, filename: FilenameEnum) -> Path:
         return self.run_id_dir / filename.value
     
@@ -105,6 +108,14 @@ class PlanTask(luigi.Task):
         raise NotImplementedError("Subclasses must implement this method.")
 
     def run(self):
+
+        # access the scheduler and count the number of pending tasks
+        # access the worker and obtain the scheduler
+        # scheduler = self.worker.scheduler
+        # pending_tasks = scheduler.get_pending_tasks()
+        # pending_task_count = len(pending_tasks)
+        # logger.info(f"!!!!!!! Pending task count: {pending_task_count}")
+
         class_name = self.__class__.__name__
         attempt_count = len(self.llm_models)
         for index, llm_model in enumerate(self.llm_models, start=1):
@@ -113,10 +124,16 @@ class PlanTask(luigi.Task):
                 llm = get_llm(llm_model)
                 self.run_with_llm(llm)
                 logger.info(f"Successfully ran {class_name} with LLM {llm_model!r}.")
-                return
             except Exception as e:
-                logger.error(f"Error running {class_name}with LLM {llm_model!r}: {e}")
+                logger.error(f"Error running {class_name} with LLM {llm_model!r}: {e}")
                 continue
+            # If a callback is provided by the pipeline executor, call it.
+            if self._pipeline_executor_callback:
+                should_continue = self._pipeline_executor_callback(self)
+                if not should_continue:
+                    logger.warning(f"Pipeline execution aborted by callback after task {self.task_id} succeeded.")
+                    raise RuntimeError(f"Pipeline execution aborted by callback after task {self.task_id} succeeded.")
+            return
         raise Exception(f"Failed to run {class_name} with any of the LLMs in the list: {self.llm_models!r}")
 
 class SetupTask(PlanTask):
@@ -2835,6 +2852,9 @@ def on_task_success(task):
             for key, target in outputs.items():
                 if isinstance(target, luigi.Target):
                     logger.debug(f"  Task {task.task_id} output '{key}': {target.path}")
+        # TODO: Add custom logic here, e.g.:
+        # - Increment a counter for a progress bar
+        # - Update a database record for this task
     except Exception as e:
         logger.error(f"  Error in SUCCESS callback for {task.task_id}: {e}")
 
@@ -2846,6 +2866,19 @@ def on_task_failure(task, exception):
     logger.error(f"CALLBACK: Task FAILED: {task.task_id}")
     logger.error(f"  Exception type: {type(exception).__name__}")
     logger.error(f"  Exception details: {exception}")
+    # TODO: Add custom logic here, e.g.:
+    # - Send a notification (email, Slack)
+    # - Log detailed error information to a specific system
+    # - If implementing cooperative stopping, this might be a place to check
+    #   if the failure warrants setting a global stop flag.
+
+class MyScheduler(luigi.scheduler.Scheduler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.pending_tasks = []
+    
+    def get_pending_tasks(self):
+        return self.pending_tasks
 
 @dataclass
 class ExecutePipeline:
@@ -2874,8 +2907,16 @@ class ExecutePipeline:
             logger.info(f"{index}. {llm_name!r}")
         return llm_models
 
+    def callback_run_task(self, task: PlanTask) -> bool:
+        logger.info(f"ExecutePipeline.callback_run_task: Task SUCCEEDED: {task.task_id}")
+        # Subclass this class and override this method.
+        # I can use this callback to update the progress bar, by updating the database.
+        # I can use this callback to decide wether to continue or stop, by checking the database.
+        return True # Continue running the pipeline.
+        # return False # Abort the pipeline
+
     def run(self):
-        task = FullPlanPipeline(run_id_dir=self.run_id_dir, speedvsdetail=self.speedvsdetail, llm_models=self.llm_models)
+        task = FullPlanPipeline(run_id_dir=self.run_id_dir, speedvsdetail=self.speedvsdetail, llm_models=self.llm_models, _pipeline_executor_callback=self.callback_run_task)
 
         # Obtain a list of all the expected output files of the FullPlanPipeline task and all its dependencies
         obtain_output_files = ObtainOutputFiles.execute(task)
@@ -2889,6 +2930,9 @@ class ExecutePipeline:
             json.dump(all_expected_filenames, f, indent=2)
         logger.info(f"Saved {len(all_expected_filenames)} expected filenames to {expected_filenames_path}")
 
+        # TODO: custom callback whenever a task is completed, so I can update progress bar, and decide wether to continue or stop, by checking the database.
+        # scheduler = MyScheduler()
+        # luigi.build([task], local_scheduler=True, workers=1, scheduler=scheduler)
         luigi.build([task], local_scheduler=True, workers=1)
 
 
