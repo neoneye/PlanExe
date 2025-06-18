@@ -2834,6 +2834,11 @@ class FullPlanPipeline(PlanTask):
 
 
 @dataclass
+class PipelineProgress:
+    progress_message: str
+    progress_percentage: float
+
+@dataclass
 class ExecutePipeline:
     run_id_dir: Path
     speedvsdetail: SpeedVsDetailEnum
@@ -2859,9 +2864,47 @@ class ExecutePipeline:
         for index, llm_name in enumerate(llm_models):
             logger.info(f"{index}. {llm_name!r}")
         return llm_models
+    
+    def get_progress_percentage(self) -> PipelineProgress:
+        files = []
+        try:
+            if self.run_id_dir.exists() and self.run_id_dir.is_dir():
+                files = [f.name for f in self.run_id_dir.iterdir()]
+        except OSError as e:
+            logger.warning(f"Could not list files in {run_id_dir}: {e}")
+
+        ignore_files = [
+            ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value,
+            ExtraFilenameEnum.LOG_TXT.value
+        ]
+        files = [f for f in files if f not in ignore_files]
+        # logger.debug(f"Files in run_id_dir for {job.run_id}: {files}") # Debug, can be noisy
+        number_of_files = len(files)
+        # logger.debug(f"Number of files in run_id_dir for {job.run_id}: {number_of_files}") # Debug
+
+        # Determine the progress, by comparing the generated files with the expected_filenames1.json
+        expected_filenames_path = self.run_id_dir / ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value
+        assign_progress_message = f"File count: {number_of_files}"
+        assign_progress_percentage: float = 0.0
+        if expected_filenames_path.exists():
+            with open(expected_filenames_path, "r") as f:
+                expected_filenames = json.load(f)
+            set_files = set(files)
+            set_expected_files = set(expected_filenames)
+            intersection_files = set_files & set_expected_files
+            assign_progress_message = f"{len(intersection_files)} of {len(set_expected_files)}"
+            if len(set_expected_files) > 0:
+                assign_progress_percentage = (len(intersection_files) * 100.0) / len(set_expected_files)
+
+        return PipelineProgress(progress_message=assign_progress_message, progress_percentage=assign_progress_percentage)
+
 
     def callback_run_task(self, task: PlanTask) -> bool:
         logger.info(f"ExecutePipeline.callback_run_task: Task SUCCEEDED: {task.task_id}")
+
+        progress = self.get_progress_percentage()
+        logger.info(f"ExecutePipeline.callback_run_task: Progress: {progress!r}")
+
         # Subclass this class and override this method.
         # I can use this callback to update the progress bar, by updating the database.
         # I can use this callback to decide wether to continue or stop, by checking the database.
