@@ -2844,12 +2844,18 @@ class ExecutePipeline:
     speedvsdetail: SpeedVsDetailEnum
     llm_models: list[str]
     full_plan_pipeline_task: Optional[FullPlanPipeline]
+    all_expected_filenames: list[str]
 
     @classmethod
     def create(cls, run_id_dir: Path, speedvsdetail: SpeedVsDetailEnum, llm_models: list[str]) -> 'ExecutePipeline':
-        execute_pipeline = cls(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models, full_plan_pipeline_task=None)
+        execute_pipeline = cls(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models, full_plan_pipeline_task=None, all_expected_filenames=[])
         full_plan_pipeline_task = FullPlanPipeline(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models, _pipeline_executor_callback=execute_pipeline.callback_run_task)
         execute_pipeline.full_plan_pipeline_task = full_plan_pipeline_task
+
+        # Obtain a list of all the expected output files of the FullPlanPipeline task and all its dependencies
+        obtain_output_files = ObtainOutputFiles.execute(full_plan_pipeline_task)
+        execute_pipeline.all_expected_filenames = obtain_output_files.get_all_filenames()
+
         return execute_pipeline
     
     @classmethod
@@ -2891,18 +2897,13 @@ class ExecutePipeline:
         # logger.debug(f"Number of files in run_id_dir for {job.run_id}: {number_of_files}") # Debug
 
         # Determine the progress, by comparing the generated files with the expected_filenames1.json
-        expected_filenames_path = self.run_id_dir / ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value
-        assign_progress_message = f"File count: {number_of_files}"
+        set_files = set(files)
+        set_expected_files = set(self.all_expected_filenames)
+        intersection_files = set_files & set_expected_files
+        assign_progress_message = f"{len(intersection_files)} of {len(set_expected_files)}. Files: {number_of_files}"
         assign_progress_percentage: float = 0.0
-        if expected_filenames_path.exists():
-            with open(expected_filenames_path, "r") as f:
-                expected_filenames = json.load(f)
-            set_files = set(files)
-            set_expected_files = set(expected_filenames)
-            intersection_files = set_files & set_expected_files
-            assign_progress_message = f"{len(intersection_files)} of {len(set_expected_files)}"
-            if len(set_expected_files) > 0:
-                assign_progress_percentage = (len(intersection_files) * 100.0) / len(set_expected_files)
+        if len(set_expected_files) > 0:
+            assign_progress_percentage = (len(intersection_files) * 100.0) / len(set_expected_files)
 
         return PipelineProgress(progress_message=assign_progress_message, progress_percentage=assign_progress_percentage)
 
@@ -2920,21 +2921,13 @@ class ExecutePipeline:
         # return False # Abort the pipeline
 
     def run(self):
-        task = self.full_plan_pipeline_task
-
-        # Obtain a list of all the expected output files of the FullPlanPipeline task and all its dependencies
-        obtain_output_files = ObtainOutputFiles.execute(task)
-        all_expected_filenames = obtain_output_files.get_all_filenames()
-        # logger.info(f"len(all_expected_filenames): {len(all_expected_filenames)}")
-        # logger.info(f"all_expected_filenames: {all_expected_filenames}")
-
         # create a json file with the expected filenames. Save it to the run/run_id/expected_filenames1.json
         expected_filenames_path = self.run_id_dir / ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value
         with open(expected_filenames_path, "w") as f:
-            json.dump(all_expected_filenames, f, indent=2)
-        logger.info(f"Saved {len(all_expected_filenames)} expected filenames to {expected_filenames_path}")
+            json.dump(self.all_expected_filenames, f, indent=2)
+        logger.info(f"Saved {len(self.all_expected_filenames)} expected filenames to {expected_filenames_path}")
 
-        luigi.build([task], local_scheduler=True, workers=1)
+        luigi.build([self.full_plan_pipeline_task], local_scheduler=True, workers=1)
 
 
 if __name__ == '__main__':
