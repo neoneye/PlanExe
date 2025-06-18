@@ -12,6 +12,7 @@ from decimal import Decimal
 import html
 import logging
 import json
+import time
 from typing import Optional
 import luigi
 from pathlib import Path
@@ -111,6 +112,7 @@ class PlanTask(luigi.Task):
         raise NotImplementedError("Subclasses must implement this method.")
 
     def run(self):
+        start_time: float = time.perf_counter()
         class_name = self.__class__.__name__
         attempt_count = len(self.llm_models)
         for index, llm_model in enumerate(self.llm_models, start=1):
@@ -118,13 +120,14 @@ class PlanTask(luigi.Task):
             try:
                 llm = get_llm(llm_model)
                 self.run_with_llm(llm)
-                logger.info(f"Successfully ran {class_name} with LLM {llm_model!r}.")
             except Exception as e:
                 logger.error(f"Error running {class_name} with LLM {llm_model!r}: {e}")
                 continue
+            duration: float = time.perf_counter() - start_time
+            logger.info(f"Successfully ran {class_name} with LLM {llm_model!r}. Duration: {duration:.2f} seconds")
             # If a callback is provided by the pipeline executor, call it.
             if self._pipeline_executor_callback:
-                should_continue = self._pipeline_executor_callback(self)
+                should_continue = self._pipeline_executor_callback(self, duration)
                 if not should_continue:
                     logger.warning(f"Pipeline execution aborted by callback after task {self.task_id} succeeded.")
                     raise RuntimeError(f"Pipeline execution aborted by callback after task {self.task_id} succeeded.")
@@ -2843,6 +2846,8 @@ class PipelineProgress:
 class HandleTaskCompletionParameters:
     task: PlanTask
     progress: PipelineProgress
+    duration: float
+
 
 @dataclass
 class ExecutePipeline:
@@ -2936,13 +2941,13 @@ class ExecutePipeline:
         # Subclasses will provide meaningful implementations here.
         return True
 
-    def callback_run_task(self, task: PlanTask) -> bool:
-        logger.debug(f"ExecutePipeline.callback_run_task: Task SUCCEEDED: {task.task_id}")
+    def callback_run_task(self, task: PlanTask, duration: float) -> bool:
+        logger.debug(f"ExecutePipeline.callback_run_task: Task SUCCEEDED: {task.task_id}. Duration: {duration:.2f} seconds")
 
         progress: PipelineProgress = self.get_progress_percentage()
         logger.debug(f"ExecutePipeline.callback_run_task: Current progress for run {self.run_id_dir}: {progress!r}")
 
-        parameters = HandleTaskCompletionParameters(task=task, progress=progress)
+        parameters = HandleTaskCompletionParameters(task=task, progress=progress, duration=duration)
 
         # Delegate custom handling (like DB updates or stop checks) to the hook method.
         should_continue = self._handle_task_completion(parameters)
