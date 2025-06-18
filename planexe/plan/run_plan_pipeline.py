@@ -2959,6 +2959,15 @@ class ExecutePipeline:
 
         luigi.build([self.full_plan_pipeline_task], local_scheduler=True, workers=1)
 
+class DemoStoppingExecutePipeline(ExecutePipeline):
+    """
+    Exercise the pipeline stopping mechanism.
+    when a task completes it returns False and causes the pipeline to stop.
+    """
+    def _handle_task_completion(self, parameters: HandleTaskCompletionParameters) -> bool:
+        logger.info(f"DemoStoppingExecutePipeline._handle_task_completion: Demo of stopping the pipeline.")
+        return False
+
 
 if __name__ == '__main__':
     import colorlog
@@ -3032,7 +3041,10 @@ if __name__ == '__main__':
 
     llm_models = ExecutePipeline.resolve_llm_models(pipeline_environment.llm_model)
 
-    execute_pipeline = ExecutePipeline(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models)
+    if True:
+        execute_pipeline = ExecutePipeline(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models)
+    else:
+        execute_pipeline = DemoStoppingExecutePipeline(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models)
     execute_pipeline.setup()
     logger.info(f"execute_pipeline: {execute_pipeline!r}")
     execute_pipeline.run()
