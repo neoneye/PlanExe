@@ -2843,7 +2843,15 @@ class ExecutePipeline:
     run_id_dir: Path
     speedvsdetail: SpeedVsDetailEnum
     llm_models: list[str]
+    full_plan_pipeline_task: Optional[FullPlanPipeline]
 
+    @classmethod
+    def create(cls, run_id_dir: Path, speedvsdetail: SpeedVsDetailEnum, llm_models: list[str]) -> 'ExecutePipeline':
+        execute_pipeline = cls(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models, full_plan_pipeline_task=None)
+        full_plan_pipeline_task = FullPlanPipeline(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models, _pipeline_executor_callback=execute_pipeline.callback_run_task)
+        execute_pipeline.full_plan_pipeline_task = full_plan_pipeline_task
+        return execute_pipeline
+    
     @classmethod
     def resolve_llm_models(cls, specified_llm_model: Optional[str]) -> list[str]:
         llm_models = get_llm_names_by_priority()
@@ -2912,7 +2920,7 @@ class ExecutePipeline:
         # return False # Abort the pipeline
 
     def run(self):
-        task = FullPlanPipeline(run_id_dir=self.run_id_dir, speedvsdetail=self.speedvsdetail, llm_models=self.llm_models, _pipeline_executor_callback=self.callback_run_task)
+        task = self.full_plan_pipeline_task
 
         # Obtain a list of all the expected output files of the FullPlanPipeline task and all its dependencies
         obtain_output_files = ObtainOutputFiles.execute(task)
@@ -3001,6 +3009,6 @@ if __name__ == '__main__':
 
     llm_models = ExecutePipeline.resolve_llm_models(pipeline_environment.llm_model)
 
-    execute_pipeline = ExecutePipeline(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models)
+    execute_pipeline = ExecutePipeline.create(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models)
     logger.info(f"execute_pipeline: {execute_pipeline!r}")
     execute_pipeline.run()
