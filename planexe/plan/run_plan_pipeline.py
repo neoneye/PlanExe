@@ -6,7 +6,7 @@ Insert the run_id_dir of the thing you want to resume.
 If it's an already finished run, then remove the "999-pipeline_complete.txt" file.
 PROMPT> RUN_ID_DIR=/absolute/path/to/PlanExe_20250216_150332 python -m planexe.plan.run_plan_pipeline
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 import html
@@ -2843,20 +2843,21 @@ class ExecutePipeline:
     run_id_dir: Path
     speedvsdetail: SpeedVsDetailEnum
     llm_models: list[str]
-    full_plan_pipeline_task: Optional[FullPlanPipeline]
-    all_expected_filenames: list[str]
+    full_plan_pipeline_task: Optional[FullPlanPipeline] = field(default=None)
+    all_expected_filenames: list[str] = field(default_factory=list)
 
-    @classmethod
-    def create(cls, run_id_dir: Path, speedvsdetail: SpeedVsDetailEnum, llm_models: list[str]) -> 'ExecutePipeline':
-        execute_pipeline = cls(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models, full_plan_pipeline_task=None, all_expected_filenames=[])
-        full_plan_pipeline_task = FullPlanPipeline(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models, _pipeline_executor_callback=execute_pipeline.callback_run_task)
-        execute_pipeline.full_plan_pipeline_task = full_plan_pipeline_task
+    def setup(self) -> None:
+        full_plan_pipeline_task = FullPlanPipeline(
+            run_id_dir=self.run_id_dir, 
+            speedvsdetail=self.speedvsdetail, 
+            llm_models=self.llm_models, 
+            _pipeline_executor_callback=self.callback_run_task
+        )
+        self.full_plan_pipeline_task = full_plan_pipeline_task
 
         # Obtain a list of all the expected output files of the FullPlanPipeline task and all its dependencies
         obtain_output_files = ObtainOutputFiles.execute(full_plan_pipeline_task)
-        execute_pipeline.all_expected_filenames = obtain_output_files.get_all_filenames()
-
-        return execute_pipeline
+        self.all_expected_filenames = obtain_output_files.get_all_filenames()
     
     @classmethod
     def resolve_llm_models(cls, specified_llm_model: Optional[str]) -> list[str]:
@@ -2906,7 +2907,6 @@ class ExecutePipeline:
             assign_progress_percentage = (len(intersection_files) * 100.0) / len(set_expected_files)
 
         return PipelineProgress(progress_message=assign_progress_message, progress_percentage=assign_progress_percentage)
-
 
     def callback_run_task(self, task: PlanTask) -> bool:
         logger.info(f"ExecutePipeline.callback_run_task: Task SUCCEEDED: {task.task_id}")
@@ -3002,6 +3002,7 @@ if __name__ == '__main__':
 
     llm_models = ExecutePipeline.resolve_llm_models(pipeline_environment.llm_model)
 
-    execute_pipeline = ExecutePipeline.create(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models)
+    execute_pipeline = ExecutePipeline(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models)
+    execute_pipeline.setup()
     logger.info(f"execute_pipeline: {execute_pipeline!r}")
     execute_pipeline.run()
