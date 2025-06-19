@@ -129,10 +129,10 @@ class PlanTask(luigi.Task):
             if self._pipeline_executor_callback:
                 should_continue = self._pipeline_executor_callback(self, duration)
                 if not should_continue:
-                    logger.warning(f"Pipeline execution aborted by callback after task {self.task_id} succeeded.")
-                    raise RuntimeError(f"Pipeline execution aborted by callback after task {self.task_id} succeeded.")
+                    logger.warning(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
+                    raise RuntimeError(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
             return
-        raise Exception(f"Failed to run {class_name} with any of the LLMs in the list: {self.llm_models!r}")
+        raise Exception(f"Failed to run {class_name} with any of the LLMs in the list: {self.llm_models!r} for run_id_dir: {self.run_id_dir!r}")
 
 class SetupTask(PlanTask):
     def output(self):
