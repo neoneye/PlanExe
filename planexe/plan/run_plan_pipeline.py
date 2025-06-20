@@ -84,6 +84,10 @@ from planexe.plan.pipeline_environment import PipelineEnvironment, PipelineEnvir
 logger = logging.getLogger(__name__)
 DEFAULT_LLM_MODEL = "ollama-llama3.1"
 
+class PlanTaskStop(RuntimeError):
+    """Raised when a pipeline task should be stopped by the callback."""
+    pass
+
 class PlanTask(luigi.Task):
     # Default it to the current timestamp, eg. 19841231_235959
     # Path to the 'run/{run_id}' directory
@@ -130,7 +134,7 @@ class PlanTask(luigi.Task):
                 should_continue = self._pipeline_executor_callback(self, duration)
                 if not should_continue:
                     logger.warning(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
-                    raise RuntimeError(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
+                    raise PlanTaskStop(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
             return
         raise Exception(f"Failed to run {class_name} with any of the LLMs in the list: {self.llm_models!r} for run_id_dir: {self.run_id_dir!r}")
 
@@ -2939,7 +2943,7 @@ class ExecutePipeline:
 
         Returns:
             bool: True to continue the pipeline, False to abort.
-                  If False is returned, PlanTask.run() will raise a RuntimeError.
+                  If False is returned, PlanTask.run() will raise a PlanTaskStop.
         """
         logger.debug(f"ExecutePipeline._handle_task_completion: Default behavior for task {parameters.task.task_id} in run {self.run_id_dir}. Pipeline will continue.")
         # Default implementation simply allows the pipeline to continue.
