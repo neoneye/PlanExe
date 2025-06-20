@@ -101,8 +101,8 @@ class PlanTask(luigi.Task):
     llm_models = luigi.ListParameter(default=[DEFAULT_LLM_MODEL])
 
     # Optional callback for updating progress bar and aborting the pipeline.
-    # If the callback returns True, the pipeline will continue.
-    # If the callback returns False, the pipeline will be aborted.
+    # If the callback returns False, the pipeline will continue.
+    # If the callback returns True, the pipeline will be aborted.
     # If the callback is not provided, the pipeline will run until completion.
     _pipeline_executor_callback = luigi.Parameter(default=None, significant=False, visibility=luigi.parameter.ParameterVisibility.PRIVATE)
 
@@ -131,8 +131,8 @@ class PlanTask(luigi.Task):
             logger.info(f"Successfully ran {class_name} with LLM {llm_model!r}. Duration: {duration:.2f} seconds")
             # If a callback is provided by the pipeline executor, call it.
             if self._pipeline_executor_callback:
-                should_continue = self._pipeline_executor_callback(self, duration)
-                if not should_continue:
+                should_stop = self._pipeline_executor_callback(self, duration)
+                if should_stop:
                     logger.warning(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
                     raise PlanTaskStop(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
             return
@@ -2942,13 +2942,13 @@ class ExecutePipeline:
                  so you can access `self.run_id_dir`, `self.get_progress_percentage()`, etc.
 
         Returns:
-            bool: True to continue the pipeline, False to abort.
-                  If False is returned, PlanTask.run() will raise a PlanTaskStop.
+            bool: False to continue the pipeline, True to abort.
+                  If True is returned, PlanTask.run() will raise a PlanTaskStop.
         """
         logger.debug(f"ExecutePipeline._handle_task_completion: Default behavior for task {parameters.task.task_id} in run {self.run_id_dir}. Pipeline will continue.")
         # Default implementation simply allows the pipeline to continue.
         # Subclasses will provide meaningful implementations here.
-        return True
+        return False
 
     def callback_run_task(self, task: PlanTask, duration: float) -> bool:
         logger.debug(f"ExecutePipeline.callback_run_task: Task SUCCEEDED: {task.task_id}. Duration: {duration:.2f} seconds")
@@ -2959,10 +2959,10 @@ class ExecutePipeline:
         parameters = HandleTaskCompletionParameters(task=task, progress=progress, duration=duration)
 
         # Delegate custom handling (like DB updates or stop checks) to the hook method.
-        should_continue = self._handle_task_completion(parameters)
-        # Return True to continue running the pipeline.
-        # Return False to abort the pipeline.
-        return should_continue
+        should_stop = self._handle_task_completion(parameters)
+        # Return False to continue running the pipeline.
+        # Return True to abort the pipeline.
+        return should_stop
 
     def run(self):
         # create a json file with the expected filenames. Save it to the run/run_id/expected_filenames1.json
@@ -2976,11 +2976,11 @@ class ExecutePipeline:
 class DemoStoppingExecutePipeline(ExecutePipeline):
     """
     Exercise the pipeline stopping mechanism.
-    when a task completes it returns False and causes the pipeline to stop.
+    when a task completes it returns True and causes the pipeline to stop.
     """
     def _handle_task_completion(self, parameters: HandleTaskCompletionParameters) -> bool:
         logger.info(f"DemoStoppingExecutePipeline._handle_task_completion: Demo of stopping the pipeline.")
-        return False
+        return True
 
 
 if __name__ == '__main__':
