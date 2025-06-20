@@ -2861,6 +2861,9 @@ class ExecutePipeline:
     full_plan_pipeline_task: Optional[FullPlanPipeline] = field(default=None)
     all_expected_filenames: list[str] = field(default_factory=list)
 
+    # Indicates if the pipeline was stopped by the callback_run_task method.
+    stopped_by_callback: bool = field(default=False, init=False)
+
     def setup(self) -> None:
         full_plan_pipeline_task = FullPlanPipeline(
             run_id_dir=self.run_id_dir, 
@@ -2960,9 +2963,23 @@ class ExecutePipeline:
 
         # Delegate custom handling (like DB updates or stop checks) to the hook method.
         should_stop = self._handle_task_completion(parameters)
+
+        if should_stop:
+            self.stopped_by_callback = True
+
         # Return False to continue running the pipeline.
         # Return True to abort the pipeline.
         return should_stop
+
+    @property
+    def has_pipeline_complete_file(self) -> bool:
+        file_path = self.run_id_dir / FilenameEnum.PIPELINE_COMPLETE.value
+        return file_path.exists()
+
+    @property
+    def has_report_file(self) -> bool:
+        file_path = self.run_id_dir / FilenameEnum.REPORT.value
+        return file_path.exists()
 
     def run(self):
         # create a json file with the expected filenames. Save it to the run/run_id/expected_filenames1.json
@@ -2972,6 +2989,10 @@ class ExecutePipeline:
         logger.info(f"Saved {len(self.all_expected_filenames)} expected filenames to {expected_filenames_path}")
 
         luigi.build([self.full_plan_pipeline_task], local_scheduler=True, workers=1)
+
+        logger.info(f"has_pipeline_complete_file: {self.has_pipeline_complete_file}")
+        logger.info(f"has_report_file: {self.has_report_file}")
+        logger.info(f"stopped_by_callback: {self.stopped_by_callback}")
 
 class DemoStoppingExecutePipeline(ExecutePipeline):
     """
