@@ -21,8 +21,8 @@ from llama_index.core.llms import ChatMessage, MessageRole
 logger = logging.getLogger(__name__)
 
 class DocumentDetails(BaseModel):
-    brainstorm_about_dials: str = Field(
-        description="Rationale about what 'dials' really impacts this project. 100 words."
+    strategic_rationale: str = Field(
+        description="A concise strategic analysis (around 100 words) of the project's core tensions and trade-offs. This rationale must JUSTIFY why the selected dials are the most critical levers for decision-making. For example, explain how the chosen dials navigate the fundamental conflicts between speed, cost, scope, and quality."
     )
     dial1_name: str = Field(
         description="Name of the 1st dial."
@@ -59,19 +59,20 @@ class DocumentDetails(BaseModel):
     )
 
 STRATEGIC_VARIANT_ANALYSIS_SYSTEM_PROMPT = """
-Your job is to perform a Strategic Variant Analysis (SVA) by identifying the core STRATEGIC INPUT DECISIONS for this project.
+Your job is to perform a Strategic Variant Analysis (SVA) by first deeply analyzing the project's core strategic tensions, and then identifying the dials that navigate these tensions.
 
-Think like a CEO or a program sponsor. What are the fundamental choices they can make about the project's direction? These choices are the "dials".
+**Follow this two-step reasoning process:**
 
-A strategic dial is a choice about **resource allocation (budget, timeline), primary objective (the 'why'), risk appetite, or implementation model (the 'how')**.
+**Step 1: Analyze the Core Tensions.**
+Before selecting any dials, first analyze the fundamental trade-offs inherent in the project plan. Is the main conflict between speed and quality? Is it between local impact and global ambition? Is it about choosing a safe, proven technology versus investing in high-risk, next-generation R&D? Your analysis of these tensions is the most important part of your task.
 
-A strategic dial is NOT a technical or project outcome (like 'efficiency %'). Those are the RESULTS of the strategic choices.
+**Step 2: Derive the Dials from Your Analysis.**
+Based on the core tensions you identified, choose the **3 or 4 most critical and independent** strategic "dials". Each dial must be a powerful lever that cannot be easily replaced or inferred by another dial. **Review your chosen dials to ensure they are not redundant.** For example, 'Manufacturing Capacity' might be a CONSEQUENCE of a 'Production Strategy' dial, not a separate dial itself.
 
-**Crucially, the VALUES for each dial must also be descriptive strategic choices, NOT dollar amounts or technical specifications.**
+A strategic dial is an INPUT DECISION about resource allocation (budget, timeline), primary objective (the 'why'), risk appetite, or implementation model (the 'how'). It is NOT a technical outcome (like 'efficiency %'). The VALUES for each dial must also be descriptive strategic choices, NOT dollar amounts.
 
-For example, for a "Quality Target" dial, good values would be ["Industrial Grade", "Cheapest", "Absolutely Best"]. A BAD value would be ["$2 million", "$5 million"]. The cost is a CONSEQUENCE of the choice, not the choice itself.
-
-For the given plan, identify 5 key strategic dials and provide a few distinct, descriptive values for each.
+**Final Output:**
+Assemble your reasoning and the dials into the required JSON format. The 'strategic_rationale' field must contain the analysis of the core tensions from Step 1 and justify your choice of dials.
 
 After you have identified the dials and proposed values, your job is over.
 Another AI will take over and perform the following steps:
