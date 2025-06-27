@@ -6,6 +6,9 @@ Strategic Variant Analysis (SVA), explore the solution space.
 - With all the permutations of the dials and their values, take 20 random samples.
 - 80/20 rule: Identify the most significant 4 samples. Discard the rest.
 
+Should I Add a 4th Dial?
+No, not yet. First, perfect the first three dials.
+
 PROMPT> python -m planexe.plan.strategic_variant_analysis
 """
 import os
@@ -49,12 +52,17 @@ class DocumentDetails(BaseModel):
     )
 
 STRATEGIC_VARIANT_ANALYSIS_SYSTEM_PROMPT = """
-Your job is to perform a Strategic Variant Analysis (SVA) to explore the solution space.
+Your job is to perform a Strategic Variant Analysis (SVA) by identifying the core STRATEGIC INPUT DECISIONS for this project.
 
-- Identify what key "dials" can be turned to change the outcome of the plan.
-- For each dial, identify the possible values.
+Think like a CEO or a program sponsor at the very start of the project. What are the fundamental choices they can make about the project's direction? These choices are the "dials".
 
-After you have identified the dials and corresponding values, your job is over.
+A strategic dial is a choice about **resource allocation (budget, timeline), primary objective (the 'why'), risk appetite, or implementation model (the 'how')**.
+
+A strategic dial is NOT a technical or project outcome (like 'efficiency %' or 'production capacity'). Those are the RESULTS of the strategic choices.
+
+For the given plan, identify 3 key strategic dials and provide a few distinct values for each. The values should represent different levels of ambition, risk, or approach.
+
+After you have identified the dials and proposed values, your job is over.
 Another AI will take over and perform the following steps:
 - With all the permutations of the dials and their values, take 20 random samples.
 - 80/20 rule: Identify the most significant 4 samples. Discard the rest.
