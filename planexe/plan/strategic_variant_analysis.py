@@ -6,12 +6,8 @@ Strategic Variant Analysis (SVA), explore the solution space.
 - With all the permutations of the dials and their values, take 20 random samples.
 - 80/20 rule: Identify the most significant 4 samples. Discard the rest.
 
-Should I Add a 4th Dial?
-No, not yet. First, perfect the first three dials.
-
 PROMPT> python -m planexe.plan.strategic_variant_analysis
 """
-import os
 import json
 import time
 import logging
@@ -21,7 +17,6 @@ from dataclasses import dataclass
 from llama_index.core.llms.llm import LLM
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
-from planexe.markdown_util.fix_bullet_lists import fix_bullet_lists
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +42,18 @@ class DocumentDetails(BaseModel):
     dial3_values: list[str] = Field(
         description="List of values for the 3nd dial."
     )
+    dial4_name: str = Field(
+        description="Name of the 4th dial."
+    )
+    dial4_values: list[str] = Field(
+        description="List of values for the 4th dial."
+    )
+    dial5_name: str = Field(
+        description="Name of the 5th dial."
+    )
+    dial5_values: list[str] = Field(
+        description="List of values for the 5th dial."
+    )
     summary: str = Field(
         description="Are these dials well picked? Are they well balanced? Are they well thought out? 100 words."
     )
@@ -54,13 +61,17 @@ class DocumentDetails(BaseModel):
 STRATEGIC_VARIANT_ANALYSIS_SYSTEM_PROMPT = """
 Your job is to perform a Strategic Variant Analysis (SVA) by identifying the core STRATEGIC INPUT DECISIONS for this project.
 
-Think like a CEO or a program sponsor at the very start of the project. What are the fundamental choices they can make about the project's direction? These choices are the "dials".
+Think like a CEO or a program sponsor. What are the fundamental choices they can make about the project's direction? These choices are the "dials".
 
 A strategic dial is a choice about **resource allocation (budget, timeline), primary objective (the 'why'), risk appetite, or implementation model (the 'how')**.
 
-A strategic dial is NOT a technical or project outcome (like 'efficiency %' or 'production capacity'). Those are the RESULTS of the strategic choices.
+A strategic dial is NOT a technical or project outcome (like 'efficiency %'). Those are the RESULTS of the strategic choices.
 
-For the given plan, identify 3 key strategic dials and provide a few distinct values for each. The values should represent different levels of ambition, risk, or approach.
+**Crucially, the VALUES for each dial must also be descriptive strategic choices, NOT dollar amounts or technical specifications.**
+
+For example, for a "Quality Target" dial, good values would be ["Industrial Grade", "Cheapest", "Absolutely Best"]. A BAD value would be ["$2 million", "$5 million"]. The cost is a CONSEQUENCE of the choice, not the choice itself.
+
+For the given plan, identify 5 key strategic dials and provide a few distinct, descriptive values for each.
 
 After you have identified the dials and proposed values, your job is over.
 Another AI will take over and perform the following steps:
