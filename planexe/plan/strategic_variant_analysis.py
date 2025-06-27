@@ -55,7 +55,7 @@ class DocumentDetails(BaseModel):
         description="List of values for the 5th dial."
     )
     summary: str = Field(
-        description="Are these dials well picked? Are they well balanced? Are they well thought out? 100 words."
+        description="Are these dials well picked? Are they well balanced? Are they well thought out? Point out flaws. 100 words."
     )
 
 STRATEGIC_VARIANT_ANALYSIS_SYSTEM_PROMPT = """
@@ -158,7 +158,8 @@ if __name__ == "__main__":
 
     prompt_catalog = PromptCatalog()
     prompt_catalog.load_simple_plan_prompts()
-    prompt_item = prompt_catalog.find("a6bef08b-c768-4616-bc28-7503244eff02")
+    # prompt_item = prompt_catalog.find("a6bef08b-c768-4616-bc28-7503244eff02")
+    prompt_item = prompt_catalog.find("19dc0718-3df7-48e3-b06d-e2c664ecc07d")
     if not prompt_item:
         raise ValueError("Prompt item not found.")
     query = prompt_item.prompt
