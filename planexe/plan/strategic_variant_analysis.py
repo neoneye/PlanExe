@@ -165,6 +165,8 @@ if __name__ == "__main__":
     query = prompt_item.prompt
 
     model_name = "ollama-llama3.1"
+    # model_name = "openrouter-paid-gemini-2.0-flash-001"
+    # model_name = "openrouter-paid-qwen3-30b-a3b"
     llm = get_llm(model_name)
 
     print(f"Query: {query}")
