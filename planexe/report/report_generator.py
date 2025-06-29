@@ -9,10 +9,11 @@ import re
 import json
 import logging
 import pandas as pd
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from datetime import datetime
 import markdown
+from html import escape
 from typing import Dict, Any, Optional
 import importlib.resources
 
@@ -22,6 +23,7 @@ logger = logging.getLogger(__name__)
 class ReportDocumentItem:
     document_title: str
     document_html_content: str
+    css_classes: list[str] = field(default_factory=list)
 
 class ReportGenerator:
     def __init__(self):
@@ -90,16 +92,16 @@ class ReportGenerator:
             logging.error(f"Error reading CSV file {file_path}: {str(e)}")
             return None
 
-    def append_markdown(self, document_title: str, file_path: Path):
+    def append_markdown(self, document_title: str, file_path: Path, css_classes: list[str] = []):
         """Append a markdown document to the report."""
         md_data = self.read_markdown_file(file_path)
         if md_data is None:
             logging.warning(f"Document: '{document_title}'. Could not read markdown file: {file_path}")
             return
         html = markdown.markdown(md_data)
-        self.report_item_list.append(ReportDocumentItem(document_title, html))
+        self.report_item_list.append(ReportDocumentItem(document_title, html, css_classes=css_classes))
     
-    def append_csv(self, document_title: str, file_path: Path):
+    def append_csv(self, document_title: str, file_path: Path, css_classes: list[str] = []):
         """Append a CSV to the report."""
         df_data = self.read_csv_file(file_path)
         if df_data is None:
@@ -109,9 +111,9 @@ class ReportGenerator:
         # Remove any completely empty rows or columns
         df = df_data.dropna(how='all', axis=0).dropna(how='all', axis=1)
         html = df.to_html(classes='dataframe', index=False, na_rep='')
-        self.report_item_list.append(ReportDocumentItem(document_title, html))
+        self.report_item_list.append(ReportDocumentItem(document_title, html, css_classes=css_classes))
 
-    def append_html(self, document_title: str, file_path: Path):
+    def append_html(self, document_title: str, file_path: Path, css_classes: list[str] = []):
         """Append an HTML document to the report."""
         with open(file_path, 'r') as f:
             html_raw = f.read()
@@ -132,7 +134,7 @@ class ReportGenerator:
         else:
             logging.warning(f"Document: '{document_title}'. Could not find HTML_BODY_CONTENT_START and HTML_BODY_CONTENT_END in {file_path}")
             # If no markers found, use the entire content as the body
-            self.report_item_list.append(ReportDocumentItem(document_title, html_raw))
+            self.report_item_list.append(ReportDocumentItem(document_title, html_raw, css_classes=css_classes))
 
         # Extract the html_body_script content between <!--HTML_BODY_SCRIPT_START--> and <!--HTML_BODY_SCRIPT_END-->
         html_body_script_match = re.search(r'<!--HTML_BODY_SCRIPT_START-->(.*)<!--HTML_BODY_SCRIPT_END-->', html_raw, re.DOTALL)
@@ -142,8 +144,11 @@ class ReportGenerator:
         else:
             logging.warning(f"Document: '{document_title}'. Could not find HTML_BODY_SCRIPT_START and HTML_BODY_SCRIPT_END in {file_path}")
 
-    def generate_html_report(self) -> str:
+    def generate_html_report(self, title: Optional[str] = None) -> str:
         """Generate an HTML report from the gathered data."""
+
+        resolved_title = title if title else "PlanExe Project Report"
+        escaped_title = escape(resolved_title)
 
         path_to_template = importlib.resources.files('planexe.report') / 'report_template.html'
         with importlib.resources.as_file(path_to_template) as path_to_template:
@@ -156,16 +161,20 @@ class ReportGenerator:
         html_body_script = '\n'.join(self.html_body_script_content)
         html_template = html_template.replace('<!--HTML_BODY_SCRIPT_INSERT_HERE-->', html_body_script)
 
+        html_template = html_template.replace('HEAD_TITLE_INSERT_HERE', escaped_title)
+
         html_parts = []
         # Title and Timestamp
         html_parts.append(f"""
-        <h1>PlanExe Project Report</h1>
+        <h1>{escaped_title}</h1>
         <p class="planexe-report-info">Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} with PlanExe. <a href="https://neoneye.github.io/PlanExe-web/discord.html">Discord</a>, <a href="https://github.com/neoneye/PlanExe">GitHub</a></p>
         """)
 
-        def add_section(title: str, content: str):
+        def add_section(title: str, content: str, css_classes: list[str]):
+            resolved_css_classes = ['section'] + css_classes
+            css_classes_str = ' '.join(resolved_css_classes)
             html_parts.append(f"""
-            <div class="section">
+            <div class="{css_classes_str}">
                 <button class="collapsible">{title}</button>
                 <div class="content">        
                     {content}
@@ -174,7 +183,7 @@ class ReportGenerator:
             """)
 
         for item in self.report_item_list:
-            add_section(item.document_title, item.document_html_content)
+            add_section(item.document_title, item.document_html_content, item.css_classes)
 
         html_content = '\n'.join(html_parts)
 
@@ -192,9 +201,9 @@ class ReportGenerator:
 
         return html
 
-    def save_report(self, output_path: Path) -> None:
+    def save_report(self, output_path: Path, title: Optional[str] = None) -> None:
         """Generate and save the report."""
-        html_report = self.generate_html_report()
+        html_report = self.generate_html_report(title)
         
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_report)
@@ -229,13 +238,14 @@ def main():
     output_path = input_path / FilenameEnum.REPORT.value
     
     report_generator = ReportGenerator()
+    report_generator.append_markdown('Initial Plan', input_path / FilenameEnum.INITIAL_PLAN.value, css_classes=['section-initial-plan-hidden'])
     report_generator.append_markdown('Pitch', input_path / FilenameEnum.PITCH_MARKDOWN.value)
     report_generator.append_markdown('Assumptions', input_path / FilenameEnum.CONSOLIDATE_ASSUMPTIONS_FULL_MARKDOWN.value)
     report_generator.append_markdown('SWOT Analysis', input_path / FilenameEnum.SWOT_MARKDOWN.value)
     report_generator.append_markdown('Team', input_path / FilenameEnum.TEAM_MARKDOWN.value)
     report_generator.append_markdown('Expert Criticism', input_path / FilenameEnum.EXPERT_CRITICISM_MARKDOWN.value)
     report_generator.append_csv('Work Breakdown Structure', input_path / FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_CSV.value)
-    report_generator.save_report(output_path)
+    report_generator.save_report(output_path, title="Demo Project Report")
         
     if not args.no_browser:
         # Try to open the report in the default browser

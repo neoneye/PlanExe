@@ -1944,7 +1944,8 @@ class CreateWBSLevel1Task(PlanTask):
     def output(self):
         return {
             'raw': self.local_target(FilenameEnum.WBS_LEVEL1_RAW),
-            'clean': self.local_target(FilenameEnum.WBS_LEVEL1)
+            'clean': self.local_target(FilenameEnum.WBS_LEVEL1),
+            'project_title': self.local_target(FilenameEnum.WBS_LEVEL1_PROJECT_TITLE)
         }
 
     def run_with_llm(self, llm: LLM) -> None:
@@ -1969,6 +1970,10 @@ class CreateWBSLevel1Task(PlanTask):
         wbs_level1_result_json = create_wbs_level1.cleanedup_dict()
         with self.output()['clean'].open("w") as f:
             json.dump(wbs_level1_result_json, f, indent=2)
+
+        # Save the project title.
+        with self.output()['project_title'].open("w") as f:
+            f.write(create_wbs_level1.project_title)
         
         logger.info("WBS Level 1 created successfully.")
 
@@ -2741,6 +2746,7 @@ class ReportTask(PlanTask):
     
     def requires(self):
         return {
+            'setup': self.clone(SetupTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'team_markdown': self.clone(TeamMarkdownTask),
             'related_resources': self.clone(RelatedResourcesTask),
@@ -2749,6 +2755,7 @@ class ReportTask(PlanTask):
             'pitch_markdown': self.clone(ConvertPitchToMarkdownTask),
             'data_collection': self.clone(DataCollectionTask),
             'documents_to_create_and_find': self.clone(MarkdownWithDocumentsToCreateAndFindTask),
+            'wbs_level1': self.clone(CreateWBSLevel1Task),
             'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task),
             'expert_review': self.clone(ExpertReviewTask),
             'project_plan': self.clone(ProjectPlanTask),
@@ -2759,7 +2766,12 @@ class ReportTask(PlanTask):
         }
     
     def run(self):
+        # For the report title, use the 'project_title' of the WBS Level 1 result.
+        with self.input()['wbs_level1']['project_title'].open("r") as f:
+            title = f.read()
+
         rg = ReportGenerator()
+        rg.append_markdown('Initial Plan', self.input()['setup'].path, css_classes=['section-initial-plan-hidden'])
         rg.append_markdown('Executive Summary', self.input()['executive_summary']['markdown'].path)
         rg.append_html('Gantt Overview', self.input()['create_schedule']['mermaid'].path)
         rg.append_html('Gantt Interactive', self.input()['create_schedule']['dhtmlx'].path)
@@ -2776,7 +2788,7 @@ class ReportTask(PlanTask):
         rg.append_csv('Work Breakdown Structure', self.input()['wbs_project123']['csv'].path)
         rg.append_markdown('Review Plan', self.input()['review_plan']['markdown'].path)
         rg.append_html('Questions & Answers', self.input()['questions_and_answers']['html'].path)
-        rg.save_report(self.output().path)
+        rg.save_report(self.output().path, title=title)
 
 class FullPlanPipeline(PlanTask):
     def requires(self):
