@@ -9,7 +9,7 @@ import re
 import json
 import logging
 import pandas as pd
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from datetime import datetime
 import markdown
@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class ReportDocumentItem:
     document_title: str
     document_html_content: str
+    css_classes: list[str] = field(default_factory=list)
 
 class ReportGenerator:
     def __init__(self):
@@ -90,16 +91,16 @@ class ReportGenerator:
             logging.error(f"Error reading CSV file {file_path}: {str(e)}")
             return None
 
-    def append_markdown(self, document_title: str, file_path: Path):
+    def append_markdown(self, document_title: str, file_path: Path, css_classes: list[str] = []):
         """Append a markdown document to the report."""
         md_data = self.read_markdown_file(file_path)
         if md_data is None:
             logging.warning(f"Document: '{document_title}'. Could not read markdown file: {file_path}")
             return
         html = markdown.markdown(md_data)
-        self.report_item_list.append(ReportDocumentItem(document_title, html))
+        self.report_item_list.append(ReportDocumentItem(document_title, html, css_classes=css_classes))
     
-    def append_csv(self, document_title: str, file_path: Path):
+    def append_csv(self, document_title: str, file_path: Path, css_classes: list[str] = []):
         """Append a CSV to the report."""
         df_data = self.read_csv_file(file_path)
         if df_data is None:
@@ -109,9 +110,9 @@ class ReportGenerator:
         # Remove any completely empty rows or columns
         df = df_data.dropna(how='all', axis=0).dropna(how='all', axis=1)
         html = df.to_html(classes='dataframe', index=False, na_rep='')
-        self.report_item_list.append(ReportDocumentItem(document_title, html))
+        self.report_item_list.append(ReportDocumentItem(document_title, html, css_classes=css_classes))
 
-    def append_html(self, document_title: str, file_path: Path):
+    def append_html(self, document_title: str, file_path: Path, css_classes: list[str] = []):
         """Append an HTML document to the report."""
         with open(file_path, 'r') as f:
             html_raw = f.read()
@@ -132,7 +133,7 @@ class ReportGenerator:
         else:
             logging.warning(f"Document: '{document_title}'. Could not find HTML_BODY_CONTENT_START and HTML_BODY_CONTENT_END in {file_path}")
             # If no markers found, use the entire content as the body
-            self.report_item_list.append(ReportDocumentItem(document_title, html_raw))
+            self.report_item_list.append(ReportDocumentItem(document_title, html_raw, css_classes=css_classes))
 
         # Extract the html_body_script content between <!--HTML_BODY_SCRIPT_START--> and <!--HTML_BODY_SCRIPT_END-->
         html_body_script_match = re.search(r'<!--HTML_BODY_SCRIPT_START-->(.*)<!--HTML_BODY_SCRIPT_END-->', html_raw, re.DOTALL)
@@ -163,9 +164,11 @@ class ReportGenerator:
         <p class="planexe-report-info">Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} with PlanExe. <a href="https://neoneye.github.io/PlanExe-web/discord.html">Discord</a>, <a href="https://github.com/neoneye/PlanExe">GitHub</a></p>
         """)
 
-        def add_section(title: str, content: str):
+        def add_section(title: str, content: str, css_classes: list[str]):
+            resolved_css_classes = ['section'] + css_classes
+            css_classes_str = ' '.join(resolved_css_classes)
             html_parts.append(f"""
-            <div class="section">
+            <div class="{css_classes_str}">
                 <button class="collapsible">{title}</button>
                 <div class="content">        
                     {content}
@@ -174,7 +177,7 @@ class ReportGenerator:
             """)
 
         for item in self.report_item_list:
-            add_section(item.document_title, item.document_html_content)
+            add_section(item.document_title, item.document_html_content, item.css_classes)
 
         html_content = '\n'.join(html_parts)
 
@@ -229,6 +232,7 @@ def main():
     output_path = input_path / FilenameEnum.REPORT.value
     
     report_generator = ReportGenerator()
+    report_generator.append_markdown('Initial Plan', input_path / FilenameEnum.INITIAL_PLAN.value, css_classes=['section-initial-plan-hidden'])
     report_generator.append_markdown('Pitch', input_path / FilenameEnum.PITCH_MARKDOWN.value)
     report_generator.append_markdown('Assumptions', input_path / FilenameEnum.CONSOLIDATE_ASSUMPTIONS_FULL_MARKDOWN.value)
     report_generator.append_markdown('SWOT Analysis', input_path / FilenameEnum.SWOT_MARKDOWN.value)

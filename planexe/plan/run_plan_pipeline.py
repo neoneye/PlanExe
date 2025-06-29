@@ -2741,6 +2741,7 @@ class ReportTask(PlanTask):
     
     def requires(self):
         return {
+            'setup': self.clone(SetupTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'team_markdown': self.clone(TeamMarkdownTask),
             'related_resources': self.clone(RelatedResourcesTask),
@@ -2760,6 +2761,7 @@ class ReportTask(PlanTask):
     
     def run(self):
         rg = ReportGenerator()
+        rg.append_markdown('Initial Plan', self.input()['setup'].path, css_classes=['section-initial-plan-hidden'])
         rg.append_markdown('Executive Summary', self.input()['executive_summary']['markdown'].path)
         rg.append_html('Gantt Overview', self.input()['create_schedule']['mermaid'].path)
         rg.append_html('Gantt Interactive', self.input()['create_schedule']['dhtmlx'].path)
