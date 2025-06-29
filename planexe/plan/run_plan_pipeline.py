@@ -1944,7 +1944,8 @@ class CreateWBSLevel1Task(PlanTask):
     def output(self):
         return {
             'raw': self.local_target(FilenameEnum.WBS_LEVEL1_RAW),
-            'clean': self.local_target(FilenameEnum.WBS_LEVEL1)
+            'clean': self.local_target(FilenameEnum.WBS_LEVEL1),
+            'project_title': self.local_target(FilenameEnum.WBS_LEVEL1_PROJECT_TITLE)
         }
 
     def run_with_llm(self, llm: LLM) -> None:
@@ -1969,6 +1970,10 @@ class CreateWBSLevel1Task(PlanTask):
         wbs_level1_result_json = create_wbs_level1.cleanedup_dict()
         with self.output()['clean'].open("w") as f:
             json.dump(wbs_level1_result_json, f, indent=2)
+
+        # Save the project title.
+        with self.output()['project_title'].open("w") as f:
+            f.write(create_wbs_level1.project_title)
         
         logger.info("WBS Level 1 created successfully.")
 
@@ -2762,9 +2767,8 @@ class ReportTask(PlanTask):
     
     def run(self):
         # For the report title, use the 'project_title' of the WBS Level 1 result.
-        with self.input()['wbs_level1']['clean'].open("r") as f:
-            wbs_level1_result_json = json.load(f)
-        title = wbs_level1_result_json.get('project_title')
+        with self.input()['wbs_level1']['project_title'].open("r") as f:
+            title = f.read()
 
         rg = ReportGenerator()
         rg.append_markdown('Initial Plan', self.input()['setup'].path, css_classes=['section-initial-plan-hidden'])
