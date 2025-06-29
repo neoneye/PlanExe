@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from datetime import datetime
 import markdown
+from html import escape
 from typing import Dict, Any, Optional
 import importlib.resources
 
@@ -143,8 +144,11 @@ class ReportGenerator:
         else:
             logging.warning(f"Document: '{document_title}'. Could not find HTML_BODY_SCRIPT_START and HTML_BODY_SCRIPT_END in {file_path}")
 
-    def generate_html_report(self) -> str:
+    def generate_html_report(self, title: Optional[str] = None) -> str:
         """Generate an HTML report from the gathered data."""
+
+        resolved_title = title if title else "PlanExe Project Report"
+        escaped_title = escape(resolved_title)
 
         path_to_template = importlib.resources.files('planexe.report') / 'report_template.html'
         with importlib.resources.as_file(path_to_template) as path_to_template:
@@ -157,10 +161,12 @@ class ReportGenerator:
         html_body_script = '\n'.join(self.html_body_script_content)
         html_template = html_template.replace('<!--HTML_BODY_SCRIPT_INSERT_HERE-->', html_body_script)
 
+        html_template = html_template.replace('HEAD_TITLE_INSERT_HERE', escaped_title)
+
         html_parts = []
         # Title and Timestamp
         html_parts.append(f"""
-        <h1>PlanExe Project Report</h1>
+        <h1>{escaped_title}</h1>
         <p class="planexe-report-info">Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} with PlanExe. <a href="https://neoneye.github.io/PlanExe-web/discord.html">Discord</a>, <a href="https://github.com/neoneye/PlanExe">GitHub</a></p>
         """)
 
@@ -195,9 +201,9 @@ class ReportGenerator:
 
         return html
 
-    def save_report(self, output_path: Path) -> None:
+    def save_report(self, output_path: Path, title: Optional[str] = None) -> None:
         """Generate and save the report."""
-        html_report = self.generate_html_report()
+        html_report = self.generate_html_report(title)
         
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_report)
@@ -239,7 +245,7 @@ def main():
     report_generator.append_markdown('Team', input_path / FilenameEnum.TEAM_MARKDOWN.value)
     report_generator.append_markdown('Expert Criticism', input_path / FilenameEnum.EXPERT_CRITICISM_MARKDOWN.value)
     report_generator.append_csv('Work Breakdown Structure', input_path / FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_CSV.value)
-    report_generator.save_report(output_path)
+    report_generator.save_report(output_path, title="Demo Project Report")
         
     if not args.no_browser:
         # Try to open the report in the default browser

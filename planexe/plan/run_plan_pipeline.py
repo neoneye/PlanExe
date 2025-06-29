@@ -2750,6 +2750,7 @@ class ReportTask(PlanTask):
             'pitch_markdown': self.clone(ConvertPitchToMarkdownTask),
             'data_collection': self.clone(DataCollectionTask),
             'documents_to_create_and_find': self.clone(MarkdownWithDocumentsToCreateAndFindTask),
+            'wbs_level1': self.clone(CreateWBSLevel1Task),
             'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task),
             'expert_review': self.clone(ExpertReviewTask),
             'project_plan': self.clone(ProjectPlanTask),
@@ -2760,6 +2761,11 @@ class ReportTask(PlanTask):
         }
     
     def run(self):
+        # For the report title, use the 'project_title' of the WBS Level 1 result.
+        with self.input()['wbs_level1']['clean'].open("r") as f:
+            wbs_level1_result_json = json.load(f)
+        title = wbs_level1_result_json.get('project_title')
+
         rg = ReportGenerator()
         rg.append_markdown('Initial Plan', self.input()['setup'].path, css_classes=['section-initial-plan-hidden'])
         rg.append_markdown('Executive Summary', self.input()['executive_summary']['markdown'].path)
@@ -2778,7 +2784,7 @@ class ReportTask(PlanTask):
         rg.append_csv('Work Breakdown Structure', self.input()['wbs_project123']['csv'].path)
         rg.append_markdown('Review Plan', self.input()['review_plan']['markdown'].path)
         rg.append_html('Questions & Answers', self.input()['questions_and_answers']['html'].path)
-        rg.save_report(self.output().path)
+        rg.save_report(self.output().path, title=title)
 
 class FullPlanPipeline(PlanTask):
     def requires(self):
