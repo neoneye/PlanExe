@@ -3,6 +3,8 @@ Ask questions about the almost finished plan.
 
 PROMPT> python -m planexe.plan.plan_evaluator
 
+IDEA: Cycle through the LLMs, if one fails, try the next one.
+
 IDEA: Executive Summary: Briefly summarizing critical insights from the review.
 """
 import os
