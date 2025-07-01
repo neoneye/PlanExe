@@ -1,7 +1,7 @@
 """
 Ask questions about the almost finished plan.
 
-PROMPT> python -m planexe.plan.plan_evaluator
+PROMPT> python -m planexe.plan.review_plan
 
 IDEA: Cycle through the LLMs, if one fails, try the next one.
 
@@ -13,8 +13,9 @@ import time
 import logging
 from math import ceil
 from dataclasses import dataclass
+from typing import Any, Callable
 from pydantic import BaseModel, Field
-from llama_index.core.llms import ChatMessage, MessageRole
+from llama_index.core.llms import ChatMessage, MessageRole, ChatResponse
 from llama_index.core.llms.llm import LLM
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,48 @@ Do not include any extra bullet points, header lines, or any additional text out
 Do not duplicate issues already identified in previous questions of this review.
 """
 
+class PlanTaskStop2(RuntimeError):
+    """Raised when a pipeline task should be stopped by the callback."""
+    pass
+
+class ExecuteWithLLM:
+    """
+    Cycle through multiple LLMs. Start with the preferred LLM. 
+    Fallback to the next LLM if the first one fails.
+    If all LLMs fail, raise an exception.
+    """
+    def __init__(self, llm_models: list[str], pipeline_executor_callback: Callable[[float], bool]):
+        self.llm_models = llm_models
+        self.pipeline_executor_callback = pipeline_executor_callback
+
+    def run(self, execute_function: Callable[[LLM], Any]):
+        start_time: float = time.perf_counter()
+        class_name = self.__class__.__name__
+        attempt_count = len(self.llm_models)
+        for index, llm_model in enumerate(self.llm_models, start=1):
+            logger.info(f"Attempt {index} of {attempt_count}: Running {class_name} with LLM {llm_model!r}")
+            try:
+                llm = get_llm(llm_model)
+                result = execute_function(llm)
+            except Exception as e:
+                logger.error(f"Error running {class_name} with LLM {llm_model!r}: {e}")
+                continue
+            duration: float = time.perf_counter() - start_time
+            logger.info(f"Successfully ran {class_name} with LLM {llm_model!r}. Duration: {duration:.2f} seconds")
+            # If a callback is provided by the pipeline executor, call it.
+            if self.pipeline_executor_callback:
+                should_stop = self.pipeline_executor_callback(duration)
+                if should_stop:
+                    logger.warning(f"Pipeline execution aborted by callback after task succeeded")
+                    raise PlanTaskStop2(f"Pipeline execution aborted by callback after task succeeded")
+            return result
+        raise Exception(f"Failed to run {class_name} with any of the LLMs in the list: {self.llm_models!r}")
+
+@dataclass
+class ReviewPlanRunResult:
+    chat_response: ChatResponse
+    metadata: dict
+
 @dataclass
 class ReviewPlan:
     """
@@ -62,12 +105,12 @@ class ReviewPlan:
     markdown: str
 
     @classmethod
-    def execute(cls, llm: LLM, document: str) -> 'ReviewPlan':
+    def execute(cls, execute_with_llm: ExecuteWithLLM, document: str) -> 'ReviewPlan':
         """
         Invoke LLM with the data to be reviewed.
         """
-        if not isinstance(llm, LLM):
-            raise ValueError("Invalid LLM instance.")
+        if not isinstance(execute_with_llm, ExecuteWithLLM):
+            raise ValueError("Invalid ExecuteWithLLM instance.")
         if not isinstance(document, str):
             raise ValueError("Invalid document.")
 
@@ -116,34 +159,45 @@ class ReviewPlan:
                 content=question,
             ))
 
-            sllm = llm.as_structured_llm(DocumentDetails)
+            def execute_function(llm: LLM) -> ReviewPlanRunResult:
+                sllm = llm.as_structured_llm(DocumentDetails)
+                chat_response = sllm.chat(chat_message_list)
+                metadata = dict(llm.metadata)
+                metadata["llm_classname"] = llm.class_name()
+                return ReviewPlanRunResult(
+                    chat_response=chat_response,
+                    metadata=metadata
+                )
+
             start_time = time.perf_counter()
             try:
-                chat_response = sllm.chat(chat_message_list)
+                review_plan_run_result = execute_with_llm.run(execute_function)
             except Exception as e:
                 logger.debug(f"Question {index} of {len(title_question_list)}. LLM chat interaction failed: {e}")
                 logger.error(f"Question {index} of {len(title_question_list)}. LLM chat interaction failed.", exc_info=True)
                 raise ValueError("LLM chat interaction failed.") from e
+            if not isinstance(review_plan_run_result, ReviewPlanRunResult):
+                raise ValueError(f"Expected a ReviewPlanRunResult instance. {review_plan_run_result!r}")
 
             end_time = time.perf_counter()
             duration = int(ceil(end_time - start_time))
             durations.append(duration)
-            response_byte_count = len(chat_response.message.content.encode('utf-8'))
+            response_byte_count = len(review_plan_run_result.chat_response.message.content.encode('utf-8'))
             response_byte_counts.append(response_byte_count)
             logger.info(f"Question {index} of {len(title_question_list)}. LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
 
-            json_response = chat_response.raw.model_dump()
+            json_response = review_plan_run_result.chat_response.raw.model_dump()
             logger.debug(json.dumps(json_response, indent=2))
 
             question_answers_list.append({
                 "title": title,
                 "question": question,
-                "answers": chat_response.raw.bullet_points,
+                "answers": review_plan_run_result.chat_response.raw.bullet_points,
             })
 
             chat_message_list.append(ChatMessage(
                 role=MessageRole.ASSISTANT,
-                content=chat_response.message.content,
+                content=review_plan_run_result.chat_response.message.content,
             ))
 
         response_byte_count_total = sum(response_byte_counts)
@@ -155,8 +209,7 @@ class ReviewPlan:
         duration_max = max(durations)
         duration_min = min(durations)
 
-        metadata = dict(llm.metadata)
-        metadata["llm_classname"] = llm.class_name()
+        metadata = {}
         metadata["duration_total"] = duration_total
         metadata["duration_average"] = duration_average
         metadata["duration_max"] = duration_max
@@ -220,8 +273,15 @@ class ReviewPlan:
 
 if __name__ == "__main__":
     from planexe.llm_factory import get_llm
+    logging.basicConfig(level=logging.DEBUG)
 
-    llm = get_llm("ollama-llama3.1")
+    llm_models = [
+        # "ollama-llama3.1",
+        "openrouter-paid-gemini-2.0-flash-001",
+        "openrouter-paid-openai-gpt-4o-mini",
+        "openrouter-paid-qwen3-30b-a3b"
+    ]
+    execute_with_llm = ExecuteWithLLM(llm_models=llm_models, pipeline_executor_callback=None)
 
     path = os.path.join(os.path.dirname(__file__), 'test_data', "deadfish_assumptions.md")
     with open(path, 'r', encoding='utf-8') as f:
@@ -232,7 +292,7 @@ if __name__ == "__main__":
     )
     print(f"Query:\n{query}\n\n")
 
-    result = ReviewPlan.execute(llm, query)
+    result = ReviewPlan.execute(execute_with_llm, query)
     json_response = result.to_dict(include_system_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
