@@ -3,6 +3,7 @@ An LLM with predefined responses, to be used for testing.
 
 PROMPT> python -m planexe.llm_util.response_mockllm
 """
+from typing import Any, Sequence
 from llama_index.core.llms import MockLLM, ChatResponse, ChatMessage, MessageRole
 import itertools
 
@@ -10,12 +11,14 @@ class ResponseMockLLM(MockLLM):
     """
     An LLM with predefined responses, cycle through them.
     """
-    def __init__(self, responses=None, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, responses: list[str], **kwargs):
+        # Length of the longest the response
+        max_tokens = max(len(response) for response in responses)
+        super().__init__(max_tokens=max_tokens, **kwargs)
         object.__setattr__(self, 'responses', responses or ["Mock response"])
         object.__setattr__(self, 'response_cycle', itertools.cycle(self.responses))
 
-    def chat(self, messages, **kwargs):
+    def chat(self, messages: Sequence[ChatMessage], **kwargs: Any) -> ChatResponse:
         """
         Override the chat method to return our predefined responses.
         """
