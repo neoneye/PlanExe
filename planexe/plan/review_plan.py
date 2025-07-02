@@ -17,6 +17,7 @@ from typing import Any, Callable
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole, ChatResponse
 from llama_index.core.llms.llm import LLM
+from planexe.plan.speedvsdetail import SpeedVsDetailEnum
 
 logger = logging.getLogger(__name__)
 
@@ -105,12 +106,14 @@ class ReviewPlan:
     markdown: str
 
     @classmethod
-    def execute(cls, execute_with_llm: ExecuteWithLLM, document: str) -> 'ReviewPlan':
+    def execute(cls, execute_with_llm: ExecuteWithLLM, speed_vs_detail: SpeedVsDetailEnum, document: str) -> 'ReviewPlan':
         """
         Invoke LLM with the data to be reviewed.
         """
         if not isinstance(execute_with_llm, ExecuteWithLLM):
             raise ValueError("Invalid ExecuteWithLLM instance.")
+        if not isinstance(speed_vs_detail, SpeedVsDetailEnum):
+            raise ValueError("Invalid SpeedVsDetailEnum instance.")
         if not isinstance(document, str):
             raise ValueError("Invalid document.")
 
@@ -138,6 +141,11 @@ class ReviewPlan:
             ("Motivation Factors", "Identify exactly three factors essential to maintaining motivation and ensuring consistent progress toward the project's goals. For each factor, quantify potential setbacks if motivation falters (e.g., delays, reduced success rates, increased costs), clearly explain how it interacts with previously identified risks or assumptions, and provide a brief, actionable recommendation on maintaining motivation or addressing motivational barriers."),
             ("Automation Opportunities", "Identify exactly three opportunities within the project where tasks or processes can be automated or streamlined for improved efficiency. For each opportunity, quantify the potential savings (time, resources, or cost), explain how this interacts with previously identified timelines or resource constraints, and recommend a clear, actionable approach for implementing each automation or efficiency improvement."),
         ]
+        if speed_vs_detail == SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS:
+            title_question_list = title_question_list[:3]
+            logger.info("Running in FAST_BUT_SKIP_DETAILS mode. Omitting some questions.")
+        else:
+            logger.info("Running in ALL_DETAILS_BUT_SLOW mode. Processing all questions.")
 
         chat_message_list = [
             ChatMessage(
@@ -292,7 +300,7 @@ if __name__ == "__main__":
     )
     print(f"Query:\n{query}\n\n")
 
-    result = ReviewPlan.execute(execute_with_llm, query)
+    result = ReviewPlan.execute(execute_with_llm, SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS, query)
     json_response = result.to_dict(include_system_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
