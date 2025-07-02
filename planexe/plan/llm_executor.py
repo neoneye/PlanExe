@@ -63,6 +63,7 @@ class LLMExecutor:
     def __init__(self, llm_models: list[LLMModelBase], pipeline_executor_callback: Callable[[float], bool]):
         self.llm_models = llm_models
         self.pipeline_executor_callback = pipeline_executor_callback
+        self.execute_count: int = 0
 
     def run(self, execute_function: Callable[[LLM], Any]):
         start_time: float = time.perf_counter()
@@ -75,6 +76,7 @@ class LLMExecutor:
             except Exception as e:
                 logger.error(f"Error creating LLM {llm_model!r}: {e}")
                 continue
+            self.execute_count += 1
             try:
                 result = execute_function(llm)
             except Exception as e:
