@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole, ChatResponse
 from llama_index.core.llms.llm import LLM
 from planexe.plan.speedvsdetail import SpeedVsDetailEnum
-from planexe.plan.llm_executor import LLMExecutor
+from planexe.plan.llm_executor import LLMExecutor, LLMModelFromName
 
 logger = logging.getLogger(__name__)
 
@@ -241,15 +241,15 @@ class ReviewPlan:
             out_f.write(self.markdown)
 
 if __name__ == "__main__":
-    from planexe.llm_factory import get_llm
     logging.basicConfig(level=logging.DEBUG)
 
-    llm_models = [
+    llm_models_names = [
         # "ollama-llama3.1",
         "openrouter-paid-gemini-2.0-flash-001",
         "openrouter-paid-openai-gpt-4o-mini",
         "openrouter-paid-qwen3-30b-a3b"
     ]
+    llm_models = LLMModelFromName.from_names(llm_models_names)
     llm_executor = LLMExecutor(llm_models=llm_models, pipeline_executor_callback=None)
 
     path = os.path.join(os.path.dirname(__file__), 'test_data', "deadfish_assumptions.md")

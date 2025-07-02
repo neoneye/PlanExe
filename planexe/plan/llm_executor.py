@@ -18,6 +18,7 @@ IDEA: track if the LLM failed and why
 import time
 import logging
 from typing import Any, Callable
+from dataclasses import dataclass
 from llama_index.core.llms.llm import LLM
 from planexe.llm_factory import get_llm
 
@@ -27,13 +28,39 @@ class PlanTaskStop2(RuntimeError):
     """Raised when a pipeline task should be stopped by the callback."""
     pass
 
+class LLMModelBase:
+    def create_llm(self) -> LLM:
+        raise NotImplementedError("Subclasses must implement this method")
+
+class LLMModelFromName(LLMModelBase):
+    def __init__(self, name: str):
+        self.name = name
+
+    def create_llm(self) -> LLM:
+        return get_llm(self.name)
+    
+    @classmethod
+    def from_names(cls, names: list[str]) -> list[LLMModelBase]:
+        return [cls(name) for name in names]
+
+class LLMModelWithInstance(LLMModelBase):
+    def __init__(self, llm: LLM):
+        self.llm = llm
+
+    def create_llm(self) -> LLM:
+        return self.llm
+    
+    @classmethod
+    def from_instances(cls, llms: list[LLM]) -> list[LLMModelBase]:
+        return [cls(llm) for llm in llms]
+
 class LLMExecutor:
     """
     Cycle through multiple LLMs. Start with the preferred LLM. 
     Fallback to the next LLM if the first one fails.
     If all LLMs fail, raise an exception.
     """
-    def __init__(self, llm_models: list[str], pipeline_executor_callback: Callable[[float], bool]):
+    def __init__(self, llm_models: list[LLMModelBase], pipeline_executor_callback: Callable[[float], bool]):
         self.llm_models = llm_models
         self.pipeline_executor_callback = pipeline_executor_callback
 
@@ -44,7 +71,11 @@ class LLMExecutor:
         for index, llm_model in enumerate(self.llm_models, start=1):
             logger.info(f"Attempt {index} of {attempt_count}: Running {class_name} with LLM {llm_model!r}")
             try:
-                llm = get_llm(llm_model)
+                llm = llm_model.create_llm()
+            except Exception as e:
+                logger.error(f"Error creating LLM {llm_model!r}: {e}")
+                continue
+            try:
                 result = execute_function(llm)
             except Exception as e:
                 logger.error(f"Error running {class_name} with LLM {llm_model!r}: {e}")
