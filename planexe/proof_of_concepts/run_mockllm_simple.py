@@ -3,7 +3,7 @@ Experiments using LlamaIndex's MockLLM.
 No use of PlanExe's llm_factory.
 No use of Pydantic for structured output.
 
-PROMPT> python -m planexe.proof_of_concepts.run_mockllm
+PROMPT> python -m planexe.proof_of_concepts.run_mockllm_simple
 """
 from llama_index.core.llms import MockLLM, ChatMessage, MessageRole
 
