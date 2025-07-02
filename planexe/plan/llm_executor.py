@@ -27,7 +27,7 @@ class PlanTaskStop2(RuntimeError):
     """Raised when a pipeline task should be stopped by the callback."""
     pass
 
-class LLMFallbackExecutor:
+class LLMExecutor:
     """
     Cycle through multiple LLMs. Start with the preferred LLM. 
     Fallback to the next LLM if the first one fails.
