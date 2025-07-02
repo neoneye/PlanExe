@@ -5,11 +5,10 @@ No use of Pydantic for structured output.
 
 PROMPT> python -m planexe.proof_of_concepts.run_mockllm
 """
-from llama_index.core.llms import MockLLM
-from llama_index.core.llms import ChatMessage, MessageRole
+from llama_index.core.llms import MockLLM, ChatMessage, MessageRole
 
 llm = MockLLM(
-    max_tokens=32,
+    max_tokens=10,
 )
 
 messages = [
@@ -18,6 +17,5 @@ messages = [
         content="List names of 3 planets in the solar system. Comma separated. No other text.",
     )
 ]
-print("connecting to llm...")
 response = llm.chat(messages)
 print(f"response:\n{response!r}")
