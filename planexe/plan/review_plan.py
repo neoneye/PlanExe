@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole, ChatResponse
 from llama_index.core.llms.llm import LLM
 from planexe.plan.speedvsdetail import SpeedVsDetailEnum
-from planexe.plan.execute_with_llm import ExecuteWithLLM
+from planexe.plan.llm_fallback_executor import LLMFallbackExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -67,12 +67,12 @@ class ReviewPlan:
     markdown: str
 
     @classmethod
-    def execute(cls, execute_with_llm: ExecuteWithLLM, speed_vs_detail: SpeedVsDetailEnum, document: str) -> 'ReviewPlan':
+    def execute(cls, llm_fallback_executor: LLMFallbackExecutor, speed_vs_detail: SpeedVsDetailEnum, document: str) -> 'ReviewPlan':
         """
         Invoke LLM with the data to be reviewed.
         """
-        if not isinstance(execute_with_llm, ExecuteWithLLM):
-            raise ValueError("Invalid ExecuteWithLLM instance.")
+        if not isinstance(llm_fallback_executor, LLMFallbackExecutor):
+            raise ValueError("Invalid LLMFallbackExecutor instance.")
         if not isinstance(speed_vs_detail, SpeedVsDetailEnum):
             raise ValueError("Invalid SpeedVsDetailEnum instance.")
         if not isinstance(document, str):
@@ -140,7 +140,7 @@ class ReviewPlan:
 
             start_time = time.perf_counter()
             try:
-                review_plan_run_result = execute_with_llm.run(execute_function)
+                review_plan_run_result = llm_fallback_executor.run(execute_function)
             except Exception as e:
                 logger.debug(f"Question {index} of {len(title_question_list)}. LLM chat interaction failed: {e}")
                 logger.error(f"Question {index} of {len(title_question_list)}. LLM chat interaction failed.", exc_info=True)
@@ -250,7 +250,7 @@ if __name__ == "__main__":
         "openrouter-paid-openai-gpt-4o-mini",
         "openrouter-paid-qwen3-30b-a3b"
     ]
-    execute_with_llm = ExecuteWithLLM(llm_models=llm_models, pipeline_executor_callback=None)
+    llm_fallback_executor = LLMFallbackExecutor(llm_models=llm_models, pipeline_executor_callback=None)
 
     path = os.path.join(os.path.dirname(__file__), 'test_data', "deadfish_assumptions.md")
     with open(path, 'r', encoding='utf-8') as f:
@@ -261,7 +261,7 @@ if __name__ == "__main__":
     )
     print(f"Query:\n{query}\n\n")
 
-    result = ReviewPlan.execute(execute_with_llm, SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS, query)
+    result = ReviewPlan.execute(llm_fallback_executor, SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS, query)
     json_response = result.to_dict(include_system_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))

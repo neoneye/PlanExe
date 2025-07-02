@@ -1,5 +1,5 @@
 """
-Cycle through the LLMs, if one fails, try the next one.
+Cycle through multiple LLMs, if one fails, try the next one.
 
 I want all LLM invocations to go through this class.
 
@@ -27,7 +27,7 @@ class PlanTaskStop2(RuntimeError):
     """Raised when a pipeline task should be stopped by the callback."""
     pass
 
-class ExecuteWithLLM:
+class LLMFallbackExecutor:
     """
     Cycle through multiple LLMs. Start with the preferred LLM. 
     Fallback to the next LLM if the first one fails.
