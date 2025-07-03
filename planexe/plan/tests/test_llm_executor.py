@@ -1,5 +1,5 @@
 import unittest
-from planexe.plan.llm_executor import LLMExecutor, LLMModelBase, LLMModelWithInstance
+from planexe.plan.llm_executor import LLMExecutor, LLMModelBase, LLMModelWithInstance, PlanTaskStop2
 from planexe.llm_util.response_mockllm import ResponseMockLLM
 from llama_index.core.llms import MockLLM, ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
@@ -95,3 +95,60 @@ class TestLLMExecutor(unittest.TestCase):
         self.assertIsNone(attempt0.result)
         self.assertIsInstance(attempt0.exception, ValueError)
         self.assertEqual(str(attempt0.exception), "Cannot initialize this model")
+
+
+    def test_continue_execution_if_callback_returns_false(self):
+        # Arrange
+        llm0 = ResponseMockLLM(
+            responses=["raise:BAD0"],
+        )
+        llm1 = ResponseMockLLM(
+            responses=["I'm the last LLM"],
+        )
+        llm_models = LLMModelWithInstance.from_instances([llm0, llm1])
+
+        def pipeline_executor_callback(duration: float) -> bool:
+            # Returning False means continue execution
+            return False
+        
+        executor = LLMExecutor(llm_models=llm_models, pipeline_executor_callback=pipeline_executor_callback)
+
+        def execute_function(llm: LLM) -> str:
+            return llm.complete("Hi").text
+
+        # Act
+        result = executor.run(execute_function)
+
+        # Assert
+        self.assertEqual(result, "I'm the last LLM")
+        self.assertEqual(executor.attempt_count, 2)
+        self.assertFalse(executor.attempts[0].success)
+        self.assertTrue(executor.attempts[1].success)
+
+    def test_stop_execution_if_callback_returns_true(self):
+        # Arrange
+        llm0 = ResponseMockLLM(
+            responses=["a"],
+        )
+        llm1 = ResponseMockLLM(
+            responses=["b"],
+        )
+        llm_models = LLMModelWithInstance.from_instances([llm0, llm1])
+
+        def pipeline_executor_callback(duration: float) -> bool:
+            # Returning True means stop execution
+            return True
+        
+        executor = LLMExecutor(llm_models=llm_models, pipeline_executor_callback=pipeline_executor_callback)
+
+        def execute_function(llm: LLM) -> str:
+            return llm.complete("Hi").text
+
+        # Act
+        with self.assertRaises(Exception) as context:
+            executor.run(execute_function)
+
+        # Assert
+        self.assertEqual(executor.attempt_count, 1)
+        self.assertIsInstance(context.exception, PlanTaskStop2)
+        self.assertTrue(executor.attempts[0].success)

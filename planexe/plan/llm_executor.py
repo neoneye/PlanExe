@@ -18,7 +18,7 @@ IDEA: track if the LLM failed and why
 import time
 import logging
 from typing import Any, Callable, Optional, List
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from llama_index.core.llms.llm import LLM
 from planexe.llm_factory import get_llm
 
@@ -133,6 +133,8 @@ class LLMExecutor:
                         raise PlanTaskStop2(f"Pipeline execution aborted by callback after task succeeded")
                 return result
             except Exception as e:
+                if isinstance(e, PlanTaskStop2):
+                    raise e
                 duration = time.perf_counter() - attempt_start_time
                 logger.error(f"Error running with LLM {llm_model!r}: {e}")
                 self.attempts.append(LLMAttempt(
