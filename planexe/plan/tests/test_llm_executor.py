@@ -40,6 +40,8 @@ class TestLLMExecutor(unittest.TestCase):
         # Assert - should succeed with the good LLM after the bad one fails
         self.assertEqual(result, "I'm the 2nd LLM")
         self.assertEqual(executor.attempt_count, 2)
+        self.assertFalse(executor.attempts[0].success)
+        self.assertTrue(executor.attempts[1].success)
 
     def test_exhaust_all_llms_but_none_succeeds(self):
         """Create two LLMs that raise exceptions"""
@@ -59,6 +61,10 @@ class TestLLMExecutor(unittest.TestCase):
         # Assert
         self.assertIn("Failed to run. Exhausted all LLMs.", str(context.exception))
         self.assertEqual(executor.attempt_count, 2)
+        self.assertIn("BAD1", str(context.exception))
+        self.assertIn("BAD2", str(context.exception))
+        self.assertFalse(executor.attempts[0].success)
+        self.assertFalse(executor.attempts[1].success)
 
     def test_failure_inside_create_llm(self):
         """Simulate that the LLM cannot be created, due to a possible configuration issue."""
@@ -82,9 +88,6 @@ class TestLLMExecutor(unittest.TestCase):
         # Assert
         self.assertIn("Failed to run. Exhausted all LLMs.", str(context.exception))
         self.assertEqual(executor.attempt_count, 1)
-
-        # Verify the exception is the one that was raised in the create_llm() method
-        # Since the LLMExecutor can have a long list of LLMs, the number of exceptions can vary, so a list of events.
         attempt0 = executor.attempts[0]
         self.assertIs(attempt0.llm_model, bad_llm_model)
         self.assertEqual(attempt0.stage, 'create')
