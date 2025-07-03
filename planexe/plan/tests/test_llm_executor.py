@@ -1,5 +1,5 @@
 import unittest
-from planexe.plan.llm_executor import LLMExecutor, LLMModelWithInstance
+from planexe.plan.llm_executor import LLMExecutor, LLMModelBase, LLMModelWithInstance
 from planexe.llm_util.response_mockllm import ResponseMockLLM
 from llama_index.core.llms import MockLLM, ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
@@ -59,3 +59,24 @@ class TestLLMExecutor(unittest.TestCase):
         # Assert
         self.assertIn("Failed to run. Exhausted all the LLMs in the list", str(context.exception))
         self.assertEqual(llm_executor.execute_count, 2)
+
+    def test_failure_inside_create_llm(self):
+        """Simulate that the LLM cannot be created, due to a possible configuration issue."""
+        # Arrange
+        class BadLLMModel(LLMModelBase):
+            def create_llm(self) -> LLM:
+                raise Exception("BAD")
+
+        bad_llm = BadLLMModel()
+        llm_executor = LLMExecutor(llm_models=[bad_llm], pipeline_executor_callback=None)
+
+        def execute_function(llm: LLM) -> str:
+            return llm.complete("Hi").text
+
+        # Act
+        with self.assertRaises(Exception) as context:
+            llm_executor.run(execute_function)
+
+        # Assert
+        self.assertIn("Failed to run. Exhausted all the LLMs in the list", str(context.exception))
+        self.assertEqual(llm_executor.execute_count, 0)
