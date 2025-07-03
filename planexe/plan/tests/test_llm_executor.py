@@ -1,5 +1,5 @@
 import unittest
-from planexe.plan.llm_executor import LLMExecutor, LLMModelBase, LLMModelWithInstance, ExecutionAbortedError
+from planexe.plan.llm_executor import LLMExecutor, LLMModelBase, LLMModelWithInstance, ExecutionAbortedError, ShouldStopCallbackParameters
 from planexe.llm_util.response_mockllm import ResponseMockLLM
 from llama_index.core.llms import MockLLM, ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
@@ -96,7 +96,7 @@ class TestLLMExecutor(unittest.TestCase):
         self.assertIsInstance(attempt0.exception, ValueError)
         self.assertEqual(str(attempt0.exception), "Cannot initialize this model")
 
-    def test_continue_execution_if_callback_returns_false(self):
+    def test_continue_execution_as_long_as_the_callback_returns_false(self):
         # Arrange
         llm0 = ResponseMockLLM(
             responses=["raise:BAD0"],
@@ -106,7 +106,7 @@ class TestLLMExecutor(unittest.TestCase):
         )
         llm_models = LLMModelWithInstance.from_instances([llm0, llm1])
 
-        def should_stop_callback(duration: float) -> bool:
+        def should_stop_callback(parameters: ShouldStopCallbackParameters) -> bool:
             # Returning False means continue execution
             return False
         
@@ -124,19 +124,25 @@ class TestLLMExecutor(unittest.TestCase):
         self.assertFalse(executor.attempts[0].success)
         self.assertTrue(executor.attempts[1].success)
 
-    def test_stop_execution_if_callback_returns_true(self):
+    def test_stop_execution_when_the_callback_returns_true(self):
+        """Run the the first LLM, and stop execution before the second LLM is run."""
         # Arrange
         llm0 = ResponseMockLLM(
-            responses=["I'm the first LLM"],
+            responses=["raise:I'm the first LLM and I'm bad"],
         )
         llm1 = ResponseMockLLM(
-            responses=["I'm the last LLM"],
+            responses=["I'm the last LLM and I'm not supposed to be run"],
         )
         llm_models = LLMModelWithInstance.from_instances([llm0, llm1])
 
-        def should_stop_callback(duration: float) -> bool:
-            # Returning True means stop execution
-            return True
+        def should_stop_callback(parameters: ShouldStopCallbackParameters) -> bool:
+            if parameters.attempt_index == 1:
+                # Continue execution
+                return False
+            if parameters.attempt_index == 2:
+                # Stop execution
+                return True
+            raise ValueError(f"Unexpected attempt index: {parameters.attempt_index}")
         
         executor = LLMExecutor(llm_models=llm_models, should_stop_callback=should_stop_callback)
 
@@ -149,5 +155,7 @@ class TestLLMExecutor(unittest.TestCase):
 
         # Assert
         self.assertEqual(executor.attempt_count, 1)
-        self.assertTrue(executor.attempts[0].success)
-        self.assertEqual(executor.attempts[0].result, "I'm the first LLM")
+        attempt0 = executor.attempts[0]
+        self.assertFalse(attempt0.success)
+        self.assertIsNone(attempt0.result)
+        self.assertEqual(str(attempt0.exception), "I'm the first LLM and I'm bad")
