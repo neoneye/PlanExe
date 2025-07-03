@@ -21,7 +21,7 @@ class TestLLMExecutor(unittest.TestCase):
 
         # Assert
         self.assertEqual(result, "Hello, world!")
-        self.assertEqual(llm_executor.execute_count, 1)
+        self.assertEqual(llm_executor.attempt_count, 1)
 
     def test_fallback_to_the_2nd_llm(self):
         """Create two LLMs: one that fails, one that succeeds"""
@@ -39,7 +39,7 @@ class TestLLMExecutor(unittest.TestCase):
 
         # Assert - should succeed with the good LLM after the bad one fails
         self.assertEqual(result, "I'm the 2nd LLM")
-        self.assertEqual(llm_executor.execute_count, 2)
+        self.assertEqual(llm_executor.attempt_count, 2)
 
     def test_exhaust_all_llms_but_none_succeeds(self):
         """Create two LLMs that raise exceptions"""
@@ -57,18 +57,20 @@ class TestLLMExecutor(unittest.TestCase):
             llm_executor.run(execute_function)
 
         # Assert
-        self.assertIn("Failed to run. Exhausted all the LLMs in the list", str(context.exception))
-        self.assertEqual(llm_executor.execute_count, 2)
+        self.assertIn("Failed to run. Exhausted all LLMs.", str(context.exception))
+        self.assertEqual(llm_executor.attempt_count, 2)
 
     def test_failure_inside_create_llm(self):
         """Simulate that the LLM cannot be created, due to a possible configuration issue."""
         # Arrange
         class BadLLMModel(LLMModelBase):
             def create_llm(self) -> LLM:
-                raise Exception("BAD")
-
-        bad_llm = BadLLMModel()
-        llm_executor = LLMExecutor(llm_models=[bad_llm], pipeline_executor_callback=None)
+                raise ValueError("Cannot initialize this model")
+            def __repr__(self) -> str:
+                return "BadLLMModel()"
+           
+        bad_llm_model = BadLLMModel()
+        llm_executor = LLMExecutor(llm_models=[bad_llm_model], pipeline_executor_callback=None)
 
         def execute_function(llm: LLM) -> str:
             return llm.complete("Hi").text
@@ -78,5 +80,15 @@ class TestLLMExecutor(unittest.TestCase):
             llm_executor.run(execute_function)
 
         # Assert
-        self.assertIn("Failed to run. Exhausted all the LLMs in the list", str(context.exception))
-        self.assertEqual(llm_executor.execute_count, 0)
+        self.assertIn("Failed to run. Exhausted all LLMs.", str(context.exception))
+        self.assertEqual(llm_executor.attempt_count, 1)
+
+        # Verify the exception is the one that was raised in the create_llm() method
+        # Since the LLMExecutor can have a long list of LLMs, the number of exceptions can vary, so a list of events.
+        attempt0 = llm_executor.attempts[0]
+        self.assertIs(attempt0.llm_model, bad_llm_model)
+        self.assertEqual(attempt0.stage, 'create')
+        self.assertFalse(attempt0.success)
+        self.assertIsNone(attempt0.result)
+        self.assertIsInstance(attempt0.exception, ValueError)
+        self.assertEqual(str(attempt0.exception), "Cannot initialize this model")
