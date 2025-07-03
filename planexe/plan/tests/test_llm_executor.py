@@ -26,11 +26,7 @@ class TestLLMExecutor(unittest.TestCase):
     def test_medium_1st_llm_fails_2nd_succeeds(self):
         """Create two LLMs: one that fails, one that succeeds"""
         # Arrange
-        class BadLLM(MockLLM):
-            def complete(self, prompt: str, **kwargs):
-                raise Exception("BAD")
-        
-        bad_llm = BadLLM()
+        bad_llm = ResponseMockLLM(responses=["raise:BAD"])
         good_llm = ResponseMockLLM(responses=["I'm the 2nd LLM"])
         llm_models = LLMModelWithInstance.from_instances([bad_llm, good_llm])
         llm_executor = LLMExecutor(llm_models=llm_models, pipeline_executor_callback=None)
