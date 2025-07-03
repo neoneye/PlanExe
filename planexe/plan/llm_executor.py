@@ -67,10 +67,9 @@ class LLMExecutor:
 
     def run(self, execute_function: Callable[[LLM], Any]):
         start_time: float = time.perf_counter()
-        class_name = self.__class__.__name__
         attempt_count = len(self.llm_models)
         for index, llm_model in enumerate(self.llm_models, start=1):
-            logger.info(f"Attempt {index} of {attempt_count}: Running {class_name} with LLM {llm_model!r}")
+            logger.info(f"Attempt {index} of {attempt_count}: Running with LLM {llm_model!r}")
             try:
                 llm = llm_model.create_llm()
             except Exception as e:
@@ -80,10 +79,10 @@ class LLMExecutor:
             try:
                 result = execute_function(llm)
             except Exception as e:
-                logger.error(f"Error running {class_name} with LLM {llm_model!r}: {e}")
+                logger.error(f"Error running with LLM {llm_model!r}: {e}")
                 continue
             duration: float = time.perf_counter() - start_time
-            logger.info(f"Successfully ran {class_name} with LLM {llm_model!r}. Duration: {duration:.2f} seconds")
+            logger.info(f"Successfully ran with LLM {llm_model!r}. Duration: {duration:.2f} seconds")
             # If a callback is provided by the pipeline executor, call it.
             if self.pipeline_executor_callback:
                 should_stop = self.pipeline_executor_callback(duration)
@@ -91,4 +90,4 @@ class LLMExecutor:
                     logger.warning(f"Pipeline execution aborted by callback after task succeeded")
                     raise PlanTaskStop2(f"Pipeline execution aborted by callback after task succeeded")
             return result
-        raise Exception(f"Failed to run {class_name} with any of the LLMs in the list: {self.llm_models!r}")
+        raise Exception(f"Failed to run. Exhausted all the LLMs in the list: {self.llm_models!r}")
