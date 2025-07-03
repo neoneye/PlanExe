@@ -108,33 +108,12 @@ class LLMExecutor:
                     duration=duration,
                     exception=e
                 ))
+                self.raise_exception_if_stop_callback_returns_true(overall_start_time)
                 continue
 
             # Stage 2: Execute the function with the LLM
             try:
                 result = execute_function(llm)
-                duration = time.perf_counter() - attempt_start_time
-                logger.info(f"Successfully ran with LLM {llm_model!r}. Duration: {duration:.2f} seconds")
-                self.attempts.append(LLMAttempt(
-                    stage='execute',
-                    llm_model=llm_model,
-                    success=True,
-                    duration=duration,
-                    result=result
-                ))
-                
-                # If a callback is provided by the pipeline executor, call it.
-                if self.should_stop_callback:
-                    # The duration passed to the callback should be the total time for the whole task
-                    total_duration = time.perf_counter() - overall_start_time
-                    should_stop = self.should_stop_callback(total_duration)
-                    if should_stop:
-                        logger.warning(f"Execution aborted by callback after task succeeded")
-                        raise ExecutionAbortedError(f"Execution aborted by callback after task succeeded")
-                return result
-            except ExecutionAbortedError:
-                # This is intentional. Don't catch this one. It's a signal to stop execution.
-                raise
             except Exception as e:
                 duration = time.perf_counter() - attempt_start_time
                 logger.error(f"Error running with LLM {llm_model!r}: {e}")
@@ -146,6 +125,18 @@ class LLMExecutor:
                     exception=e
                 ))
                 continue
+
+            duration = time.perf_counter() - attempt_start_time
+            logger.info(f"Successfully ran with LLM {llm_model!r}. Duration: {duration:.2f} seconds")
+            self.attempts.append(LLMAttempt(
+                stage='execute',
+                llm_model=llm_model,
+                success=True,
+                duration=duration,
+                result=result
+            ))
+            self.raise_exception_if_stop_callback_returns_true(overall_start_time)
+            return result
         
         # Build a detailed error message if all attempts failed
         error_summary = "\n".join(
@@ -153,3 +144,18 @@ class LLMExecutor:
             for attempt in self.attempts
         )
         raise Exception(f"Failed to run. Exhausted all LLMs. Failure summary:\n{error_summary}")
+
+    def raise_exception_if_stop_callback_returns_true(self, start_time: float) -> None:
+        """
+        If there is no callback, do nothing.
+        If the callback returns True, raise an exception to stop execution.
+        If the callback returns False, continue execution.
+        """
+        if self.should_stop_callback is None:
+            return
+
+        total_duration = time.perf_counter() - start_time
+        should_stop = self.should_stop_callback(total_duration)
+        if should_stop:
+            logger.warning(f"Execution aborted by callback after task succeeded")
+            raise ExecutionAbortedError(f"Execution aborted by callback after task succeeded")
