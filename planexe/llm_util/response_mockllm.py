@@ -18,11 +18,19 @@ class ResponseMockLLM(MockLLM):
         object.__setattr__(self, 'responses', responses or ["Mock response"])
         object.__setattr__(self, 'response_cycle', itertools.cycle(self.responses))
 
+    def raise_exception_if_needed(self, response_text: str) -> None:
+        """
+        If the response starts with "raise:message", then raise an exception with the message.
+        """
+        if response_text.startswith("raise:"):
+            raise Exception(response_text.split(":", 1)[1])
+
     def chat(self, messages: Sequence[ChatMessage], **kwargs: Any) -> ChatResponse:
         """
         Override the chat method to return our predefined responses.
         """
         response_text = next(self.response_cycle)
+        self.raise_exception_if_needed(response_text)
         # Create a ChatResponse with the assistant message
         assistant_message = ChatMessage(
             role=MessageRole.ASSISTANT,
@@ -31,7 +39,9 @@ class ResponseMockLLM(MockLLM):
         return ChatResponse(message=assistant_message)
 
     def _generate_text(self, length: int) -> str:
-        return next(self.response_cycle)
+        message = next(self.response_cycle)
+        self.raise_exception_if_needed(message)
+        return message
 
 if __name__ == "__main__":
     from llama_index.core.llms import ChatMessage, MessageRole
