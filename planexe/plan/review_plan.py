@@ -250,7 +250,7 @@ if __name__ == "__main__":
         "openrouter-paid-qwen3-30b-a3b"
     ]
     llm_models = LLMModelFromName.from_names(llm_models_names)
-    llm_executor = LLMExecutor(llm_models=llm_models, pipeline_executor_callback=None)
+    llm_executor = LLMExecutor(llm_models=llm_models)
 
     path = os.path.join(os.path.dirname(__file__), 'test_data', "deadfish_assumptions.md")
     with open(path, 'r', encoding='utf-8') as f:

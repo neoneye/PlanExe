@@ -24,8 +24,8 @@ from planexe.llm_factory import get_llm
 
 logger = logging.getLogger(__name__)
 
-class PlanTaskStop2(RuntimeError):
-    """Raised when a pipeline task should be stopped by the callback."""
+class ExecutionAbortedError(RuntimeError):
+    """Raised when the execution is aborted by a callback after a task succeeds."""
     pass
 
 class LLMModelBase:
@@ -76,9 +76,9 @@ class LLMExecutor:
     Fallback to the next LLM if the first one fails.
     If all LLMs fail, raise an exception.
     """
-    def __init__(self, llm_models: list[LLMModelBase], pipeline_executor_callback: Callable[[float], bool]):
+    def __init__(self, llm_models: list[LLMModelBase], should_stop_callback: Optional[Callable[[float], bool]] = None):
         self.llm_models = llm_models
-        self.pipeline_executor_callback = pipeline_executor_callback
+        self.should_stop_callback = should_stop_callback
         self.attempts: List[LLMAttempt] = []
 
     @property
@@ -124,17 +124,18 @@ class LLMExecutor:
                 ))
                 
                 # If a callback is provided by the pipeline executor, call it.
-                if self.pipeline_executor_callback:
+                if self.should_stop_callback:
                     # The duration passed to the callback should be the total time for the whole task
                     total_duration = time.perf_counter() - overall_start_time
-                    should_stop = self.pipeline_executor_callback(total_duration)
+                    should_stop = self.should_stop_callback(total_duration)
                     if should_stop:
-                        logger.warning(f"Pipeline execution aborted by callback after task succeeded")
-                        raise PlanTaskStop2(f"Pipeline execution aborted by callback after task succeeded")
+                        logger.warning(f"Execution aborted by callback after task succeeded")
+                        raise ExecutionAbortedError(f"Execution aborted by callback after task succeeded")
                 return result
+            except ExecutionAbortedError:
+                # This is intentional. Don't catch this one. It's a signal to stop execution.
+                raise
             except Exception as e:
-                if isinstance(e, PlanTaskStop2):
-                    raise e
                 duration = time.perf_counter() - attempt_start_time
                 logger.error(f"Error running with LLM {llm_model!r}: {e}")
                 self.attempts.append(LLMAttempt(

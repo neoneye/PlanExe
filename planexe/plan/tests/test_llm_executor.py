@@ -1,5 +1,5 @@
 import unittest
-from planexe.plan.llm_executor import LLMExecutor, LLMModelBase, LLMModelWithInstance, PlanTaskStop2
+from planexe.plan.llm_executor import LLMExecutor, LLMModelBase, LLMModelWithInstance, ExecutionAbortedError
 from planexe.llm_util.response_mockllm import ResponseMockLLM
 from llama_index.core.llms import MockLLM, ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
@@ -11,7 +11,7 @@ class TestLLMExecutor(unittest.TestCase):
             responses=["Hello, world!"],
         )
         llm_model = LLMModelWithInstance(llm)
-        executor = LLMExecutor(llm_models=[llm_model], pipeline_executor_callback=None)
+        executor = LLMExecutor(llm_models=[llm_model])
 
         def execute_function(llm: LLM) -> str:
             return llm.complete("Hi").text
@@ -29,7 +29,7 @@ class TestLLMExecutor(unittest.TestCase):
         bad_llm = ResponseMockLLM(responses=["raise:BAD"])
         good_llm = ResponseMockLLM(responses=["I'm the 2nd LLM"])
         llm_models = LLMModelWithInstance.from_instances([bad_llm, good_llm])
-        executor = LLMExecutor(llm_models=llm_models, pipeline_executor_callback=None)
+        executor = LLMExecutor(llm_models=llm_models)
 
         def execute_function(llm: LLM) -> str:
             return llm.complete("Hi").text
@@ -49,7 +49,7 @@ class TestLLMExecutor(unittest.TestCase):
         bad1_llm = ResponseMockLLM(responses=["raise:BAD1"])
         bad2_llm = ResponseMockLLM(responses=["raise:BAD2"])
         llm_models = LLMModelWithInstance.from_instances([bad1_llm, bad2_llm])
-        executor = LLMExecutor(llm_models=llm_models, pipeline_executor_callback=None)
+        executor = LLMExecutor(llm_models=llm_models)
 
         def execute_function(llm: LLM) -> str:
             return llm.complete("Hi").text
@@ -76,7 +76,7 @@ class TestLLMExecutor(unittest.TestCase):
                 return "BadLLMModel()"
            
         bad_llm_model = BadLLMModel()
-        executor = LLMExecutor(llm_models=[bad_llm_model], pipeline_executor_callback=None)
+        executor = LLMExecutor(llm_models=[bad_llm_model])
 
         def execute_function(llm: LLM) -> str:
             return llm.complete("Hi").text
@@ -96,7 +96,6 @@ class TestLLMExecutor(unittest.TestCase):
         self.assertIsInstance(attempt0.exception, ValueError)
         self.assertEqual(str(attempt0.exception), "Cannot initialize this model")
 
-
     def test_continue_execution_if_callback_returns_false(self):
         # Arrange
         llm0 = ResponseMockLLM(
@@ -107,11 +106,11 @@ class TestLLMExecutor(unittest.TestCase):
         )
         llm_models = LLMModelWithInstance.from_instances([llm0, llm1])
 
-        def pipeline_executor_callback(duration: float) -> bool:
+        def should_stop_callback(duration: float) -> bool:
             # Returning False means continue execution
             return False
         
-        executor = LLMExecutor(llm_models=llm_models, pipeline_executor_callback=pipeline_executor_callback)
+        executor = LLMExecutor(llm_models=llm_models, should_stop_callback=should_stop_callback)
 
         def execute_function(llm: LLM) -> str:
             return llm.complete("Hi").text
@@ -128,27 +127,27 @@ class TestLLMExecutor(unittest.TestCase):
     def test_stop_execution_if_callback_returns_true(self):
         # Arrange
         llm0 = ResponseMockLLM(
-            responses=["a"],
+            responses=["I'm the first LLM"],
         )
         llm1 = ResponseMockLLM(
-            responses=["b"],
+            responses=["I'm the last LLM"],
         )
         llm_models = LLMModelWithInstance.from_instances([llm0, llm1])
 
-        def pipeline_executor_callback(duration: float) -> bool:
+        def should_stop_callback(duration: float) -> bool:
             # Returning True means stop execution
             return True
         
-        executor = LLMExecutor(llm_models=llm_models, pipeline_executor_callback=pipeline_executor_callback)
+        executor = LLMExecutor(llm_models=llm_models, should_stop_callback=should_stop_callback)
 
         def execute_function(llm: LLM) -> str:
             return llm.complete("Hi").text
 
         # Act
-        with self.assertRaises(Exception) as context:
+        with self.assertRaises(ExecutionAbortedError):
             executor.run(execute_function)
 
         # Assert
         self.assertEqual(executor.attempt_count, 1)
-        self.assertIsInstance(context.exception, PlanTaskStop2)
         self.assertTrue(executor.attempts[0].success)
+        self.assertEqual(executor.attempts[0].result, "I'm the first LLM")
