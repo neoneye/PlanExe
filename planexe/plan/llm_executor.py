@@ -152,7 +152,7 @@ class LLMExecutor:
         
         if self.should_stop_callback(parameters):
             logger.warning(f"Callback returned true. Aborting execution after attempt {attempt_index}.")
-            raise ExecutionAbortedError(f"Execution aborted by callback after successful attempt {attempt_index}")
+            raise ExecutionAbortedError(f"Execution aborted by callback after attempt {attempt_index}")
 
     def _raise_final_exception(self) -> None:
         """Raise the final exception when no attempt succeeds."""
