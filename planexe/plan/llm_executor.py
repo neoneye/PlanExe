@@ -99,6 +99,10 @@ class LLMExecutor:
         return len(self.attempts)
 
     def run(self, execute_function: Callable[[LLM], Any]):
+        # Validate that execute_function is callable
+        if not callable(execute_function):
+            raise TypeError("execute_function must be a function that returns a string")
+        
         # Reset attempts for each new run
         self.attempts = []
         overall_start_time = time.perf_counter()

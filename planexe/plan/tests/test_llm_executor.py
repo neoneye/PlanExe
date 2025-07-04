@@ -198,7 +198,7 @@ class TestLLMExecutor(unittest.TestCase):
 
     def test_llmexecutor_init_with_no_llms(self):
         """One or more LLMs are supposed to be provided."""
-        # Arrange
+        # Act
         with self.assertRaises(ValueError) as context:
             LLMExecutor(llm_models=[])
 
@@ -209,8 +209,23 @@ class TestLLMExecutor(unittest.TestCase):
         """The callback is supposed to be a function that returns a boolean."""
         # Arrange
         llm_model = LLMModelWithInstance(ResponseMockLLM(responses=["test"]))
+
+        # Act
         with self.assertRaises(TypeError) as context:
             LLMExecutor(llm_models=[llm_model], should_stop_callback="I'm not a function")
 
         # Assert
         self.assertIn("should_stop_callback must be a function that returns a boolean", str(context.exception))
+
+    def test_llmexecutor_run_with_junk_execute_function(self):
+        """The execute_function is supposed to be a function that takes a LLM parameter."""
+        # Arrange
+        llm_model = LLMModelWithInstance(ResponseMockLLM(responses=["test"]))
+        executor = LLMExecutor(llm_models=[llm_model])
+
+        # Act
+        with self.assertRaises(TypeError) as context:
+            executor.run("I'm not a function")
+
+        # Assert
+        self.assertIn("execute_function must be a function that returns a string", str(context.exception))
