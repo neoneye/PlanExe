@@ -1,5 +1,5 @@
 import unittest
-from planexe.plan.llm_executor import LLMExecutor, LLMModelBase, LLMModelWithInstance, ExecutionAbortedError, ShouldStopCallbackParameters
+from planexe.llm_util.llm_executor import LLMExecutor, LLMModelBase, LLMModelWithInstance, ExecutionAbortedError, ShouldStopCallbackParameters
 from planexe.llm_util.response_mockllm import ResponseMockLLM
 from llama_index.core.llms import MockLLM, ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM

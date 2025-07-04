@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole, ChatResponse
 from llama_index.core.llms.llm import LLM
 from planexe.plan.speedvsdetail import SpeedVsDetailEnum
-from planexe.plan.llm_executor import LLMExecutor, LLMModelFromName
+from planexe.llm_util.llm_executor import LLMExecutor, LLMModelFromName
 
 logger = logging.getLogger(__name__)
 
