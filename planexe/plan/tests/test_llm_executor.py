@@ -217,8 +217,11 @@ class TestLLMExecutor(unittest.TestCase):
         # Assert
         self.assertIn("should_stop_callback must be a function that returns a boolean", str(context.exception))
 
-    def test_llmexecutor_run_with_junk_execute_function(self):
-        """The execute_function is supposed to be a function that takes a LLM parameter."""
+    def test_validate_execute_function1(self):
+        """
+        Invoke the run() function with a junk execute_function, and check that it detects that it's junk.
+        The execute_function is supposed to be a function that takes a LLM parameter.
+        """
         # Arrange
         llm_model = LLMModelWithInstance(ResponseMockLLM(responses=["test"]))
         executor = LLMExecutor(llm_models=[llm_model])
@@ -228,4 +231,42 @@ class TestLLMExecutor(unittest.TestCase):
             executor.run("I'm not a function")
 
         # Assert
-        self.assertIn("execute_function must be a function that returns a string", str(context.exception))
+        self.assertIn("validate_execute_function1: must be a function that takes a LLM parameter", str(context.exception))
+
+    def test_validate_execute_function2(self):
+        """
+        Invoke the run() function with a junk execute_function, and check that it detects that it's junk.
+        The execute_function is supposed to be a function that takes a LLM parameter.
+        """
+        # Arrange
+        llm_model = LLMModelWithInstance(ResponseMockLLM(responses=["test"]))
+        executor = LLMExecutor(llm_models=[llm_model])
+
+        def execute_function(a: int, b: int, c: int) -> str:
+            raise ValueError("I take the wrong number of parameters, I'm not supposed to be called")
+
+        # Act
+        with self.assertRaises(TypeError) as context:
+            executor.run(execute_function)
+
+        # Assert
+        self.assertIn("validate_execute_function2: must be a function that takes a single parameter", str(context.exception))
+
+    def test_validate_execute_function3(self):
+        """
+        Invoke the run() function with a junk execute_function, and check that it detects that it's junk.
+        The execute_function is supposed to be a function that takes a LLM parameter.
+        """
+        # Arrange
+        llm_model = LLMModelWithInstance(ResponseMockLLM(responses=["test"]))
+        executor = LLMExecutor(llm_models=[llm_model])
+
+        def execute_function(wrong_parameter_type: str) -> str:
+            raise ValueError("I have the wrong function type signature, I'm not supposed to be called")
+
+        # Act
+        with self.assertRaises(TypeError) as context:
+            executor.run(execute_function)
+
+        # Assert
+        self.assertIn("validate_execute_function3: must be a function that takes a single parameter of type LLM, but got some other type", str(context.exception))

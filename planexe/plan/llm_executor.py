@@ -17,7 +17,8 @@ IDEA: track if the LLM failed and why
 """
 import time
 import logging
-from typing import Any, Callable, Optional, List
+import inspect
+from typing import Any, Callable, Optional, List, Union
 from dataclasses import dataclass
 from llama_index.core.llms.llm import LLM
 from planexe.llm_factory import get_llm
@@ -99,10 +100,8 @@ class LLMExecutor:
         return len(self.attempts)
 
     def run(self, execute_function: Callable[[LLM], Any]):
-        # Validate that execute_function is callable
-        if not callable(execute_function):
-            raise TypeError("execute_function must be a function that returns a string")
-        
+        self._validate_execute_function(execute_function)
+
         # Reset attempts for each new run
         self.attempts = []
         overall_start_time = time.perf_counter()
@@ -121,6 +120,27 @@ class LLMExecutor:
 
         # If we get here, all attempts have failed.
         self._raise_final_exception()
+
+    def _validate_execute_function(self, execute_function: Callable[[LLM], Any]) -> None:
+        """
+        Validate that the execute_function is a function that takes a single LLM parameter.
+        It doesn't matter what the return type is or if it doesn't return anything.
+        """
+        if not callable(execute_function):
+            raise TypeError("validate_execute_function1: must be a function that takes a LLM parameter")
+        
+        # Validate function signature
+        sig = inspect.signature(execute_function)
+        params = list(sig.parameters.values())
+        if len(params) != 1:
+            raise TypeError("validate_execute_function2: must be a function that takes a single parameter")
+        
+        # Check if the parameter type annotation is compatible with LLM
+        param = params[0]
+        if param.annotation != inspect.Parameter.empty:
+            # If there's a type annotation, check if it's compatible with LLM
+            if param.annotation != LLM and not (hasattr(param.annotation, '__origin__') and param.annotation.__origin__ is Union and LLM in param.annotation.__args__):
+                raise TypeError("validate_execute_function3: must be a function that takes a single parameter of type LLM, but got some other type")
 
     def _try_one_attempt(self, llm_model: LLMModelBase, execute_function: Callable[[LLM], Any]) -> LLMAttempt:
         """Performs a single, complete attempt with one LLM, returning a detailed result."""
