@@ -113,48 +113,44 @@ class PlanTask(luigi.Task):
     def local_target(self, filename: FilenameEnum) -> luigi.LocalTarget:
         return luigi.LocalTarget(self.file_path(filename))
 
+    def create_llm_executor(self) -> LLMExecutor:
+        # Redirect the callback to the pipeline_executor_callback.
+        def should_stop_callback(parameters: ShouldStopCallbackParameters) -> bool:
+            if self._pipeline_executor_callback is None:
+                return False
+            # The pipeline_executor_callback expects (task, duration) but we have ShouldStopCallbackParameters
+            total_duration = parameters.total_duration
+            should_stop = self._pipeline_executor_callback(self, total_duration)
+            logger.debug(f"{self.__class__.__name__} -> create_llm_executor -> should_stop_callback -> should_stop: {should_stop}")
+            return should_stop
+
+        llm_model_instances = LLMModelFromName.from_names(self.llm_models)
+
+        return LLMExecutor(
+            llm_models=llm_model_instances,
+            should_stop_callback=should_stop_callback
+        )
+
     def run_with_llm(self, llm: LLM) -> None:
         raise NotImplementedError("Subclasses must implement this method.")
 
     def run(self):
-        class_name = self.__class__.__name__
+        llm_executor: LLMExecutor = self.create_llm_executor()
         
-        # Convert string LLM model names to LLMModelFromName instances
-        llm_model_instances = LLMModelFromName.from_names(self.llm_models)
-        
-        # Create a should_stop_callback that wraps the existing pipeline executor callback
-        def should_stop_callback(parameters: ShouldStopCallbackParameters) -> bool:
-            if self._pipeline_executor_callback:
-                # The callback expects (task, duration) but we have ShouldStopCallbackParameters
-                # We need to extract the duration from the parameters
-                total_duration = parameters.total_duration
-                should_stop = self._pipeline_executor_callback(self, total_duration)
-                if should_stop:
-                    logger.warning(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
-                    raise PlanTaskStop(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
-            return False  # Never stop from this callback, let the PlanTaskStop exception handle it
-        
-        # Create the LLMExecutor
-        llm_executor = LLMExecutor(
-            llm_models=llm_model_instances,
-            should_stop_callback=should_stop_callback if self._pipeline_executor_callback else None
-        )
-        
-        # Define the execute function that will be called by LLMExecutor
+        # Attempt executing this code with the first LLM, if that fails, try the next one, and so on.
         def execute_function(llm: LLM) -> None:
             self.run_with_llm(llm)
         
         try:
             # Run the task using LLMExecutor
             llm_executor.run(execute_function)
-        except ExecutionAbortedError:
+        except ExecutionAbortedError as e:
             # This exception is raised when the should_stop_callback returns True
-            # The PlanTaskStop exception should have already been raised in the callback
-            # If we get here, it means something went wrong with the exception handling
-            raise PlanTaskStop(f"Pipeline execution aborted for run_id_dir: {self.run_id_dir!r}")
+            # If we get here, it means that the pipeline was aborted by the callback, such as by the user pressing Ctrl-C or closing the browser tab.
+            raise PlanTaskStop(f"Pipeline execution aborted for run_id_dir: {self.run_id_dir!r}") from e
         except Exception as e:
             # Re-raise the exception with a more descriptive message
-            raise Exception(f"Failed to run {class_name} with any of the LLMs in the list: {self.llm_models!r} for run_id_dir: {self.run_id_dir!r}") from e
+            raise Exception(f"Failed to run {self.__class__.__name__} with any of the LLMs in the list: {self.llm_models!r} for run_id_dir: {self.run_id_dir!r}") from e
 
 class SetupTask(PlanTask):
     def output(self):
@@ -2555,26 +2551,7 @@ class ReviewPlanTask(PlanTask):
         }
     
     def run(self):
-        # Convert string LLM model names to LLMModelFromName instances
-        llm_model_instances = LLMModelFromName.from_names(self.llm_models)
-        
-        # Create a should_stop_callback that wraps the existing pipeline executor callback
-        def should_stop_callback(parameters: ShouldStopCallbackParameters) -> bool:
-            if self._pipeline_executor_callback:
-                # The callback expects (task, duration) but we have ShouldStopCallbackParameters
-                # We need to extract the duration from the parameters
-                total_duration = parameters.total_duration
-                should_stop = self._pipeline_executor_callback(self, total_duration)
-                if should_stop:
-                    logger.warning(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
-                    raise PlanTaskStop(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
-            return False  # Never stop from this callback, let the PlanTaskStop exception handle it
-        
-        # Create the LLMExecutor
-        llm_executor = LLMExecutor(
-            llm_models=llm_model_instances,
-            should_stop_callback=should_stop_callback if self._pipeline_executor_callback else None
-        )
+        llm_executor: LLMExecutor = self.create_llm_executor()
 
         # Read inputs from required tasks.
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
