@@ -136,10 +136,10 @@ class TestLLMExecutor(unittest.TestCase):
         llm_models = LLMModelWithInstance.from_instances([llm0, llm1])
 
         def should_stop_callback(parameters: ShouldStopCallbackParameters) -> bool:
-            if parameters.attempt_index == 1:
+            if parameters.attempt_index == 0:
                 # Continue execution
                 return False
-            if parameters.attempt_index == 2:
+            if parameters.attempt_index == 1:
                 # Stop execution
                 return True
             raise ValueError(f"Unexpected attempt index: {parameters.attempt_index}")
@@ -154,8 +154,11 @@ class TestLLMExecutor(unittest.TestCase):
             executor.run(execute_function)
 
         # Assert
-        self.assertEqual(executor.attempt_count, 1)
+        self.assertEqual(executor.attempt_count, 2)
         attempt0 = executor.attempts[0]
         self.assertFalse(attempt0.success)
         self.assertIsNone(attempt0.result)
         self.assertEqual(str(attempt0.exception), "I'm the first LLM and I'm bad")
+        attempt1 = executor.attempts[1]
+        self.assertTrue(attempt1.success)
+        self.assertEqual(attempt1.result, "I'm the last LLM and I'm not supposed to be run")

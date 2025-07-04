@@ -61,27 +61,27 @@ class LLMModelWithInstance(LLMModelBase):
         return [cls(llm) for llm in llms]
 
 @dataclass
-class ShouldStopCallbackParameters:
-    """Parameters for the should_stop_callback."""
-    debug_id: str
-    attempt_index: Optional[int] = None
-    attempt_count: Optional[int] = None
-
-@dataclass
 class LLMAttempt:
     """Stores the result of a single LLM attempt."""
-    stage: str  # 'create' or 'execute'
+    stage: str
     llm_model: LLMModelBase
     success: bool
     duration: float
     result: Optional[Any] = None
     exception: Optional[Exception] = None
 
+@dataclass
+class ShouldStopCallbackParameters:
+    """Parameters passed to the should_stop_callback after each attempt."""
+    last_attempt: LLMAttempt
+    total_duration: float
+    attempt_index: int
+    total_attempts: int
+
 class LLMExecutor:
     """
-    Cycle through multiple LLMs. Start with the preferred LLM. 
-    Fallback to the next LLM if the first one fails.
-    If all LLMs fail, raise an exception.
+    Cycle through multiple LLMs, falling back to the next on failure.
+    A callback can be used to abort execution after any attempt.
     """
     def __init__(self, llm_models: list[LLMModelBase], should_stop_callback: Optional[Callable[[ShouldStopCallbackParameters], bool]] = None):
         self.llm_models = llm_models
@@ -95,80 +95,64 @@ class LLMExecutor:
     def run(self, execute_function: Callable[[LLM], Any]):
         # Reset attempts for each new run
         self.attempts = []
+        overall_start_time = time.perf_counter()
 
-        attempt_count = len(self.llm_models)
-        for index, llm_model in enumerate(self.llm_models, start=1):
-            attempt_start_time = time.perf_counter()
-            shared_message_prefix = f"Attempt {index} of {attempt_count}"
-            logger.info(f"{shared_message_prefix}: Running with LLM {llm_model!r}")
+        for index, llm_model in enumerate(self.llm_models):
+            # Attempt invoking the execute_function with one LLM.
+            attempt = self._try_one_attempt(llm_model, execute_function)
+            self.attempts.append(attempt)
 
-            # Check if the execution should be stopped
-            parameters = ShouldStopCallbackParameters(
-                debug_id=f"attempt_{index}_of_{attempt_count}_model_{llm_model!r}",
-                attempt_index=index,
-                attempt_count=attempt_count
-            )
-            self.raise_exception_if_stop_callback_returns_true(parameters)
-            
-            # Create the LLM instance
-            try:
-                llm = llm_model.create_llm()
-            except Exception as e:
-                duration = time.perf_counter() - attempt_start_time
-                logger.error(f"{shared_message_prefix}: Error creating LLM {llm_model!r}: {e}")
-                self.attempts.append(LLMAttempt(
-                    stage='create',
-                    llm_model=llm_model,
-                    success=False,
-                    duration=duration,
-                    exception=e
-                ))
-                continue
+            # Check if the callback wants to abort execution.
+            self._raise_exception_if_stop_callback_returns_true(attempt, overall_start_time, index)
 
-            # Execute the function with the LLM
-            try:
-                result = execute_function(llm)
-            except Exception as e:
-                duration = time.perf_counter() - attempt_start_time
-                logger.error(f"{shared_message_prefix}: Error running with LLM {llm_model!r}: {e}")
-                self.attempts.append(LLMAttempt(
-                    stage='execute',
-                    llm_model=llm_model,
-                    success=False,
-                    duration=duration,
-                    exception=e
-                ))
-                continue
+            # If the attempt succeeded and we weren't told to abort, we are done.
+            if attempt.success:
+                return attempt.result
 
-            # Success
+        # If we get here, all attempts have failed.
+        self._raise_final_exception()
+
+    def _try_one_attempt(self, llm_model: LLMModelBase, execute_function: Callable[[LLM], Any]) -> LLMAttempt:
+        """Performs a single, complete attempt with one LLM, returning a detailed result."""
+        attempt_start_time = time.perf_counter()
+        try:
+            llm = llm_model.create_llm()
+        except Exception as e:
             duration = time.perf_counter() - attempt_start_time
-            logger.info(f"{shared_message_prefix}: Successfully ran with LLM {llm_model!r}. Duration: {duration:.2f} seconds")
-            self.attempts.append(LLMAttempt(
-                stage='execute',
-                llm_model=llm_model,
-                success=True,
-                duration=duration,
-                result=result
-            ))
-            return result
-        
-        # Build a detailed error message if all attempts failed
-        error_summary = "\n".join(
-            f"  - Attempt with {attempt.llm_model!r} failed during '{attempt.stage}' stage: {attempt.exception!r}"
-            for attempt in self.attempts
-        )
-        raise Exception(f"Failed to run. Exhausted all LLMs. Failure summary:\n{error_summary}")
+            logger.error(f"Error creating LLM {llm_model!r}: {e}")
+            return LLMAttempt(stage='create', llm_model=llm_model, success=False, duration=duration, exception=e)
 
-    def raise_exception_if_stop_callback_returns_true(self, parameters: ShouldStopCallbackParameters) -> None:
-        """
-        If there is no callback, do nothing.
-        If the callback returns True, raise an exception to stop execution.
-        If the callback returns False, continue execution.
-        """
+        try:
+            result = execute_function(llm)
+            duration = time.perf_counter() - attempt_start_time
+            logger.info(f"Successfully ran with LLM {llm_model!r}. Duration: {duration:.2f} seconds")
+            return LLMAttempt(stage='execute', llm_model=llm_model, success=True, duration=duration, result=result)
+        except Exception as e:
+            duration = time.perf_counter() - attempt_start_time
+            logger.error(f"Error running with LLM {llm_model!r}: {e}")
+            return LLMAttempt(stage='execute', llm_model=llm_model, success=False, duration=duration, exception=e)
+
+    def _raise_exception_if_stop_callback_returns_true(self, last_attempt: LLMAttempt, start_time: float, attempt_index: int) -> None:
+        """Checks the callback, if it exists, to see if execution should stop."""
         if self.should_stop_callback is None:
             return
+        
+        parameters = ShouldStopCallbackParameters(
+            last_attempt=last_attempt,
+            total_duration=time.perf_counter() - start_time,
+            attempt_index=attempt_index,
+            total_attempts=len(self.llm_models)
+        )
+        
+        if self.should_stop_callback(parameters):
+            logger.warning(f"Callback returned true. Aborting execution after attempt {attempt_index}.")
+            raise ExecutionAbortedError(f"Execution aborted by callback after successful attempt {attempt_index}")
 
-        should_stop = self.should_stop_callback(parameters)
-        if should_stop:
-            logger.warning(f"Execution aborted by callback")
-            raise ExecutionAbortedError(f"Execution aborted by callback")
+    def _raise_final_exception(self) -> None:
+        """Raise the final exception when no attempt succeeds."""
+        rows = []
+        for attempt_index, attempt in enumerate(self.attempts):
+            status = "success" if attempt.success else "failed"
+            rows.append(f" - Attempt {attempt_index} with {attempt.llm_model!r} {status} during '{attempt.stage}' stage: {attempt.exception!r}")
+        error_summary = "\n".join(rows)
+        raise Exception(f"Failed to run. Exhausted all LLMs. Failure summary:\n{error_summary}")
