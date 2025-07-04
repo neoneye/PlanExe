@@ -197,12 +197,20 @@ class TestLLMExecutor(unittest.TestCase):
         self.assertEqual(attempt1.result, "I'm the last LLM and I'm not supposed to be run")
 
     def test_llmexecutor_init_with_no_llms(self):
-        """
-        One or more LLMs are supposed to be provided.
-        """
+        """One or more LLMs are supposed to be provided."""
         # Arrange
         with self.assertRaises(ValueError) as context:
             LLMExecutor(llm_models=[])
 
         # Assert
         self.assertIn("No LLMs provided", str(context.exception))
+
+    def test_llmexecutor_init_with_junk_callback(self):
+        """The callback is supposed to be a function that returns a boolean."""
+        # Arrange
+        llm_model = LLMModelWithInstance(ResponseMockLLM(responses=["test"]))
+        with self.assertRaises(TypeError) as context:
+            LLMExecutor(llm_models=[llm_model], should_stop_callback="I'm not a function")
+
+        # Assert
+        self.assertIn("should_stop_callback must be a function that returns a boolean", str(context.exception))

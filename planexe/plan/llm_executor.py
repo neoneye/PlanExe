@@ -86,6 +86,10 @@ class LLMExecutor:
     def __init__(self, llm_models: list[LLMModelBase], should_stop_callback: Optional[Callable[[ShouldStopCallbackParameters], bool]] = None):
         if not llm_models:
             raise ValueError("No LLMs provided")
+        
+        if should_stop_callback is not None and not callable(should_stop_callback):
+            raise TypeError("should_stop_callback must be a function that returns a boolean")
+        
         self.llm_models = llm_models
         self.should_stop_callback = should_stop_callback
         self.attempts: List[LLMAttempt] = []
