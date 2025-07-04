@@ -84,6 +84,8 @@ class LLMExecutor:
     A callback can be used to abort execution after any attempt.
     """
     def __init__(self, llm_models: list[LLMModelBase], should_stop_callback: Optional[Callable[[ShouldStopCallbackParameters], bool]] = None):
+        if not llm_models:
+            raise ValueError("No LLMs provided")
         self.llm_models = llm_models
         self.should_stop_callback = should_stop_callback
         self.attempts: List[LLMAttempt] = []

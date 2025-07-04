@@ -124,8 +124,41 @@ class TestLLMExecutor(unittest.TestCase):
         self.assertFalse(executor.attempts[0].success)
         self.assertTrue(executor.attempts[1].success)
 
-    def test_stop_execution_when_the_callback_returns_true(self):
+    def test_stop_execution_when_the_callback_returns_true_with_one_llm(self):
         """Run the the first LLM, and stop execution before the second LLM is run."""
+        # Arrange
+        llm0 = ResponseMockLLM(
+            responses=["I'm the first LLM and I'm good"],
+        )
+        llm1 = ResponseMockLLM(
+            responses=["I'm the last LLM and I'm never supposed to be run"],
+        )
+        llm_models = LLMModelWithInstance.from_instances([llm0, llm1])
+
+        def should_stop_callback(parameters: ShouldStopCallbackParameters) -> bool:
+            # Stop execution
+            return True
+        
+        executor = LLMExecutor(llm_models=llm_models, should_stop_callback=should_stop_callback)
+
+        def execute_function(llm: LLM) -> str:
+            return llm.complete("Hi").text
+
+        # Act
+        with self.assertRaises(ExecutionAbortedError):
+            executor.run(execute_function)
+
+        # Assert
+        self.assertEqual(executor.attempt_count, 1)
+        attempt0 = executor.attempts[0]
+        self.assertTrue(attempt0.success)
+        self.assertEqual(attempt0.result, "I'm the first LLM and I'm good")
+
+    def test_stop_execution_when_the_callback_returns_true_with_two_llms(self):
+        """
+        Run the the first LLM and fallback to the second LLM, and then stop execution 
+        just before the operation was about to succeed.
+        """
         # Arrange
         llm0 = ResponseMockLLM(
             responses=["raise:I'm the first LLM and I'm bad"],
@@ -162,3 +195,14 @@ class TestLLMExecutor(unittest.TestCase):
         attempt1 = executor.attempts[1]
         self.assertTrue(attempt1.success)
         self.assertEqual(attempt1.result, "I'm the last LLM and I'm not supposed to be run")
+
+    def test_llmexecutor_init_with_no_llms(self):
+        """
+        One or more LLMs are supposed to be provided.
+        """
+        # Arrange
+        with self.assertRaises(ValueError) as context:
+            LLMExecutor(llm_models=[])
+
+        # Assert
+        self.assertIn("No LLMs provided", str(context.exception))
