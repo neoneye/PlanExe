@@ -74,7 +74,8 @@ from planexe.wbs.wbs_populate import WBSPopulate
 from planexe.schedule.hierarchy_estimator_wbs import HierarchyEstimatorWBS
 from planexe.schedule.export_dhtmlx_gantt import ExportDHTMLXGantt
 from planexe.schedule.project_schedule_wbs import ProjectScheduleWBS
-from planexe.llm_factory import get_llm, get_llm_names_by_priority, SPECIAL_AUTO_ID, is_valid_llm_name
+from planexe.llm_util.llm_executor import LLMExecutor, LLMModelFromName, ShouldStopCallbackParameters, ExecutionAbortedError
+from planexe.llm_factory import get_llm_names_by_priority, SPECIAL_AUTO_ID, is_valid_llm_name
 from planexe.format_json_for_use_in_query import format_json_for_use_in_query
 from planexe.utils.get_env_as_string import get_env_as_string
 from planexe.report.report_generator import ReportGenerator
@@ -116,27 +117,44 @@ class PlanTask(luigi.Task):
         raise NotImplementedError("Subclasses must implement this method.")
 
     def run(self):
-        start_time: float = time.perf_counter()
         class_name = self.__class__.__name__
-        attempt_count = len(self.llm_models)
-        for index, llm_model in enumerate(self.llm_models, start=1):
-            logger.info(f"Attempt {index} of {attempt_count}: Running {class_name} with LLM {llm_model!r}")
-            try:
-                llm = get_llm(llm_model)
-                self.run_with_llm(llm)
-            except Exception as e:
-                logger.error(f"Error running {class_name} with LLM {llm_model!r}: {e}")
-                continue
-            duration: float = time.perf_counter() - start_time
-            logger.info(f"Successfully ran {class_name} with LLM {llm_model!r}. Duration: {duration:.2f} seconds")
-            # If a callback is provided by the pipeline executor, call it.
+        
+        # Convert string LLM model names to LLMModelFromName instances
+        llm_model_instances = LLMModelFromName.from_names(self.llm_models)
+        
+        # Create a should_stop_callback that wraps the existing pipeline executor callback
+        def should_stop_callback(parameters: ShouldStopCallbackParameters) -> bool:
             if self._pipeline_executor_callback:
-                should_stop = self._pipeline_executor_callback(self, duration)
+                # The callback expects (task, duration) but we have ShouldStopCallbackParameters
+                # We need to extract the duration from the parameters
+                total_duration = parameters.total_duration
+                should_stop = self._pipeline_executor_callback(self, total_duration)
                 if should_stop:
                     logger.warning(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
                     raise PlanTaskStop(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
-            return
-        raise Exception(f"Failed to run {class_name} with any of the LLMs in the list: {self.llm_models!r} for run_id_dir: {self.run_id_dir!r}")
+            return False  # Never stop from this callback, let the PlanTaskStop exception handle it
+        
+        # Create the LLMExecutor
+        llm_executor = LLMExecutor(
+            llm_models=llm_model_instances,
+            should_stop_callback=should_stop_callback if self._pipeline_executor_callback else None
+        )
+        
+        # Define the execute function that will be called by LLMExecutor
+        def execute_function(llm: LLM) -> None:
+            self.run_with_llm(llm)
+        
+        try:
+            # Run the task using LLMExecutor
+            llm_executor.run(execute_function)
+        except ExecutionAbortedError:
+            # This exception is raised when the should_stop_callback returns True
+            # The PlanTaskStop exception should have already been raised in the callback
+            # If we get here, it means something went wrong with the exception handling
+            raise PlanTaskStop(f"Pipeline execution aborted for run_id_dir: {self.run_id_dir!r}")
+        except Exception as e:
+            # Re-raise the exception with a more descriptive message
+            raise Exception(f"Failed to run {class_name} with any of the LLMs in the list: {self.llm_models!r} for run_id_dir: {self.run_id_dir!r}") from e
 
 class SetupTask(PlanTask):
     def output(self):
@@ -2536,7 +2554,28 @@ class ReviewPlanTask(PlanTask):
             'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task)
         }
     
-    def run_with_llm(self, llm: LLM) -> None:
+    def run(self):
+        # Convert string LLM model names to LLMModelFromName instances
+        llm_model_instances = LLMModelFromName.from_names(self.llm_models)
+        
+        # Create a should_stop_callback that wraps the existing pipeline executor callback
+        def should_stop_callback(parameters: ShouldStopCallbackParameters) -> bool:
+            if self._pipeline_executor_callback:
+                # The callback expects (task, duration) but we have ShouldStopCallbackParameters
+                # We need to extract the duration from the parameters
+                total_duration = parameters.total_duration
+                should_stop = self._pipeline_executor_callback(self, total_duration)
+                if should_stop:
+                    logger.warning(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
+                    raise PlanTaskStop(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
+            return False  # Never stop from this callback, let the PlanTaskStop exception handle it
+        
+        # Create the LLMExecutor
+        llm_executor = LLMExecutor(
+            llm_models=llm_model_instances,
+            should_stop_callback=should_stop_callback if self._pipeline_executor_callback else None
+        )
+
         # Read inputs from required tasks.
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
@@ -2571,7 +2610,7 @@ class ReviewPlanTask(PlanTask):
         )
 
         # Perform the review.
-        review_plan = ReviewPlan.execute(llm, query)
+        review_plan = ReviewPlan.execute(llm_executor=llm_executor, document=query, speed_vs_detail=self.speedvsdetail)
 
         # Save the results.
         json_path = self.output()['raw'].path
