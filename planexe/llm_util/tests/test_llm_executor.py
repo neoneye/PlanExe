@@ -196,6 +196,39 @@ class TestLLMExecutor(unittest.TestCase):
         self.assertTrue(attempt1.success)
         self.assertEqual(attempt1.result, "I'm the last LLM and I'm not supposed to be run")
 
+    def test_exception_inside_should_stop_callback(self):
+        """
+        The should_stop_callback is supposed to be a function that returns a boolean.
+        Exercise what happens when the should_stop_callback raises an exception, such as broken database connection.
+        """
+        # Arrange
+        llm0 = ResponseMockLLM(
+            responses=["I'm the first LLM and I'm good"],
+        )
+        llm1 = ResponseMockLLM(
+            responses=["I'm the last LLM and I'm never supposed to be run"],
+        )
+        llm_models = LLMModelWithInstance.from_instances([llm0, llm1])
+
+        def should_stop_callback(parameters: ShouldStopCallbackParameters) -> bool:
+            raise ValueError("Broken database connection")
+        
+        executor = LLMExecutor(llm_models=llm_models, should_stop_callback=should_stop_callback)
+
+        def execute_function(llm: LLM) -> str:
+            return llm.complete("Hi").text
+
+        # Act
+        with self.assertRaises(ValueError) as context:
+            executor.run(execute_function)
+
+        # Assert
+        self.assertIn("Broken database connection", str(context.exception))
+        self.assertEqual(executor.attempt_count, 1)
+        attempt0 = executor.attempts[0]
+        self.assertTrue(attempt0.success)
+        self.assertEqual(attempt0.result, "I'm the first LLM and I'm good")
+
     def test_llmexecutor_init_with_no_llms(self):
         """One or more LLMs are supposed to be provided."""
         # Act
