@@ -4,7 +4,6 @@ Cycle through multiple LLMs, if one fails, try the next one.
 I want all LLM invocations to go through this class.
 
 IDEA: Make this the class that PlanTask is using.
-IDEA: Exercise this class with mock LLMs that fails in various ways.
 IDEA: Scheduling strategy: randomize the order of LLMs.
 IDEA: Scheduling strategy: cycle through the LLM list twice, so there are two chances to succeed.
 IDEA: Measure the number of tokens used by each LLM.
@@ -18,7 +17,7 @@ IDEA: track if the LLM failed and why
 import time
 import logging
 import inspect
-from typing import Any, Callable, Optional, List, Union
+from typing import Any, Callable, Optional, List
 from dataclasses import dataclass
 from llama_index.core.llms.llm import LLM
 from planexe.llm_factory import get_llm
@@ -138,8 +137,8 @@ class LLMExecutor:
         # Check if the parameter type annotation is compatible with LLM
         param = params[0]
         if param.annotation != inspect.Parameter.empty:
-            # If there's a type annotation, check if it's compatible with LLM
-            if param.annotation != LLM and not (hasattr(param.annotation, '__origin__') and param.annotation.__origin__ is Union and LLM in param.annotation.__args__):
+            # If there's a type annotation, check it's the LLM type.
+            if param.annotation != LLM:
                 raise TypeError("validate_execute_function3: must be a function that takes a single parameter of type LLM, but got some other type")
 
     def _try_one_attempt(self, llm_model: LLMModelBase, execute_function: Callable[[LLM], Any]) -> LLMAttempt:
