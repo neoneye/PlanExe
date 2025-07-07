@@ -116,6 +116,7 @@ class ReviewPlan:
         ]
 
         question_answers_list = []
+        metadata_list = []
 
         durations = []
         response_byte_counts = []
@@ -167,6 +168,8 @@ class ReviewPlan:
                 "answers": review_plan_run_result.chat_response.raw.bullet_points,
             })
 
+            metadata_list.append(review_plan_run_result.metadata)
+
             chat_message_list.append(ChatMessage(
                 role=MessageRole.ASSISTANT,
                 content=review_plan_run_result.chat_response.message.content,
@@ -190,6 +193,7 @@ class ReviewPlan:
         metadata["response_byte_count_average"] = response_byte_count_average
         metadata["response_byte_count_max"] = response_byte_count_max
         metadata["response_byte_count_min"] = response_byte_count_min
+        metadata["metadata_list"] = metadata_list
         markdown = cls.convert_to_markdown(question_answers_list)
 
         result = ReviewPlan(
