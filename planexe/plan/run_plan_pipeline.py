@@ -1782,7 +1782,9 @@ class DraftDocumentsToFindTask(PlanTask):
             'filter_documents_to_find': self.clone(FilterDocumentsToFindTask),
         }
     
-    def run_with_llm(self, llm: LLM) -> None:
+    def run(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
         # Read inputs from required tasks.
         with self.input()['identify_purpose']['raw'].open("r") as f:
             identify_purpose_dict = json.load(f)
@@ -1813,7 +1815,18 @@ class DraftDocumentsToFindTask(PlanTask):
             )
 
             # IDEA: If the document already exist, then there is no need to run the LLM again.
-            draft_document = DraftDocumentToFind.execute(llm=llm, user_prompt=query, identify_purpose_dict=identify_purpose_dict)
+            def execute_draft_document_to_find(llm: LLM) -> DraftDocumentToFind:
+                return DraftDocumentToFind.execute(llm=llm, user_prompt=query, identify_purpose_dict=identify_purpose_dict)
+
+            try:
+                draft_document = llm_executor.run(execute_draft_document_to_find)
+            except PipelineStopRequested:
+                # Re-raise PipelineStopRequested without wrapping it
+                raise
+            except Exception as e:
+                logger.error(f"Document-to-find {index+1} LLM interaction failed.", exc_info=True)
+                raise ValueError(f"Document-to-find {index+1} LLM interaction failed.") from e
+
             json_response = draft_document.to_dict()
 
             # Write the raw JSON for this document using the FilenameEnum template.
