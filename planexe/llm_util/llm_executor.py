@@ -3,7 +3,9 @@ Cycle through multiple LLMs, if one fails, try the next one.
 
 I want all LLM invocations to go through this class.
 
-IDEA: Make this the class that PlanTask is using.
+This is the class that `PlanTask` is using, the root class of all tasks in the pipeline.
+Subtasks such as `ReviewPlan` are also using this class to invoke the LLM.
+
 IDEA: Scheduling strategy: randomize the order of LLMs.
 IDEA: Scheduling strategy: cycle through the LLM list twice, so there are two chances to succeed.
 IDEA: Measure the number of tokens used by each LLM.
