@@ -25,7 +25,12 @@ from planexe.llm_factory import get_llm
 logger = logging.getLogger(__name__)
 
 class ExecutionAbortedError(RuntimeError):
-    """Raised when the execution is aborted by a callback after a task succeeds."""
+    """
+    Raised when the execution is aborted by a callback after a task succeeds.
+    This is the only exception that is allowed to be raised by the callback.
+    This exception happens when the user presses Ctrl-C or closes the browser tab,
+    so there is no point in continuing wasting resources on a 30 minute task.
+    """
     pass
 
 class LLMModelBase:

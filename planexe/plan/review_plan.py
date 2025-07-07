@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole, ChatResponse
 from llama_index.core.llms.llm import LLM
 from planexe.plan.speedvsdetail import SpeedVsDetailEnum
-from planexe.llm_util.llm_executor import LLMExecutor, LLMModelFromName
+from planexe.llm_util.llm_executor import LLMExecutor, LLMModelFromName, ExecutionAbortedError
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +141,9 @@ class ReviewPlan:
             start_time = time.perf_counter()
             try:
                 review_plan_run_result = llm_executor.run(execute_function)
+            except ExecutionAbortedError:
+                # Re-raise ExecutionAbortedError without wrapping it
+                raise
             except Exception as e:
                 logger.debug(f"Question {index} of {len(title_question_list)}. LLM chat interaction failed: {e}")
                 logger.error(f"Question {index} of {len(title_question_list)}. LLM chat interaction failed.", exc_info=True)

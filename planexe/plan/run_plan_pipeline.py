@@ -100,8 +100,9 @@ class PlanTask(luigi.Task):
     llm_models = luigi.ListParameter(default=[DEFAULT_LLM_MODEL])
 
     # Optional callback for updating progress bar and aborting the pipeline.
-    # If the callback returns False, the pipeline will continue.
-    # If the callback returns True, the pipeline will be aborted.
+    # If the callback raises ExecutionAbortedError, the pipeline will be aborted. This is the only exception that is allowed to be raised.
+    # If the callback raises exceptions different than ExecutionAbortedError, the pipeline will be aborted. This means that something went wrong, and we should not continue.
+    # If the callback doesn't raise an exception, the pipeline will continue.
     # If the callback is not provided, the pipeline will run until completion.
     _pipeline_executor_callback = luigi.Parameter(default=None, significant=False, visibility=luigi.parameter.ParameterVisibility.PRIVATE)
 
@@ -118,10 +119,11 @@ class PlanTask(luigi.Task):
                 return
             # The pipeline_executor_callback expects (task, duration) but we have ShouldStopCallbackParameters
             total_duration = parameters.total_duration
-            should_stop = self._pipeline_executor_callback(self, total_duration)
-            logger.debug(f"{self.__class__.__name__} -> create_llm_executor -> should_stop_callback -> should_stop: {should_stop}")
-            if should_stop:
-                raise ExecutionAbortedError(f"Pipeline execution aborted for run_id_dir: {self.run_id_dir!r}")
+            try:
+                self._pipeline_executor_callback(self, total_duration)
+            except ExecutionAbortedError as e:
+                logger.debug(f"{self.__class__.__name__} -> create_llm_executor -> should_stop_callback -> ExecutionAbortedError raised: {e}")
+                raise
 
         llm_model_instances = LLMModelFromName.from_names(self.llm_models)
 
@@ -2959,7 +2961,7 @@ class ExecutePipeline:
 
         return PipelineProgress(progress_message=progress_message, progress_percentage=progress_percentage)
 
-    def _handle_task_completion(self, parameters: HandleTaskCompletionParameters) -> bool:
+    def _handle_task_completion(self, parameters: HandleTaskCompletionParameters) -> None:
         """
         Protected hook method for custom logic after a task completes.
         This method is called by callback_run_task.
@@ -2972,16 +2974,14 @@ class ExecutePipeline:
                  The `self` of this method is the ExecutePipeline instance,
                  so you can access `self.run_id_dir`, `self.get_progress_percentage()`, etc.
 
-        Returns:
-            bool: False to continue the pipeline, True to abort.
-                  If True is returned, PlanTask.run() will raise an ExecutionAbortedError.
+        Raises:
+            ExecutionAbortedError: To abort the pipeline execution.
         """
         logger.debug(f"ExecutePipeline._handle_task_completion: Default behavior for task {parameters.task.task_id} in run {self.run_id_dir}. Pipeline will continue.")
         # Default implementation simply allows the pipeline to continue.
         # Subclasses will provide meaningful implementations here.
-        return False
 
-    def callback_run_task(self, task: PlanTask, duration: float) -> bool:
+    def callback_run_task(self, task: PlanTask, duration: float) -> None:
         logger.debug(f"ExecutePipeline.callback_run_task: Task SUCCEEDED: {task.task_id}. Duration: {duration:.2f} seconds")
 
         progress: PipelineProgress = self.get_progress_percentage()
@@ -2990,14 +2990,11 @@ class ExecutePipeline:
         parameters = HandleTaskCompletionParameters(task=task, progress=progress, duration=duration)
 
         # Delegate custom handling (like DB updates or stop checks) to the hook method.
-        should_stop = self._handle_task_completion(parameters)
-
-        if should_stop:
+        try:
+            self._handle_task_completion(parameters)
+        except ExecutionAbortedError as e:
             self.stopped_by_callback = True
-
-        # Return False to continue running the pipeline.
-        # Return True to abort the pipeline.
-        return should_stop
+            raise
 
     @property
     def has_pipeline_complete_file(self) -> bool:
@@ -3025,11 +3022,11 @@ class ExecutePipeline:
 class DemoStoppingExecutePipeline(ExecutePipeline):
     """
     Exercise the pipeline stopping mechanism.
-    when a task completes it returns True and causes the pipeline to stop.
+    when a task completes it raises ExecutionAbortedError and causes the pipeline to stop.
     """
-    def _handle_task_completion(self, parameters: HandleTaskCompletionParameters) -> bool:
+    def _handle_task_completion(self, parameters: HandleTaskCompletionParameters) -> None:
         logger.info(f"DemoStoppingExecutePipeline._handle_task_completion: Demo of stopping the pipeline.")
-        return True
+        raise ExecutionAbortedError("Demo: Stopping the pipeline after task completion")
 
 
 if __name__ == '__main__':
