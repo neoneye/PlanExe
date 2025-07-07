@@ -83,12 +83,12 @@ class LLMExecutor:
     Cycle through multiple LLMs, falling back to the next on failure.
     A callback can be used to abort execution after any attempt.
     """
-    def __init__(self, llm_models: list[LLMModelBase], should_stop_callback: Optional[Callable[[ShouldStopCallbackParameters], bool]] = None):
+    def __init__(self, llm_models: list[LLMModelBase], should_stop_callback: Optional[Callable[[ShouldStopCallbackParameters], None]] = None):
         if not llm_models:
             raise ValueError("No LLMs provided")
         
         if should_stop_callback is not None and not callable(should_stop_callback):
-            raise TypeError("should_stop_callback must be a function that returns a boolean")
+            raise TypeError("should_stop_callback must be a function that can raise ExecutionAbortedError to stop execution")
         
         self.llm_models = llm_models
         self.should_stop_callback = should_stop_callback
@@ -111,7 +111,7 @@ class LLMExecutor:
             self.attempts.append(attempt)
 
             # Check if the callback wants to abort execution.
-            self._raise_exception_if_stop_callback_returns_true(attempt, overall_start_time, index)
+            self._check_stop_callback(attempt, overall_start_time, index)
 
             # If the attempt succeeded and we weren't told to abort, we are done.
             if attempt.success:
@@ -161,7 +161,7 @@ class LLMExecutor:
             logger.error(f"Error running with LLM {llm_model!r}: {e}")
             return LLMAttempt(stage='execute', llm_model=llm_model, success=False, duration=duration, exception=e)
 
-    def _raise_exception_if_stop_callback_returns_true(self, last_attempt: LLMAttempt, start_time: float, attempt_index: int) -> None:
+    def _check_stop_callback(self, last_attempt: LLMAttempt, start_time: float, attempt_index: int) -> None:
         """Checks the callback, if it exists, to see if execution should stop."""
         if self.should_stop_callback is None:
             return
@@ -173,9 +173,11 @@ class LLMExecutor:
             total_attempts=len(self.llm_models)
         )
         
-        if self.should_stop_callback(parameters):
-            logger.warning(f"Callback returned true. Aborting execution after attempt {attempt_index}.")
-            raise ExecutionAbortedError(f"Execution aborted by callback after attempt {attempt_index}")
+        try:
+            self.should_stop_callback(parameters)
+        except ExecutionAbortedError as e:
+            logger.warning(f"Callback raised ExecutionAbortedError. Aborting execution after attempt {attempt_index}: {e}")
+            raise
 
     def _raise_final_exception(self) -> None:
         """Raise the final exception when no attempt succeeds."""
