@@ -28,10 +28,15 @@ logger = logging.getLogger(__name__)
 
 class PipelineStopRequested(RuntimeError):
     """
-    Raised when the pipeline execution is requested to stop by a callback after a task succeeds.
-    This is the only exception that is allowed to be raised by the callback.
+    Raised when the pipeline execution is requested to stop by `should_stop_callback` after a task succeeds.
+    When this exception is raised by the `should_stop_callback`, then it doesn't indicate a problem.
     This exception happens when the user presses Ctrl-C or closes the browser tab,
     so there is no point in continuing wasting resources on a 30 minute task.
+
+    The `execute_function` callback must not raise the PipelineStopRequested exception, 
+    since that flow through the code doesn't update the `ExecutePipeline.stopped_by_callback` property,
+    so I cannot inspect the `ExecutePipeline.stopped_by_callback` property and check if the execution 
+    was stopped by the PipelineStopRequested.
     """
     pass
 
@@ -91,6 +96,15 @@ class LLMExecutor:
     A callback can be used to abort execution after any attempt.
     """
     def __init__(self, llm_models: list[LLMModelBase], should_stop_callback: Optional[Callable[[ShouldStopCallbackParameters], None]] = None):
+        """
+        Args:
+            llm_models: A list of LLM models to try.
+            should_stop_callback: A function that will be called after each attempt.
+                If the callback raises PipelineStopRequested, the execution will be aborted. This is the only exception that is allowed to be raised by the callback, that doesn't indicate a problem.
+                If the callback raises any other exception, the execution will be aborted. This indicates a problem with the callback.
+                If the callback returns None, the execution will continue.
+                If no callback is provided, the execution will continue until all LLMs are exhausted.
+        """
         if not llm_models:
             raise ValueError("No LLMs provided")
         
@@ -149,7 +163,16 @@ class LLMExecutor:
                 raise TypeError("validate_execute_function3: must be a function that takes a single parameter of type LLM, but got some other type")
 
     def _try_one_attempt(self, llm_model: LLMModelBase, execute_function: Callable[[LLM], Any]) -> LLMAttempt:
-        """Performs a single, complete attempt with one LLM, returning a detailed result."""
+        """
+        Performs a single, complete attempt with one LLM, returning a detailed result.
+        
+        Args:
+            llm_model: The LLM model to try.
+            execute_function: The callback to execute with the llm. The callback must not raise the PipelineStopRequested exception, since that interferes with the `ExecutePipeline.stopped_by_callback` property.
+
+        Returns:
+            A detailed result of the attempt.
+        """
         attempt_start_time = time.perf_counter()
         try:
             llm = llm_model.create_llm()
@@ -163,6 +186,9 @@ class LLMExecutor:
             duration = time.perf_counter() - attempt_start_time
             logger.info(f"Successfully ran with LLM {llm_model!r}. Duration: {duration:.2f} seconds")
             return LLMAttempt(stage='execute', llm_model=llm_model, success=True, duration=duration, result=result)
+        except PipelineStopRequested as e:
+            logger.info(f"Stopping LLMExecutor because the execute_function callback raised PipelineStopRequested: {e!r}")
+            raise
         except Exception as e:
             duration = time.perf_counter() - attempt_start_time
             logger.error(f"Error running with LLM {llm_model!r}: {e}")

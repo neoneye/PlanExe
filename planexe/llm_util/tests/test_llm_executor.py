@@ -232,6 +232,36 @@ class TestLLMExecutor(unittest.TestCase):
         self.assertTrue(attempt0.success)
         self.assertEqual(attempt0.result, "I'm the first LLM and I'm good")
 
+    def test_raise_pipelinestoprequested_within_execute_function(self):
+        """
+        Example of what not to do:
+        The execute_function is not supposed to raise the PipelineStopRequested exception.
+        This test does exactly that, and check that it gets handled properly.
+        """
+        # Arrange
+        llm1 = ResponseMockLLM(
+            responses=["I'm 1st LLM"],
+        )
+        llm2 = ResponseMockLLM(
+            responses=["I'm 2nd LLM"],
+        )
+        llm_models = LLMModelWithInstance.from_instances([llm1, llm2])
+        executor = LLMExecutor(llm_models=llm_models)
+
+        def execute_function(llm: LLM) -> str:
+            # The PipelineStopRequested is supposed to be raised by the should_stop_callback, not by the execute_function.
+            # Here I'm testing that doing the wrong thing gets handled properly.
+            # This it stops the execution, and no further execution attempts are made.
+            raise PipelineStopRequested("execute function requested pipeline stop")
+
+        # Act
+        with self.assertRaises(PipelineStopRequested) as context:
+            executor.run(execute_function)
+
+        # Assert
+        self.assertIn("execute function requested pipeline stop", str(context.exception))
+        self.assertEqual(executor.attempt_count, 0)
+
     def test_llmexecutor_init_with_no_llms(self):
         """One or more LLMs are supposed to be provided."""
         # Act
