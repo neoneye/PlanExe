@@ -3,6 +3,18 @@ Cycle through multiple LLMs, if one fails, try the next one.
 
 I want all LLM invocations to go through this class.
 
+It happens that the json output of the LLM doesn't match the expected schema.
+When I inspect the raw response, I can see that the json comes close to the expected schema,
+with tiny mistakes here and there. I guess with a more fuzzy json parser than Pydantic, 
+the json could be extracted.
+
+It happens that an LLM provider is unavailable. Where a model used to be available, and have been removed from the provider.
+Or the LLM server has to be started by the developer on the local machine.
+
+Having multiple LLMs available is a good idea, because it increases the chances of success.
+If one fails, then the next one may be able to respond.
+If all of them fails, then the exception is raised. Exhausted all LLMs.
+
 This is the class that `PlanTask` is using, the root class of all tasks in the pipeline.
 Subtasks such as `ReviewPlan` are also using this class to invoke the LLM.
 
