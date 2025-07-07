@@ -1,5 +1,5 @@
 import unittest
-from planexe.llm_util.llm_executor import LLMExecutor, LLMModelBase, LLMModelWithInstance, ExecutionAbortedError, ShouldStopCallbackParameters
+from planexe.llm_util.llm_executor import LLMExecutor, LLMModelBase, LLMModelWithInstance, PipelineStopRequested, ShouldStopCallbackParameters
 from planexe.llm_util.response_mockllm import ResponseMockLLM
 from llama_index.core.llms import MockLLM, ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
@@ -124,7 +124,7 @@ class TestLLMExecutor(unittest.TestCase):
         self.assertFalse(executor.attempts[0].success)
         self.assertTrue(executor.attempts[1].success)
 
-    def test_stop_execution_when_callback_raises_execution_aborted_error_with_one_llm(self):
+    def test_stop_execution_when_callback_raises_pipeline_stop_requested_with_one_llm(self):
         """Run the first LLM, and stop execution before the second LLM is run."""
         # Arrange
         llm0 = ResponseMockLLM(
@@ -136,8 +136,8 @@ class TestLLMExecutor(unittest.TestCase):
         llm_models = LLMModelWithInstance.from_instances([llm0, llm1])
 
         def should_stop_callback(parameters: ShouldStopCallbackParameters) -> None:
-            # Stop execution by raising ExecutionAbortedError
-            raise ExecutionAbortedError("Stopping execution after first successful attempt")
+            # Stop execution by raising PipelineStopRequested
+            raise PipelineStopRequested("Stopping execution after first successful attempt")
         
         executor = LLMExecutor(llm_models=llm_models, should_stop_callback=should_stop_callback)
 
@@ -145,7 +145,7 @@ class TestLLMExecutor(unittest.TestCase):
             return llm.complete("Hi").text
 
         # Act
-        with self.assertRaises(ExecutionAbortedError) as context:
+        with self.assertRaises(PipelineStopRequested) as context:
             executor.run(execute_function)
 
         # Assert
@@ -155,7 +155,7 @@ class TestLLMExecutor(unittest.TestCase):
         self.assertTrue(attempt0.success)
         self.assertEqual(attempt0.result, "I'm the first LLM and I'm good")
 
-    def test_stop_execution_when_callback_raises_execution_aborted_error_with_two_llms(self):
+    def test_stop_execution_when_callback_raises_pipeline_stop_requested_with_two_llms(self):
         """
         Run the first LLM and fallback to the second LLM, and then stop execution 
         just before the operation was about to succeed.
@@ -174,8 +174,8 @@ class TestLLMExecutor(unittest.TestCase):
                 # Continue execution by not raising
                 pass
             elif parameters.attempt_index == 1:
-                # Stop execution by raising ExecutionAbortedError
-                raise ExecutionAbortedError("Stopping execution after second attempt")
+                # Stop execution by raising PipelineStopRequested
+                raise PipelineStopRequested("Stopping execution after second attempt")
             else:
                 raise ValueError(f"Unexpected attempt index: {parameters.attempt_index}")
         
@@ -185,7 +185,7 @@ class TestLLMExecutor(unittest.TestCase):
             return llm.complete("Hi").text
 
         # Act
-        with self.assertRaises(ExecutionAbortedError) as context:
+        with self.assertRaises(PipelineStopRequested) as context:
             executor.run(execute_function)
 
         # Assert
@@ -201,8 +201,8 @@ class TestLLMExecutor(unittest.TestCase):
 
     def test_exception_inside_should_stop_callback(self):
         """
-        The should_stop_callback is supposed to be a function that can raise ExecutionAbortedError.
-        Exercise what happens when the should_stop_callback raises an exception other than ExecutionAbortedError, such as broken database connection.
+        The should_stop_callback is supposed to be a function that can raise PipelineStopRequested.
+        Exercise what happens when the should_stop_callback raises an exception other than PipelineStopRequested, such as broken database connection.
         """
         # Arrange
         llm0 = ResponseMockLLM(
@@ -242,7 +242,7 @@ class TestLLMExecutor(unittest.TestCase):
         self.assertIn("No LLMs provided", str(context.exception))
 
     def test_llmexecutor_init_with_junk_callback(self):
-        """The callback is supposed to be a function that can raise ExecutionAbortedError."""
+        """The callback is supposed to be a function that can raise PipelineStopRequested."""
         # Arrange
         llm_model = LLMModelWithInstance(ResponseMockLLM(responses=["test"]))
 
@@ -251,7 +251,7 @@ class TestLLMExecutor(unittest.TestCase):
             LLMExecutor(llm_models=[llm_model], should_stop_callback="I'm not a function")
 
         # Assert
-        self.assertIn("should_stop_callback must be a function that can raise ExecutionAbortedError to stop execution", str(context.exception))
+        self.assertIn("should_stop_callback must be a function that can raise PipelineStopRequested to stop execution", str(context.exception))
 
     def test_validate_execute_function1(self):
         """

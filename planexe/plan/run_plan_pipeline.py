@@ -74,7 +74,7 @@ from planexe.wbs.wbs_populate import WBSPopulate
 from planexe.schedule.hierarchy_estimator_wbs import HierarchyEstimatorWBS
 from planexe.schedule.export_dhtmlx_gantt import ExportDHTMLXGantt
 from planexe.schedule.project_schedule_wbs import ProjectScheduleWBS
-from planexe.llm_util.llm_executor import LLMExecutor, LLMModelFromName, ShouldStopCallbackParameters, ExecutionAbortedError
+from planexe.llm_util.llm_executor import LLMExecutor, LLMModelFromName, ShouldStopCallbackParameters, PipelineStopRequested
 from planexe.llm_factory import get_llm_names_by_priority, SPECIAL_AUTO_ID, is_valid_llm_name
 from planexe.format_json_for_use_in_query import format_json_for_use_in_query
 from planexe.utils.get_env_as_string import get_env_as_string
@@ -100,8 +100,8 @@ class PlanTask(luigi.Task):
     llm_models = luigi.ListParameter(default=[DEFAULT_LLM_MODEL])
 
     # Optional callback for updating progress bar and aborting the pipeline.
-    # If the callback raises ExecutionAbortedError, the pipeline will be aborted. This is the only exception that is allowed to be raised.
-    # If the callback raises exceptions different than ExecutionAbortedError, the pipeline will be aborted. This means that something went wrong, and we should not continue.
+    # If the callback raises PipelineStopRequested, the pipeline will be aborted. This is the only exception that is allowed to be raised.
+    # If the callback raises exceptions different than PipelineStopRequested, the pipeline will be aborted. This means that something went wrong, and we should not continue.
     # If the callback doesn't raise an exception, the pipeline will continue.
     # If the callback is not provided, the pipeline will run until completion.
     _pipeline_executor_callback = luigi.Parameter(default=None, significant=False, visibility=luigi.parameter.ParameterVisibility.PRIVATE)
@@ -121,8 +121,8 @@ class PlanTask(luigi.Task):
             total_duration = parameters.total_duration
             try:
                 self._pipeline_executor_callback(self, total_duration)
-            except ExecutionAbortedError as e:
-                logger.debug(f"{self.__class__.__name__} -> create_llm_executor -> should_stop_callback -> ExecutionAbortedError raised: {e}")
+            except PipelineStopRequested as e:
+                logger.debug(f"{self.__class__.__name__} -> create_llm_executor -> should_stop_callback -> PipelineStopRequested raised: {e}")
                 raise
 
         llm_model_instances = LLMModelFromName.from_names(self.llm_models)
@@ -145,10 +145,10 @@ class PlanTask(luigi.Task):
         try:
             # Run the task using LLMExecutor
             llm_executor.run(execute_function)
-        except ExecutionAbortedError:
+        except PipelineStopRequested:
             # This exception is raised by the should_stop_callback
             # If we get here, it means that the pipeline was aborted by the callback, such as by the user pressing Ctrl-C or closing the browser tab.
-            # Re-raise ExecutionAbortedError without wrapping it
+            # Re-raise PipelineStopRequested without wrapping it
             raise
         except Exception as e:
             # Re-raise the exception with a more descriptive message
@@ -2975,7 +2975,7 @@ class ExecutePipeline:
                  so you can access `self.run_id_dir`, `self.get_progress_percentage()`, etc.
 
         Raises:
-            ExecutionAbortedError: To abort the pipeline execution.
+            PipelineStopRequested: To abort the pipeline execution.
         """
         logger.debug(f"ExecutePipeline._handle_task_completion: Default behavior for task {parameters.task.task_id} in run {self.run_id_dir}. Pipeline will continue.")
         # Default implementation simply allows the pipeline to continue.
@@ -2992,7 +2992,7 @@ class ExecutePipeline:
         # Delegate custom handling (like DB updates or stop checks) to the hook method.
         try:
             self._handle_task_completion(parameters)
-        except ExecutionAbortedError as e:
+        except PipelineStopRequested as e:
             self.stopped_by_callback = True
             raise
 
@@ -3022,11 +3022,11 @@ class ExecutePipeline:
 class DemoStoppingExecutePipeline(ExecutePipeline):
     """
     Exercise the pipeline stopping mechanism.
-    when a task completes it raises ExecutionAbortedError and causes the pipeline to stop.
+    when a task completes it raises PipelineStopRequested and causes the pipeline to stop.
     """
     def _handle_task_completion(self, parameters: HandleTaskCompletionParameters) -> None:
         logger.info(f"DemoStoppingExecutePipeline._handle_task_completion: Demo of stopping the pipeline.")
-        raise ExecutionAbortedError("Demo: Stopping the pipeline after task completion")
+        raise PipelineStopRequested("Demo: Stopping the pipeline after task completion")
 
 
 if __name__ == '__main__':

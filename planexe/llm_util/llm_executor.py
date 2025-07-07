@@ -24,9 +24,9 @@ from planexe.llm_factory import get_llm
 
 logger = logging.getLogger(__name__)
 
-class ExecutionAbortedError(RuntimeError):
+class PipelineStopRequested(RuntimeError):
     """
-    Raised when the execution is aborted by a callback after a task succeeds.
+    Raised when the pipeline execution is requested to stop by a callback after a task succeeds.
     This is the only exception that is allowed to be raised by the callback.
     This exception happens when the user presses Ctrl-C or closes the browser tab,
     so there is no point in continuing wasting resources on a 30 minute task.
@@ -93,7 +93,7 @@ class LLMExecutor:
             raise ValueError("No LLMs provided")
         
         if should_stop_callback is not None and not callable(should_stop_callback):
-            raise TypeError("should_stop_callback must be a function that can raise ExecutionAbortedError to stop execution")
+            raise TypeError("should_stop_callback must be a function that can raise PipelineStopRequested to stop execution")
         
         self.llm_models = llm_models
         self.should_stop_callback = should_stop_callback
@@ -180,8 +180,8 @@ class LLMExecutor:
         
         try:
             self.should_stop_callback(parameters)
-        except ExecutionAbortedError as e:
-            logger.warning(f"Callback raised ExecutionAbortedError. Aborting execution after attempt {attempt_index}: {e}")
+        except PipelineStopRequested as e:
+            logger.warning(f"Callback raised PipelineStopRequested. Aborting execution after attempt {attempt_index}: {e}")
             raise
 
     def _raise_final_exception(self) -> None:
