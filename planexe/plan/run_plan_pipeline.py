@@ -2249,7 +2249,9 @@ class EstimateTaskDurationsTask(PlanTask):
             'wbs_project': self.clone(WBSProjectLevel1AndLevel2Task),
         }
     
-    def run_with_llm(self, llm: LLM) -> None:
+    def run(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
         logger.info("Estimating task durations...")
         
         # Load the project plan JSON.
@@ -2296,7 +2298,18 @@ class EstimateTaskDurationsTask(PlanTask):
             )
             
             # IDEA: If the chunk file already exist, then there is no need to run the LLM again.
-            estimate_durations = EstimateWBSTaskDurations.execute(llm, query)
+            def execute_estimate_task_durations(llm: LLM) -> EstimateWBSTaskDurations:
+                return EstimateWBSTaskDurations.execute(llm, query)
+
+            try:
+                estimate_durations = llm_executor.run(execute_estimate_task_durations)
+            except PipelineStopRequested:
+                # Re-raise PipelineStopRequested without wrapping it
+                raise
+            except Exception as e:
+                logger.error(f"Task durations chunk {index} LLM interaction failed.", exc_info=True)
+                raise ValueError(f"Task durations chunk {index} LLM interaction failed.") from e
+
             durations_raw_dict = estimate_durations.raw_response_dict()
             
             # Write the raw JSON for this chunk.
