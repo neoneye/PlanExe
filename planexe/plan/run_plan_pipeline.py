@@ -85,9 +85,7 @@ from planexe.plan.pipeline_environment import PipelineEnvironment, PipelineEnvir
 logger = logging.getLogger(__name__)
 DEFAULT_LLM_MODEL = "ollama-llama3.1"
 
-class PlanTaskStop(RuntimeError):
-    """Raised when a pipeline task should be stopped by the callback."""
-    pass
+
 
 class PlanTask(luigi.Task):
     # Default it to the current timestamp, eg. 19841231_235959
@@ -115,14 +113,15 @@ class PlanTask(luigi.Task):
 
     def create_llm_executor(self) -> LLMExecutor:
         # Redirect the callback to the pipeline_executor_callback.
-        def should_stop_callback(parameters: ShouldStopCallbackParameters) -> bool:
+        def should_stop_callback(parameters: ShouldStopCallbackParameters) -> None:
             if self._pipeline_executor_callback is None:
-                return False
+                return
             # The pipeline_executor_callback expects (task, duration) but we have ShouldStopCallbackParameters
             total_duration = parameters.total_duration
             should_stop = self._pipeline_executor_callback(self, total_duration)
             logger.debug(f"{self.__class__.__name__} -> create_llm_executor -> should_stop_callback -> should_stop: {should_stop}")
-            return should_stop
+            if should_stop:
+                raise ExecutionAbortedError(f"Pipeline execution aborted for run_id_dir: {self.run_id_dir!r}")
 
         llm_model_instances = LLMModelFromName.from_names(self.llm_models)
 
@@ -144,10 +143,11 @@ class PlanTask(luigi.Task):
         try:
             # Run the task using LLMExecutor
             llm_executor.run(execute_function)
-        except ExecutionAbortedError as e:
-            # This exception is raised when the should_stop_callback returns True
+        except ExecutionAbortedError:
+            # This exception is raised by the should_stop_callback
             # If we get here, it means that the pipeline was aborted by the callback, such as by the user pressing Ctrl-C or closing the browser tab.
-            raise PlanTaskStop(f"Pipeline execution aborted for run_id_dir: {self.run_id_dir!r}") from e
+            # Re-raise ExecutionAbortedError without wrapping it
+            raise
         except Exception as e:
             # Re-raise the exception with a more descriptive message
             raise Exception(f"Failed to run {self.__class__.__name__} with any of the LLMs in the list: {self.llm_models!r} for run_id_dir: {self.run_id_dir!r}") from e
@@ -2974,7 +2974,7 @@ class ExecutePipeline:
 
         Returns:
             bool: False to continue the pipeline, True to abort.
-                  If True is returned, PlanTask.run() will raise a PlanTaskStop.
+                  If True is returned, PlanTask.run() will raise an ExecutionAbortedError.
         """
         logger.debug(f"ExecutePipeline._handle_task_completion: Default behavior for task {parameters.task.task_id} in run {self.run_id_dir}. Pipeline will continue.")
         # Default implementation simply allows the pipeline to continue.
