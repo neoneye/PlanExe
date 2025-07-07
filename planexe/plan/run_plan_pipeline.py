@@ -1487,16 +1487,6 @@ class SWOTAnalysisTask(PlanTask):
 class ExpertReviewTask(PlanTask):
     """
     Finds experts to review the SWOT analysis and have them provide criticism.
-    Depends on:
-      - SetupTask (for the initial plan)
-      - PreProjectAssessmentTask (for the pre‑project assessment)
-      - ProjectPlanTask (for the project plan)
-      - SWOTAnalysisTask (for the SWOT analysis)
-    Produces:
-      - Raw experts file (006-experts_raw.json)
-      - Cleaned experts file (007-experts.json)
-      - For each expert, a raw expert criticism file (008-XX-expert_criticism_raw.json) [side effects via callbacks]
-      - Final expert criticism markdown (009-expert_criticism.md)
     """
     def requires(self):
         return {
@@ -1509,7 +1499,9 @@ class ExpertReviewTask(PlanTask):
     def output(self):
         return self.local_target(FilenameEnum.EXPERT_CRITICISM_MARKDOWN)
 
-    def run_with_llm(self, llm: LLM) -> None:
+    def run(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
         logger.info("Finding experts to review the SWOT analysis, and having them provide criticism...")
 
         # Read inputs from required tasks.
@@ -1548,7 +1540,7 @@ class ExpertReviewTask(PlanTask):
         # IDEA: If the expert file for expert_index already exist, then there is no need to run the LLM again.
         expert_orchestrator.phase1_post_callback = phase1_post_callback
         expert_orchestrator.phase2_post_callback = phase2_post_callback
-        expert_orchestrator.execute(llm, query)
+        expert_orchestrator.execute(llm_executor, query)
 
         # Write final expert criticism markdown.
         expert_criticism_markdown_file = self.file_path(FilenameEnum.EXPERT_CRITICISM_MARKDOWN)
