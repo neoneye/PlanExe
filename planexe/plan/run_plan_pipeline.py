@@ -2351,7 +2351,9 @@ class CreateWBSLevel3Task(PlanTask):
             'data_collection': self.clone(DataCollectionTask),
         }
     
-    def run_with_llm(self, llm: LLM) -> None:
+    def run(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
         logger.info("Creating Work Breakdown Structure (WBS) Level 3...")
         
         # Read inputs from required tasks.
@@ -2412,7 +2414,18 @@ class CreateWBSLevel3Task(PlanTask):
             )
 
             # IDEA: If the chunk file already exist, then there is no need to run the LLM again.
-            create_wbs_level3 = CreateWBSLevel3.execute(llm, query, task_id)
+            def execute_create_wbs_level3(llm: LLM) -> CreateWBSLevel3:
+                return CreateWBSLevel3.execute(llm, query, task_id)
+
+            try:
+                create_wbs_level3 = llm_executor.run(execute_create_wbs_level3)
+            except PipelineStopRequested:
+                # Re-raise PipelineStopRequested without wrapping it
+                raise
+            except Exception as e:
+                logger.error(f"WBS Level 3 task {index} LLM interaction failed.", exc_info=True)
+                raise ValueError(f"WBS Level 3 task {index} LLM interaction failed.") from e
+
             wbs_level3_raw_dict = create_wbs_level3.raw_response_dict()
             
             # Write the raw JSON for this task using the FilenameEnum template.
