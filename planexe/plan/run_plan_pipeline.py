@@ -569,7 +569,9 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
             'short': self.local_target(FilenameEnum.CONSOLIDATE_ASSUMPTIONS_SHORT_MARKDOWN)
         }
 
-    def run_with_llm(self, llm: LLM) -> None:
+    def run(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
         # Define the list of (title, path) tuples
         title_path_list = [
             ('Purpose', self.input()['identify_purpose']['markdown'].path),
@@ -601,9 +603,16 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
                 short_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError reading markdown file.")
                 continue
 
+            # IDEA: If the chunk file already exist, then there is no need to run the LLM again.
+            def execute_shorten_markdown(llm: LLM) -> ShortenMarkdown:
+                return ShortenMarkdown.execute(llm, markdown_chunk)
+
             try:
-                shorten_markdown = ShortenMarkdown.execute(llm, markdown_chunk)
+                shorten_markdown = llm_executor.run(execute_shorten_markdown)
                 short_markdown_chunks.append(f"# {title}\n{shorten_markdown.markdown}")
+            except PipelineStopRequested:
+                # Re-raise PipelineStopRequested without wrapping it
+                raise
             except Exception as e:
                 logger.error(f"Error shortening markdown file {path} (from {title}): {e}")
                 short_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError shortening markdown file.")
