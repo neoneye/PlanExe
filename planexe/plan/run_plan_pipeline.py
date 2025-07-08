@@ -119,11 +119,7 @@ class PlanTask(luigi.Task):
                 return
             # The pipeline_executor_callback expects (task, duration) but we have ShouldStopCallbackParameters
             total_duration = parameters.total_duration
-            try:
-                self._pipeline_executor_callback(self, total_duration)
-            except PipelineStopRequested as e:
-                logger.debug(f"{self.__class__.__name__} -> create_llm_executor -> should_stop_callback -> PipelineStopRequested raised: {e}")
-                raise
+            self._pipeline_executor_callback(self, total_duration)
 
         llm_model_instances = LLMModelFromName.from_names(self.llm_models)
 
@@ -138,7 +134,8 @@ class PlanTask(luigi.Task):
     def run(self):
         try:
             self.run_inner()
-        except PipelineStopRequested:
+        except PipelineStopRequested as e:
+            logger.debug(f"{self.__class__.__name__} -> PipelineStopRequested raised: {e}")
             # This exception is raised by the should_stop_callback
             # If we get here, it means that the pipeline was aborted by the callback, such as by the user pressing Ctrl-C or closing the browser tab.
             # Create a flag file to signal that the stop was intentional.
