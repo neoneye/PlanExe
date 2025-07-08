@@ -136,6 +136,21 @@ class PlanTask(luigi.Task):
         raise NotImplementedError("Subclasses must implement this method.")
 
     def run(self):
+        try:
+            self.run_inner()
+        except PipelineStopRequested:
+            # This exception is raised by the should_stop_callback
+            # If we get here, it means that the pipeline was aborted by the callback, such as by the user pressing Ctrl-C or closing the browser tab.
+            # Create a flag file to signal that the stop was intentional.
+            flag_path = self.run_id_dir / ExtraFilenameEnum.PIPELINE_STOP_REQUESTED_FLAG.value
+            logger.info(f"Creating stop flag file: {flag_path!r}")
+            flag_path.touch()
+            raise
+        except Exception as e:
+            # Re-raise the exception with a more descriptive message
+            raise Exception(f"Failed to run {self.__class__.__name__} with any of the LLMs in the list: {self.llm_models!r} for run_id_dir: {self.run_id_dir!r}") from e
+
+    def run_inner(self):
         llm_executor: LLMExecutor = self.create_llm_executor()
         
         # Attempt executing this code with the first LLM, if that fails, try the next one, and so on.
@@ -158,7 +173,7 @@ class SetupTask(PlanTask):
     def output(self):
         return self.local_target(FilenameEnum.INITIAL_PLAN)
 
-    def run(self):
+    def run_inner(self):
         # Ensure the run directory exists.
         self.run_id_dir.mkdir(parents=True, exist_ok=True)
 
@@ -569,7 +584,7 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
             'short': self.local_target(FilenameEnum.CONSOLIDATE_ASSUMPTIONS_SHORT_MARKDOWN)
         }
 
-    def run(self):
+    def run_inner(self):
         llm_executor: LLMExecutor = self.create_llm_executor()
 
         # Define the list of (title, path) tuples
@@ -1039,7 +1054,7 @@ class ConsolidateGovernanceTask(PlanTask):
     def output(self):
         return self.local_target(FilenameEnum.CONSOLIDATE_GOVERNANCE_MARKDOWN)
 
-    def run(self):
+    def run_inner(self):
         # Read inputs from required tasks.
         with self.input()['governance_phase1_audit']['markdown'].open("r") as f:
             governance_phase1_audit_markdown = f.read()
@@ -1409,7 +1424,7 @@ class TeamMarkdownTask(PlanTask):
     def output(self):
         return self.local_target(FilenameEnum.TEAM_MARKDOWN)
 
-    def run(self):
+    def run_inner(self):
         logger.info("TeamMarkdownTask. Loading files...")
 
         # 1. Read the team_member_list from EnrichTeamMembersWithEnvironmentInfoTask.
@@ -1508,7 +1523,7 @@ class ExpertReviewTask(PlanTask):
     def output(self):
         return self.local_target(FilenameEnum.EXPERT_CRITICISM_MARKDOWN)
 
-    def run(self):
+    def run_inner(self):
         llm_executor: LLMExecutor = self.create_llm_executor()
 
         logger.info("Finding experts to review the SWOT analysis, and having them provide criticism...")
@@ -1791,7 +1806,7 @@ class DraftDocumentsToFindTask(PlanTask):
             'filter_documents_to_find': self.clone(FilterDocumentsToFindTask),
         }
     
-    def run(self):
+    def run_inner(self):
         llm_executor: LLMExecutor = self.create_llm_executor()
 
         # Read inputs from required tasks.
@@ -1869,7 +1884,7 @@ class DraftDocumentsToCreateTask(PlanTask):
             'filter_documents_to_create': self.clone(FilterDocumentsToCreateTask),
         }
     
-    def run(self):
+    def run_inner(self):
         llm_executor: LLMExecutor = self.create_llm_executor()
 
         # Read inputs from required tasks.
@@ -1945,7 +1960,7 @@ class MarkdownWithDocumentsToCreateAndFindTask(PlanTask):
             'draft_documents_to_find': self.clone(DraftDocumentsToFindTask),
         }
     
-    def run(self):
+    def run_inner(self):
         # Read inputs from required tasks.
         with self.input()['draft_documents_to_create'].open("r") as f:
             documents_to_create = json.load(f)
@@ -2091,7 +2106,7 @@ class WBSProjectLevel1AndLevel2Task(PlanTask):
             'wbs_level2': self.clone(CreateWBSLevel2Task),
         }
     
-    def run(self):
+    def run_inner(self):
         wbs_level1_path = self.input()['wbs_level1']['clean'].path
         wbs_level2_path = self.input()['wbs_level2']['clean'].path
         wbs_project = WBSPopulate.project_from_level1_json(wbs_level1_path)
@@ -2258,7 +2273,7 @@ class EstimateTaskDurationsTask(PlanTask):
             'wbs_project': self.clone(WBSProjectLevel1AndLevel2Task),
         }
     
-    def run(self):
+    def run_inner(self):
         llm_executor: LLMExecutor = self.create_llm_executor()
 
         logger.info("Estimating task durations...")
@@ -2360,7 +2375,7 @@ class CreateWBSLevel3Task(PlanTask):
             'data_collection': self.clone(DataCollectionTask),
         }
     
-    def run(self):
+    def run_inner(self):
         llm_executor: LLMExecutor = self.create_llm_executor()
 
         logger.info("Creating Work Breakdown Structure (WBS) Level 3...")
@@ -2473,7 +2488,7 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
             'wbs_level3': self.clone(CreateWBSLevel3Task),
         }
     
-    def run(self):
+    def run_inner(self):
         wbs_project_path = self.input()['wbs_project12'].path
         with open(wbs_project_path, "r") as f:
             wbs_project_dict = json.load(f)
@@ -2504,7 +2519,7 @@ class CreateScheduleTask(PlanTask):
             'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task)
         }
     
-    def run(self):
+    def run_inner(self):
         # Read inputs from required tasks.
         with self.input()['dependencies'].open("r") as f:
             dependencies_dict = json.load(f)
@@ -2605,7 +2620,7 @@ class ReviewPlanTask(PlanTask):
             'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task)
         }
     
-    def run(self):
+    def run_inner(self):
         llm_executor: LLMExecutor = self.create_llm_executor()
 
         # Read inputs from required tasks.
@@ -2836,7 +2851,7 @@ class ReportTask(PlanTask):
             'questions_and_answers': self.clone(QuestionsAndAnswersTask)
         }
     
-    def run(self):
+    def run_inner(self):
         # For the report title, use the 'project_title' of the WBS Level 1 result.
         with self.input()['wbs_level1']['project_title'].open("r") as f:
             title = f.read()
@@ -2918,7 +2933,7 @@ class FullPlanPipeline(PlanTask):
     def output(self):
         return self.local_target(FilenameEnum.PIPELINE_COMPLETE)
 
-    def run(self):
+    def run_inner(self):
         with self.output().open("w") as f:
             f.write("Full pipeline executed successfully.\n")
 
@@ -2943,9 +2958,7 @@ class ExecutePipeline:
     llm_models: list[str]
     full_plan_pipeline_task: Optional[FullPlanPipeline] = field(default=None)
     all_expected_filenames: list[str] = field(default_factory=list)
-
-    # Indicates if the pipeline was stopped by the callback_run_task method.
-    stopped_by_callback: bool = field(default=False, init=False)
+    luigi_build_return_value: Optional[bool] = field(default=None, init=False)
 
     def setup(self) -> None:
         full_plan_pipeline_task = FullPlanPipeline(
@@ -2992,6 +3005,7 @@ class ExecutePipeline:
         ignore_files = [
             ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value,
             ExtraFilenameEnum.LOG_TXT.value,
+            ExtraFilenameEnum.PIPELINE_STOP_REQUESTED_FLAG.value,
             '.DS_Store',
         ]
         files = [f for f in files if f not in ignore_files]
@@ -3043,11 +3057,7 @@ class ExecutePipeline:
         parameters = HandleTaskCompletionParameters(task=task, progress=progress, duration=duration)
 
         # Delegate custom handling (like DB updates or stop checks) to the hook method.
-        try:
-            self._handle_task_completion(parameters)
-        except PipelineStopRequested as e:
-            self.stopped_by_callback = True
-            raise
+        self._handle_task_completion(parameters)
 
     @property
     def has_pipeline_complete_file(self) -> bool:
@@ -3059,18 +3069,34 @@ class ExecutePipeline:
         file_path = self.run_id_dir / FilenameEnum.REPORT.value
         return file_path.exists()
 
+    @property
+    def has_stop_flag_file(self) -> bool:
+        file_path = self.run_id_dir / ExtraFilenameEnum.PIPELINE_STOP_REQUESTED_FLAG.value
+        return file_path.exists()
+
     def run(self):
+        # Clean up any pre-existing stop flag before the run.
+        stop_flag_path = self.run_id_dir / ExtraFilenameEnum.PIPELINE_STOP_REQUESTED_FLAG.value
+        if stop_flag_path.exists():
+            logger.debug(f"Removing pre-existing stop flag file: {stop_flag_path!r}")
+            stop_flag_path.unlink()
+
         # create a json file with the expected filenames. Save it to the run/run_id/expected_filenames1.json
         expected_filenames_path = self.run_id_dir / ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value
         with open(expected_filenames_path, "w") as f:
             json.dump(self.all_expected_filenames, f, indent=2)
         logger.info(f"Saved {len(self.all_expected_filenames)} expected filenames to {expected_filenames_path}")
 
-        luigi.build([self.full_plan_pipeline_task], local_scheduler=True, workers=1)
+        self.luigi_build_return_value = luigi.build([self.full_plan_pipeline_task], local_scheduler=True, workers=1)
 
+        # After the pipeline finishes (or fails), check for the stop flag.
+        if self.has_stop_flag_file:
+            logger.info("Pipeline was stopped intentionally via PipelineStopRequested exception.")
+
+        logger.info(f"luigi_build_return_value: {self.luigi_build_return_value}")
         logger.info(f"has_pipeline_complete_file: {self.has_pipeline_complete_file}")
         logger.info(f"has_report_file: {self.has_report_file}")
-        logger.info(f"stopped_by_callback: {self.stopped_by_callback}")
+        logger.info(f"has_stop_flag_file: {self.has_stop_flag_file}")
 
 class DemoStoppingExecutePipeline(ExecutePipeline):
     """
