@@ -41,14 +41,12 @@ logger = logging.getLogger(__name__)
 class PipelineStopRequested(RuntimeError):
     """
     Raised when the pipeline execution is requested to stop by `should_stop_callback` after a task succeeds.
-    When this exception is raised by the `should_stop_callback`, then it doesn't indicate a problem.
+
     This exception happens when the user presses Ctrl-C or closes the browser tab,
     so there is no point in continuing wasting resources on a 30 minute task.
 
-    The `execute_function` callback must not raise the PipelineStopRequested exception, 
-    since that flow through the code doesn't update the `ExecutePipeline.stopped_by_callback` property,
-    so I cannot inspect the `ExecutePipeline.stopped_by_callback` property and check if the execution 
-    was stopped by the PipelineStopRequested.
+    The PlanTask.run() method intercepts the PipelineStopRequested exception and create a the PIPELINE_STOP_REQUESTED_FLAG file,
+    signaling that the pipeline was stopped by the user. So in post-mortem, it's fast to determine if the pipeline was stopped with this exception.
     """
     pass
 
