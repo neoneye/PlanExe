@@ -113,6 +113,11 @@ class PlanTask(luigi.Task):
         return luigi.LocalTarget(self.file_path(filename))
 
     def create_llm_executor(self) -> LLMExecutor:
+        """
+        Create an LLMExecutor instance.
+        - Responsibile for stopping the pipeline when the user presses Ctrl-C or closes the browser tab.
+        - Fallback mechanism to try the next LLM if the current one fails.
+        """
         # Redirect the callback to the pipeline_executor_callback.
         def should_stop_callback(parameters: ShouldStopCallbackParameters) -> None:
             if self._pipeline_executor_callback is None:
@@ -128,10 +133,10 @@ class PlanTask(luigi.Task):
             should_stop_callback=should_stop_callback
         )
 
-    def run_with_llm(self, llm: LLM) -> None:
-        raise NotImplementedError("Subclasses must implement this method.")
-
     def run(self):
+        """
+        Don't override this method. Instead either override the run_inner() method, or override the run_with_llm() method.
+        """
         try:
             self.run_inner()
         except PipelineStopRequested as e:
@@ -148,6 +153,9 @@ class PlanTask(luigi.Task):
             raise Exception(f"Failed to run {self.__class__.__name__} with any of the LLMs in the list: {self.llm_models!r} for run_id_dir: {self.run_id_dir!r}") from e
 
     def run_inner(self):
+        """
+        Override this method or the run_with_llm() method.
+        """
         llm_executor: LLMExecutor = self.create_llm_executor()
         
         # Attempt executing this code with the first LLM, if that fails, try the next one, and so on.
@@ -165,6 +173,13 @@ class PlanTask(luigi.Task):
         except Exception as e:
             # Re-raise the exception with a more descriptive message
             raise Exception(f"Failed to run {self.__class__.__name__} with any of the LLMs in the list: {self.llm_models!r} for run_id_dir: {self.run_id_dir!r}") from e
+
+    def run_with_llm(self, llm: LLM) -> None:
+        """
+        Override this method or the run_inner() method.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+
 
 class SetupTask(PlanTask):
     def output(self):
