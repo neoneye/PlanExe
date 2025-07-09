@@ -115,7 +115,7 @@ class PlanTask(luigi.Task):
     def create_llm_executor(self) -> LLMExecutor:
         """
         Create an LLMExecutor instance.
-        - Responsibile for stopping the pipeline when the user presses Ctrl-C or closes the browser tab.
+        - Responsible for stopping the pipeline when the user presses Ctrl-C or closes the browser tab.
         - Fallback mechanism to try the next LLM if the current one fails.
         """
         # Redirect the callback to the pipeline_executor_callback.
@@ -161,18 +161,10 @@ class PlanTask(luigi.Task):
         # Attempt executing this code with the first LLM, if that fails, try the next one, and so on.
         def execute_function(llm: LLM) -> None:
             self.run_with_llm(llm)
-        
-        try:
-            # Run the task using LLMExecutor
-            llm_executor.run(execute_function)
-        except PipelineStopRequested:
-            # This exception is raised by the should_stop_callback
-            # If we get here, it means that the pipeline was aborted by the callback, such as by the user pressing Ctrl-C or closing the browser tab.
-            # Re-raise PipelineStopRequested without wrapping it
-            raise
-        except Exception as e:
-            # Re-raise the exception with a more descriptive message
-            raise Exception(f"Failed to run {self.__class__.__name__} with any of the LLMs in the list: {self.llm_models!r} for run_id_dir: {self.run_id_dir!r}") from e
+
+        # Make multiple attempts at running the run_with_llm() function.
+        # No try/except needed here. Let PlanTask.run() handle it.
+        llm_executor.run(execute_function)
 
     def run_with_llm(self, llm: LLM) -> None:
         """
