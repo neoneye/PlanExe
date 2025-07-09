@@ -33,6 +33,9 @@ class Dial(BaseModel):
     is_primary: bool = Field(
         description="True if this a primary dial. False if this is a secondary dial."
     )
+    out_of_the_box: str = Field(
+        description="Suggest yet another value. Use 20 words to describe the value."
+    )
 
 class DocumentDetails(BaseModel):
     strategic_rationale: str = Field(
