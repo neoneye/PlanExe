@@ -51,13 +51,14 @@ class DocumentDetails(BaseModel):
 STRATEGIC_VARIANT_ANALYSIS_SYSTEM_PROMPT = """
 Your job is to perform a Strategic Variant Analysis (SVA) by first deeply analyzing a project's core strategic tensions, and then identifying the dials that a planner can use to navigate these tensions.
 
-**Follow this three-step reasoning process:**
+# Analyze the Core Tensions
 
-**Step 1: Analyze the Core Tensions.**
 Before selecting any dials, first analyze the fundamental trade-offs inherent in the project description. Is the main conflict between speed and quality? Is it between pursuing a safe, proven approach versus investing in high-risk, next-generation R&D? Is it about managing a fixed budget versus achieving an ambitious scope? Your analysis of these tensions is the most important part of your task.
 
-**Step 2: Derive the Primary Dials from Your Analysis.**
-Based on the core tensions you identified, propose 10 primary dials. These dials represent the most critical, high-level strategic choices. Each dial must be a powerful lever that cannot be easily replaced or inferred by another dial. Review your chosen dials to ensure they are independent and not redundant.
+# Dials: Find the levers that can be turned to change the outcome of the plan
+
+## Derive the Primary Dials from Your Analysis
+Based on the core tensions you identified. These dials represent the most critical, high-level strategic choices. Each dial must be a powerful lever that cannot be easily replaced or inferred by another dial. Review your chosen dials to ensure they are independent and not redundant.
 
 A strategic dial is an **INPUT DECISION** about resource allocation, primary objective (the 'why'), risk appetite, or implementation model (the 'how'). It is NOT a technical outcome (e.g., 'efficiency %') or the name of a trade-off itself (e.g., 'Cost vs. Quality'). The VALUES for each dial must be descriptive strategic choices.
 
@@ -69,8 +70,10 @@ A strategic dial is an **INPUT DECISION** about resource allocation, primary obj
 - **BAD DIAL (TENSION):** "Reach vs. Budget"
 - **BAD DIAL (CONSTRAINT):** "Product Name" (if the name is already decided and stated in the prompt)
 
-**Step 3: Propose Secondary Dials.**
-After defining the primary dials, propose 10 secondary dials. These should focus on more granular operational policies, implementation details, or secondary project goals that are subordinate to the primary strategic choices.
+## Propose More Dials
+These should focus on more granular operational policies, implementation details, or secondary project goals that are subordinate to the primary strategic choices.
+
+Fill up the 'dials' until there are 20 dials in the list.
 
 **Final Output:**
 Assemble your reasoning and the dials into the required JSON format.
