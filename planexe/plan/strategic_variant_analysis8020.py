@@ -1,8 +1,15 @@
 """
 Strategic Variant Analysis (SVA), explore the solution space.
 
-- Identify what key "dials" can be turned to change the outcome of the plan.
+Step 1:
+- Brainstorm what key "dials" can be turned to change the outcome of the plan.
 - For each dial, identify the possible values.
+
+Step 2:
+- moving from a brainstormed list to a focused set of strategic levers.
+- Applying the 80/20 rule here means finding the ~20% of dials (the "vital few," i.e., your 4-5 most significant) that will dictate ~80% of the project's strategic outcome. This is a curation process based on strategic importance, not random sampling.
+
+Step 3:
 - With all the permutations of the dials and their values, take 20 random samples.
 - 80/20 rule: Identify the most significant 4 samples. Discard the rest.
 
