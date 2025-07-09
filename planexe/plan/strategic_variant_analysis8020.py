@@ -21,22 +21,25 @@ from llama_index.core.llms import ChatMessage, MessageRole
 logger = logging.getLogger(__name__)
 
 class Dial(BaseModel):
+    dial_index: int = Field(
+        description="Index of this dial."
+    )
     name: str = Field(
         description="Name of this dial."
     )
     values: list[str] = Field(
         description="2-5 values for this dial."
     )
+    is_primary: bool = Field(
+        description="True if this a primary dial. False if this is a secondary dial."
+    )
 
 class DocumentDetails(BaseModel):
     strategic_rationale: str = Field(
         description="A concise strategic analysis (around 100 words) of the project's core tensions and trade-offs. This rationale must JUSTIFY why the selected dials are the most critical levers for decision-making. For example, explain how the chosen dials navigate the fundamental conflicts between speed, cost, scope, and quality."
     )
-    primary_dials: list[Dial] = Field(
-        description="Propose 10 primary dials."
-    )
-    secondary_dials: list[Dial] = Field(
-        description="Propose 10 secondary dials."
+    dials: list[Dial] = Field(
+        description="Propose 20 dials."
     )
     summary: str = Field(
         description="Are these dials well picked? Are they well balanced? Are they well thought out? Point out flaws. 100 words."
