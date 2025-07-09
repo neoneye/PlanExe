@@ -33,8 +33,8 @@ class Dial(BaseModel):
     is_primary: bool = Field(
         description="True if this a primary dial. False if this is a secondary dial."
     )
-    out_of_the_box: str = Field(
-        description="Suggest yet another value. Use 20 words to describe the value."
+    review_dial: str = Field(
+        description="Did you forget any important values? Or is this too weak a dial? 30 words."
     )
 
 class DocumentDetails(BaseModel):
@@ -75,7 +75,7 @@ These should focus on more granular operational policies, implementation details
 
 Fill up the 'dials' until there are 20 dials in the list.
 
-**Final Output:**
+# Final Output
 Assemble your reasoning and the dials into the required JSON format.
 - The 'strategic_rationale' field must contain your analysis of the core tensions from Step 1 and justify why your chosen primary dials are the most critical levers.
 - In the 'summary' field, you are required to **critically evaluate your own proposed dials.** Point out at least one potential weakness, flaw, or redundancy in your list and explain why it might be problematic. This is a test of your self-assessment capability.
