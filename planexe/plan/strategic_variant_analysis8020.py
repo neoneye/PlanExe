@@ -49,36 +49,43 @@ class DocumentDetails(BaseModel):
     )
 
 STRATEGIC_VARIANT_ANALYSIS_SYSTEM_PROMPT = """
-Your job is to perform a Strategic Variant Analysis (SVA) by first deeply analyzing a project's core strategic tensions, and then identifying the dials that a planner can use to navigate these tensions.
+Your job is to perform a Strategic Variant Analysis (SVA) by identifying the critical "dials" a planner can turn to shape a project's outcome. You must follow a strict set of rules and a step-by-step process.
 
-# Analyze the Core Tensions
+# Core Principles of a Strategic Dial
 
-Before selecting any dials, first analyze the fundamental trade-offs inherent in the project description. Is the main conflict between speed and quality? Is it between pursuing a safe, proven approach versus investing in high-risk, next-generation R&D? Is it about managing a fixed budget versus achieving an ambitious scope? Your analysis of these tensions is the most important part of your task.
+You MUST follow these rules when creating dials.
 
-# Dials: Find the levers that can be turned to change the outcome of the plan
+## Rule #1: Dials are INPUTS, not OUTCOMES (KPIs)
+A dial is a strategic INPUT choice that a planner makes. It is NOT a desired OUTCOME, target, or Key Performance Indicator (KPI).
+- **ANALOGY:** A dial is the **oven temperature** you set (an input decision). It is NOT how **well-cooked the cake is** (an outcome).
+- **GOOD DIAL (INPUT):** "R&D Investment Strategy" with values like "Focus on high-risk/high-reward tech" vs. "Focus on maturing proven tech."
+- **BAD DIAL (OUTCOME/KPI):** "Innovation Success Rate" with values like "90% success," "70% success."
 
-## Derive the Primary Dials from Your Analysis
-Based on the core tensions you identified. These dials represent the most critical, high-level strategic choices. Each dial must be a powerful lever that cannot be easily replaced or inferred by another dial. Review your chosen dials to ensure they are independent and not redundant.
+## Rule #2: Respect all Constraints
+A constraint is a fact or requirement from the project description that is NOT negotiable.
+- **CRITICAL:** Offering a choice that violates a stated constraint is a major error.
+- **EXAMPLE:** If a project is mandated to be an "iOS mobile app," a dial offering an "Android version" is invalid.
 
-A strategic dial is an **INPUT DECISION** about resource allocation, primary objective (the 'why'), risk appetite, or implementation model (the 'how'). It is NOT a technical outcome (e.g., 'efficiency %') or the name of a trade-off itself (e.g., 'Cost vs. Quality'). The VALUES for each dial must be descriptive strategic choices.
+## Rule #3: Prioritize Foundational, Independent Dials
+- **PRIMARY DIALS:** Primary dials should be the 3-5 most foundational choices that shape the entire project (e.g., core risk posture, budget philosophy, IP strategy).
+- **REDUNDANCY:** Avoid creating multiple dials for the same core choice. For example, 'IP Strategy' and 'Knowledge Sharing Protocol' are likely part of the same strategic decision.
+- **AVOID LAZY VALUES:** Do not use vague values like "Hybrid" or false dichotomies like "Proactive vs. Reactive." If a hybrid approach is an option, describe it, e.g., "Hybrid: Core R&D in-house, partner on non-core tech."
 
-**CRITICAL:** Your dials MUST address the project's **primary constraints.** Look for any specific figures, resources, timelines, or mandatory goals mentioned in the user's text and ensure your dials provide a way to manage them. If a project requirement is stated as a fact, it is a constraint, not a dial.
+# Your Task: Step-by-Step Instructions
 
-**EXAMPLE for a new product launch project:**
-- **GOOD DIAL (INPUT DECISION):** "Go-to-Market Strategy" with values: ["Target early adopters in a niche market", "Broad launch targeting the mass market", "Partner-led distribution"]
-- **BAD DIAL (OUTCOME):** "Market Share Percentage"
-- **BAD DIAL (TENSION):** "Reach vs. Budget"
-- **BAD DIAL (CONSTRAINT):** "Product Name" (if the name is already decided and stated in the prompt)
+**Step 1: Analyze Core Tensions**
+Deeply analyze the project's fundamental trade-offs (e.g., speed vs. quality, risk vs. budget). Your analysis will become the `strategic_rationale`.
 
-## Propose More Dials
-These should focus on more granular operational policies, implementation details, or secondary project goals that are subordinate to the primary strategic choices.
+**Step 2: Propose 20 Dials**
+Create a list of exactly 20 dials according to the rules above. For each dial, provide:
+- `dial_index`: A unique integer index starting from 1.
+- `name`: A clear, concise name for the INPUT DECISION.
+- `values`: 2-4 distinct, descriptive strategic choices.
+- `is_primary`: Set to `true` for the 3-5 most foundational dials. Otherwise, `false`.
+- `review_dial`: **CRITICAL SELF-ASSESSMENT.** Briefly justify why this is a valid input dial and not an outcome/KPI. Mention a potential weakness if you see one.
 
-Fill up the 'dials' until there are 20 dials in the list.
-
-# Final Output
-Assemble your reasoning and the dials into the required JSON format.
-- The 'strategic_rationale' field must contain your analysis of the core tensions from Step 1 and justify why your chosen primary dials are the most critical levers.
-- In the 'summary' field, you are required to **critically evaluate your own proposed dials.** Point out at least one potential weakness, flaw, or redundancy in your list and explain why it might be problematic. This is a test of your self-assessment capability.
+**Step 3: Write the Final Summary**
+In the `summary` field, critically evaluate your entire list of 20 dials. Identify the SINGLE most significant flaw in your own output (e.g., a major redundancy, a missing critical dial like budget or timeline) and explain why it is a problem. This is a test of your self-assessment.
 """
 
 @dataclass
