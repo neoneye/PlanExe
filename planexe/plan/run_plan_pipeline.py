@@ -74,7 +74,8 @@ from planexe.wbs.wbs_populate import WBSPopulate
 from planexe.schedule.hierarchy_estimator_wbs import HierarchyEstimatorWBS
 from planexe.schedule.export_dhtmlx_gantt import ExportDHTMLXGantt
 from planexe.schedule.project_schedule_wbs import ProjectScheduleWBS
-from planexe.llm_factory import get_llm, get_llm_names_by_priority, SPECIAL_AUTO_ID, is_valid_llm_name
+from planexe.llm_util.llm_executor import LLMExecutor, LLMModelFromName, ShouldStopCallbackParameters, PipelineStopRequested
+from planexe.llm_factory import get_llm_names_by_priority, SPECIAL_AUTO_ID, is_valid_llm_name
 from planexe.format_json_for_use_in_query import format_json_for_use_in_query
 from planexe.utils.get_env_as_string import get_env_as_string
 from planexe.report.report_generator import ReportGenerator
@@ -84,9 +85,7 @@ from planexe.plan.pipeline_environment import PipelineEnvironment, PipelineEnvir
 logger = logging.getLogger(__name__)
 DEFAULT_LLM_MODEL = "ollama-llama3.1"
 
-class PlanTaskStop(RuntimeError):
-    """Raised when a pipeline task should be stopped by the callback."""
-    pass
+
 
 class PlanTask(luigi.Task):
     # Default it to the current timestamp, eg. 19841231_235959
@@ -101,8 +100,9 @@ class PlanTask(luigi.Task):
     llm_models = luigi.ListParameter(default=[DEFAULT_LLM_MODEL])
 
     # Optional callback for updating progress bar and aborting the pipeline.
-    # If the callback returns False, the pipeline will continue.
-    # If the callback returns True, the pipeline will be aborted.
+    # If the callback raises PipelineStopRequested, the pipeline will be aborted. This is the only exception that is allowed to be raised.
+    # If the callback raises exceptions different than PipelineStopRequested, the pipeline will be aborted. This means that something went wrong, and we should not continue.
+    # If the callback doesn't raise an exception, the pipeline will continue.
     # If the callback is not provided, the pipeline will run until completion.
     _pipeline_executor_callback = luigi.Parameter(default=None, significant=False, visibility=luigi.parameter.ParameterVisibility.PRIVATE)
 
@@ -112,37 +112,72 @@ class PlanTask(luigi.Task):
     def local_target(self, filename: FilenameEnum) -> luigi.LocalTarget:
         return luigi.LocalTarget(self.file_path(filename))
 
-    def run_with_llm(self, llm: LLM) -> None:
-        raise NotImplementedError("Subclasses must implement this method.")
+    def create_llm_executor(self) -> LLMExecutor:
+        """
+        Create an LLMExecutor instance.
+        - Responsible for stopping the pipeline when the user presses Ctrl-C or closes the browser tab.
+        - Fallback mechanism to try the next LLM if the current one fails.
+        """
+        # Redirect the callback to the pipeline_executor_callback.
+        def should_stop_callback(parameters: ShouldStopCallbackParameters) -> None:
+            if self._pipeline_executor_callback is None:
+                return
+            # The pipeline_executor_callback expects (task, duration) but we have ShouldStopCallbackParameters
+            total_duration = parameters.total_duration
+            self._pipeline_executor_callback(self, total_duration)
+
+        llm_model_instances = LLMModelFromName.from_names(self.llm_models)
+
+        return LLMExecutor(
+            llm_models=llm_model_instances,
+            should_stop_callback=should_stop_callback
+        )
 
     def run(self):
-        start_time: float = time.perf_counter()
-        class_name = self.__class__.__name__
-        attempt_count = len(self.llm_models)
-        for index, llm_model in enumerate(self.llm_models, start=1):
-            logger.info(f"Attempt {index} of {attempt_count}: Running {class_name} with LLM {llm_model!r}")
-            try:
-                llm = get_llm(llm_model)
-                self.run_with_llm(llm)
-            except Exception as e:
-                logger.error(f"Error running {class_name} with LLM {llm_model!r}: {e}")
-                continue
-            duration: float = time.perf_counter() - start_time
-            logger.info(f"Successfully ran {class_name} with LLM {llm_model!r}. Duration: {duration:.2f} seconds")
-            # If a callback is provided by the pipeline executor, call it.
-            if self._pipeline_executor_callback:
-                should_stop = self._pipeline_executor_callback(self, duration)
-                if should_stop:
-                    logger.warning(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
-                    raise PlanTaskStop(f"Pipeline execution aborted by callback after task succeeded for run_id_dir: {self.run_id_dir!r}")
-            return
-        raise Exception(f"Failed to run {class_name} with any of the LLMs in the list: {self.llm_models!r} for run_id_dir: {self.run_id_dir!r}")
+        """
+        Don't override this method. Instead either override the run_inner() method, or override the run_with_llm() method.
+        """
+        try:
+            self.run_inner()
+        except PipelineStopRequested as e:
+            logger.debug(f"{self.__class__.__name__} -> PipelineStopRequested raised: {e}")
+            # This exception is raised by the should_stop_callback
+            # If we get here, it means that the pipeline was aborted by the callback, such as by the user pressing Ctrl-C or closing the browser tab.
+            # Create a flag file to signal that the stop was intentional.
+            flag_path = self.run_id_dir / ExtraFilenameEnum.PIPELINE_STOP_REQUESTED_FLAG.value
+            logger.info(f"Creating stop flag file: {flag_path!r}")
+            flag_path.touch()
+            raise
+        except Exception as e:
+            # Re-raise the exception with a more descriptive message
+            raise Exception(f"Failed to run {self.__class__.__name__} with any of the LLMs in the list: {self.llm_models!r} for run_id_dir: {self.run_id_dir!r}") from e
+
+    def run_inner(self):
+        """
+        Override this method or the run_with_llm() method.
+        """
+        llm_executor: LLMExecutor = self.create_llm_executor()
+        
+        # Attempt executing this code with the first LLM, if that fails, try the next one, and so on.
+        def execute_function(llm: LLM) -> None:
+            self.run_with_llm(llm)
+
+        # Make multiple attempts at running the run_with_llm() function.
+        # No try/except needed here. Let PlanTask.run() handle it.
+        llm_executor.run(execute_function)
+
+    def run_with_llm(self, llm: LLM) -> None:
+        """
+        Override this method or the run_inner() method.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+
 
 class SetupTask(PlanTask):
     def output(self):
         return self.local_target(FilenameEnum.INITIAL_PLAN)
 
-    def run(self):
+    def run_inner(self):
         # Ensure the run directory exists.
         self.run_id_dir.mkdir(parents=True, exist_ok=True)
 
@@ -553,7 +588,9 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
             'short': self.local_target(FilenameEnum.CONSOLIDATE_ASSUMPTIONS_SHORT_MARKDOWN)
         }
 
-    def run_with_llm(self, llm: LLM) -> None:
+    def run_inner(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
         # Define the list of (title, path) tuples
         title_path_list = [
             ('Purpose', self.input()['identify_purpose']['markdown'].path),
@@ -585,9 +622,16 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
                 short_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError reading markdown file.")
                 continue
 
+            # IDEA: If the chunk file already exist, then there is no need to run the LLM again.
+            def execute_shorten_markdown(llm: LLM) -> ShortenMarkdown:
+                return ShortenMarkdown.execute(llm, markdown_chunk)
+
             try:
-                shorten_markdown = ShortenMarkdown.execute(llm, markdown_chunk)
+                shorten_markdown = llm_executor.run(execute_shorten_markdown)
                 short_markdown_chunks.append(f"# {title}\n{shorten_markdown.markdown}")
+            except PipelineStopRequested:
+                # Re-raise PipelineStopRequested without wrapping it
+                raise
             except Exception as e:
                 logger.error(f"Error shortening markdown file {path} (from {title}): {e}")
                 short_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError shortening markdown file.")
@@ -1014,7 +1058,7 @@ class ConsolidateGovernanceTask(PlanTask):
     def output(self):
         return self.local_target(FilenameEnum.CONSOLIDATE_GOVERNANCE_MARKDOWN)
 
-    def run(self):
+    def run_inner(self):
         # Read inputs from required tasks.
         with self.input()['governance_phase1_audit']['markdown'].open("r") as f:
             governance_phase1_audit_markdown = f.read()
@@ -1384,7 +1428,7 @@ class TeamMarkdownTask(PlanTask):
     def output(self):
         return self.local_target(FilenameEnum.TEAM_MARKDOWN)
 
-    def run(self):
+    def run_inner(self):
         logger.info("TeamMarkdownTask. Loading files...")
 
         # 1. Read the team_member_list from EnrichTeamMembersWithEnvironmentInfoTask.
@@ -1471,16 +1515,6 @@ class SWOTAnalysisTask(PlanTask):
 class ExpertReviewTask(PlanTask):
     """
     Finds experts to review the SWOT analysis and have them provide criticism.
-    Depends on:
-      - SetupTask (for the initial plan)
-      - PreProjectAssessmentTask (for the pre‑project assessment)
-      - ProjectPlanTask (for the project plan)
-      - SWOTAnalysisTask (for the SWOT analysis)
-    Produces:
-      - Raw experts file (006-experts_raw.json)
-      - Cleaned experts file (007-experts.json)
-      - For each expert, a raw expert criticism file (008-XX-expert_criticism_raw.json) [side effects via callbacks]
-      - Final expert criticism markdown (009-expert_criticism.md)
     """
     def requires(self):
         return {
@@ -1493,7 +1527,9 @@ class ExpertReviewTask(PlanTask):
     def output(self):
         return self.local_target(FilenameEnum.EXPERT_CRITICISM_MARKDOWN)
 
-    def run_with_llm(self, llm: LLM) -> None:
+    def run_inner(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
         logger.info("Finding experts to review the SWOT analysis, and having them provide criticism...")
 
         # Read inputs from required tasks.
@@ -1532,7 +1568,7 @@ class ExpertReviewTask(PlanTask):
         # IDEA: If the expert file for expert_index already exist, then there is no need to run the LLM again.
         expert_orchestrator.phase1_post_callback = phase1_post_callback
         expert_orchestrator.phase2_post_callback = phase2_post_callback
-        expert_orchestrator.execute(llm, query)
+        expert_orchestrator.execute(llm_executor, query)
 
         # Write final expert criticism markdown.
         expert_criticism_markdown_file = self.file_path(FilenameEnum.EXPERT_CRITICISM_MARKDOWN)
@@ -1774,7 +1810,9 @@ class DraftDocumentsToFindTask(PlanTask):
             'filter_documents_to_find': self.clone(FilterDocumentsToFindTask),
         }
     
-    def run_with_llm(self, llm: LLM) -> None:
+    def run_inner(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
         # Read inputs from required tasks.
         with self.input()['identify_purpose']['raw'].open("r") as f:
             identify_purpose_dict = json.load(f)
@@ -1805,7 +1843,18 @@ class DraftDocumentsToFindTask(PlanTask):
             )
 
             # IDEA: If the document already exist, then there is no need to run the LLM again.
-            draft_document = DraftDocumentToFind.execute(llm=llm, user_prompt=query, identify_purpose_dict=identify_purpose_dict)
+            def execute_draft_document_to_find(llm: LLM) -> DraftDocumentToFind:
+                return DraftDocumentToFind.execute(llm=llm, user_prompt=query, identify_purpose_dict=identify_purpose_dict)
+
+            try:
+                draft_document = llm_executor.run(execute_draft_document_to_find)
+            except PipelineStopRequested:
+                # Re-raise PipelineStopRequested without wrapping it
+                raise
+            except Exception as e:
+                logger.error(f"Document-to-find {index+1} LLM interaction failed.", exc_info=True)
+                raise ValueError(f"Document-to-find {index+1} LLM interaction failed.") from e
+
             json_response = draft_document.to_dict()
 
             # Write the raw JSON for this document using the FilenameEnum template.
@@ -1839,7 +1888,9 @@ class DraftDocumentsToCreateTask(PlanTask):
             'filter_documents_to_create': self.clone(FilterDocumentsToCreateTask),
         }
     
-    def run_with_llm(self, llm: LLM) -> None:
+    def run_inner(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
         # Read inputs from required tasks.
         with self.input()['identify_purpose']['raw'].open("r") as f:
             identify_purpose_dict = json.load(f)
@@ -1870,7 +1921,18 @@ class DraftDocumentsToCreateTask(PlanTask):
             )
 
             # IDEA: If the document already exist, then there is no need to run the LLM again.
-            draft_document = DraftDocumentToCreate.execute(llm=llm, user_prompt=query, identify_purpose_dict=identify_purpose_dict)
+            def execute_draft_document_to_create(llm: LLM) -> DraftDocumentToCreate:
+                return DraftDocumentToCreate.execute(llm=llm, user_prompt=query, identify_purpose_dict=identify_purpose_dict)
+
+            try:
+                draft_document = llm_executor.run(execute_draft_document_to_create)
+            except PipelineStopRequested:
+                # Re-raise PipelineStopRequested without wrapping it
+                raise
+            except Exception as e:
+                logger.error(f"Document-to-create {index+1} LLM interaction failed.", exc_info=True)
+                raise ValueError(f"Document-to-create {index+1} LLM interaction failed.") from e
+
             json_response = draft_document.to_dict()
 
             # Write the raw JSON for this document using the FilenameEnum template.
@@ -1902,7 +1964,7 @@ class MarkdownWithDocumentsToCreateAndFindTask(PlanTask):
             'draft_documents_to_find': self.clone(DraftDocumentsToFindTask),
         }
     
-    def run(self):
+    def run_inner(self):
         # Read inputs from required tasks.
         with self.input()['draft_documents_to_create'].open("r") as f:
             documents_to_create = json.load(f)
@@ -2048,7 +2110,7 @@ class WBSProjectLevel1AndLevel2Task(PlanTask):
             'wbs_level2': self.clone(CreateWBSLevel2Task),
         }
     
-    def run(self):
+    def run_inner(self):
         wbs_level1_path = self.input()['wbs_level1']['clean'].path
         wbs_level2_path = self.input()['wbs_level2']['clean'].path
         wbs_project = WBSPopulate.project_from_level1_json(wbs_level1_path)
@@ -2215,7 +2277,9 @@ class EstimateTaskDurationsTask(PlanTask):
             'wbs_project': self.clone(WBSProjectLevel1AndLevel2Task),
         }
     
-    def run_with_llm(self, llm: LLM) -> None:
+    def run_inner(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
         logger.info("Estimating task durations...")
         
         # Load the project plan JSON.
@@ -2262,7 +2326,18 @@ class EstimateTaskDurationsTask(PlanTask):
             )
             
             # IDEA: If the chunk file already exist, then there is no need to run the LLM again.
-            estimate_durations = EstimateWBSTaskDurations.execute(llm, query)
+            def execute_estimate_task_durations(llm: LLM) -> EstimateWBSTaskDurations:
+                return EstimateWBSTaskDurations.execute(llm, query)
+
+            try:
+                estimate_durations = llm_executor.run(execute_estimate_task_durations)
+            except PipelineStopRequested:
+                # Re-raise PipelineStopRequested without wrapping it
+                raise
+            except Exception as e:
+                logger.error(f"Task durations chunk {index} LLM interaction failed.", exc_info=True)
+                raise ValueError(f"Task durations chunk {index} LLM interaction failed.") from e
+
             durations_raw_dict = estimate_durations.raw_response_dict()
             
             # Write the raw JSON for this chunk.
@@ -2304,7 +2379,9 @@ class CreateWBSLevel3Task(PlanTask):
             'data_collection': self.clone(DataCollectionTask),
         }
     
-    def run_with_llm(self, llm: LLM) -> None:
+    def run_inner(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
         logger.info("Creating Work Breakdown Structure (WBS) Level 3...")
         
         # Read inputs from required tasks.
@@ -2365,7 +2442,18 @@ class CreateWBSLevel3Task(PlanTask):
             )
 
             # IDEA: If the chunk file already exist, then there is no need to run the LLM again.
-            create_wbs_level3 = CreateWBSLevel3.execute(llm, query, task_id)
+            def execute_create_wbs_level3(llm: LLM) -> CreateWBSLevel3:
+                return CreateWBSLevel3.execute(llm, query, task_id)
+
+            try:
+                create_wbs_level3 = llm_executor.run(execute_create_wbs_level3)
+            except PipelineStopRequested:
+                # Re-raise PipelineStopRequested without wrapping it
+                raise
+            except Exception as e:
+                logger.error(f"WBS Level 3 task {index} LLM interaction failed.", exc_info=True)
+                raise ValueError(f"WBS Level 3 task {index} LLM interaction failed.") from e
+
             wbs_level3_raw_dict = create_wbs_level3.raw_response_dict()
             
             # Write the raw JSON for this task using the FilenameEnum template.
@@ -2404,7 +2492,7 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
             'wbs_level3': self.clone(CreateWBSLevel3Task),
         }
     
-    def run(self):
+    def run_inner(self):
         wbs_project_path = self.input()['wbs_project12'].path
         with open(wbs_project_path, "r") as f:
             wbs_project_dict = json.load(f)
@@ -2435,7 +2523,7 @@ class CreateScheduleTask(PlanTask):
             'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task)
         }
     
-    def run(self):
+    def run_inner(self):
         # Read inputs from required tasks.
         with self.input()['dependencies'].open("r") as f:
             dependencies_dict = json.load(f)
@@ -2536,7 +2624,9 @@ class ReviewPlanTask(PlanTask):
             'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task)
         }
     
-    def run_with_llm(self, llm: LLM) -> None:
+    def run_inner(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
         # Read inputs from required tasks.
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
@@ -2571,7 +2661,7 @@ class ReviewPlanTask(PlanTask):
         )
 
         # Perform the review.
-        review_plan = ReviewPlan.execute(llm, query)
+        review_plan = ReviewPlan.execute(llm_executor=llm_executor, document=query, speed_vs_detail=self.speedvsdetail)
 
         # Save the results.
         json_path = self.output()['raw'].path
@@ -2765,7 +2855,7 @@ class ReportTask(PlanTask):
             'questions_and_answers': self.clone(QuestionsAndAnswersTask)
         }
     
-    def run(self):
+    def run_inner(self):
         # For the report title, use the 'project_title' of the WBS Level 1 result.
         with self.input()['wbs_level1']['project_title'].open("r") as f:
             title = f.read()
@@ -2847,7 +2937,7 @@ class FullPlanPipeline(PlanTask):
     def output(self):
         return self.local_target(FilenameEnum.PIPELINE_COMPLETE)
 
-    def run(self):
+    def run_inner(self):
         with self.output().open("w") as f:
             f.write("Full pipeline executed successfully.\n")
 
@@ -2872,9 +2962,7 @@ class ExecutePipeline:
     llm_models: list[str]
     full_plan_pipeline_task: Optional[FullPlanPipeline] = field(default=None)
     all_expected_filenames: list[str] = field(default_factory=list)
-
-    # Indicates if the pipeline was stopped by the callback_run_task method.
-    stopped_by_callback: bool = field(default=False, init=False)
+    luigi_build_return_value: Optional[bool] = field(default=None, init=False)
 
     def setup(self) -> None:
         full_plan_pipeline_task = FullPlanPipeline(
@@ -2921,6 +3009,7 @@ class ExecutePipeline:
         ignore_files = [
             ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value,
             ExtraFilenameEnum.LOG_TXT.value,
+            ExtraFilenameEnum.PIPELINE_STOP_REQUESTED_FLAG.value,
             '.DS_Store',
         ]
         files = [f for f in files if f not in ignore_files]
@@ -2943,7 +3032,7 @@ class ExecutePipeline:
 
         return PipelineProgress(progress_message=progress_message, progress_percentage=progress_percentage)
 
-    def _handle_task_completion(self, parameters: HandleTaskCompletionParameters) -> bool:
+    def _handle_task_completion(self, parameters: HandleTaskCompletionParameters) -> None:
         """
         Protected hook method for custom logic after a task completes.
         This method is called by callback_run_task.
@@ -2956,16 +3045,14 @@ class ExecutePipeline:
                  The `self` of this method is the ExecutePipeline instance,
                  so you can access `self.run_id_dir`, `self.get_progress_percentage()`, etc.
 
-        Returns:
-            bool: False to continue the pipeline, True to abort.
-                  If True is returned, PlanTask.run() will raise a PlanTaskStop.
+        Raises:
+            PipelineStopRequested: To abort the pipeline execution.
         """
         logger.debug(f"ExecutePipeline._handle_task_completion: Default behavior for task {parameters.task.task_id} in run {self.run_id_dir}. Pipeline will continue.")
         # Default implementation simply allows the pipeline to continue.
         # Subclasses will provide meaningful implementations here.
-        return False
 
-    def callback_run_task(self, task: PlanTask, duration: float) -> bool:
+    def callback_run_task(self, task: PlanTask, duration: float) -> None:
         logger.debug(f"ExecutePipeline.callback_run_task: Task SUCCEEDED: {task.task_id}. Duration: {duration:.2f} seconds")
 
         progress: PipelineProgress = self.get_progress_percentage()
@@ -2974,14 +3061,7 @@ class ExecutePipeline:
         parameters = HandleTaskCompletionParameters(task=task, progress=progress, duration=duration)
 
         # Delegate custom handling (like DB updates or stop checks) to the hook method.
-        should_stop = self._handle_task_completion(parameters)
-
-        if should_stop:
-            self.stopped_by_callback = True
-
-        # Return False to continue running the pipeline.
-        # Return True to abort the pipeline.
-        return should_stop
+        self._handle_task_completion(parameters)
 
     @property
     def has_pipeline_complete_file(self) -> bool:
@@ -2993,27 +3073,43 @@ class ExecutePipeline:
         file_path = self.run_id_dir / FilenameEnum.REPORT.value
         return file_path.exists()
 
+    @property
+    def has_stop_flag_file(self) -> bool:
+        file_path = self.run_id_dir / ExtraFilenameEnum.PIPELINE_STOP_REQUESTED_FLAG.value
+        return file_path.exists()
+
     def run(self):
+        # Clean up any pre-existing stop flag before the run.
+        stop_flag_path = self.run_id_dir / ExtraFilenameEnum.PIPELINE_STOP_REQUESTED_FLAG.value
+        if stop_flag_path.exists():
+            logger.debug(f"Removing pre-existing stop flag file: {stop_flag_path!r}")
+            stop_flag_path.unlink()
+
         # create a json file with the expected filenames. Save it to the run/run_id/expected_filenames1.json
         expected_filenames_path = self.run_id_dir / ExtraFilenameEnum.EXPECTED_FILENAMES1_JSON.value
         with open(expected_filenames_path, "w") as f:
             json.dump(self.all_expected_filenames, f, indent=2)
         logger.info(f"Saved {len(self.all_expected_filenames)} expected filenames to {expected_filenames_path}")
 
-        luigi.build([self.full_plan_pipeline_task], local_scheduler=True, workers=1)
+        self.luigi_build_return_value = luigi.build([self.full_plan_pipeline_task], local_scheduler=True, workers=1)
 
+        # After the pipeline finishes (or fails), check for the stop flag.
+        if self.has_stop_flag_file:
+            logger.info("Pipeline was stopped intentionally via PipelineStopRequested exception.")
+
+        logger.info(f"luigi_build_return_value: {self.luigi_build_return_value}")
         logger.info(f"has_pipeline_complete_file: {self.has_pipeline_complete_file}")
         logger.info(f"has_report_file: {self.has_report_file}")
-        logger.info(f"stopped_by_callback: {self.stopped_by_callback}")
+        logger.info(f"has_stop_flag_file: {self.has_stop_flag_file}")
 
 class DemoStoppingExecutePipeline(ExecutePipeline):
     """
     Exercise the pipeline stopping mechanism.
-    when a task completes it returns True and causes the pipeline to stop.
+    when a task completes it raises PipelineStopRequested and causes the pipeline to stop.
     """
-    def _handle_task_completion(self, parameters: HandleTaskCompletionParameters) -> bool:
+    def _handle_task_completion(self, parameters: HandleTaskCompletionParameters) -> None:
         logger.info(f"DemoStoppingExecutePipeline._handle_task_completion: Demo of stopping the pipeline.")
-        return True
+        raise PipelineStopRequested("Demo: Stopping the pipeline after task completion")
 
 
 if __name__ == '__main__':

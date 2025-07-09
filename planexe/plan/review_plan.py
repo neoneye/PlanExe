@@ -1,7 +1,7 @@
 """
 Ask questions about the almost finished plan.
 
-PROMPT> python -m planexe.plan.plan_evaluator
+PROMPT> python -m planexe.plan.review_plan
 
 IDEA: Executive Summary: Briefly summarizing critical insights from the review.
 """
@@ -12,8 +12,10 @@ import logging
 from math import ceil
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
-from llama_index.core.llms import ChatMessage, MessageRole
+from llama_index.core.llms import ChatMessage, MessageRole, ChatResponse
 from llama_index.core.llms.llm import LLM
+from planexe.plan.speedvsdetail import SpeedVsDetailEnum
+from planexe.llm_util.llm_executor import LLMExecutor, LLMModelFromName, PipelineStopRequested
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +52,11 @@ Do not duplicate issues already identified in previous questions of this review.
 """
 
 @dataclass
+class ReviewPlanRunResult:
+    chat_response: ChatResponse
+    metadata: dict
+
+@dataclass
 class ReviewPlan:
     """
     Take a look at the proposed plan and provide feedback.
@@ -60,12 +67,14 @@ class ReviewPlan:
     markdown: str
 
     @classmethod
-    def execute(cls, llm: LLM, document: str) -> 'ReviewPlan':
+    def execute(cls, llm_executor: LLMExecutor, speed_vs_detail: SpeedVsDetailEnum, document: str) -> 'ReviewPlan':
         """
         Invoke LLM with the data to be reviewed.
         """
-        if not isinstance(llm, LLM):
-            raise ValueError("Invalid LLM instance.")
+        if not isinstance(llm_executor, LLMExecutor):
+            raise ValueError("Invalid LLMExecutor instance.")
+        if not isinstance(speed_vs_detail, SpeedVsDetailEnum):
+            raise ValueError("Invalid SpeedVsDetailEnum instance.")
         if not isinstance(document, str):
             raise ValueError("Invalid document.")
 
@@ -93,6 +102,11 @@ class ReviewPlan:
             ("Motivation Factors", "Identify exactly three factors essential to maintaining motivation and ensuring consistent progress toward the project's goals. For each factor, quantify potential setbacks if motivation falters (e.g., delays, reduced success rates, increased costs), clearly explain how it interacts with previously identified risks or assumptions, and provide a brief, actionable recommendation on maintaining motivation or addressing motivational barriers."),
             ("Automation Opportunities", "Identify exactly three opportunities within the project where tasks or processes can be automated or streamlined for improved efficiency. For each opportunity, quantify the potential savings (time, resources, or cost), explain how this interacts with previously identified timelines or resource constraints, and recommend a clear, actionable approach for implementing each automation or efficiency improvement."),
         ]
+        if speed_vs_detail == SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS:
+            title_question_list = title_question_list[:3]
+            logger.info("Running in FAST_BUT_SKIP_DETAILS mode. Omitting some questions.")
+        else:
+            logger.info("Running in ALL_DETAILS_BUT_SLOW mode. Processing all questions.")
 
         chat_message_list = [
             ChatMessage(
@@ -102,6 +116,7 @@ class ReviewPlan:
         ]
 
         question_answers_list = []
+        metadata_list = []
 
         durations = []
         response_byte_counts = []
@@ -114,34 +129,50 @@ class ReviewPlan:
                 content=question,
             ))
 
-            sllm = llm.as_structured_llm(DocumentDetails)
+            def execute_function(llm: LLM) -> ReviewPlanRunResult:
+                sllm = llm.as_structured_llm(DocumentDetails)
+                chat_response = sllm.chat(chat_message_list)
+                metadata = dict(llm.metadata)
+                metadata["llm_classname"] = llm.class_name()
+                return ReviewPlanRunResult(
+                    chat_response=chat_response,
+                    metadata=metadata
+                )
+
             start_time = time.perf_counter()
             try:
-                chat_response = sllm.chat(chat_message_list)
+                review_plan_run_result = llm_executor.run(execute_function)
+            except PipelineStopRequested:
+                # Re-raise PipelineStopRequested without wrapping it
+                raise
             except Exception as e:
                 logger.debug(f"Question {index} of {len(title_question_list)}. LLM chat interaction failed: {e}")
                 logger.error(f"Question {index} of {len(title_question_list)}. LLM chat interaction failed.", exc_info=True)
                 raise ValueError("LLM chat interaction failed.") from e
+            if not isinstance(review_plan_run_result, ReviewPlanRunResult):
+                raise ValueError(f"Expected a ReviewPlanRunResult instance. {review_plan_run_result!r}")
 
             end_time = time.perf_counter()
             duration = int(ceil(end_time - start_time))
             durations.append(duration)
-            response_byte_count = len(chat_response.message.content.encode('utf-8'))
+            response_byte_count = len(review_plan_run_result.chat_response.message.content.encode('utf-8'))
             response_byte_counts.append(response_byte_count)
             logger.info(f"Question {index} of {len(title_question_list)}. LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
 
-            json_response = chat_response.raw.model_dump()
+            json_response = review_plan_run_result.chat_response.raw.model_dump()
             logger.debug(json.dumps(json_response, indent=2))
 
             question_answers_list.append({
                 "title": title,
                 "question": question,
-                "answers": chat_response.raw.bullet_points,
+                "answers": review_plan_run_result.chat_response.raw.bullet_points,
             })
+
+            metadata_list.append(review_plan_run_result.metadata)
 
             chat_message_list.append(ChatMessage(
                 role=MessageRole.ASSISTANT,
-                content=chat_response.message.content,
+                content=review_plan_run_result.chat_response.message.content,
             ))
 
         response_byte_count_total = sum(response_byte_counts)
@@ -153,8 +184,7 @@ class ReviewPlan:
         duration_max = max(durations)
         duration_min = min(durations)
 
-        metadata = dict(llm.metadata)
-        metadata["llm_classname"] = llm.class_name()
+        metadata = {}
         metadata["duration_total"] = duration_total
         metadata["duration_average"] = duration_average
         metadata["duration_max"] = duration_max
@@ -163,6 +193,7 @@ class ReviewPlan:
         metadata["response_byte_count_average"] = response_byte_count_average
         metadata["response_byte_count_max"] = response_byte_count_max
         metadata["response_byte_count_min"] = response_byte_count_min
+        metadata["metadata_list"] = metadata_list
         markdown = cls.convert_to_markdown(question_answers_list)
 
         result = ReviewPlan(
@@ -217,9 +248,16 @@ class ReviewPlan:
             out_f.write(self.markdown)
 
 if __name__ == "__main__":
-    from planexe.llm_factory import get_llm
+    logging.basicConfig(level=logging.DEBUG)
 
-    llm = get_llm("ollama-llama3.1")
+    llm_models_names = [
+        # "ollama-llama3.1",
+        "openrouter-paid-gemini-2.0-flash-001",
+        "openrouter-paid-openai-gpt-4o-mini",
+        "openrouter-paid-qwen3-30b-a3b"
+    ]
+    llm_models = LLMModelFromName.from_names(llm_models_names)
+    llm_executor = LLMExecutor(llm_models=llm_models)
 
     path = os.path.join(os.path.dirname(__file__), 'test_data', "deadfish_assumptions.md")
     with open(path, 'r', encoding='utf-8') as f:
@@ -230,7 +268,7 @@ if __name__ == "__main__":
     )
     print(f"Query:\n{query}\n\n")
 
-    result = ReviewPlan.execute(llm, query)
+    result = ReviewPlan.execute(llm_executor, SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS, query)
     json_response = result.to_dict(include_system_prompt=False)
     print("\n\nResponse:")
     print(json.dumps(json_response, indent=2))
