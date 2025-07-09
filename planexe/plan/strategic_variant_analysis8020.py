@@ -30,9 +30,6 @@ class Dial(BaseModel):
     values: list[str] = Field(
         description="2-5 values for this dial."
     )
-    is_primary: bool = Field(
-        description="True if this a primary dial. False if this is a secondary dial."
-    )
     review_dial: str = Field(
         description="Did you forget any important values? Or is this too weak a dial? 30 words."
     )
@@ -81,7 +78,6 @@ Create a list of exactly 20 dials according to the rules above. For each dial, p
 - `dial_index`: A unique integer index starting from 1.
 - `name`: A clear, concise name for the INPUT DECISION.
 - `values`: 2-4 distinct, descriptive strategic choices.
-- `is_primary`: Set to `true` for the 3-5 most foundational dials. Otherwise, `false`.
 - `review_dial`: **CRITICAL SELF-ASSESSMENT.** Briefly justify why this is a valid input dial and not an outcome/KPI. Mention a potential weakness if you see one.
 
 **Step 3: Write the Final Summary**
