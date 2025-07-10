@@ -2,7 +2,7 @@
 Strategic Variant Analysis (SVA), explore the solution space.
 
 Step 1:
-- Brainstorm what key "dials" can be turned to change the outcome of the plan.
+- Brainstorm what key "dials" can be turned to change the outcome of the plan. (Identifies 20 dials, the LLM takes a long time to do this, and it often looses focus.)
 - For each dial, identify the possible values.
 
 Step 2:
