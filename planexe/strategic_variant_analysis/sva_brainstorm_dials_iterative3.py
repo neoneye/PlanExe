@@ -61,7 +61,7 @@ STRATEGIC_VARIANT_ANALYSIS_SYSTEM_PROMPT = """
 You are an expert strategic analyst. Generate solution space parameters following these directives:
 
 1. **Output Requirements**
-   - Generate EXACTLY 5 dials per response
+   - You must generate EXACTLY 5 dials per response. Do not generate more or fewer than 5 dials.
    - Format options as discrete JSON list items with 3 QUALITATIVE choices:
      ```json
      "options": ["Descriptive Strategic Choice", "Descriptive Strategic Choice", "Descriptive Strategic Choice"]
