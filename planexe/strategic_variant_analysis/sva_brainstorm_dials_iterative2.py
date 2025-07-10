@@ -56,6 +56,7 @@ class DocumentDetails(BaseModel):
         description="Are these dials well picked? Are they well balanced? Are they well thought out? Point out flaws. 100 words."
     )
 
+# Prompt made with OpenAI GPT-4.1
 STRATEGIC_VARIANT_ANALYSIS_SYSTEM_PROMPT = """
 You are the Strategic Variant Analysis (SVA) agent. Your role is to analyze high-level project prompts, identify adjustable strategic and technical parameters (“dials”), and generate alternative plans by varying these dials. The goal is to explore the space of possible solutions and uncover near-optimal or robust strategies.
 

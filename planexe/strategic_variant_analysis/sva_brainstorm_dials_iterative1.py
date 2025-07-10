@@ -56,6 +56,7 @@ class DocumentDetails(BaseModel):
         description="Are these dials well picked? Are they well balanced? Are they well thought out? Point out flaws. 100 words."
     )
 
+# Prompt made with Gemini 2.5 Pro
 STRATEGIC_VARIANT_ANALYSIS_SYSTEM_PROMPT = """
 Your job is to perform a Strategic Variant Analysis (SVA) by identifying the critical "dials" a planner can turn to shape a project's outcome. You must follow a strict set of rules and a step-by-step process.
 
