@@ -92,14 +92,14 @@ In the `summary` field, critically evaluate your entire list of 20 dials. Identi
 """
 
 @dataclass
-class StrategicVariantAnalysis:
+class SVABrainstormDials:
     system_prompt: Optional[str]
     user_prompt: str
     response: str
     metadata: dict
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'StrategicVariantAnalysis':
+    def execute(cls, llm: LLM, user_prompt: str) -> 'SVABrainstormDials':
         if not isinstance(llm, LLM):
             raise ValueError("Invalid LLM instance.")
         if not isinstance(user_prompt, str):
@@ -138,7 +138,7 @@ class StrategicVariantAnalysis:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
-        result = StrategicVariantAnalysis(
+        result = SVABrainstormDials(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     llm = get_llm(model_name)
 
     print(f"Query: {query}")
-    result = StrategicVariantAnalysis.execute(llm, query)
+    result = SVABrainstormDials.execute(llm, query)
 
     print("\nResponse:")
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
