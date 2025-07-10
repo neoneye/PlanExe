@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from llama_index.core.llms.llm import LLM
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
+from planexe.llm_util.llm_executor import LLMExecutor, PipelineStopRequested
 
 logger = logging.getLogger(__name__)
 
@@ -99,9 +100,9 @@ class SVABrainstormDials:
     metadata: dict
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'SVABrainstormDials':
-        if not isinstance(llm, LLM):
-            raise ValueError("Invalid LLM instance.")
+    def execute(cls, llm_executor: LLMExecutor, user_prompt: str) -> 'SVABrainstormDials':
+        if not isinstance(llm_executor, LLMExecutor):
+            raise ValueError("Invalid LLMExecutor instance.")
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
         
@@ -117,10 +118,22 @@ class SVABrainstormDials:
             )
         ]
 
-        sllm = llm.as_structured_llm(DocumentDetails)
+        def execute_function(llm: LLM) -> dict:
+            sllm = llm.as_structured_llm(DocumentDetails)
+            chat_response = sllm.chat(chat_message_list)
+            metadata = dict(llm.metadata)
+            metadata["llm_classname"] = llm.class_name()
+            return {
+                "chat_response": chat_response,
+                "metadata": metadata
+            }
+
         start_time = time.perf_counter()
         try:
-            chat_response = sllm.chat(chat_message_list)
+            result = llm_executor.run(execute_function)
+        except PipelineStopRequested:
+            # Re-raise PipelineStopRequested without wrapping it
+            raise
         except Exception as e:
             logger.debug(f"LLM chat interaction failed: {e}")
             logger.error("LLM chat interaction failed.", exc_info=True)
@@ -128,13 +141,12 @@ class SVABrainstormDials:
 
         end_time = time.perf_counter()
         duration = int(ceil(end_time - start_time))
-        response_byte_count = len(chat_response.message.content.encode('utf-8'))
+        response_byte_count = len(result["chat_response"].message.content.encode('utf-8'))
         logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
 
-        json_response = chat_response.raw.model_dump()
+        json_response = result["chat_response"].raw.model_dump()
 
-        metadata = dict(llm.metadata)
-        metadata["llm_classname"] = llm.class_name()
+        metadata = result["metadata"]
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
@@ -161,7 +173,7 @@ class SVABrainstormDials:
             f.write(json.dumps(self.to_dict(), indent=2))
     
 if __name__ == "__main__":
-    from planexe.llm_factory import get_llm
+    from planexe.llm_util.llm_executor import LLMModelFromName
     from planexe.prompt.prompt_catalog import PromptCatalog
 
     prompt_catalog = PromptCatalog()
@@ -172,13 +184,16 @@ if __name__ == "__main__":
         raise ValueError("Prompt item not found.")
     query = prompt_item.prompt
 
-    model_name = "ollama-llama3.1"
-    # model_name = "openrouter-paid-gemini-2.0-flash-001"
-    # model_name = "openrouter-paid-qwen3-30b-a3b"
-    llm = get_llm(model_name)
+    model_names = [
+        "ollama-llama3.1",
+        # "openrouter-paid-gemini-2.0-flash-001",
+        # "openrouter-paid-qwen3-30b-a3b"
+    ]
+    llm_models = LLMModelFromName.from_names(model_names)
+    llm_executor = LLMExecutor(llm_models=llm_models)
 
     print(f"Query: {query}")
-    result = SVABrainstormDials.execute(llm, query)
+    result = SVABrainstormDials.execute(llm_executor, query)
 
     print("\nResponse:")
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
