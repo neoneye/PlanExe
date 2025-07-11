@@ -103,14 +103,14 @@ You are an expert strategic analyst. Generate solution space parameters followin
 """
 
 @dataclass
-class SVABrainstormLevers:
+class IdentifyPotentialLevers:
     system_prompt: Optional[str]
     user_prompt: str
     responses: list[str]
     metadata: dict
 
     @classmethod
-    def execute(cls, llm_executor: LLMExecutor, user_prompt: str) -> 'SVABrainstormLevers':
+    def execute(cls, llm_executor: LLMExecutor, user_prompt: str) -> 'IdentifyPotentialLevers':
         if not isinstance(llm_executor, LLMExecutor):
             raise ValueError("Invalid LLMExecutor instance.")
         if not isinstance(user_prompt, str):
@@ -176,7 +176,7 @@ class SVABrainstormLevers:
 
         metadata = {}
 
-        result = SVABrainstormLevers(
+        result = IdentifyPotentialLevers(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             responses=responses,
@@ -223,7 +223,7 @@ if __name__ == "__main__":
     llm_executor = LLMExecutor(llm_models=llm_models)
 
     print(f"Query: {query}")
-    result = SVABrainstormLevers.execute(llm_executor, query)
+    result = IdentifyPotentialLevers.execute(llm_executor, query)
 
     print("\nResponse:")
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
