@@ -13,7 +13,7 @@ Step 3:
 - With all the permutations of the dials and their values, take 20 random samples.
 - 80/20 rule: Identify the most significant 4 samples. Discard the rest.
 
-PROMPT> python -m planexe.strategic_variant_analysis.sva_brainstorm_dials_iterative2
+PROMPT> python -m planexe.strategic_variant_analysis.identify_potential_levers_legacy3_openai
 """
 import json
 import time
