@@ -11,7 +11,15 @@ The goal is to create a [MECE (Mutually Exclusive, Collectively Exhaustive)](htt
 2. **Enumerate Options**
    - For each lever, jot down all feasible settings (e.g. “Additive Only,” “Subtractive Only,” “Hybrid”).
 
-## Step 2: Focus on the "Vital Few" levers
+## Step 2: Enrich the potential levers with more details
+1. **Considerations related to irreversibility**
+  - “Cost of Being Wrong”
+  - Is this a one-way, “bet-the-company” move.
+  - “Can I go back?”
+  - “If I can’t, how bad is it?”
+  - “Will I be boxed in or can I adapt?”
+
+## Step 3: Focus on the "Vital Few" levers
 1. **Apply the 80/20 Rule**
    - From your brainstorm, identify the handful (≈4–6) of levers that will likely drive ≈80% of the impact.
 2. **Assess Importance**
@@ -21,7 +29,7 @@ The goal is to create a [MECE (Mutually Exclusive, Collectively Exhaustive)](htt
 3. **Select the “Vital Few”**
    - Retain only those levers that combine high impact with manageable effort. Discard the rest or park them for later.
 
-## Step 3: Sample & prioritize combinations
+## Step 4: Sample & prioritize combinations
 1. **Random Sampling**
    - From your key levers and their settings, generate **N** random combinations (N = 20).
 2. **Evaluate & Rank**
