@@ -126,7 +126,7 @@ You are an expert strategic analyst. Generate solution space parameters followin
 class IdentifyPotentialLevers:
     system_prompt: Optional[str]
     user_prompt: str
-    responses: list[str]
+    raw_responses: list[DocumentDetails]
     levers: list[LeverCleaned]
     metadata: dict
 
@@ -155,8 +155,7 @@ class IdentifyPotentialLevers:
             "more",
         ]
 
-        responses = []
-        raw_responses = []
+        raw_responses: list[DocumentDetails] = []
         for user_prompt_index, user_prompt_item in enumerate(user_prompt_list, start=1):
             logger.info(f"Processing user_prompt_index: {user_prompt_index} of {len(user_prompt_list)}")
             chat_message_list.append(
@@ -193,7 +192,6 @@ class IdentifyPotentialLevers:
                 )
             )
 
-            responses.append(result["chat_response"].raw.model_dump())
             raw_responses.append(result["chat_response"].raw)
 
         # from the raw_responses, extract the levers into a flatten list
@@ -218,7 +216,7 @@ class IdentifyPotentialLevers:
         result = IdentifyPotentialLevers(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            responses=responses,
+            raw_responses=raw_responses,
             levers=levers_cleaned,
             metadata=metadata,
         )
@@ -227,7 +225,7 @@ class IdentifyPotentialLevers:
     def to_dict(self, include_raw_responses=True, include_cleaned_levers=True, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
         d = {}
         if include_raw_responses:
-            d["responses"] = self.responses.copy()
+            d["raw_responses"] = [response.model_dump() for response in self.raw_responses]
         if include_cleaned_levers:
             d['levers'] = [lever.model_dump() for lever in self.levers]
         if include_metadata:
