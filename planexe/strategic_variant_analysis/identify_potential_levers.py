@@ -54,8 +54,7 @@ class DocumentDetails(BaseModel):
         description="Are these levers well picked? Are they well balanced? Are they well thought out? Point out flaws. 100 words."
     )
 
-# Prompt made with DeepSeek R1
-STRATEGIC_VARIANT_ANALYSIS_SYSTEM_PROMPT = """
+IDENTIFY_POTENTIAL_LEVERS_SYSTEM_PROMPT = """
 You are an expert strategic analyst. Generate solution space parameters following these directives:
 
 1. **Output Requirements**
@@ -116,7 +115,7 @@ class IdentifyPotentialLevers:
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
         
-        system_prompt = STRATEGIC_VARIANT_ANALYSIS_SYSTEM_PROMPT.strip()
+        system_prompt = IDENTIFY_POTENTIAL_LEVERS_SYSTEM_PROMPT.strip()
         chat_message_list = [
             ChatMessage(
                 role=MessageRole.SYSTEM,
@@ -135,8 +134,8 @@ class IdentifyPotentialLevers:
         ]
 
         responses = []
-        for user_prompt_index, user_prompt_item in enumerate(user_prompt_list):
-            logger.info(f"Processing user_prompt_index: {user_prompt_index}")
+        for user_prompt_index, user_prompt_item in enumerate(user_prompt_list, start=1):
+            logger.info(f"Processing user_prompt_index: {user_prompt_index} of {len(user_prompt_list)}")
             chat_message_list.append(
                 ChatMessage(
                     role=MessageRole.USER,
