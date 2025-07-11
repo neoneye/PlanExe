@@ -265,6 +265,7 @@ if __name__ == "__main__":
     prompt_catalog = PromptCatalog()
     prompt_catalog.load_simple_plan_prompts()
 
+    # prompt_id = "b9afce6c-f98d-4e9d-8525-267a9d153b51"
     # prompt_id = "a6bef08b-c768-4616-bc28-7503244eff02"
     prompt_id = "19dc0718-3df7-48e3-b06d-e2c664ecc07d"
     prompt_item = prompt_catalog.find(prompt_id)
