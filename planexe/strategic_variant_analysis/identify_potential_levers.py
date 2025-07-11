@@ -14,6 +14,8 @@ Step 3:
 - 80/20 rule: Identify the most significant 4 samples. Discard the rest.
 
 PROMPT> python -m planexe.strategic_variant_analysis.identify_potential_levers
+
+IDEA: Your current filter treats each lever in isolation—this is a classic strategic trap. The “vital few” are often those with the highest interaction potential, not just those that look good on their own.
 """
 import json
 import logging
