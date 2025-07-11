@@ -17,6 +17,7 @@ PROMPT> python -m planexe.strategic_variant_analysis.identify_potential_levers
 """
 import json
 import logging
+from pathlib import Path
 from typing import Optional
 from dataclasses import dataclass
 from llama_index.core.llms.llm import LLM
@@ -240,9 +241,20 @@ class IdentifyPotentialLevers:
             d['user_prompt'] = self.user_prompt
         return d
 
-    def save_raw(self, file_path: str) -> None:
-        with open(file_path, 'w') as f:
-            f.write(json.dumps(self.to_dict(), indent=2))
+    def save_raw(self, file_path: Path) -> None:
+        file_path.write_text(json.dumps(self.to_dict(), indent=2))
+
+    def save_as_test_data(self, file_path: Path) -> None:
+        levers_dict = [lever.model_dump() for lever in self.levers]
+        levers_json = json.dumps(levers_dict, indent=2)
+        rows = [
+            f"file: 'plan.txt':",
+            self.user_prompt,
+            "",
+            f"file: 'potential_levers.json':",
+            levers_json
+        ]
+        file_path.write_text("\n".join(rows))
     
 if __name__ == "__main__":
     from planexe.llm_util.llm_executor import LLMModelFromName
@@ -252,8 +264,10 @@ if __name__ == "__main__":
 
     prompt_catalog = PromptCatalog()
     prompt_catalog.load_simple_plan_prompts()
-    # prompt_item = prompt_catalog.find("a6bef08b-c768-4616-bc28-7503244eff02")
-    prompt_item = prompt_catalog.find("19dc0718-3df7-48e3-b06d-e2c664ecc07d")
+
+    # prompt_id = "a6bef08b-c768-4616-bc28-7503244eff02"
+    prompt_id = "19dc0718-3df7-48e3-b06d-e2c664ecc07d"
+    prompt_item = prompt_catalog.find(prompt_id)
     if not prompt_item:
         raise ValueError("Prompt item not found.")
     query = prompt_item.prompt
@@ -272,3 +286,7 @@ if __name__ == "__main__":
     print("\nResponse:")
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print(json.dumps(json_response, indent=2))
+
+    test_data_filename = f"identify_potential_levers_{prompt_id}.txt"
+    result.save_as_test_data(Path(test_data_filename))
+    print(f"Test data saved to: {test_data_filename!r}")
