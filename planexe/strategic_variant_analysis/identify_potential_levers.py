@@ -156,6 +156,7 @@ class IdentifyPotentialLevers:
         ]
 
         raw_responses: list[DocumentDetails] = []
+        metadata_list: list[dict] = []
         for user_prompt_index, user_prompt_item in enumerate(user_prompt_list, start=1):
             logger.info(f"Processing user_prompt_index: {user_prompt_index} of {len(user_prompt_list)}")
             chat_message_list.append(
@@ -193,6 +194,7 @@ class IdentifyPotentialLevers:
             )
 
             raw_responses.append(result["chat_response"].raw)
+            metadata_list.append(result["metadata"])
 
         # from the raw_responses, extract the levers into a flatten list
         levers_raw: list[Lever] = []
@@ -212,6 +214,8 @@ class IdentifyPotentialLevers:
             levers_cleaned.append(lever_cleaned)
 
         metadata = {}
+        for metadata_index, metadata_item in enumerate(metadata_list, start=1):
+            metadata[f"metadata_{metadata_index}"] = metadata_item
 
         result = IdentifyPotentialLevers(
             system_prompt=system_prompt,
