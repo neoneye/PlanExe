@@ -11,7 +11,7 @@ This module analyzes lever lists to identify:
 
 The result is a cleaner, more focused list of essential strategic levers.
 
-PROMPT> python -m planexe.strategic_variant_analysis.prioritize_strategic_levers1
+PROMPT> python -m planexe.strategic_variant_analysis.filter_levers1
 """
 import os
 import json

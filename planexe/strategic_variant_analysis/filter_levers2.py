@@ -10,7 +10,7 @@ Step 2: Focus on the "Vital Few" Levers
 - The goal is to identify the ~20% of levers (the "vital few," e.g., 4-6) that will dictate ~80% of the project's strategic outcome.
 - The output is a curated list of the most significant levers, along with the rationale for their selection.
 
-PROMPT> python -m planexe.strategic_variant_analysis.prioritize_strategic_levers2
+PROMPT> python -m planexe.strategic_variant_analysis.filter_levers2
 """
 import json
 import logging
