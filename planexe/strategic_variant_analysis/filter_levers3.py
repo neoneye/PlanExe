@@ -15,30 +15,49 @@ from planexe.llm_util.llm_executor import LLMExecutor, PipelineStopRequested
 logger = logging.getLogger(__name__)
 
 class Lever(BaseModel):
-    lever_index: int = Field(description="Index of this lever.")
+    id: str = Field(description="Unique identifier for the lever.")
     name: str = Field(description="Name of this lever.")
     consequences: str = Field(description="Likely second-order effects of pulling this lever.")
     options: List[str] = Field(description="Options for this lever.")
-    review_lever: str = Field(description="Critique of this lever.")
+    review: str = Field(description="Critique of this lever.")
 
-class SelectedLever(Lever):
-    selection_reason: str = Field(
-        description="Reason for selection linking to strategic impact and criteria."
-    )
+class LeverAssessment(BaseModel):
+    lever_id: str = Field(description="ID of the lever being assessed.")
     impact_score: int = Field(
-        description="Strategic impact score (1-5) based on criteria.",
+        description="Strategic impact score (1-5)",
         ge=1,
         le=5
     )
     controllability_score: int = Field(
-        description="Controllability score (1-5) based on criteria.",
+        description="Controllability score (1-5)",
         ge=1,
         le=5
     )
+    differentiation_score: int = Field(
+        description="Differentiation score (1-5)",
+        ge=1,
+        le=5
+    )
+    leverage_score: int = Field(
+        description="Leverage score (1-5)",
+        ge=1,
+        le=5
+    )
+    risk_score: int = Field(
+        description="Risk exposure score (1-5)",
+        ge=1,
+        le=5
+    )
+    assessment_note: str = Field(
+        description="Brief justification for scores (20 words)."
+    )
 
 class NarrowedLevers(BaseModel):
-    selected_levers: List[SelectedLever] = Field(
-        description="4-5 vital levers selected using 80/20 principle."
+    all_assessments: List[LeverAssessment] = Field(
+        description="Assessment of all levers against the 5 criteria."
+    )
+    selected_lever_ids: List[str] = Field(
+        description="4-5 lever IDs selected as vital using 80/20 principle."
     )
     summary: str = Field(
         description="Strategic justification for selection and expected impact."
@@ -47,39 +66,50 @@ class NarrowedLevers(BaseModel):
     @model_validator(mode='after')
     def validate_lever_count(self) -> 'NarrowedLevers':
         """Ensure exactly 4-5 levers are selected"""
-        lever_count = len(self.selected_levers)
+        lever_count = len(self.selected_lever_ids)
         if lever_count < 4 or lever_count > 5:
             raise ValueError(f"Must select 4-5 levers, got {lever_count}")
         return self
 
 NARROW_DOWN_LEVERS_SYSTEM_PROMPT = """
-You are an expert strategic analyst applying the 80/20 Pareto principle. Identify the vital 4-5 levers that will drive 80% of strategic impact.
+You are an expert strategic analyst applying the 80/20 Pareto principle. Follow this 3-step process:
 
-**CRITICAL: You MUST select EXACTLY 4 or 5 levers.**
-- Selecting fewer than 4 or more than 5 will cause system failure
-- System will reject any response with incorrect lever count
+### STEP 1: ASSESS ALL LEVERS
+For each lever, score against these criteria (1-5):
+1. 🎯 Strategic Impact: Effect on core space manufacturing outcomes
+2. 🕹️ Controllability: Our ability to influence within 20-year timeline
+3. 🚀 Differentiation: Unique advantage for space-based manufacturing
+4. 🔄 Leverage: Value relative to EUR 200B budget
+5. ⚠️ Risk Exposure: Effect on key technical/schedule risks
 
-**Selection Criteria (Score 1-5 for each):**
-1. 🎯 Strategic Impact: Effect on core outcomes
-2. 🕹️ Controllability: Our ability to influence
-3. 🚀 Differentiation: Unique competitive advantage
-4. 🔄 Leverage: Value relative to effort
-5. ⚠️ Risk Exposure: Effect on key risks
+### STEP 2: SELECT VITAL LEVERS
+- Apply 80/20 principle to select EXACTLY 4-5 most promising lever IDs
+- Include brief justification for each selection
+- MUST NOT select more than 5 levers
 
-**Output Requirements:**
-- For each selected lever:
-  • Preserve original fields
-  • Add `selection_reason` linking to specific criteria and project context
-  • Add impact_score (1-5) and controllability_score (1-5)
-- Write 100-word summary explaining:
-  • Why these represent the vital 20%
-  • How they address core tensions
-  • Expected strategic benefits
+### STEP 3: STRATEGIC SUMMARY
+Write 100-word summary explaining:
+- Why these levers represent the vital 20%
+- How they address core tensions in space-based manufacturing
+- Expected benefits for the EUR 200B initiative
 
-**Prohibitions:**
-- NO selection without explicit scoring against all 5 criteria
-- NO generic reasons - must reference project specifics
-- NO exceeding 5 levers under any circumstances
+### OUTPUT FORMAT
+{
+  "all_assessments": [
+    {
+      "lever_id": "Lever-1",
+      "impact_score": 5,
+      "controllability_score": 4,
+      "differentiation_score": 5,
+      "leverage_score": 4,
+      "risk_score": 3,
+      "assessment_note": "Brief justification..."
+    },
+    ... (all levers)
+  ],
+  "selected_lever_ids": ["Lever-1", "Lever-3", ...],
+  "summary": "Strategic justification..."
+}
 """
 
 @dataclass
@@ -103,11 +133,15 @@ class NarrowDownLevers:
         if not user_prompt or not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
         
-        # Aggregate levers
+        # Aggregate levers and ensure IDs
         all_levers = []
         for response in lever_responses:
             if "levers" in response:
-                all_levers.extend(response["levers"])
+                for i, lever in enumerate(response["levers"]):
+                    # Ensure every lever has an ID
+                    if "id" not in lever:
+                        lever["id"] = f"Lever-{i+1}"
+                    all_levers.append(lever)
         
         if len(all_levers) < 5:
             logger.warning(f"Only {len(all_levers)} levers found for narrowing")
@@ -116,18 +150,21 @@ class NarrowDownLevers:
         system_prompt = NARROW_DOWN_LEVERS_SYSTEM_PROMPT.strip()
         
         lever_context = "\n\n".join(
-            f"Lever {idx}: {json.dumps(lever)}" 
-            for idx, lever in enumerate(all_levers, 1)
+            f"Lever ID: {lever['id']}\nName: {lever['name']}\n"
+            f"Consequences: {lever['consequences']}\n"
+            f"Options: {', '.join(lever['options'])}\n"
+            f"Review: {lever['review']}"
+            for lever in all_levers
         )
         
         user_message = (
-            f"## Project Context\n{user_prompt}\n\n"
-            f"## {len(all_levers)} Potential Levers\n{lever_context}\n\n"
-            "## Instructions\n"
-            "1. Select EXACTLY 4-5 vital levers using 80/20 principle\n"
-            "2. For each: Add selection_reason, impact_score, controllability_score\n"
-            "3. Write strategic summary\n"
-            "4. CRITICAL: Select EXACTLY 4-5 levers - system will fail otherwise"
+            f"## SPACE MANUFACTURING INITIATIVE CONTEXT\n{user_prompt}\n\n"
+            f"## {len(all_levers)} POTENTIAL LEVERS\n{lever_context}\n\n"
+            "## EXECUTION INSTRUCTIONS\n"
+            "1. FIRST: Score ALL levers against all 5 criteria\n"
+            "2. SECOND: Select EXACTLY 4-5 lever IDs using 80/20 principle\n"
+            "3. THIRD: Write strategic summary\n"
+            "4. OUTPUT: Use required JSON format with all 3 components"
         )
         
         # Prepare messages
@@ -136,7 +173,7 @@ class NarrowDownLevers:
             ChatMessage(role=MessageRole.USER, content=user_message)
         ]
         
-        # Execute with retries for lever count validation
+        # Execute with retries for validation
         max_retries = 3
         for attempt in range(max_retries):
             try:
@@ -166,7 +203,7 @@ class NarrowDownLevers:
                     # Add warning to prompt for next attempt
                     chat_messages.append(ChatMessage(
                         role=MessageRole.SYSTEM,
-                        content=f"CRITICAL ERROR: Previous response had incorrect lever count. You MUST select EXACTLY 4 or 5 levers. Failure to comply will terminate the process."
+                        content=f"CRITICAL: Previous response had incorrect lever count. You MUST select EXACTLY 4 or 5 levers."
                     ))
                 else:
                     raise
@@ -194,25 +231,41 @@ class NarrowDownLevers:
 
     def print_results(self) -> None:
         """Print formatted results with strategic scoring"""
-        narrowed = self.response
+        response = self.response
         
-        print("\n🔥 Selected Vital Levers (4-5) 🔥")
-        print(f"Strategic Impact Summary: {narrowed['summary']}\n")
+        print("\n📊 COMPLETE LEVER ASSESSMENTS")
+        print("┌─────────────┬───────────────┬───────┬───────┬───────┬───────┬───────┐")
+        print("│ Lever ID    │ Name          │ Imp.  │ Ctrl. │ Diff. │ Lev.  │ Risk  │")
+        print("├─────────────┼───────────────┼───────┼───────┼───────┼───────┼───────┤")
         
-        print("┌───────────────────────────────┬───────┬───────┐")
-        print("│ Lever                         │ Impact│ Control│")
-        print("├───────────────────────────────┼───────┼───────┤")
-        for lever in narrowed["selected_levers"]:
-            name = lever['name'][:25] + '...' if len(lever['name']) > 28 else lever['name']
-            print(f"│ {name.ljust(30)}│   {lever['impact_score']}   │   {lever['controllability_score']}   │")
-            print(f"├───────────────────────────────┼───────┼───────┤")
-        print("└───────────────────────────────┴───────┴───────┘\n")
+        # Create lookup for lever details
+        lever_map = {lever['id']: lever for lever in self.aggregated_levers}
         
-        print("🧠 Selection Reasoning:")
-        for lever in narrowed["selected_levers"]:
-            print(f"\n🔹 {lever['name']}")
-            print(f"   Reason: {lever['selection_reason']}")
-            print(f"   Options: {', '.join(lever['options'][:3])}")
+        for assessment in response["all_assessments"]:
+            lever_id = assessment["lever_id"]
+            lever = lever_map.get(lever_id, {"name": "Unknown"})
+            name = lever["name"][:12] + '...' if len(lever["name"]) > 15 else lever["name"]
+            
+            print(f"│ {lever_id.ljust(12)}│ {name.ljust(14)}│   {assessment['impact_score']}   │"
+                  f"   {assessment['controllability_score']}   │   {assessment['differentiation_score']}   │"
+                  f"   {assessment['leverage_score']}   │   {assessment['risk_score']}   │")
+            print("├─────────────┼───────────────┼───────┼───────┼───────┼───────┼───────┤")
+        print("└─────────────┴───────────────┴───────┴───────┴───────┴───────┴───────┘")
+        
+        # Print selected levers
+        print("\n🔝 SELECTED VITAL LEVERS (4-5)")
+        print("┌─────────────┬───────────────────────────────────────┐")
+        print("│ Lever ID    │ Name                                  │")
+        print("├─────────────┼───────────────────────────────────────┤")
+        for lever_id in response["selected_lever_ids"]:
+            lever = lever_map.get(lever_id, {"name": "Unknown"})
+            name = lever["name"][:35] + '...' if len(lever["name"]) > 38 else lever["name"]
+            print(f"│ {lever_id.ljust(12)}│ {name.ljust(37)} │")
+            print("├─────────────┼───────────────────────────────────────┤")
+        print("└─────────────┴───────────────────────────────────────┘")
+        
+        # Print summary
+        print(f"\n📝 STRATEGIC SUMMARY:\n{response['summary']}")
 
 def parse_test_data(file_content: str) -> tuple[str, list]:
     """Extract user prompt and lever list from test data file"""
