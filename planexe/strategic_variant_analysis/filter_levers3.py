@@ -1,5 +1,5 @@
 """
-This was generated with DeepSeek R1.
+This was generated with DeepSeek R1. The forced ranking approach.
 
 PROMPT> python -m planexe.strategic_variant_analysis.filter_levers3
 """
@@ -21,40 +21,28 @@ class Lever(BaseModel):
     options: List[str] = Field(description="Options for this lever.")
     review: str = Field(description="Critique of this lever.")
 
-class LeverAssessment(BaseModel):
-    lever_id: str = Field(description="ID of the lever being assessed.")
-    impact_score: int = Field(
-        description="Strategic impact score (1-5)",
+class LeverRanking(BaseModel):
+    lever_id: str = Field(description="ID of the lever being ranked.")
+    strategic_impact_rank: int = Field(
+        description="Rank (1-15) for impact on space manufacturing outcomes (1=highest)",
         ge=1,
-        le=5
+        le=15
     )
-    controllability_score: int = Field(
-        description="Controllability score (1-5)",
+    controllability_rank: int = Field(
+        description="Rank (1-15) for our ability to influence (1=highest)",
         ge=1,
-        le=5
+        le=15
     )
-    differentiation_score: int = Field(
-        description="Differentiation score (1-5)",
+    differentiation_rank: int = Field(
+        description="Rank (1-15) for unique competitive advantage (1=highest)",
         ge=1,
-        le=5
+        le=15
     )
-    leverage_score: int = Field(
-        description="Leverage score (1-5)",
-        ge=1,
-        le=5
-    )
-    risk_score: int = Field(
-        description="Risk exposure score (1-5)",
-        ge=1,
-        le=5
-    )
-    assessment_note: str = Field(
-        description="Brief justification for scores (20 words)."
-    )
+    assessment_note: str = Field(description="Brief justification for rankings (20 words).")
 
 class NarrowedLevers(BaseModel):
-    all_assessments: List[LeverAssessment] = Field(
-        description="Assessment of all levers against the 5 criteria."
+    all_rankings: List[LeverRanking] = Field(
+        description="Ranking of all levers against key criteria."
     )
     selected_lever_ids: List[str] = Field(
         description="4-5 lever IDs selected as vital using 80/20 principle."
@@ -72,20 +60,23 @@ class NarrowedLevers(BaseModel):
         return self
 
 NARROW_DOWN_LEVERS_SYSTEM_PROMPT = """
-You are an expert strategic analyst applying the 80/20 Pareto principle. Follow this 3-step process:
+You are an expert strategic analyst applying the 80/20 Pareto principle. Follow this rigorous 3-step process:
 
-### STEP 1: ASSESS ALL LEVERS
-For each lever, score against these criteria (1-5):
-1. 🎯 Strategic Impact: Effect on core space manufacturing outcomes
+### STEP 1: RANK ALL LEVERS
+For each of these criteria, rank ALL 15 levers from 1 (best) to 15 (worst):
+1. 🚀 Strategic Impact: Effect on space manufacturing goals
 2. 🕹️ Controllability: Our ability to influence within 20-year timeline
-3. 🚀 Differentiation: Unique advantage for space-based manufacturing
-4. 🔄 Leverage: Value relative to EUR 200B budget
-5. ⚠️ Risk Exposure: Effect on key technical/schedule risks
+3. 🎯 Differentiation: Unique competitive advantage for space manufacturing
+
+RULES FOR RANKING:
+- Each rank (1-15) MUST be used exactly once per criteria
+- No ties allowed - each lever gets a unique rank per criteria
+- Base rankings on the specific context of the EUR 200B initiative
 
 ### STEP 2: SELECT VITAL LEVERS
-- Apply 80/20 principle to select EXACTLY 4-5 most promising lever IDs
+- Calculate a combined score for each lever: (strategic_impact_rank + controllability_rank + differentiation_rank)
+- Select the 4-5 levers with the LOWEST combined scores (highest priority)
 - Include brief justification for each selection
-- MUST NOT select more than 5 levers
 
 ### STEP 3: STRATEGIC SUMMARY
 Write 100-word summary explaining:
@@ -95,14 +86,12 @@ Write 100-word summary explaining:
 
 ### OUTPUT FORMAT
 {
-  "all_assessments": [
+  "all_rankings": [
     {
       "lever_id": "Lever-1",
-      "impact_score": 5,
-      "controllability_score": 4,
-      "differentiation_score": 5,
-      "leverage_score": 4,
-      "risk_score": 3,
+      "strategic_impact_rank": 3,
+      "controllability_rank": 5,
+      "differentiation_rank": 2,
       "assessment_note": "Brief justification..."
     },
     ... (all levers)
@@ -143,8 +132,8 @@ class NarrowDownLevers:
                         lever["id"] = f"Lever-{i+1}"
                     all_levers.append(lever)
         
-        if len(all_levers) < 5:
-            logger.warning(f"Only {len(all_levers)} levers found for narrowing")
+        if len(all_levers) != 15:
+            logger.warning(f"Expected 15 levers, found {len(all_levers)}")
         
         # Prepare prompts
         system_prompt = NARROW_DOWN_LEVERS_SYSTEM_PROMPT.strip()
@@ -161,8 +150,8 @@ class NarrowDownLevers:
             f"## SPACE MANUFACTURING INITIATIVE CONTEXT\n{user_prompt}\n\n"
             f"## {len(all_levers)} POTENTIAL LEVERS\n{lever_context}\n\n"
             "## EXECUTION INSTRUCTIONS\n"
-            "1. FIRST: Score ALL levers against all 5 criteria\n"
-            "2. SECOND: Select EXACTLY 4-5 lever IDs using 80/20 principle\n"
+            "1. FIRST: Rank ALL levers (1-15) for each of 3 criteria (NO TIES)\n"
+            "2. SECOND: Calculate combined scores and select 4-5 with LOWEST scores\n"
             "3. THIRD: Write strategic summary\n"
             "4. OUTPUT: Use required JSON format with all 3 components"
         )
@@ -233,36 +222,57 @@ class NarrowDownLevers:
         """Print formatted results with strategic scoring"""
         response = self.response
         
-        print("\n📊 COMPLETE LEVER ASSESSMENTS")
-        print("┌─────────────┬───────────────┬───────┬───────┬───────┬───────┬───────┐")
-        print("│ Lever ID    │ Name          │ Imp.  │ Ctrl. │ Diff. │ Lev.  │ Risk  │")
-        print("├─────────────┼───────────────┼───────┼───────┼───────┼───────┼───────┤")
+        print("\n📊 COMPLETE LEVER RANKINGS")
+        print("┌─────────────┬───────────────┬───────┬───────┬───────┬───────┐")
+        print("│ Lever ID    │ Name          │ Imp.R │ Ctrl.R│ Diff.R│ Total │")
+        print("├─────────────┼───────────────┼───────┼───────┼───────┼───────┤")
         
         # Create lookup for lever details
         lever_map = {lever['id']: lever for lever in self.aggregated_levers}
         
-        for assessment in response["all_assessments"]:
-            lever_id = assessment["lever_id"]
+        # Calculate totals and create list for sorting
+        lever_scores = []
+        for ranking in response["all_rankings"]:
+            lever_id = ranking["lever_id"]
             lever = lever_map.get(lever_id, {"name": "Unknown"})
             name = lever["name"][:12] + '...' if len(lever["name"]) > 15 else lever["name"]
-            
-            print(f"│ {lever_id.ljust(12)}│ {name.ljust(14)}│   {assessment['impact_score']}   │"
-                  f"   {assessment['controllability_score']}   │   {assessment['differentiation_score']}   │"
-                  f"   {assessment['leverage_score']}   │   {assessment['risk_score']}   │")
-            print("├─────────────┼───────────────┼───────┼───────┼───────┼───────┼───────┤")
-        print("└─────────────┴───────────────┴───────┴───────┴───────┴───────┴───────┘")
+            total = (
+                ranking["strategic_impact_rank"] + 
+                ranking["controllability_rank"] + 
+                ranking["differentiation_rank"]
+            )
+            lever_scores.append((lever_id, name, ranking, total))
+        
+        # Sort by total score
+        lever_scores.sort(key=lambda x: x[3])
+        
+        for lever_id, name, ranking, total in lever_scores:
+            print(f"│ {lever_id.ljust(12)}│ {name.ljust(14)}│ {str(ranking['strategic_impact_rank']).center(6)}│ {str(ranking['controllability_rank']).center(6)}│ {str(ranking['differentiation_rank']).center(6)}│ {str(total).center(6)}│")
+            print("├─────────────┼───────────────┼───────┼───────┼───────┼───────┤")
+        print("└─────────────┴───────────────┴───────┴───────┴───────┴───────┘")
         
         # Print selected levers
         print("\n🔝 SELECTED VITAL LEVERS (4-5)")
-        print("┌─────────────┬───────────────────────────────────────┐")
-        print("│ Lever ID    │ Name                                  │")
-        print("├─────────────┼───────────────────────────────────────┤")
+        print("┌─────────────┬───────────────────────────────────────┬───────┬───────┬───────┬───────┐")
+        print("│ Lever ID    │ Name                                  │ Imp.R │ Ctrl.R│ Diff.R│ Total │")
+        print("├─────────────┼───────────────────────────────────────┼───────┼───────┼───────┼───────┤")
         for lever_id in response["selected_lever_ids"]:
+            # Find ranking for this lever
+            ranking = next((r for r in response["all_rankings"] if r["lever_id"] == lever_id), None)
+            if not ranking:
+                continue
+                
             lever = lever_map.get(lever_id, {"name": "Unknown"})
             name = lever["name"][:35] + '...' if len(lever["name"]) > 38 else lever["name"]
-            print(f"│ {lever_id.ljust(12)}│ {name.ljust(37)} │")
-            print("├─────────────┼───────────────────────────────────────┤")
-        print("└─────────────┴───────────────────────────────────────┘")
+            total = (
+                ranking["strategic_impact_rank"] + 
+                ranking["controllability_rank"] + 
+                ranking["differentiation_rank"]
+            )
+            
+            print(f"│ {lever_id.ljust(12)}│ {name.ljust(37)} │ {str(ranking['strategic_impact_rank']).center(6)}│ {str(ranking['controllability_rank']).center(6)}│ {str(ranking['differentiation_rank']).center(6)}│ {str(total).center(6)}│")
+            print("├─────────────┼───────────────────────────────────────┼───────┼───────┼───────┼───────┤")
+        print("└─────────────┴───────────────────────────────────────┴───────┴───────┴───────┴───────┘")
         
         # Print summary
         print(f"\n📝 STRATEGIC SUMMARY:\n{response['summary']}")
@@ -312,7 +322,7 @@ if __name__ == "__main__":
     llm_executor = LLMExecutor(llm_models=llm_models)
     
     # Execute narrowing
-    logger.info("Narrowing levers to 4-5 vital ones with 80/20 principle...")
+    logger.info("Narrowing levers to 4-5 vital ones with forced ranking...")
     try:
         result = NarrowDownLevers.execute(
             llm_executor=llm_executor,
