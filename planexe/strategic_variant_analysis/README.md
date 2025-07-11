@@ -2,6 +2,8 @@
 
 Every project starts with a set of initial parameters—or **strategic levers**—that strongly shape the outcome. If you begin with sub-optimal lever settings, even the best algorithms can’t rescue you. Follow these steps to zero in on the adjustments that matter most.
 
+A single, optimized plan is useful, but its weakness is that it's a "point estimate." It represents one possible future. The real world is about trade-offs, and true strategic advantage comes from understanding those trade-offs. Analyze multiple combos of these levers, that's my intention.
+
 ## Step 1: Brainstorm all potential levers
 
 The goal is to create a [MECE (Mutually Exclusive, Collectively Exhaustive)](https://en.wikipedia.org/wiki/MECE_principle) set of levers. This ensures we cover all critical dimensions of the problem without overlap.
