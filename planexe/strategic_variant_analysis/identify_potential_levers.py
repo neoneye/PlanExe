@@ -54,6 +54,27 @@ class DocumentDetails(BaseModel):
         description="Are these levers well picked? Are they well balanced? Are they well thought out? Point out flaws. 100 words."
     )
 
+class LeverCleaned(BaseModel):
+    """
+    The Lever class has some ugly field names, that guide the LLM for what to generate. Changing them and the LLM can't generate as good results.
+    This class has nicer field names for the final output.
+    """
+    id: str = Field(
+        description="String that identifies this lever. Starts with 'Lever-1' and is incremented for each lever."
+    )
+    name: str = Field(
+        description="Name of this lever."
+    )
+    consequences: str = Field(
+        description="Briefly describe the likely second-order effects or consequences of pulling this lever (e.g., 'Choosing a high-risk tech strategy will likely increase talent acquisition difficulty and require a larger contingency budget.'). 30 words."
+    )
+    options: list[str] = Field(
+        description="2-5 options for this lever."
+    )
+    review: str = Field(
+        description="Critique this lever. State the core trade-off it controls (e.g., 'Controls Speed vs. Quality'). Then, identify one specific weakness in how its options address that trade-off."
+    )
+
 IDENTIFY_POTENTIAL_LEVERS_SYSTEM_PROMPT = """
 You are an expert strategic analyst. Generate solution space parameters following these directives:
 
@@ -106,6 +127,7 @@ class IdentifyPotentialLevers:
     system_prompt: Optional[str]
     user_prompt: str
     responses: list[str]
+    levers: list[LeverCleaned]
     metadata: dict
 
     @classmethod
@@ -134,6 +156,7 @@ class IdentifyPotentialLevers:
         ]
 
         responses = []
+        raw_responses = []
         for user_prompt_index, user_prompt_item in enumerate(user_prompt_list, start=1):
             logger.info(f"Processing user_prompt_index: {user_prompt_index} of {len(user_prompt_list)}")
             chat_message_list.append(
@@ -171,7 +194,24 @@ class IdentifyPotentialLevers:
             )
 
             responses.append(result["chat_response"].raw.model_dump())
+            raw_responses.append(result["chat_response"].raw)
 
+        # from the raw_responses, extract the levers into a flatten list
+        levers_raw: list[Lever] = []
+        for raw_response in raw_responses:
+            levers_raw.extend(raw_response.levers)
+
+        # Clean the raw levers
+        levers_cleaned: list[LeverCleaned] = []
+        for i, lever in enumerate(levers_raw, start=1):
+            lever_cleaned = LeverCleaned(
+                id=f"Lever-{i}",
+                name=lever.name,
+                consequences=lever.consequences,
+                options=lever.options,
+                review=lever.review_lever,
+            )
+            levers_cleaned.append(lever_cleaned)
 
         metadata = {}
 
@@ -179,14 +219,17 @@ class IdentifyPotentialLevers:
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             responses=responses,
+            levers=levers_cleaned,
             metadata=metadata,
         )
         return result    
 
-    def to_dict(self, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
-        d = {
-            "responses": self.responses.copy()
-        }
+    def to_dict(self, include_raw_responses=True, include_cleaned_levers=True, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
+        d = {}
+        if include_raw_responses:
+            d["responses"] = self.responses.copy()
+        if include_cleaned_levers:
+            d['levers'] = [lever.model_dump() for lever in self.levers]
         if include_metadata:
             d['metadata'] = self.metadata
         if include_system_prompt:
