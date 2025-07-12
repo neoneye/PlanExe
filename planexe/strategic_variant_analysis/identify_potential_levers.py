@@ -1,19 +1,9 @@
 """
-Strategic Variant Analysis (SVA), explore the solution space.
-
-Step 1:
-- Brainstorm what key "levers" can be pulled to change the outcome of the plan.
-- For each level, identify the possible values.
-
-Step 2:
-- moving from a brainstormed list to a focused set of strategic levers.
-- Applying the 80/20 rule here means finding the ~20% of levers (the "vital few," i.e., your 4-5 most significant) that will dictate ~80% of the project's strategic outcome. This is a curation process based on strategic importance, not random sampling.
-
-Step 3:
-- With all the permutations of the levers and their values, take 20 random samples.
-- 80/20 rule: Identify the most significant 4 samples. Discard the rest.
+Brainstorm what key "levers" can be pulled to change the outcome of the plan.
 
 PROMPT> python -m planexe.strategic_variant_analysis.identify_potential_levers
+
+IDEA: A few lever names appear twice.
 
 IDEA: Your current filter treats each lever in isolation—this is a classic strategic trap. The “vital few” are often those with the highest interaction potential, not just those that look good on their own.
 """
@@ -269,7 +259,8 @@ if __name__ == "__main__":
 
     # prompt_id = "b9afce6c-f98d-4e9d-8525-267a9d153b51"
     # prompt_id = "a6bef08b-c768-4616-bc28-7503244eff02"
-    prompt_id = "19dc0718-3df7-48e3-b06d-e2c664ecc07d"
+    # prompt_id = "19dc0718-3df7-48e3-b06d-e2c664ecc07d"
+    prompt_id = "e42eafce-5c8c-4801-b9f1-b8b2a402cd78"
     prompt_item = prompt_catalog.find(prompt_id)
     if not prompt_item:
         raise ValueError("Prompt item not found.")
