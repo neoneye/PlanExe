@@ -14,7 +14,10 @@ The goal is to create a [MECE (Mutually Exclusive, Collectively Exhaustive)](htt
    - For each lever, jot down all feasible settings (e.g. “Additive Only,” “Subtractive Only,” “Hybrid”).
 
 ## Step 2: Enrich the potential levers with more details
-1. **Considerations related to irreversibility**
+1. **Description**
+  - The description provides a clear overview of the lever’s purpose, scope, and mechanism. It summarizes the lever’s objectives, impact range, and approach, while highlighting key success metrics and any prerequisites for effectiveness. This concise summary aids understanding and evaluation of the lever.
+  - Why: without it, stakeholders won’t understand the lever or its relevance.
+2. **Considerations related to irreversibility**
   - “Cost of Being Wrong”
   - Is this a one-way, “bet-the-company” move.
   - “Can I go back?”
