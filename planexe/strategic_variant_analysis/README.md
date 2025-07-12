@@ -1,5 +1,9 @@
 # Exploring the Solution Space
 
+The biggest lever is the initial prompt for PlanExe. You can modify it.
+Often the LLMs thinks the initial prompt is non-negotiable.
+I would like to come up with suggestions for changing the initial prompt.
+
 Every project starts with a set of initial parameters—or **strategic levers**—that strongly shape the outcome. If you begin with sub-optimal lever settings, even the best algorithms can’t rescue you. Follow these steps to zero in on the adjustments that matter most.
 
 A single, optimized plan is useful, but its weakness is that it's a "point estimate." It represents one possible future. The real world is about trade-offs, and true strategic advantage comes from understanding those trade-offs. Analyze multiple combos of these levers, that's my intention.
