@@ -1,5 +1,6 @@
 """
 This was generated with Cursor, possibly using Claude 3.5 Sonnet.
+This is crap.
 
 Narrow down potential levers to the vital few by identifying the most strategic levers and removing the rest (duplicates and less impactful levers).
 
@@ -11,7 +12,7 @@ This module analyzes lever lists to identify:
 
 The result is a cleaner, more focused list of essential strategic levers.
 
-PROMPT> python -m planexe.strategic_variant_analysis.filter_levers1
+PROMPT> python -m planexe.strategic_variant_analysis.filter_levers_legacy1_claude
 """
 import os
 import json

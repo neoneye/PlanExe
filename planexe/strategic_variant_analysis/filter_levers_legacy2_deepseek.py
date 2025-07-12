@@ -1,7 +1,8 @@
 """
 This was generated with DeepSeek R1. The forced ranking approach.
+This is crap. The scoring makes it a black box, without explanations why the assigned scores are what they are.
 
-PROMPT> python -m planexe.strategic_variant_analysis.filter_levers3
+PROMPT> python -m planexe.strategic_variant_analysis.filter_levers_legacy2_deepseek
 """
 import json
 import os

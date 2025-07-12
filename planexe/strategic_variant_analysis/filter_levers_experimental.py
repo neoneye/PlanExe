@@ -1,16 +1,16 @@
 """
 This was generated with Gemini 2.5 Pro.
+It's not particular good, but it's better than the others.
+My hypothesis is that I should enrich the potential levers with more information, before I attempt to 80/20 filter them,
+so the LLM can make a better assessment.
 
-Strategic Variant Analysis (SVA), explore the solution space.
-
-Step 2: Focus on the "Vital Few" Levers
-
+Focus on the "Vital Few" Levers
 - This module takes a brainstormed list of potential strategic levers.
 - It applies the 80/20 rule by using an LLM to assess the strategic importance of each lever.
 - The goal is to identify the ~20% of levers (the "vital few," e.g., 4-6) that will dictate ~80% of the project's strategic outcome.
 - The output is a curated list of the most significant levers, along with the rationale for their selection.
 
-PROMPT> python -m planexe.strategic_variant_analysis.filter_levers2
+PROMPT> python -m planexe.strategic_variant_analysis.filter_levers_experimental
 """
 import json
 import logging
