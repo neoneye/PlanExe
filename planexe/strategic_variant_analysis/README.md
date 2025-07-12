@@ -1,8 +1,9 @@
 # Exploring the Solution Space
 
 The biggest lever is the initial prompt for PlanExe. You can modify it.
-Often the LLMs thinks the initial prompt is non-negotiable.
-I would like to come up with suggestions for changing the initial prompt.
+Often I find that the LLMs interprets the constraints/requirements as if they are set in stone, non-negotiable.
+I would like to come up with suggestions for changing the initial prompt, redefining the scope, timeline, or even the goal.
+By tweaking the initial prompt, maybe there is a nearby optimum.
 
 Every project starts with a set of initial parameters—or **strategic levers**—that strongly shape the outcome. If you begin with sub-optimal lever settings, even the best algorithms can’t rescue you. Follow these steps to zero in on the adjustments that matter most.
 
