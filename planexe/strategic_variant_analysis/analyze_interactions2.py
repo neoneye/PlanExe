@@ -10,8 +10,6 @@ python -m planexe.strategic_variant_analysis.analyze_interactions2 \
     --vital_levers_file vital_levers_from_test_data.json \
     --out_file interactions_v2.json
 """
-from __future__ import annotations
-
 import json
 import logging
 import os
@@ -115,7 +113,7 @@ def run_interaction_analysis(
         ChatMessage(role=MessageRole.USER, content=user_prompt),
     ]
 
-    def execute_function(llm) -> dict:
+    def execute_function(llm: LLM) -> dict:
         sllm = llm.as_structured_llm(InteractionGraph)
         response = sllm.chat(messages)
         metadata = dict(llm.metadata)
