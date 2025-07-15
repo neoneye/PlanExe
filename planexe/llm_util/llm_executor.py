@@ -31,6 +31,7 @@ IDEA: track if the LLM failed and why
 import time
 import logging
 import inspect
+import typing
 from typing import Any, Callable, Optional, List
 from dataclasses import dataclass
 from llama_index.core.llms.llm import LLM
@@ -165,12 +166,28 @@ class LLMExecutor:
         if len(params) != 1:
             raise TypeError("validate_execute_function2: must be a function that takes a single parameter")
         
-        # Check if the parameter type annotation is compatible with LLM
-        param = params[0]
-        if param.annotation != inspect.Parameter.empty:
-            # If there's a type annotation, check it's the LLM type.
-            if param.annotation != LLM:
-                raise TypeError("validate_execute_function3: must be a function that takes a single parameter of type LLM, but got some other type")
+        try:
+            # Use get_type_hints to correctly resolve postponed annotations (strings)
+            # This is the key to supporting `from __future__ import annotations`
+            type_hints = typing.get_type_hints(execute_function)
+            param_name = params[0].name
+            param_type = type_hints.get(param_name)
+        except (NameError, TypeError) as e:
+            # NameError happens if a type hint string can't be resolved.
+            # TypeError can happen with complex but invalid type hints.
+            raise TypeError(f"Could not resolve type hints for execute_function. Error: {e}")
+
+        if param_type is None:
+            # No type hint provided, so we can't validate. Let it pass.
+            return
+
+        # Now `param_type` is guaranteed to be a real type object.
+        # Use issubclass for the most flexible and correct check.
+        if not (isinstance(param_type, type) and issubclass(param_type, LLM)):
+            raise TypeError(
+                f"validate_execute_function3: must be a function that takes a single parameter of type LLM, "
+                f"but got type '{param_type}'"
+            )
 
     def _try_one_attempt(self, llm_model: LLMModelBase, execute_function: Callable[[LLM], Any]) -> LLMAttempt:
         """

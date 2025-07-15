@@ -1,4 +1,7 @@
 import unittest
+import tempfile
+import importlib.util
+from pathlib import Path
 from planexe.llm_util.llm_executor import LLMExecutor, LLMModelBase, LLMModelWithInstance, PipelineStopRequested, ShouldStopCallbackParameters
 from planexe.llm_util.response_mockllm import ResponseMockLLM
 from llama_index.core.llms.llm import LLM
@@ -334,4 +337,69 @@ class TestLLMExecutor(unittest.TestCase):
             executor.run(execute_function)
 
         # Assert
-        self.assertIn("validate_execute_function3: must be a function that takes a single parameter of type LLM, but got some other type", str(context.exception))
+        # Update the assertion to match the new, more specific error message.
+        expected_error_part_1 = "validate_execute_function3: must be a function that takes a single parameter of type LLM"
+        expected_error_part_2 = "but got type"
+        
+        exception_string = str(context.exception)
+        self.assertIn(expected_error_part_1, exception_string)
+        self.assertIn(expected_error_part_2, exception_string)
+        self.assertIn("<class 'str'>", exception_string) # Be very specific about the type found
+        
+    def test_validate_execute_function3_with_postponed_annotations(self):
+        """
+        Exercise what happens when the execute_function has a type hint that is a string,
+        `from __future__ import annotations` (PEP 563), which turns type hints into strings at definition time.
+        """
+        # Arrange
+        llm_model = LLMModelWithInstance(ResponseMockLLM(responses=["test"]))
+        # Use the NEW, ROBUST LLMExecutor. For this test, we'll assume the
+        # main LLMExecutor has been updated. If not, you'd instantiate a
+        # patched version here.
+        executor = LLMExecutor(llm_models=[llm_model])
+
+        # --- Create a temporary module with `from __future__ import annotations` ---
+        # This is the only reliable way to test this feature.
+        module_code = """
+from __future__ import annotations
+from llama_index.core.llms.llm import LLM
+
+def good_function(llm: LLM) -> str:
+    return llm.complete("Hi").text
+
+def bad_function(wrong_type: str) -> str:
+    return "should not run"
+"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as tmp:
+            tmp.write(module_code)
+            tmp_path = Path(tmp.name)
+
+        try:
+            # Dynamically import the temporary module
+            spec = importlib.util.spec_from_file_location("test_module", tmp_path)
+            test_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(test_module)
+
+            # --- Act & Assert ---
+
+            # 1. Test the GOOD function with the postponed 'LLM' annotation
+            # This should PASS validation and run successfully.
+            try:
+                result = executor.run(test_module.good_function)
+                self.assertEqual(result, "test")
+            except TypeError as e:
+                self.fail(f"Validation incorrectly failed for a valid function with postponed annotations: {e}")
+
+            # 2. Test the BAD function with the postponed 'str' annotation
+            # This should FAIL validation.
+            with self.assertRaises(TypeError) as context:
+                executor.run(test_module.bad_function)
+
+            # Check for a more specific error message from the robust validator
+            self.assertIn("validate_execute_function3: must be a function that takes a single parameter of type LLM", str(context.exception))
+            self.assertIn("but got type", str(context.exception)) # Example part of the new message
+
+        finally:
+            # Clean up the temporary file
+            if tmp_path.exists():
+                tmp_path.unlink()
