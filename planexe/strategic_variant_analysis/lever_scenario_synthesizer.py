@@ -9,7 +9,7 @@ Step 5: Generate Strategic Scenarios
   name, a strategic logic, and a specific setting for each vital lever.
 - This transforms the analysis from a list of factors into a clear choice for decision-makers.
 
-PROMPT> python -m planexe.strategic_variant_analysis.permute_levers3
+PROMPT> python -m planexe.strategic_variant_analysis.lever_scenario_synthesizer
 """
 import json
 import logging

@@ -52,7 +52,7 @@ from planexe.schedule.export_mermaid_gantt import ExportMermaidGantt
 from planexe.strategic_variant_analysis.identify_potential_levers import IdentifyPotentialLevers
 from planexe.strategic_variant_analysis.enrich_potential_levers import EnrichPotentialLevers
 from planexe.strategic_variant_analysis.focus_on_vital_few_levers import FocusOnVitalFewLevers
-from planexe.strategic_variant_analysis.permute_levers3 import LeverScenarioSynthesizer
+from planexe.strategic_variant_analysis.lever_scenario_synthesizer import LeverScenarioSynthesizer
 from planexe.swot.swot_analysis import SWOTAnalysis
 from planexe.expert.expert_finder import ExpertFinder
 from planexe.expert.expert_criticism import ExpertCriticism
