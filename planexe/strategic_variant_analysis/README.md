@@ -32,12 +32,9 @@ Raw brainstormed ideas often lack the necessary detail for rigorous analysis. Th
 1. **Description**
   - The description provides a clear overview of the lever’s purpose, scope, and mechanism. It summarizes the lever’s objectives, impact range, and approach, while highlighting key success metrics and any prerequisites for effectiveness. This concise summary aids understanding and evaluation of the lever.
   - Why: without it, stakeholders won’t understand the lever or its relevance.
-2. **Considerations related to irreversibility**
-  - “Cost of Being Wrong”
-  - Is this a one-way, “bet-the-company” move.
-  - “Can I go back?”
-  - “If I can’t, how bad is it?”
-  - “Will I be boxed in or can I adapt?”
+2. **Interaction with other levers**
+  - With what other levers does this lever boost the outcome. 
+  - With what other levers does this lever weaken the outcome. 
 
 ### Step 3: Focus on the "Vital Few" levers
 
@@ -53,32 +50,10 @@ It filters the comprehensive list down to the "vital few" (typically 4-6) that w
 3. **Select the “Vital Few”**
    - Retain only those levers that combine high impact with manageable effort. Discard the rest or park them for later.
 
-### Step 4: Sample Strategic Variants
+### Step 4: Scenarios of Lever combinations
 
-With the vital few levers identified, the final step is to explore the solution space they create. This script calculates all 
-possible combinations of the lever options and draws a random sample of distinct "strategic variants." These variants represent
-concrete, plausible strategic pathways for the project.
+Propose 3 different scenarios:
+1. **Aggressive, High risk, High reward**
+2. **Medium**
+3. **Slow and safe**
 
-1. **Random Sampling**
-   - From your key levers and their settings, generate **N** random combinations (N = 20).
-2. **Evaluate & Rank**
-   - Run each sampled scenario through your model and score for overall value (cost, time, risk).
-3. **Focus on the Top Quartile**
-   - Pick the top ~20% of scenarios (≈4 in this example).
-   - These become your **priority hypotheses**—the configurations you’ll test or pilot first.
-
----
-
-## Example
-| Lever                          | Options                                      |
-|--------------------------------|----------------------------------------------|
-| **Manufacturing Paradigm**     | Additive Only • Subtractive Only • Hybrid    |
-| **Modular Architecture**       | Centralized • Decentralized • Federated      |
-| **Material Feedstock**         | Virgin • Recycled • Biocomposite             |
-| **Automation Strategy**        | Human-Centric • AI-Optimized • Swarm Robotics|
-
-1. **Brainstorm** all 4 levers and their 3 options each.
-2. **Curate** to the 4 most critical levers (we happen to have 4).
-3. **Sample** 20 random settings combinations → **Evaluate & rank** → **Pilot** the top 4.
-
-> **Tip:** As you iterate, update your impact/feasibility scores and re-run sampling—your “vital few” may shift over time.
