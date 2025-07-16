@@ -15,6 +15,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Dict, Any
 
 from llama_index.core.llms import ChatMessage, MessageRole
@@ -79,9 +80,13 @@ For each scenario, ensure the `lever_settings` are logically consistent with its
 
 @dataclass
 class GenerateScenarios:
+    system_prompt: str
+    user_prompt: str
+    response: ScenarioAnalysisResult
+    metadata: dict
 
     @classmethod
-    def execute(cls, llm_executor: LLMExecutor, project_context: str, raw_vital_levers: list[dict]) -> ScenarioAnalysisResult:
+    def execute(cls, llm_executor: LLMExecutor, project_context: str, raw_vital_levers: list[dict]) -> 'GenerateScenarios':
         vital_levers = [VitalLever(**lever) for lever in raw_vital_levers]
 
         if not vital_levers:
@@ -122,13 +127,36 @@ class GenerateScenarios:
 
         try:
             result = llm_executor.run(execute_function)
-            return result["chat_response"].raw
         except PipelineStopRequested:
             raise
         except Exception as e:
             logger.error("LLM chat interaction for generating scenarios failed.", exc_info=True)
             raise ValueError("LLM interaction failed.") from e
+        return cls(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            response=result["chat_response"].raw,
+            metadata=result["metadata"]
+        )
 
+    def to_dict(self, include_response=True, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
+        d = {}
+        if include_response:
+            d["response"] = self.response.model_dump()
+        if include_metadata:
+            d['metadata'] = self.metadata
+        if include_system_prompt:
+            d['system_prompt'] = self.system_prompt
+        if include_user_prompt:
+            d['user_prompt'] = self.user_prompt
+        return d
+
+    def save_raw(self, file_path: str) -> None:
+        Path(file_path).write_text(json.dumps(self.to_dict(), indent=2))
+
+    def save_clean(self, file_path: str) -> None:
+        response_dict = self.response.model_dump()
+        Path(file_path).write_text(json.dumps(response_dict, indent=2))
 
 if __name__ == "__main__":
     from planexe.llm_util.llm_executor import LLMModelFromName
@@ -169,11 +197,10 @@ if __name__ == "__main__":
 
         # --- Step 3: Display and save results ---
         print("\n--- Strategic Scenario Analysis ---")
-        output_json = scenarios_result.model_dump_json(indent=2)
-        print(output_json)
+        d = scenarios_result.to_dict(include_response=True, include_metadata=True, include_system_prompt=False, include_user_prompt=False)
+        print(json.dumps(d, indent=2))
 
-        with open(output_file, 'w') as f:
-            f.write(output_json)
+        scenarios_result.save_clean(output_file)
         logger.info(f"Strategic scenarios saved to '{output_file}'.")
 
     except ValueError as e:
