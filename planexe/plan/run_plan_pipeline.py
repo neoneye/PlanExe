@@ -264,7 +264,8 @@ class IdentifyPotentialLeversTask(PlanTask):
 
     def output(self):
         return {
-            'raw': self.local_target(FilenameEnum.IDENTIFY_POTENTIAL_LEVERS_RAW)
+            'raw': self.local_target(FilenameEnum.LEVERS_POTENTIAL_RAW),
+            'clean': self.local_target(FilenameEnum.LEVERS_POTENTIAL_CLEAN),
         }
 
     def run_inner(self):
@@ -289,6 +290,8 @@ class IdentifyPotentialLeversTask(PlanTask):
         # Write the result to disk.
         output_raw_path = self.output()['raw'].path
         identify_potential_levers.save_raw(str(output_raw_path))
+        output_clean_path = self.output()['clean'].path
+        identify_potential_levers.save_clean(str(output_clean_path))
 
 
 class PhysicalLocationsTask(PlanTask):

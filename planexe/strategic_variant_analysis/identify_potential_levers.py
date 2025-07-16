@@ -236,8 +236,18 @@ class IdentifyPotentialLevers:
     def save_raw(self, file_path: str) -> None:
         Path(file_path).write_text(json.dumps(self.to_dict(), indent=2))
 
+    def lever_item_list(self) -> list[dict]:
+        """
+        Return a list of dictionaries, each representing a lever.
+        """
+        return [lever.model_dump() for lever in self.levers]
+    
+    def save_clean(self, file_path: str) -> None:
+        levers_dict = self.lever_item_list()
+        Path(file_path).write_text(json.dumps(levers_dict, indent=2))
+
     def save_as_test_data(self, file_path: Path) -> None:
-        levers_dict = [lever.model_dump() for lever in self.levers]
+        levers_dict = self.lever_item_list()
         levers_json = json.dumps(levers_dict, indent=2)
         rows = [
             f"file: 'plan.txt':",
