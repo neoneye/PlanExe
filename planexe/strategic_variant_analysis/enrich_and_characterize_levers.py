@@ -84,23 +84,15 @@ You MUST respond with a single JSON object that strictly adheres to the `BatchCh
 """
 
 @dataclass
-class CharacterizeLeversResult:
+class CharacterizeLevers:
     """Holds the results of the characterization process."""
     characterized_levers: List[CharacterizedLever]
     metadata: List[Dict[str, Any]]
 
-    def save(self, file_path: str) -> None:
-        """Saves the characterized levers to a JSON file."""
-        output_data = {
-            "metadata": self.metadata,
-            "characterized_levers": [lever.model_dump() for lever in self.characterized_levers]
-        }
-        with open(file_path, 'w') as f:
-            json.dump(output_data, f, indent=2)
-
-class CharacterizeLevers:
     @classmethod
-    def execute(cls, llm_executor: LLMExecutor, project_plan: str, levers_to_characterize: List[InputLever]) -> CharacterizeLeversResult:
+    def execute(cls, llm_executor: LLMExecutor, project_context: str, raw_levers_list: list[dict]) -> 'CharacterizeLevers':
+        levers_to_characterize = [InputLever(**lever) for lever in raw_levers_list]
+
         if not levers_to_characterize:
             raise ValueError("The list of levers to characterize cannot be empty.")
 
@@ -127,7 +119,7 @@ class CharacterizeLevers:
             )
 
             user_prompt = (
-                f"**Project Context:**\n{project_plan}\n\n"
+                f"**Project Context:**\n{project_context}\n\n"
                 f"**Full List of All Levers (for context):**\n{full_lever_context_str}\n\n"
                 "---\n\n"
                 f"**Levers to Characterize in this Batch:**\n"
@@ -176,10 +168,20 @@ class CharacterizeLevers:
             else:
                 logger.error(f"Characterization incomplete for lever '{lever_id}'. Skipping this lever.")
         
-        return CharacterizeLeversResult(
+        return CharacterizeLevers(
             characterized_levers=final_characterized_levers,
             metadata=all_metadata
         )
+    
+    def save_raw(self, file_path: str) -> None:
+        """Saves the characterized levers to a JSON file."""
+        output_data = {
+            "metadata": self.metadata,
+            "characterized_levers": [lever.model_dump() for lever in self.characterized_levers]
+        }
+        with open(file_path, 'w') as f:
+            json.dump(output_data, f, indent=2)
+
 
 if __name__ == "__main__":
     from planexe.llm_util.llm_executor import LLMModelFromName
@@ -200,8 +202,7 @@ if __name__ == "__main__":
     try:
         plan_part, levers_part = test_data_content.split("file: 'potential_levers.json':")
         project_plan = plan_part.replace("file: 'plan.txt':", "").strip()
-        raw_levers_list = json.loads(levers_part.strip())
-        input_levers = [InputLever(**lever) for lever in raw_levers_list]
+        input_levers = json.loads(levers_part.strip())
     except (ValidationError, ValueError, json.JSONDecodeError) as e:
         logger.error(f"Failed to parse the input data file '{input_file}'. Error: {e}")
         exit(1)
@@ -215,8 +216,8 @@ if __name__ == "__main__":
     try:
         result = CharacterizeLevers.execute(
             llm_executor=llm_executor,
-            project_plan=project_plan,
-            levers_to_characterize=input_levers
+            project_context=project_plan,
+            raw_levers_list=input_levers
         )
 
         print(f"\nSuccessfully processed. Characterized {len(result.characterized_levers)} out of {len(input_levers)} levers.")
@@ -226,7 +227,7 @@ if __name__ == "__main__":
             example_lever = result.characterized_levers[0]
             print(json.dumps(example_lever.model_dump(), indent=2))
         
-            result.save(output_file)
+            result.save_raw(output_file)
             logger.info(f"Full list of {len(result.characterized_levers)} characterized levers saved to '{output_file}'.")
         else:
             logger.warning("No levers were successfully characterized. Output file will not be created.")
