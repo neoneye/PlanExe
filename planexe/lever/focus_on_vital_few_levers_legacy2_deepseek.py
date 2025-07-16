@@ -2,7 +2,7 @@
 This was generated with DeepSeek R1. The forced ranking approach.
 This is crap. The scoring makes it a black box, without explanations why the assigned scores are what they are.
 
-PROMPT> python -m planexe.strategic_variant_analysis.focus_on_vital_few_levers_legacy2_deepseek
+PROMPT> python -m planexe.lever.focus_on_vital_few_levers_legacy2_deepseek
 """
 import json
 import os
@@ -305,7 +305,7 @@ if __name__ == "__main__":
     )
     
     # Load test data
-    test_data_file = "planexe/strategic_variant_analysis/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
+    test_data_file = "planexe/lever/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
     if not os.path.exists(test_data_file):
         logger.error(f"Test data not found: {test_data_file}")
         exit(1)

@@ -12,7 +12,7 @@ Step 2: Enrich and Characterize Levers
   3. `conflict_text`: A summary of its most significant negative interactions and trade-offs.
 - This creates a highly context-rich dataset of levers, ready for the filtering step.
 
-PROMPT> python -m planexe.strategic_variant_analysis.enrich_potential_levers
+PROMPT> python -m planexe.lever.enrich_potential_levers
 """
 import json
 import logging
@@ -189,7 +189,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     # This file is created by identify_potential_levers.py
-    input_file = "planexe/strategic_variant_analysis/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
+    input_file = "planexe/lever/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
     output_file = "characterized_levers.json"
     
     if not os.path.exists(input_file):

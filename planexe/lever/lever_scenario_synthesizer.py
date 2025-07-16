@@ -9,7 +9,7 @@ Step 5: Generate Strategic Scenarios
   name, a strategic logic, and a specific setting for each vital lever.
 - This transforms the analysis from a list of factors into a clear choice for decision-makers.
 
-PROMPT> python -m planexe.strategic_variant_analysis.lever_scenario_synthesizer
+PROMPT> python -m planexe.lever.lever_scenario_synthesizer
 """
 import json
 import logging
@@ -164,7 +164,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     # --- Step 1: Load inputs from previous pipeline steps ---
-    plan_data_file = "planexe/strategic_variant_analysis/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
+    plan_data_file = "planexe/lever/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
     # This is the output file from the filtering step
     vital_levers_file = "vital_levers_from_test_data3.json"
     output_file = "strategic_scenarios.json"

@@ -1,7 +1,7 @@
 """
 This was generated with Gemini 2.5 Pro.
 
-PROMPT> python -m planexe.strategic_variant_analysis.focus_on_vital_few_levers
+PROMPT> python -m planexe.lever.focus_on_vital_few_levers_legacy4_gemini
 """
 import json
 import logging
@@ -36,8 +36,6 @@ class EnrichedLever(BaseModel):
     options: List[str]
     review: str
     description: str
-    synergy_text: str
-    conflict_text: str
     original_index: int = -1
 
 class LeverAssessment(BaseModel):
@@ -65,34 +63,31 @@ class VitalLeversAssessmentResult(BaseModel):
     )
 
 FOCUS_LEVERS_SYSTEM_PROMPT = """
-You are a Chief Strategy Officer (CSO) responsible for guiding high-stakes projects. Your task is to apply the 80/20 principle to a list of strategic levers, identifying the "vital few" that will drive the majority of the project's strategic outcome.
+You are a Chief Strategy Officer (CSO) responsible for guiding high-stakes projects. Your task is to apply the 80/20 principle (Pareto Principle) to a list of strategic levers for a given project plan.
 
-**Goal:** Identify the ~5 most critical levers from the provided list.
+**Goal:** Identify the "vital few" levers (the ~20%) that will determine the vast majority (~80%) of the project's strategic outcome.
 
-**Input:** You will receive the project plan and a numbered list of candidate levers. For each lever, you get:
-- A `description` of its purpose.
-- A `synergy_text` summarizing its positive connections to other levers.
-- A `conflict_text` summarizing its trade-offs and negative connections.
+**Input:** You will receive the original project plan and a numbered list of candidate levers, each with a name, a detailed description, and a brief review.
 
 **Evaluation Criteria:**
-Evaluate each lever's **Strategic Importance**. A lever's importance is determined by its systemic impact. You MUST base your assessment on all the provided context. Consider:
-1.  **Centrality & Connectivity:** Does the `synergy_text` and `conflict_text` show this lever is a "hub" that influences many others? Highly connected levers are more strategic.
-2.  **Impact on Core Trade-offs:** Does the `conflict_text` reveal that this lever controls a fundamental project tension (e.g., Speed vs. Quality, Cost vs. Scope)?
-3.  **Potential for Leverage:** Does the `synergy_text` suggest that getting this lever right could unlock significant value across the system?
-4.  **Redundancy:** If several levers seem to address the same core issue (e.g., multiple levers about 'modularity'), identify the one that best represents the strategic choice and rank it higher. Rank the redundant ones lower.
+Evaluate each lever's **Strategic Importance**. A lever's importance is determined by its ability to influence the project's fundamental success factors. You MUST base your assessment on the provided **description** and how it relates to the project plan. Consider:
+1.  **Impact on Core Trade-offs:** Does the lever control a fundamental conflict, such as Speed vs. Quality, Cost vs. Scope, or Innovation vs. Feasibility?
+2.  **Influence on Viability:** Can a decision on this lever make or break the project's business case, technical feasibility, or market acceptance?
+3.  **Magnitude of Consequence:** Do the options within the lever lead to vastly different strategic pathways and outcomes?
 
 **Strategic Importance Rating Definitions (Assign ONE per lever):**
--   **Critical:** Absolutely essential. A central "hub" lever that controls a foundational pillar of the project's strategy.
--   **High:** Very important. Governs a major strategic trade-off or has numerous strong interactions.
--   **Medium:** Useful for optimization but less connected to the core strategic conflicts.
--   **Low:** Tactical or potentially redundant with a more strategic lever.
+-   **Critical:** Absolutely essential. This lever controls a foundational pillar of the project's strategy or a go/no-go decision.
+-   **High:** Very important. This lever governs a major strategic trade-off that will significantly impact key metrics.
+-   **Medium:** Useful for optimization. This lever influences important aspects but does not fundamentally alter the core strategic direction.
+-   **Low:** Tactical or operational. This lever concerns implementation details with limited ripple effects.
 
 **Output Requirements:**
--   You MUST respond with a single JSON object that strictly adheres to the `VitalLeversAssessmentResult` schema.
+You MUST respond with a single JSON object that strictly adheres to the `VitalLeversAssessmentResult` schema.
 -   You MUST provide an assessment for **every single lever** in the input list.
--   The `justification` MUST be concise and reference the lever's connectivity or control over trade-offs.
+-   The `justification` MUST be concise and explicitly link the lever to the project's core goals or risks.
+-   The final `summary` must provide a holistic view of the most important levers as a group.
 
-**Example Justification:** "Critical because its synergy and conflict texts show it's a central hub connecting technology, governance, and materials. It controls the project's core risk/reward profile."
+**Example Justification:** "Critical because its description shows it dictates the entire technology stack, which directly controls the project's long-term scalability and talent acquisition risks identified in the plan."
 """
 
 @dataclass
@@ -108,32 +103,30 @@ class FocusOnVitalFewLevers:
     metadata: dict
 
     @classmethod
-    def execute(cls, llm_executor: LLMExecutor, project_context: str, raw_levers_list: List[dict]) -> 'FocusOnVitalFewLevers':
+    def execute(cls, llm_executor: LLMExecutor, project_plan: str, enriched_levers: List[EnrichedLever]) -> 'FocusOnVitalFewLevers':
         if not isinstance(llm_executor, LLMExecutor):
             raise ValueError("Invalid LLMExecutor instance.")
-        if not raw_levers_list:
+        if not enriched_levers:
             raise ValueError("No valid enriched levers were provided.")
-        enriched_levers = [EnrichedLever(**lever) for lever in raw_levers_list]
 
-        logger.info(f"Assessing {len(enriched_levers)} characterized levers to find the vital few.")
+        logger.info(f"Assessing {len(enriched_levers)} enriched levers to find the vital few.")
 
-        # Update the prompt formatting to include the new fields
+        # Step 1: Prepare the input for the LLM, now with richer details.
         formatted_levers_list = []
         for i, lever in enumerate(enriched_levers):
             lever.original_index = i
             formatted_levers_list.append(
                 f"{i}. **{lever.name}**\n"
                 f"   - **Description**: {lever.description}\n"
-                f"   - **Synergies**: {lever.synergy_text}\n"
-                f"   - **Conflicts**: {lever.conflict_text}"
+                f"   - **Review**: {lever.review}"
             )
         
         levers_prompt_text = "\n\n".join(formatted_levers_list)
         
         focus_prompt = (
-            f"**Project Context:**\n{project_context}\n\n"
+            f"**Project Plan:**\n{project_plan}\n\n"
             f"**Candidate Levers List:**\n"
-            f"Please assess the strategic importance of the following {len(enriched_levers)} levers based on the project plan and their detailed characterizations:\n\n"
+            f"Please assess the strategic importance of the following {len(enriched_levers)} levers based on the project plan and their detailed descriptions:\n\n"
             f"{levers_prompt_text}"
         )
 
@@ -241,14 +234,14 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     # --- Step 1: Load Project Plan and Enriched Levers ---
-    plan_data_file = "planexe/strategic_variant_analysis/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
-    characterized_levers_file = "characterized_levers.json" 
-
+    plan_data_file = "planexe/lever/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
+    enriched_levers_file = "enriched_potential_levers.json"
+    
     if not os.path.exists(plan_data_file):
         logger.error(f"Plan data file not found at: {plan_data_file}")
         exit(1)
-    if not os.path.exists(characterized_levers_file):
-        logger.error(f"Enriched levers file not found at: {characterized_levers_file}. Please run enrich_and_characterize_levers.py first.")
+    if not os.path.exists(enriched_levers_file):
+        logger.error(f"Enriched levers file not found at: {enriched_levers_file}. Please run enrich_potential_levers.py first.")
         exit(1)
 
     # Load the project plan (query) from the original text file
@@ -261,12 +254,17 @@ if __name__ == "__main__":
         logger.error(f"Failed to parse the plan data file: {plan_data_file}")
         exit(1)
 
-    # Load the characterized levers from the new JSON file
-    with open(characterized_levers_file, 'r', encoding='utf-8') as f:
-        characterized_data = json.load(f)
-    raw_levers_list = characterized_data.get('characterized_levers', [])
+    # Load the enriched levers from the new JSON file
+    with open(enriched_levers_file, 'r', encoding='utf-8') as f:
+        enriched_data = json.load(f)
+    try:
+        levers_list = enriched_data.get('enriched_levers', [])
+        enriched_levers_objects = [EnrichedLever(**lever) for lever in levers_list]
+    except (ValidationError, json.JSONDecodeError) as e:
+        logger.error(f"Failed to parse the enriched levers file. Ensure it is valid JSON and matches the EnrichedLever schema. Error: {e}")
+        exit(1)
 
-    logger.info(f"Loaded project plan and {len(raw_levers_list)} characterized levers.")
+    logger.info(f"Loaded project plan and {len(enriched_levers_objects)} enriched levers.")
 
     # --- Step 2: Focus on the Vital Few ---
     model_names = ["ollama-llama3.1"]
@@ -275,8 +273,8 @@ if __name__ == "__main__":
     
     focus_result = FocusOnVitalFewLevers.execute(
         llm_executor=llm_executor,
-        project_context=query,
-        raw_levers_list=raw_levers_list
+        project_plan=query,
+        enriched_levers=enriched_levers_objects
     )
     
     # --- Step 3: Display and Save Results ---
@@ -295,6 +293,6 @@ if __name__ == "__main__":
     print(json.dumps(vital_levers_output, indent=2))
 
     # Save the vital levers for the next step in the pipeline
-    output_filename = "vital_levers_from_test_data3.json"
+    output_filename = "vital_levers_from_test_data.json"
     focus_result.save_vital_levers(output_filename)
     logger.info(f"Saved the {vital_levers_count} vital few levers to '{output_filename}'")

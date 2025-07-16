@@ -8,7 +8,7 @@ Sample & Prioritize Combinations
 - It then draws a random sample of N (e.g., 20) strategic variants from this space.
 - These sampled variants represent distinct, plausible strategic pathways for the project, which can then be evaluated.
 
-PROMPT> python -m planexe.strategic_variant_analysis.lever_scenario_synthesizer_legacy2
+PROMPT> python -m planexe.lever.lever_scenario_synthesizer_legacy2
 """
 import json
 import logging
@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Any
 
 # The Lever class definition must match the structure of the data being loaded.
-from planexe.strategic_variant_analysis.identify_potential_levers import Lever
+from planexe.lever.identify_potential_levers import Lever
 
 logger = logging.getLogger(__name__)
 

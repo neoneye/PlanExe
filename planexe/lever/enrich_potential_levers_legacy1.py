@@ -8,7 +8,7 @@ Enrich all levers with a "description" field.
 - This enrichment is done in batches to handle a large number of levers efficiently.
 - The output is a new JSON file containing the original levers with the added description field.
 
-PROMPT> python -m planexe.strategic_variant_analysis.enrich_potential_levers_legacy1
+PROMPT> python -m planexe.lever.enrich_potential_levers_legacy1
 """
 import json
 import logging
@@ -202,7 +202,7 @@ if __name__ == "__main__":
     
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    input_file = "planexe/strategic_variant_analysis/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
+    input_file = "planexe/lever/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
     output_file = "enriched_potential_levers.json"
     
     if not os.path.exists(input_file):

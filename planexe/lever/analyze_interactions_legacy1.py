@@ -9,7 +9,7 @@ Step 3.5: Analyze Interaction Effects Between Vital Levers
 - This reveals deeper strategic insights, showing how decisions in one area
   amplify or constrain options in another.
 
-PROMPT> python -m planexe.strategic_variant_analysis.analyze_interactions_legacy1
+PROMPT> python -m planexe.lever.analyze_interactions_legacy1
 """
 import json
 import logging
@@ -189,7 +189,7 @@ if __name__ == "__main__":
 
     # --- Step 1: Load inputs from previous pipeline steps ---
     # File containing the original project plan
-    plan_data_file = "planexe/strategic_variant_analysis/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
+    plan_data_file = "planexe/lever/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
     # File created by filter_levers_experimental2.py
     # IMPORTANT: This file must contain the 'description' for each lever.
     # I am using 'enriched_potential_levers.json' as the source for this example, assuming we filtered from it.

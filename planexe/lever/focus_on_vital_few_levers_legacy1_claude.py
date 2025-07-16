@@ -12,7 +12,7 @@ This module analyzes lever lists to identify:
 
 The result is a cleaner, more focused list of essential strategic levers.
 
-PROMPT> python -m planexe.strategic_variant_analysis.focus_on_vital_few_levers_legacy1_claude
+PROMPT> python -m planexe.lever.focus_on_vital_few_levers_legacy1_claude
 """
 import os
 import json
@@ -32,7 +32,6 @@ logger = logging.getLogger(__name__)
 # The number of levers to keep. It may be less or greater than this number
 # Ideally we don't want to throw away any strategic levers.
 # There can be +20 levers and then it can be overwhelming to keep an overview.
-# Thus only focus on the most important strategic levers.
 PREFERRED_LEVER_COUNT = 5
 
 class LeverImpact(str, Enum):
@@ -323,7 +322,7 @@ if __name__ == "__main__":
     # llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
 
     # Load test data from file
-    test_data_file = "planexe/strategic_variant_analysis/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
+    test_data_file = "planexe/lever/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
     
     with open(test_data_file, 'r') as f:
         test_data_content = f.read()

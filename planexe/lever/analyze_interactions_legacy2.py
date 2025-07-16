@@ -5,8 +5,8 @@ Lever-interaction analyser.
 
 Usage
 -----
-python -m planexe.strategic_variant_analysis.analyze_interactions_legacy2 \
-    --plan_file planexe/strategic_variant_analysis/test_data/plan_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt \
+python -m planexe.lever.analyze_interactions_legacy2 \
+--plan_file planexe/lever/test_data/plan_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt \
     --vital_levers_file vital_levers_from_test_data.json \
     --out_file interactions_v2.json
 """

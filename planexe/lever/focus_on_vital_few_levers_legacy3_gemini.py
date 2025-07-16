@@ -10,7 +10,7 @@ Focus on the "Vital Few" Levers
 - The goal is to identify the ~20% of levers (the "vital few," e.g., 4-6) that will dictate ~80% of the project's strategic outcome.
 - The output is a curated list of the most significant levers, along with the rationale for their selection.
 
-PROMPT> python -m planexe.strategic_variant_analysis.focus_on_vital_few_levers_legacy3_gemini
+PROMPT> python -m planexe.lever.focus_on_vital_few_levers_legacy3_gemini
 """
 import json
 import logging
@@ -24,7 +24,7 @@ from llama_index.core.llms.llm import LLM
 from pydantic import BaseModel, Field
 
 from planexe.llm_util.llm_executor import LLMExecutor, PipelineStopRequested
-from planexe.strategic_variant_analysis.identify_potential_levers import Lever
+from planexe.lever.identify_potential_levers import Lever
 
 logger = logging.getLogger(__name__)
 
@@ -265,7 +265,7 @@ if __name__ == "__main__":
     # --- Step 1: Load and Parse the Custom Text File ---
     # This block replaces the previous logic for loading sample JSON.
     # It now loads the user-specified .txt file and parses it.
-    test_data_file = "planexe/strategic_variant_analysis/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
+    test_data_file = "planexe/lever/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
     
     if not os.path.exists(test_data_file):
         logger.error(f"Test data file not found at: {test_data_file}")

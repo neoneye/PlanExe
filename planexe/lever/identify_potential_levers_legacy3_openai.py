@@ -13,7 +13,7 @@ Step 3:
 - With all the permutations of the dials and their values, take 20 random samples.
 - 80/20 rule: Identify the most significant 4 samples. Discard the rest.
 
-PROMPT> python -m planexe.strategic_variant_analysis.identify_potential_levers_legacy3_openai
+PROMPT> python -m planexe.lever.identify_potential_levers_legacy3_openai
 """
 import json
 import time
@@ -57,7 +57,7 @@ class DocumentDetails(BaseModel):
     )
 
 # Prompt made with OpenAI GPT-4.1
-STRATEGIC_VARIANT_ANALYSIS_SYSTEM_PROMPT = """
+LEVER_ANALYSIS_SYSTEM_PROMPT = """
 You are the Strategic Variant Analysis (SVA) agent. Your role is to analyze high-level project prompts, identify adjustable strategic and technical parameters (“dials”), and generate alternative plans by varying these dials. The goal is to explore the space of possible solutions and uncover near-optimal or robust strategies.
 
 You must generate exactly 5 dials per response. Do not generate more or fewer than 5 dials. Each dial should be distinct, actionable, and interdependent with at least one other dial.
@@ -108,7 +108,7 @@ class SVABrainstormDials:
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
         
-        system_prompt = STRATEGIC_VARIANT_ANALYSIS_SYSTEM_PROMPT.strip()
+        system_prompt = LEVER_ANALYSIS_SYSTEM_PROMPT.strip()
         chat_message_list = [
             ChatMessage(
                 role=MessageRole.SYSTEM,

@@ -1,7 +1,7 @@
 """
 Brainstorm what key "levers" can be pulled to change the outcome of the plan.
 
-PROMPT> python -m planexe.strategic_variant_analysis.identify_potential_levers
+PROMPT> python -m planexe.lever.identify_potential_levers
 
 IDEA: The output contains near duplicates, these have to be deduplicated. A few lever names appear twice.
 

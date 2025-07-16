@@ -13,7 +13,7 @@ Step 3:
 - With all the permutations of the dials and their values, take 20 random samples.
 - 80/20 rule: Identify the most significant 4 samples. Discard the rest.
 
-PROMPT> python -m planexe.strategic_variant_analysis.identify_potential_levers_legacy4_deepseek
+PROMPT> python -m planexe.lever.identify_potential_levers_legacy4_deepseek
 """
 import json
 import time
@@ -57,7 +57,7 @@ class DocumentDetails(BaseModel):
     )
 
 # Prompt made with DeepSeek R1
-STRATEGIC_VARIANT_ANALYSIS_SYSTEM_PROMPT = """
+LEVER_ANALYSIS_SYSTEM_PROMPT = """
 You are an expert strategic analyst. Generate solution space parameters following these directives:
 
 1. **Output Requirements**
@@ -118,7 +118,7 @@ class SVABrainstormDials:
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
         
-        system_prompt = STRATEGIC_VARIANT_ANALYSIS_SYSTEM_PROMPT.strip()
+        system_prompt = LEVER_ANALYSIS_SYSTEM_PROMPT.strip()
         chat_message_list = [
             ChatMessage(
                 role=MessageRole.SYSTEM,
