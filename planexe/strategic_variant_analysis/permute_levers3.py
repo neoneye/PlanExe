@@ -81,7 +81,9 @@ For each scenario, ensure the `lever_settings` are logically consistent with its
 class GenerateScenarios:
 
     @classmethod
-    def execute(cls, llm_executor: LLMExecutor, project_plan: str, vital_levers: List[VitalLever]) -> ScenarioAnalysisResult:
+    def execute(cls, llm_executor: LLMExecutor, project_context: str, raw_vital_levers: list[dict]) -> ScenarioAnalysisResult:
+        vital_levers = [VitalLever(**lever) for lever in raw_vital_levers]
+
         if not vital_levers:
             raise ValueError("The list of vital levers cannot be empty.")
 
@@ -99,7 +101,7 @@ class GenerateScenarios:
         levers_prompt_text = "\n\n".join(formatted_levers_list)
 
         user_prompt = (
-            f"**Project Plan:**\n{project_plan}\n\n"
+            f"**Project Context:**\n{project_context}\n\n"
             "---\n\n"
             f"**Vital Levers & Options:**\n{levers_prompt_text}\n\n"
             "Please synthesize these levers into 3 distinct strategic scenarios as requested."
@@ -144,18 +146,14 @@ if __name__ == "__main__":
     # Load project plan
     with open(plan_data_file, 'r', encoding='utf-8') as f:
         plan_part, _ = f.read().split("file: 'potential_levers.json':")
-        project_plan = plan_part.replace("file: 'plan.txt':", "").strip()
+        project_context = plan_part.replace("file: 'plan.txt':", "").strip()
 
     # Load vital levers
     with open(vital_levers_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    try:
-        vital_levers_objects = [VitalLever(**lever) for lever in data['levers']]
-    except (ValidationError, KeyError) as e:
-        logger.error(f"Failed to parse vital levers file '{vital_levers_file}'. Error: {e}")
-        exit(1)
+    vital_levers = data['levers']
 
-    logger.info(f"Loaded project plan and {len(vital_levers_objects)} vital levers.")
+    logger.info(f"Loaded project plan and {len(vital_levers)} vital levers.")
 
     # --- Step 2: Execute the analysis ---
     model_names = ["ollama-llama3.1"]
@@ -165,8 +163,8 @@ if __name__ == "__main__":
     try:
         scenarios_result = GenerateScenarios.execute(
             llm_executor=llm_executor,
-            project_plan=project_plan,
-            vital_levers=vital_levers_objects
+            project_context=project_context,
+            raw_vital_levers=vital_levers
         )
 
         # --- Step 3: Display and save results ---
