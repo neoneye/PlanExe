@@ -50,6 +50,7 @@ from planexe.questions_answers.questions_answers import QuestionsAnswers
 from planexe.schedule.export_frappe_gantt import ExportFrappeGantt
 from planexe.schedule.export_mermaid_gantt import ExportMermaidGantt
 from planexe.strategic_variant_analysis.enrich_and_characterize_levers import CharacterizeLevers
+from planexe.strategic_variant_analysis.filter_levers_experimental3 import FocusOnVitalFewLevers
 from planexe.strategic_variant_analysis.identify_potential_levers import IdentifyPotentialLevers
 from planexe.swot.swot_analysis import SWOTAnalysis
 from planexe.expert.expert_finder import ExpertFinder
@@ -328,7 +329,7 @@ class CharacterizeLeversTask(PlanTask):
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
             f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
-            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
+            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}"
         )
 
         identify_potential_levers = CharacterizeLevers.execute(
@@ -340,6 +341,52 @@ class CharacterizeLeversTask(PlanTask):
         # Write the result to disk.
         output_raw_path = self.output()['raw'].path
         identify_potential_levers.save_raw(str(output_raw_path))
+
+class FocusOnVitalFewLeversTask(PlanTask):
+    """
+    Apply the 80/20 principle to the levers.
+    """
+    def requires(self):
+        return {
+            'setup': self.clone(SetupTask),
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'plan_type': self.clone(PlanTypeTask),
+            'levers_enriched': self.clone(CharacterizeLeversTask)
+        }
+
+    def output(self):
+        return {
+            'raw': self.local_target(FilenameEnum.LEVERS_VITAL_FEW_RAW)
+        }
+
+    def run_inner(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
+        # Read inputs from required tasks.
+        with self.input()['setup'].open("r") as f:
+            plan_prompt = f.read()
+        with self.input()['identify_purpose']['raw'].open("r") as f:
+            identify_purpose_dict = json.load(f)
+        with self.input()['plan_type']['raw'].open("r") as f:
+            plan_type_dict = json.load(f)
+        with self.input()['levers_enriched']['raw'].open("r") as f:
+            lever_item_list = json.load(f)["characterized_levers"]
+
+        query = (
+            f"File 'plan.txt':\n{plan_prompt}\n\n"
+            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
+            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
+        )
+
+        focus_on_vital_few_levers = FocusOnVitalFewLevers.execute(
+            llm_executor,
+            project_context=query,
+            raw_levers_list=lever_item_list
+        )
+
+        # Write the result to disk.
+        output_raw_path = self.output()['raw'].path
+        focus_on_vital_few_levers.save_vital_levers(str(output_raw_path))
 
 
 class PhysicalLocationsTask(PlanTask):

@@ -9,6 +9,7 @@ class FilenameEnum(str, Enum):
     LEVERS_POTENTIAL_RAW = "experimental_002-5-levers_potential_raw.json"
     LEVERS_POTENTIAL_CLEAN = "experimental_002-5-levers_potential.json"
     LEVERS_ENRICHED_RAW = "experimental_002-6-levers_enriched_raw.json"
+    LEVERS_VITAL_FEW_RAW = "experimental_002-7-levers_vital_few_raw.json"
     PHYSICAL_LOCATIONS_RAW = "002-5-physical_locations_raw.json"
     PHYSICAL_LOCATIONS_MARKDOWN = "002-6-physical_locations.md"
     CURRENCY_STRATEGY_RAW = "002-7-currency_strategy_raw.json"

@@ -108,7 +108,7 @@ class FocusOnVitalFewLevers:
     metadata: dict
 
     @classmethod
-    def execute(cls, llm_executor: LLMExecutor, project_plan: str, raw_levers_list: List[dict]) -> 'FocusOnVitalFewLevers':
+    def execute(cls, llm_executor: LLMExecutor, project_context: str, raw_levers_list: List[dict]) -> 'FocusOnVitalFewLevers':
         if not isinstance(llm_executor, LLMExecutor):
             raise ValueError("Invalid LLMExecutor instance.")
         if not raw_levers_list:
@@ -131,7 +131,7 @@ class FocusOnVitalFewLevers:
         levers_prompt_text = "\n\n".join(formatted_levers_list)
         
         focus_prompt = (
-            f"**Project Plan:**\n{project_plan}\n\n"
+            f"**Project Context:**\n{project_context}\n\n"
             f"**Candidate Levers List:**\n"
             f"Please assess the strategic importance of the following {len(enriched_levers)} levers based on the project plan and their detailed characterizations:\n\n"
             f"{levers_prompt_text}"
@@ -275,7 +275,7 @@ if __name__ == "__main__":
     
     focus_result = FocusOnVitalFewLevers.execute(
         llm_executor=llm_executor,
-        project_plan=query,
+        project_context=query,
         raw_levers_list=raw_levers_list
     )
     
