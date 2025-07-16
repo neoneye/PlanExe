@@ -9,7 +9,7 @@ Step 3.5: Analyze Interaction Effects Between Vital Levers
 - This reveals deeper strategic insights, showing how decisions in one area
   amplify or constrain options in another.
 
-PROMPT> python -m planexe.strategic_variant_analysis.analyze_interactions1
+PROMPT> python -m planexe.strategic_variant_analysis.analyze_interactions_legacy1
 """
 import json
 import logging

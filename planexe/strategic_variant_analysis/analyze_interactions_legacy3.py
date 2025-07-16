@@ -1,7 +1,7 @@
 """
 This was generated with o4-mini-high.
 
-PROMPT> python -m planexe.strategic_variant_analysis.analyze_interactions3 \
+PROMPT> python -m planexe.strategic_variant_analysis.analyze_interactions_legacy3 \
     --plan_file planexe/strategic_variant_analysis/test_data/plan_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt \
     --vital_levers_file planexe/strategic_variant_analysis/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.json \
     --out_file interactions_v3.json
