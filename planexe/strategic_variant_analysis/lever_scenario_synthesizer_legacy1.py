@@ -10,7 +10,7 @@ Step 3: Sample & Prioritize Combinations
 - It then draws a random sample of N (e.g., 20) strategic variants from this space.
 - These sampled variants represent distinct, plausible strategic pathways for the project, which can then be evaluated.
 
-PROMPT> python -m planexe.strategic_variant_analysis.permute_levers1
+PROMPT> python -m planexe.strategic_variant_analysis.lever_scenario_synthesizer_legacy1
 """
 import json
 import logging
