@@ -12,7 +12,7 @@ This module analyzes lever lists to identify:
 
 The result is a cleaner, more focused list of essential strategic levers.
 
-PROMPT> python -m planexe.strategic_variant_analysis.filter_levers_legacy1_claude
+PROMPT> python -m planexe.strategic_variant_analysis.focus_on_vital_few_levers_legacy1_claude
 """
 import os
 import json
