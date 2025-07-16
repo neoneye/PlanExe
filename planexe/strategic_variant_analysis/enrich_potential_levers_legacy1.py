@@ -8,7 +8,7 @@ Enrich all levers with a "description" field.
 - This enrichment is done in batches to handle a large number of levers efficiently.
 - The output is a new JSON file containing the original levers with the added description field.
 
-PROMPT> python -m planexe.strategic_variant_analysis.enrich_potential_levers
+PROMPT> python -m planexe.strategic_variant_analysis.enrich_potential_levers_legacy1
 """
 import json
 import logging
