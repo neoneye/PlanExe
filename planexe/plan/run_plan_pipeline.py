@@ -49,9 +49,9 @@ from planexe.plan.related_resources import RelatedResources
 from planexe.questions_answers.questions_answers import QuestionsAnswers
 from planexe.schedule.export_frappe_gantt import ExportFrappeGantt
 from planexe.schedule.export_mermaid_gantt import ExportMermaidGantt
-from planexe.strategic_variant_analysis.enrich_and_characterize_levers import CharacterizeLevers
-from planexe.strategic_variant_analysis.focus_on_vital_few_levers import FocusOnVitalFewLevers
 from planexe.strategic_variant_analysis.identify_potential_levers import IdentifyPotentialLevers
+from planexe.strategic_variant_analysis.enrich_potential_levers import EnrichPotentialLevers
+from planexe.strategic_variant_analysis.focus_on_vital_few_levers import FocusOnVitalFewLevers
 from planexe.strategic_variant_analysis.permute_levers3 import LeverScenarioSynthesizer
 from planexe.swot.swot_analysis import SWOTAnalysis
 from planexe.expert.expert_finder import ExpertFinder
@@ -333,7 +333,7 @@ class CharacterizeLeversTask(PlanTask):
             f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}"
         )
 
-        identify_potential_levers = CharacterizeLevers.execute(
+        enrich_potential_levers = EnrichPotentialLevers.execute(
             llm_executor,
             project_context=query,
             raw_levers_list=lever_item_list
@@ -341,7 +341,7 @@ class CharacterizeLeversTask(PlanTask):
 
         # Write the result to disk.
         output_raw_path = self.output()['raw'].path
-        identify_potential_levers.save_raw(str(output_raw_path))
+        enrich_potential_levers.save_raw(str(output_raw_path))
 
 class FocusOnVitalFewLeversTask(PlanTask):
     """

@@ -1,6 +1,6 @@
 """
 This was generated with Gemini 2.5 Pro.
-Enrich all levers with a "description" field.
+Enrich the potential levers with fields such as: "description", "synergy_text", "conflict_text".
 
 Step 2: Enrich and Characterize Levers
 
@@ -12,7 +12,7 @@ Step 2: Enrich and Characterize Levers
   3. `conflict_text`: A summary of its most significant negative interactions and trade-offs.
 - This creates a highly context-rich dataset of levers, ready for the filtering step.
 
-PROMPT> python -m planexe.strategic_variant_analysis.enrich_and_characterize_levers
+PROMPT> python -m planexe.strategic_variant_analysis.enrich_potential_levers
 """
 import json
 import logging
@@ -84,13 +84,13 @@ You MUST respond with a single JSON object that strictly adheres to the `BatchCh
 """
 
 @dataclass
-class CharacterizeLevers:
+class EnrichPotentialLevers:
     """Holds the results of the characterization process."""
     characterized_levers: List[CharacterizedLever]
     metadata: List[Dict[str, Any]]
 
     @classmethod
-    def execute(cls, llm_executor: LLMExecutor, project_context: str, raw_levers_list: list[dict]) -> 'CharacterizeLevers':
+    def execute(cls, llm_executor: LLMExecutor, project_context: str, raw_levers_list: list[dict]) -> 'EnrichPotentialLevers':
         levers_to_characterize = [InputLever(**lever) for lever in raw_levers_list]
 
         if not levers_to_characterize:
@@ -168,7 +168,7 @@ class CharacterizeLevers:
             else:
                 logger.error(f"Characterization incomplete for lever '{lever_id}'. Skipping this lever.")
         
-        return CharacterizeLevers(
+        return cls(
             characterized_levers=final_characterized_levers,
             metadata=all_metadata
         )
@@ -214,7 +214,7 @@ if __name__ == "__main__":
     llm_executor = LLMExecutor(llm_models=llm_models)
 
     try:
-        result = CharacterizeLevers.execute(
+        result = EnrichPotentialLevers.execute(
             llm_executor=llm_executor,
             project_context=project_plan,
             raw_levers_list=input_levers
