@@ -49,6 +49,7 @@ from planexe.plan.related_resources import RelatedResources
 from planexe.questions_answers.questions_answers import QuestionsAnswers
 from planexe.schedule.export_frappe_gantt import ExportFrappeGantt
 from planexe.schedule.export_mermaid_gantt import ExportMermaidGantt
+from planexe.strategic_variant_analysis.enrich_and_characterize_levers import CharacterizeLevers
 from planexe.strategic_variant_analysis.identify_potential_levers import IdentifyPotentialLevers
 from planexe.swot.swot_analysis import SWOTAnalysis
 from planexe.expert.expert_finder import ExpertFinder
@@ -292,6 +293,53 @@ class IdentifyPotentialLeversTask(PlanTask):
         identify_potential_levers.save_raw(str(output_raw_path))
         output_clean_path = self.output()['clean'].path
         identify_potential_levers.save_clean(str(output_clean_path))
+
+
+class CharacterizeLeversTask(PlanTask):
+    """
+    Enrich potential levers with more information.
+    """
+    def requires(self):
+        return {
+            'setup': self.clone(SetupTask),
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'plan_type': self.clone(PlanTypeTask),
+            'levers_potential': self.clone(IdentifyPotentialLeversTask)
+        }
+
+    def output(self):
+        return {
+            'raw': self.local_target(FilenameEnum.LEVERS_ENRICHED_RAW)
+        }
+
+    def run_inner(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
+        # Read inputs from required tasks.
+        with self.input()['setup'].open("r") as f:
+            plan_prompt = f.read()
+        with self.input()['identify_purpose']['raw'].open("r") as f:
+            identify_purpose_dict = json.load(f)
+        with self.input()['plan_type']['raw'].open("r") as f:
+            plan_type_dict = json.load(f)
+        with self.input()['levers_potential']['clean'].open("r") as f:
+            lever_item_list = json.load(f)
+
+        query = (
+            f"File 'plan.txt':\n{plan_prompt}\n\n"
+            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
+            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
+        )
+
+        identify_potential_levers = CharacterizeLevers.execute(
+            llm_executor,
+            project_context=query,
+            raw_levers_list=lever_item_list
+        )
+
+        # Write the result to disk.
+        output_raw_path = self.output()['raw'].path
+        identify_potential_levers.save_raw(str(output_raw_path))
 
 
 class PhysicalLocationsTask(PlanTask):
