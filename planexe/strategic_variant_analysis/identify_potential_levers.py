@@ -233,8 +233,8 @@ class IdentifyPotentialLevers:
             d['user_prompt'] = self.user_prompt
         return d
 
-    def save_raw(self, file_path: Path) -> None:
-        file_path.write_text(json.dumps(self.to_dict(), indent=2))
+    def save_raw(self, file_path: str) -> None:
+        Path(file_path).write_text(json.dumps(self.to_dict(), indent=2))
 
     def save_as_test_data(self, file_path: Path) -> None:
         levers_dict = [lever.model_dump() for lever in self.levers]

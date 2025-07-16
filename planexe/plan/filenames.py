@@ -6,6 +6,7 @@ class FilenameEnum(str, Enum):
     IDENTIFY_PURPOSE_MARKDOWN = "002-2-identify_purpose.md"
     PLAN_TYPE_RAW = "002-3-plan_type_raw.json"
     PLAN_TYPE_MARKDOWN = "002-4-plan_type.md"
+    IDENTIFY_POTENTIAL_LEVERS_RAW = "experimental_002-5-identify_potential_levers_raw.json"
     PHYSICAL_LOCATIONS_RAW = "002-5-physical_locations_raw.json"
     PHYSICAL_LOCATIONS_MARKDOWN = "002-6-physical_locations.md"
     CURRENCY_STRATEGY_RAW = "002-7-currency_strategy_raw.json"
