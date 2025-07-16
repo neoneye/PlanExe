@@ -108,11 +108,12 @@ class FocusOnVitalFewLevers:
     metadata: dict
 
     @classmethod
-    def execute(cls, llm_executor: LLMExecutor, project_plan: str, enriched_levers: List[EnrichedLever]) -> 'FocusOnVitalFewLevers':
+    def execute(cls, llm_executor: LLMExecutor, project_plan: str, raw_levers_list: List[dict]) -> 'FocusOnVitalFewLevers':
         if not isinstance(llm_executor, LLMExecutor):
             raise ValueError("Invalid LLMExecutor instance.")
-        if not enriched_levers:
+        if not raw_levers_list:
             raise ValueError("No valid enriched levers were provided.")
+        enriched_levers = [EnrichedLever(**lever) for lever in raw_levers_list]
 
         logger.info(f"Assessing {len(enriched_levers)} characterized levers to find the vital few.")
 
@@ -263,14 +264,9 @@ if __name__ == "__main__":
     # Load the characterized levers from the new JSON file
     with open(characterized_levers_file, 'r', encoding='utf-8') as f:
         characterized_data = json.load(f)
-    try:
-        levers_list = characterized_data.get('characterized_levers', [])
-        enriched_levers_objects = [EnrichedLever(**lever) for lever in levers_list]
-    except (ValidationError, json.JSONDecodeError) as e:
-        logger.error(f"Failed to parse the characterized levers file. Error: {e}")
-        exit(1)
+    raw_levers_list = characterized_data.get('characterized_levers', [])
 
-    logger.info(f"Loaded project plan and {len(enriched_levers_objects)} characterized levers.")
+    logger.info(f"Loaded project plan and {len(raw_levers_list)} characterized levers.")
 
     # --- Step 2: Focus on the Vital Few ---
     model_names = ["ollama-llama3.1"]
@@ -280,7 +276,7 @@ if __name__ == "__main__":
     focus_result = FocusOnVitalFewLevers.execute(
         llm_executor=llm_executor,
         project_plan=query,
-        enriched_levers=enriched_levers_objects
+        raw_levers_list=raw_levers_list
     )
     
     # --- Step 3: Display and Save Results ---
