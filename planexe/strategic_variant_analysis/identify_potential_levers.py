@@ -3,7 +3,7 @@ Brainstorm what key "levers" can be pulled to change the outcome of the plan.
 
 PROMPT> python -m planexe.strategic_variant_analysis.identify_potential_levers
 
-IDEA: A few lever names appear twice.
+IDEA: The output contains near duplicates, these have to be deduplicated. A few lever names appear twice.
 
 IDEA: Your current filter treats each lever in isolation—this is a classic strategic trap. The “vital few” are often those with the highest interaction potential, not just those that look good on their own.
 """
