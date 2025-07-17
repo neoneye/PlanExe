@@ -17,23 +17,19 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Dict, Any
-
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
-from pydantic import BaseModel, Field, ValidationError
-
+from pydantic import BaseModel, Field
 from planexe.llm_util.llm_executor import LLMExecutor, PipelineStopRequested
 
 logger = logging.getLogger(__name__)
 
-# --- Pydantic Models ---
-
 # Represents a lever from the 'vital_levers' file
 class VitalLever(BaseModel):
-    lever_index: int
+    lever_id: str
     name: str
     options: List[str]
-    review_lever: str
+    review: str
 
 # The final output models for a strategic scenario
 class Scenario(BaseModel):
@@ -100,7 +96,7 @@ class LeverScenarioSynthesizer:
             options_str = ", ".join(f"'{opt}'" for opt in lever.options)
             formatted_levers_list.append(
                 f"**Lever: {lever.name}**\n"
-                f"  - Description: {lever.review_lever}\n"
+                f"  - Description: {lever.review}\n"
                 f"  - Options: [{options_str}]"
             )
         levers_prompt_text = "\n\n".join(formatted_levers_list)
@@ -160,48 +156,44 @@ class LeverScenarioSynthesizer:
 
 if __name__ == "__main__":
     from planexe.llm_util.llm_executor import LLMModelFromName
+    from planexe.prompt.prompt_catalog import PromptCatalog
     
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+    prompt_catalog = PromptCatalog()
+    prompt_catalog.load_simple_plan_prompts()
+
+    prompt_id = "19dc0718-3df7-48e3-b06d-e2c664ecc07d"
+    prompt_item = prompt_catalog.find(prompt_id)
+    if not prompt_item:
+        raise ValueError("Prompt item not found.")
+    project_context = prompt_item.prompt
+
+    output_file = f"lever_scenario_synthesizer_{prompt_id}.json"
+
     # --- Step 1: Load inputs from previous pipeline steps ---
-    plan_data_file = "planexe/lever/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
-    # This is the output file from the filtering step
-    vital_levers_file = "vital_levers_from_test_data3.json"
-    output_file = "strategic_scenarios.json"
-    
-    # ... (Error handling for file existence) ...
-
-    # Load project plan
-    with open(plan_data_file, 'r', encoding='utf-8') as f:
-        plan_part, _ = f.read().split("file: 'potential_levers.json':")
-        project_context = plan_part.replace("file: 'plan.txt':", "").strip()
-
-    # Load vital levers
-    with open(vital_levers_file, 'r', encoding='utf-8') as f:
+    focus_on_vital_few_levers_file = os.path.join(os.path.dirname(__file__), 'test_data', f'focus_on_vital_few_levers_{prompt_id}.json')
+    with open(focus_on_vital_few_levers_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
     vital_levers = data['levers']
 
-    logger.info(f"Loaded project plan and {len(vital_levers)} vital levers.")
+    logger.info(f"Loaded {len(vital_levers)} vital levers.")
 
     # --- Step 2: Execute the analysis ---
     model_names = ["ollama-llama3.1"]
     llm_models = LLMModelFromName.from_names(model_names)
     llm_executor = LLMExecutor(llm_models=llm_models)
 
-    try:
-        scenarios_result = LeverScenarioSynthesizer.execute(
-            llm_executor=llm_executor,
-            project_context=project_context,
-            raw_vital_levers=vital_levers
-        )
+    scenarios_result = LeverScenarioSynthesizer.execute(
+        llm_executor=llm_executor,
+        project_context=project_context,
+        raw_vital_levers=vital_levers
+    )
 
-        # --- Step 3: Display and save results ---
-        print("\n--- Strategic Scenario Analysis ---")
-        d = scenarios_result.to_dict(include_response=True, include_metadata=True, include_system_prompt=False, include_user_prompt=False)
-        print(json.dumps(d, indent=2))
+    # --- Step 3: Display and save results ---
+    print("\n--- Strategic Scenario Analysis ---")
+    d = scenarios_result.to_dict(include_response=True, include_metadata=True, include_system_prompt=False, include_user_prompt=False)
+    print(json.dumps(d, indent=2))
 
-        scenarios_result.save_clean(output_file)
-        logger.info(f"Strategic scenarios saved to '{output_file}'.")
-
-    except ValueError as e:
-        logger.error(f"An error occurred during scenario generation: {e}")
+    scenarios_result.save_clean(output_file)
+    logger.info(f"Strategic scenarios saved to '{output_file}'.")
