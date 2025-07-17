@@ -281,6 +281,6 @@ if __name__ == "__main__":
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print(json.dumps(json_response, indent=2))
 
-    test_data_filename = f"identify_potential_levers_{prompt_id}.txt"
+    test_data_filename = f"identify_potential_levers_{prompt_id}.json"
     result.save_clean(Path(test_data_filename))
     print(f"Test data saved to: {test_data_filename!r}")
