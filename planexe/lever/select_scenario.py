@@ -173,13 +173,14 @@ if __name__ == "__main__":
     prompt_catalog.load_simple_plan_prompts()
 
     # --- Input data ---
-    prompt_id = "3ca89453-e65b-4828-994f-dff0b679444a"
+    prompt_id = "19dc0718-3df7-48e3-b06d-e2c664ecc07d"
+    # prompt_id = "3ca89453-e65b-4828-994f-dff0b679444a"
     prompt_item = prompt_catalog.find(prompt_id)
     if not prompt_item:
         raise ValueError("Prompt item not found.")
     
-    scenarios_file_path = os.path.join(os.path.dirname(__file__), 'test_data', f'scenarios_{prompt_id}.json')
-    output_file = "scenario_selection_result.json"
+    scenarios_file_path = os.path.join(os.path.dirname(__file__), 'test_data', f'candidate_scenarios_{prompt_id}.json')
+    output_file = f"select_scenario_{prompt_id}.json"
 
     if not os.path.exists(scenarios_file_path):
         logger.error(f"Scenarios file not found: {scenarios_file_path}")
@@ -206,7 +207,7 @@ if __name__ == "__main__":
 
     # --- Display and Save Results ---
     print("\n--- Final Strategic Recommendation ---")
-    result_json = json.dumps(selection_result.to_dict(), indent=2)
+    result_json = json.dumps(selection_result.to_dict(include_system_prompt=False, include_user_prompt=False), indent=2)
     print(result_json)
 
     selection_result.save_clean(output_file)
