@@ -9,7 +9,7 @@ Step 5: Generate Strategic Scenarios
   name, a strategic logic, and a specific setting for each vital lever.
 - This transforms the analysis from a list of factors into a clear choice for decision-makers.
 
-PROMPT> python -m planexe.lever.lever_scenario_synthesizer
+PROMPT> python -m planexe.lever.scenario_synthesizer
 """
 import json
 import logging
@@ -75,14 +75,14 @@ For each scenario, ensure the `lever_settings` are logically consistent with its
 """
 
 @dataclass
-class LeverScenarioSynthesizer:
+class ScenarioSynthesizer:
     system_prompt: str
     user_prompt: str
     response: ScenarioAnalysisResult
     metadata: dict
 
     @classmethod
-    def execute(cls, llm_executor: LLMExecutor, project_context: str, raw_vital_levers: list[dict]) -> 'LeverScenarioSynthesizer':
+    def execute(cls, llm_executor: LLMExecutor, project_context: str, raw_vital_levers: list[dict]) -> 'ScenarioSynthesizer':
         vital_levers = [VitalLever(**lever) for lever in raw_vital_levers]
 
         if not vital_levers:
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     llm_models = LLMModelFromName.from_names(model_names)
     llm_executor = LLMExecutor(llm_models=llm_models)
 
-    scenarios_result = LeverScenarioSynthesizer.execute(
+    scenarios_result = ScenarioSynthesizer.execute(
         llm_executor=llm_executor,
         project_context=project_context,
         raw_vital_levers=vital_levers
