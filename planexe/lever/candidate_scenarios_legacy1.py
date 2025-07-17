@@ -1,14 +1,16 @@
 """
 This was generated with Gemini 2.5 Pro.
 
-Sample & Prioritize Combinations
+Strategic Variant Analysis (SVA), explore the solution space.
+
+Step 3: Sample & Prioritize Combinations
 
 - This module takes the "vital few" levers identified in the previous step.
 - It calculates all possible permutations of these levers and their options to define the total solution space.
 - It then draws a random sample of N (e.g., 20) strategic variants from this space.
 - These sampled variants represent distinct, plausible strategic pathways for the project, which can then be evaluated.
 
-PROMPT> python -m planexe.lever.lever_scenario_synthesizer_legacy2
+PROMPT> python -m planexe.lever.candidate_scenarios_legacy1
 """
 import json
 import logging
@@ -18,7 +20,6 @@ import itertools
 from dataclasses import dataclass
 from typing import List, Dict, Any
 
-# The Lever class definition must match the structure of the data being loaded.
 from planexe.lever.identify_potential_levers import Lever
 
 logger = logging.getLogger(__name__)
@@ -83,24 +84,7 @@ class SampleStrategicVariants:
         with open(vital_levers_filepath, 'r') as f:
             data = json.load(f)
         
-        # CORRECTED: Map the fields from the input file to what the Lever Pydantic model expects.
-        # This handles the difference between `original_index`->`lever_index` and `review`->`review_lever`.
-        levers_data_from_file = data.get('levers', [])
-        vital_levers = []
-        for lever_data in levers_data_from_file:
-            mapped_data = {
-                "lever_index": lever_data.get("original_index", -1), # Use original_index from file
-                "name": lever_data.get("name"),
-                "consequences": lever_data.get("consequences"),
-                "options": lever_data.get("options"),
-                "review_lever": lever_data.get("review", "") # Map "review" to "review_lever"
-            }
-            try:
-                vital_levers.append(Lever(**mapped_data))
-            except Exception as e:
-                logger.error(f"Failed to parse lever data: {lever_data}. Error: {e}")
-                raise ValueError("Could not parse lever data from file.") from e
-
+        vital_levers = [Lever(**lever_data) for lever_data in data.get('levers', [])]
 
         if not vital_levers:
             raise ValueError("No levers found in the provided file.")
@@ -153,7 +137,7 @@ class SampleStrategicVariants:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    # This file was created by the previous script (filter_levers_experimental.py)
+    # This file was created by the previous script (focus_on_vital_few_levers.py)
     input_file = "vital_levers_from_test_data.json"
     output_file = "sampled_strategic_variants.json"
 
@@ -167,6 +151,7 @@ if __name__ == "__main__":
         for variant in result.sampled_variants[:2]:
             print(f"\n--- Variant ID: {variant.variant_id} ---")
             print(variant.description)
+            # print(json.dumps(variant.settings, indent=2))
         
         if len(result.sampled_variants) > 2:
             print(f"\n...and {len(result.sampled_variants) - 2} more.")
