@@ -15,7 +15,8 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Dict, Any
+import re
+from typing import List, Dict, Any, Set
 import argparse
 
 from llama_index.core.llms import ChatMessage, MessageRole
@@ -29,6 +30,21 @@ logger = logging.getLogger(__name__)
 
 # --- Pydantic Models for Data Structuring ---
 
+class RemovalInstruction(BaseModel):
+    """Represents a single lever that should be removed due to duplication."""
+    lever_id_to_remove: str = Field(
+        description="The unique ID of the lever that should be removed."
+    )
+    reason_for_removal: str = Field(
+        description="A concise explanation for the removal. This MUST state which lever is being kept in its place by referencing its ID explicitly. Format: 'Redundant with kept lever [ID of kept lever] because...'"
+    )
+
+class DeduplicationAnalysis(BaseModel):
+    """The structured response from the LLM, containing the list of levers to remove."""
+    removals: List[RemovalInstruction] = Field(
+        description="A list of all levers identified as duplicates and recommended for removal."
+    )
+
 class InputLever(BaseModel):
     """Represents a single lever loaded from the initial brainstormed file."""
     lever_id: str
@@ -37,52 +53,64 @@ class InputLever(BaseModel):
     options: List[str]
     review: str
 
-class RemoveItem(BaseModel):
-    """Represents a single lever that should be removed due to duplication."""
-    lever_id: str = Field(
-        description="The unique ID of the lever that should be removed."
-    )
-    reason_for_removal: str = Field(
-        description="A concise explanation for the removal. Crucially, this MUST state which lever is being kept in its place. Example: 'This is a redundant, more generic version of lever [ID of kept lever], which better captures the specific manufacturing choices.'"
-    )
-
-class DeduplicationResult(BaseModel):
-    """The structured response from the LLM, containing the list of levers to remove."""
-    items_to_remove: List[RemoveItem] = Field(
-        description="A list of all levers identified as duplicates and recommended for removal."
-    )
-
-# --- LLM Prompt ---
 
 DEDUPLICATE_SYSTEM_PROMPT = """
-You are a meticulous and ruthless strategic analyst. Your task is to review a list of strategic levers and rationalize it by removing near-duplicates.
+You are a meticulous and ruthless strategic analyst. Your task is to rationalize a list of strategic levers by removing near-duplicates. Your process must be logical and non-destructive.
 
-**Your Goal:**
-Identify groups of levers that address the same core concept. For each group, you must keep **EXACTLY ONE** lever (the one that is most specific, well-defined, or comprehensive) and mark all others in that group for removal.
+**Your Three-Step Process:**
+1.  **Group Similar Levers:** Mentally group levers that address the same core strategic concept (e.g., everything about 'modularity', everything about 'materials').
+2.  **Nominate One Winner Per Group:** For each group, you MUST choose EXACTLY ONE lever to keep. The winner should be the most specific, comprehensive, or well-defined lever in its group. ALL other levers in the group must be marked for removal.
+3.  **Generate Removal List:** Create a JSON list of levers to remove. A lever can ONLY be on this list if another lever from its group is being kept.
 
-**Criteria for a "Duplicate":**
-- **Semantic Overlap:** The levers describe the same fundamental choice, even with different words. For example, "Material Feedstock Optimization" and "Material Sourcing and Sourcing" are duplicates.
-- **Subset Relationship:** One lever is a more generic version of another. For example, "Technology Integration" is a generic version of "Emerging Technologies Integration Strategy". You should remove the more generic one.
-- **Redundant Concepts:** Multiple levers focus on the same aspect, like 'modularity'. Pick the best single lever that represents the "modularity" choice and remove the others.
+**CRITICAL RULES:**
+-   **DO NOT REMOVE BOTH LEVERS IN A PAIR.** If you identify Lever A and Lever B as duplicates, you must choose one to keep and one to remove. You cannot remove both.
+-   The `reason_for_removal` MUST explicitly name the ID of the lever you are KEEPING. This is mandatory.
 
-**Output Requirements:**
-- You MUST respond with a single JSON object that strictly adheres to the `DeduplicationResult` schema.
-- The `items_to_remove` list should ONLY contain the levers to be discarded. Do not include the levers you decide to keep.
-- For each `RemoveItem`, the `reason_for_removal` is critical. It MUST clearly state which lever is being kept.
+**Output Schema:**
+You MUST respond with a single JSON object that strictly adheres to the `DeduplicationAnalysis` schema.
+
+---
+**GOOD EXAMPLE:**
+-   **Group:** [Lever-A: "Material Strategy"], [Lever-B: "Feedstock Sourcing"]
+-   **Decision:** Lever-A is more comprehensive. Keep Lever-A, remove Lever-B.
+-   **JSON Output:**
+    ```json
+    {
+      "removals": [
+        {
+          "lever_id_to_remove": "Lever-B",
+          "reason_for_removal": "Redundant with kept lever [Lever-A] which provides a better strategic overview of materials."
+        }
+      ]
+    }
+    ```
+
+**BAD EXAMPLE (What you must avoid):**
+-   **Incorrect Logic:** "Lever-A is a duplicate of Lever-B, so I'll remove A. Lever-B is a duplicate of Lever-A, so I'll remove B."
+-   **Incorrect JSON Output:**
+    ```json
+    {
+      "removals": [
+        { "lever_id_to_remove": "Lever-A", "reason_for_removal": "Duplicate of Lever-B." },
+        { "lever_id_to_remove": "Lever-B", "reason_for_removal": "Duplicate of Lever-A." }
+      ]
+    }
+    ```
+This is a logical contradiction and is forbidden. You must choose a winner.
 """
 
 @dataclass
 class DeduplicateLevers:
     """Holds the results of the LLM-based deduplication process."""
     raw_levers: List[InputLever]
-    deduplication_result: DeduplicationResult
+    analysis_result: DeduplicationAnalysis
     deduplicated_levers: List[InputLever]
     metadata: Dict[str, Any]
 
     @classmethod
     def execute(cls, llm_executor: LLMExecutor, raw_levers_list: List[dict]) -> 'DeduplicateLevers':
         """
-        Executes the deduplication process using an LLM.
+        Executes the deduplication process.
 
         Args:
             llm_executor: The configured LLMExecutor instance.
@@ -94,26 +122,15 @@ class DeduplicateLevers:
         try:
             levers = [InputLever(**lever) for lever in raw_levers_list]
         except ValidationError as e:
-            logger.error(f"Input data does not match the expected Lever schema. Error: {e}")
-            raise ValueError("Invalid input lever data.") from e
+            raise ValueError(f"Invalid input lever data: {e}")
 
         if not levers:
-            logger.warning("The list of levers to deduplicate is empty.")
-            return cls(raw_levers=[], deduplication_result=DeduplicationResult(items_to_remove=[]), deduplicated_levers=[], metadata={})
+            return cls(raw_levers=[], analysis_result=DeduplicationAnalysis(removals=[]), deduplicated_levers=[], metadata={})
 
-        logger.info(f"Starting deduplication for {len(levers)} levers using LLM.")
+        logger.info(f"Starting deduplication for {len(levers)} levers.")
 
-        # Format the levers into a text block for the prompt
-        formatted_levers = []
-        for i, lever in enumerate(levers):
-            formatted_levers.append(
-                f"--- Lever {i+1} ---\n"
-                f"ID: {lever.lever_id}\n"
-                f"Name: {lever.name}\n"
-                f"Consequences: {lever.consequences}"
-            )
+        formatted_levers = [f"ID: {l.lever_id}\nName: {l.name}" for l in levers]
         levers_text_block = "\n\n".join(formatted_levers)
-
         user_prompt = (
             "Here is the full list of strategic levers. Please analyze them for duplicates "
             "according to the rules and provide the JSON list of items to remove.\n\n"
@@ -126,17 +143,15 @@ class DeduplicateLevers:
             ChatMessage(role=MessageRole.USER, content=user_prompt)
         ]
 
-        # Define the function to be executed by the LLMExecutor
         def execute_function(llm: LLM) -> dict:
-            sllm = llm.as_structured_llm(DeduplicationResult)
+            sllm = llm.as_structured_llm(DeduplicationAnalysis)
             chat_response = sllm.chat(chat_message_list)
             metadata = dict(llm.metadata)
-            metadata["llm_classname"] = llm.class_name()
             return {"chat_response": chat_response, "metadata": metadata}
 
         try:
             result = llm_executor.run(execute_function)
-            deduplication_result: DeduplicationResult = result["chat_response"].raw
+            analysis_result: DeduplicationAnalysis = result["chat_response"].raw
             metadata = result["metadata"]
         except PipelineStopRequested:
             raise
@@ -144,18 +159,35 @@ class DeduplicateLevers:
             logger.error("LLM interaction for deduplication failed.", exc_info=True)
             raise ValueError("LLM interaction failed.") from e
 
-        # Process the result to create the final list
-        ids_to_remove = {item.lever_id for item in deduplication_result.items_to_remove}
-        logger.info(f"LLM recommended removing {len(ids_to_remove)} levers.")
-        for item in deduplication_result.items_to_remove:
-            logger.info(f" - Removing '{item.lever_id}': {item.reason_for_removal}")
+        # --- CHANGE 3: Add post-processing safeguard ---
+        ids_to_remove = {item.lever_id_to_remove for item in analysis_result.removals}
+        
+        # Extract all IDs that the LLM mentioned it was *keeping*.
+        ids_to_keep: Set[str] = set()
+        for item in analysis_result.removals:
+            # Use regex to find GUIDs mentioned in the reason string
+            found_ids = re.findall(r'\[([a-fA-F0-9\-]+)\]', item.reason_for_removal)
+            ids_to_keep.update(found_ids)
+
+        # Sanity Check: Identify contradictions where a lever is marked for both removal and keeping.
+        contradictions = ids_to_remove.intersection(ids_to_keep)
+        if contradictions:
+            logger.warning(f"Contradiction detected! The LLM tried to both REMOVE and KEEP the following levers: {contradictions}")
+            logger.warning("Prioritizing KEEPING these levers. They will not be removed.")
+            # Resolve the contradiction by removing the conflicted IDs from the removal set.
+            ids_to_remove.difference_update(contradictions)
+            
+        logger.info(f"LLM recommended removing {len(analysis_result.removals)} levers. After resolving contradictions, {len(ids_to_remove)} will be removed.")
+        for item in analysis_result.removals:
+             logger.info(f" - LLM Reason: Remove '{item.lever_id_to_remove}' because: {item.reason_for_removal}")
+
 
         deduplicated_levers = [lever for lever in levers if lever.lever_id not in ids_to_remove]
         logger.info(f"Final lever count after deduplication: {len(deduplicated_levers)}.")
 
         return cls(
             raw_levers=levers,
-            deduplication_result=deduplication_result,
+            analysis_result=analysis_result,
             deduplicated_levers=deduplicated_levers,
             metadata=metadata
         )
@@ -169,7 +201,6 @@ class DeduplicateLevers:
             logger.info(f"Successfully saved {len(output_data)} deduplicated levers to '{file_path}'.")
         except IOError as e:
             logger.error(f"Failed to write output to '{file_path}': {e}")
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Deduplicate a list of strategic levers using an LLM.")
