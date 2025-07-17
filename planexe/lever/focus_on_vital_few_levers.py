@@ -30,7 +30,7 @@ class StrategicImportance(str, Enum):
 
 # A Pydantic model representing the structure of the enriched levers we will be loading.
 class EnrichedLever(BaseModel):
-    id: str
+    lever_id: str
     name: str
     consequences: str
     options: List[str]
@@ -42,8 +42,8 @@ class EnrichedLever(BaseModel):
 
 class LeverAssessment(BaseModel):
     """An assessment of a single strategic lever's importance."""
-    lever_index: int = Field(
-        description="The original index of the lever from the provided list."
+    lever_id: str = Field(
+        description="The original lever_id from the provided list."
     )
     lever_name: str = Field(
         description="The name of the lever being assessed."
@@ -117,24 +117,14 @@ class FocusOnVitalFewLevers:
 
         logger.info(f"Assessing {len(enriched_levers)} characterized levers to find the vital few.")
 
-        # Update the prompt formatting to include the new fields
-        formatted_levers_list = []
-        for i, lever in enumerate(enriched_levers):
-            lever.original_index = i
-            formatted_levers_list.append(
-                f"{i}. **{lever.name}**\n"
-                f"   - **Description**: {lever.description}\n"
-                f"   - **Synergies**: {lever.synergy_text}\n"
-                f"   - **Conflicts**: {lever.conflict_text}"
-            )
-        
-        levers_prompt_text = "\n\n".join(formatted_levers_list)
-        
+        # Convert Pydantic models to dictionaries for JSON serialization
+        levers_dict = [lever.model_dump() for lever in enriched_levers]
+        levers_json = json.dumps(levers_dict, indent=2)        
         focus_prompt = (
             f"**Project Context:**\n{project_context}\n\n"
             f"**Candidate Levers List:**\n"
             f"Please assess the strategic importance of the following {len(enriched_levers)} levers based on the project plan and their detailed characterizations:\n\n"
-            f"{levers_prompt_text}"
+            f"{levers_json}"
         )
 
         system_prompt = FOCUS_LEVERS_SYSTEM_PROMPT.strip()
@@ -190,30 +180,29 @@ class FocusOnVitalFewLevers:
 
         for ass in assessment.lever_assessments:
             try:
-                assessments_by_importance[ass.strategic_importance].append(ass.lever_index)
+                assessments_by_importance[ass.strategic_importance].append(ass.lever_id)
             except KeyError:
-                logger.warning(f"Unknown strategic importance level '{ass.strategic_importance}' for lever {ass.lever_index}. Skipping.")
+                logger.warning(f"Unknown strategic importance level '{ass.strategic_importance}' for lever {ass.lever_id}. Skipping.")
         
-        selected_indices = []
+        selected_lever_ids: list[str] = []
         
         # Prioritize in order: Critical -> High -> Medium -> Low
         for importance_level in [StrategicImportance.critical, StrategicImportance.high, StrategicImportance.medium, StrategicImportance.low]:
-            if len(selected_indices) >= target_count:
+            if len(selected_lever_ids) >= target_count:
                 break
-            indices_to_add = assessments_by_importance[importance_level]
+            lever_ids_to_add = assessments_by_importance[importance_level]
             # Add indices until we reach the target, don't add all from a level if it puts us over
-            for index in indices_to_add:
-                if len(selected_indices) < target_count:
-                    selected_indices.append(index)
+            for lever_id in lever_ids_to_add:
+                if len(selected_lever_ids) < target_count:
+                    selected_lever_ids.append(lever_id)
                 else:
                     break
 
-        # Retrieve the full Lever objects for the selected indices
-        all_levers_by_index = {lever.original_index: lever for lever in all_levers}
-        vital_levers = [all_levers_by_index[i] for i in selected_indices if i in all_levers_by_index]
-        
-        # Sort by original index to maintain some order
-        vital_levers.sort(key=lambda x: x.original_index)
+        # Retrieve the full Lever objects for the selected lever_ids
+        vital_levers = []
+        for lever in all_levers:
+            if lever.lever_id in selected_lever_ids:
+                vital_levers.append(lever)
 
         return vital_levers
 
@@ -223,7 +212,7 @@ class FocusOnVitalFewLevers:
         output_levers = []
         for lever in self.vital_levers:
             output_levers.append({
-                "lever_index": lever.original_index,
+                "lever_id": lever.lever_id,
                 "name": lever.name,
                 "options": lever.options,
                 "consequences": lever.consequences,
@@ -237,36 +226,32 @@ class FocusOnVitalFewLevers:
 
 if __name__ == "__main__":
     from planexe.llm_util.llm_executor import LLMModelFromName
-    
+    from planexe.prompt.prompt_catalog import PromptCatalog
+
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    # --- Step 1: Load Project Plan and Enriched Levers ---
-    plan_data_file = "planexe/lever/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
-    characterized_levers_file = "characterized_levers.json"
+    prompt_catalog = PromptCatalog()
+    prompt_catalog.load_simple_plan_prompts()
 
-    if not os.path.exists(plan_data_file):
-        logger.error(f"Plan data file not found at: {plan_data_file}")
-        exit(1)
-    if not os.path.exists(characterized_levers_file):
-        logger.error(f"Enriched levers file not found at: {characterized_levers_file}. Please run enrich_and_characterize_levers.py first.")
-        exit(1)
+    prompt_id = "19dc0718-3df7-48e3-b06d-e2c664ecc07d"
+    prompt_item = prompt_catalog.find(prompt_id)
+    if not prompt_item:
+        raise ValueError("Prompt item not found.")
+    project_plan = prompt_item.prompt
 
-    # Load the project plan (query) from the original text file
-    with open(plan_data_file, 'r', encoding='utf-8') as f:
-        test_data_content = f.read()
-    try:
-        plan_part, _ = test_data_content.split("file: 'potential_levers.json':")
-        query = plan_part.replace("file: 'plan.txt':", "").strip()
-    except ValueError:
-        logger.error(f"Failed to parse the plan data file: {plan_data_file}")
+    output_filename = f"focus_on_vital_few_levers_{prompt_id}.json"
+
+    # --- Step 1: Load the enriched levers ---
+    enrich_potential_levers_file = os.path.join(os.path.dirname(__file__), 'test_data', f'enrich_potential_levers_{prompt_id}.json')
+    if not os.path.exists(enrich_potential_levers_file):
+        logger.error(f"Enriched levers file not found at: {enrich_potential_levers_file!r}. Please run enrich_potential_levers.py first.")
         exit(1)
 
-    # Load the characterized levers from the new JSON file
-    with open(characterized_levers_file, 'r', encoding='utf-8') as f:
+    with open(enrich_potential_levers_file, 'r', encoding='utf-8') as f:
         characterized_data = json.load(f)
     raw_levers_list = characterized_data.get('characterized_levers', [])
 
-    logger.info(f"Loaded project plan and {len(raw_levers_list)} characterized levers.")
+    logger.info(f"Loaded {len(raw_levers_list)} levers.")
 
     # --- Step 2: Focus on the Vital Few ---
     model_names = ["ollama-llama3.1"]
@@ -275,7 +260,7 @@ if __name__ == "__main__":
     
     focus_result = FocusOnVitalFewLevers.execute(
         llm_executor=llm_executor,
-        project_context=query,
+        project_context=project_plan,
         raw_levers_list=raw_levers_list
     )
     
@@ -295,6 +280,5 @@ if __name__ == "__main__":
     print(json.dumps(vital_levers_output, indent=2))
 
     # Save the vital levers for the next step in the pipeline
-    output_filename = "vital_levers_from_test_data3.json"
     focus_result.save_vital_levers(output_filename)
     logger.info(f"Saved the {vital_levers_count} vital few levers to '{output_filename}'")
