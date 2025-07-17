@@ -391,7 +391,7 @@ class FocusOnVitalFewLeversTask(PlanTask):
         focus_on_vital_few_levers.save_vital_levers(str(output_raw_path))
 
 
-class LeverScenarioSynthesizerTask(PlanTask):
+class CandidateScenariosTask(PlanTask):
     """
     Combinations of the vital few levers.
     """
@@ -405,8 +405,8 @@ class LeverScenarioSynthesizerTask(PlanTask):
 
     def output(self):
         return {
-            'raw': self.local_target(FilenameEnum.LEVERS_SCENARIOS_RAW),
-            'clean': self.local_target(FilenameEnum.LEVERS_SCENARIOS_CLEAN)
+            'raw': self.local_target(FilenameEnum.CANDIDATE_SCENARIOS_RAW),
+            'clean': self.local_target(FilenameEnum.CANDIDATE_SCENARIOS_CLEAN)
         }
 
     def run_inner(self):
@@ -451,13 +451,13 @@ class SelectScenarioTask(PlanTask):
             'identify_purpose': self.clone(IdentifyPurposeTask),
             'plan_type': self.clone(PlanTypeTask),
             'levers_vital_few': self.clone(FocusOnVitalFewLeversTask),
-            'levers_scenarios': self.clone(LeverScenarioSynthesizerTask)
+            'candidate_scenarios': self.clone(CandidateScenariosTask)
         }
 
     def output(self):
         return {
-            'raw': self.local_target(FilenameEnum.LEVERS_SELECTED_SCENARIO_RAW),
-            'clean': self.local_target(FilenameEnum.LEVERS_SELECTED_SCENARIO_CLEAN)
+            'raw': self.local_target(FilenameEnum.SELECTED_SCENARIO_RAW),
+            'clean': self.local_target(FilenameEnum.SELECTED_SCENARIO_CLEAN)
         }
 
     def run_inner(self):
@@ -472,7 +472,7 @@ class SelectScenarioTask(PlanTask):
             plan_type_dict = json.load(f)
         with self.input()['levers_vital_few']['raw'].open("r") as f:
             lever_item_list = json.load(f)["levers"]
-        with self.input()['levers_scenarios']['clean'].open("r") as f:
+        with self.input()['candidate_scenarios']['clean'].open("r") as f:
             scenarios_list = json.load(f).get('scenarios', [])
 
         query = (
@@ -480,7 +480,7 @@ class SelectScenarioTask(PlanTask):
             f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
             f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
             f"File 'levers_vital_few.json':\n{format_json_for_use_in_query(lever_item_list)}\n\n"
-            f"File 'levers_scenarios.json':\n{format_json_for_use_in_query(scenarios_list)}"
+            f"File 'candidate_scenarios.json':\n{format_json_for_use_in_query(scenarios_list)}"
         )
 
         select_scenario = SelectScenario.execute(
@@ -3134,7 +3134,7 @@ class FullPlanPipeline(PlanTask):
             'identify_potential_levers': self.clone(IdentifyPotentialLeversTask),
             'characterize_levers': self.clone(CharacterizeLeversTask),
             'focus_on_vital_few_levers': self.clone(FocusOnVitalFewLeversTask),
-            'lever_scenario_synthesizer': self.clone(LeverScenarioSynthesizerTask),
+            'candidate_scenarios': self.clone(CandidateScenariosTask),
             'select_scenario': self.clone(SelectScenarioTask),
             # 'physical_locations': self.clone(PhysicalLocationsTask),
             # 'currency_strategy': self.clone(CurrencyStrategyTask),
