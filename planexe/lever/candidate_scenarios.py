@@ -9,7 +9,7 @@ Step 5: Generate Strategic Scenarios
   name, a strategic logic, and a specific setting for each vital lever.
 - This transforms the analysis from a list of factors into a clear choice for decision-makers.
 
-PROMPT> python -m planexe.lever.scenario_synthesizer
+PROMPT> python -m planexe.lever.candidate_scenarios
 """
 import json
 import logging
@@ -75,14 +75,14 @@ For each scenario, ensure the `lever_settings` are logically consistent with its
 """
 
 @dataclass
-class ScenarioSynthesizer:
+class CandidateScenarios:
     system_prompt: str
     user_prompt: str
     response: ScenarioAnalysisResult
     metadata: dict
 
     @classmethod
-    def execute(cls, llm_executor: LLMExecutor, project_context: str, raw_vital_levers: list[dict]) -> 'ScenarioSynthesizer':
+    def execute(cls, llm_executor: LLMExecutor, project_context: str, raw_vital_levers: list[dict]) -> 'CandidateScenarios':
         vital_levers = [VitalLever(**lever) for lever in raw_vital_levers]
 
         if not vital_levers:
@@ -169,7 +169,7 @@ if __name__ == "__main__":
         raise ValueError("Prompt item not found.")
     project_context = prompt_item.prompt
 
-    output_file = f"lever_scenario_synthesizer_{prompt_id}.json"
+    output_file = f"candidate_scenarios_{prompt_id}.json"
 
     # --- Step 1: Load inputs from previous pipeline steps ---
     focus_on_vital_few_levers_file = os.path.join(os.path.dirname(__file__), 'test_data', f'focus_on_vital_few_levers_{prompt_id}.json')
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     llm_models = LLMModelFromName.from_names(model_names)
     llm_executor = LLMExecutor(llm_models=llm_models)
 
-    scenarios_result = ScenarioSynthesizer.execute(
+    scenarios_result = CandidateScenarios.execute(
         llm_executor=llm_executor,
         project_context=project_context,
         raw_vital_levers=vital_levers

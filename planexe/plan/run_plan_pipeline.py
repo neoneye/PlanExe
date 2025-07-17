@@ -52,7 +52,7 @@ from planexe.schedule.export_mermaid_gantt import ExportMermaidGantt
 from planexe.lever.identify_potential_levers import IdentifyPotentialLevers
 from planexe.lever.enrich_potential_levers import EnrichPotentialLevers
 from planexe.lever.focus_on_vital_few_levers import FocusOnVitalFewLevers
-from planexe.lever.scenario_synthesizer import ScenarioSynthesizer
+from planexe.lever.candidate_scenarios import CandidateScenarios
 from planexe.lever.select_scenario import SelectScenario
 from planexe.swot.swot_analysis import SWOTAnalysis
 from planexe.expert.expert_finder import ExpertFinder
@@ -428,7 +428,7 @@ class CandidateScenariosTask(PlanTask):
             f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
         )
 
-        scenarios = ScenarioSynthesizer.execute(
+        scenarios = CandidateScenarios.execute(
             llm_executor=llm_executor,
             project_context=query,
             raw_vital_levers=lever_item_list
