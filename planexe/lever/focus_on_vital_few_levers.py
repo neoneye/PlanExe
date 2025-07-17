@@ -38,7 +38,6 @@ class EnrichedLever(BaseModel):
     description: str
     synergy_text: str
     conflict_text: str
-    original_index: int = -1
 
 class LeverAssessment(BaseModel):
     """An assessment of a single strategic lever's importance."""
@@ -209,17 +208,8 @@ class FocusOnVitalFewLevers:
     def save_vital_levers(self, file_path: str) -> None:
         """Saves just the final list of vital levers to a file."""
         # The output format for the next script expects a simple dictionary for each lever.
-        output_levers = []
-        for lever in self.vital_levers:
-            output_levers.append({
-                "lever_id": lever.lever_id,
-                "name": lever.name,
-                "options": lever.options,
-                "consequences": lever.consequences,
-                "review_lever": lever.review
-            })
-
-        vital_levers_dict = { "levers": output_levers }
+        levers = [lever.model_dump() for lever in self.vital_levers]
+        vital_levers_dict = { "levers": levers }
         with open(file_path, 'w') as f:
             json.dump(vital_levers_dict, f, indent=2)
 
