@@ -158,51 +158,48 @@ class SelectFitScenario:
 
 if __name__ == "__main__":
     from planexe.llm_util.llm_executor import LLMModelFromName
+    from planexe.prompt.prompt_catalog import PromptCatalog
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    prompt_catalog = PromptCatalog()
+    prompt_catalog.load_simple_plan_prompts()
 
-    # --- Step 1: Define Input Files ---
-    # These files are the inputs to this final script.
-    plan_file = "001-plan.txt"
-    scenarios_file = "experimental_002-10-levers_scenarios.json"
+    # --- Input data ---
+    prompt_id = "3ca89453-e65b-4828-994f-dff0b679444a"
+    prompt_item = prompt_catalog.find(prompt_id)
+    if not prompt_item:
+        raise ValueError("Prompt item not found.")
+    
+    scenarios_file_path = os.path.join(os.path.dirname(__file__), 'test_data', f'scenarios_{prompt_id}.json')
     output_file = "scenario_selection_result.json"
 
-    # --- Step 2: Load Inputs ---
-    if not os.path.exists(plan_file):
-        logger.error(f"Plan file not found: {plan_file}")
-        exit(1)
-    if not os.path.exists(scenarios_file):
-        logger.error(f"Scenarios file not found: {scenarios_file}")
+    if not os.path.exists(scenarios_file_path):
+        logger.error(f"Scenarios file not found: {scenarios_file_path}")
         exit(1)
 
-    with open(plan_file, 'r', encoding='utf-8') as f:
-        project_plan_text = f.read()
+    project_plan_text = prompt_item.prompt
 
-    with open(scenarios_file, 'r', encoding='utf-8') as f:
+    with open(scenarios_file_path, 'r', encoding='utf-8') as f:
         scenarios_data = json.load(f)
     scenarios_list = scenarios_data.get('scenarios', [])
 
-    logger.info(f"Loaded plan from '{plan_file}' and {len(scenarios_list)} scenarios from '{scenarios_file}'.")
+    logger.info(f"Loaded plan '{prompt_id!r}' and {len(scenarios_list)} scenarios from '{scenarios_file_path!r}'.")
 
-    # --- Step 3: Execute the Analysis ---
+    # --- Execute the Analysis ---
     model_names = ["ollama-llama3.1"] # or ["openrouter-paid-gemini-2.0-flash-001"]
     llm_models = LLMModelFromName.from_names(model_names)
     llm_executor = LLMExecutor(llm_models=llm_models)
 
-    try:
-        selection_result = SelectFitScenario.execute(
-            llm_executor=llm_executor,
-            project_plan=project_plan_text,
-            scenarios=scenarios_list
-        )
+    selection_result = SelectFitScenario.execute(
+        llm_executor=llm_executor,
+        project_plan=project_plan_text,
+        scenarios=scenarios_list
+    )
 
-        # --- Step 4: Display and Save Results ---
-        print("\n--- Final Strategic Recommendation ---")
-        result_json = json.dumps(selection_result.response.model_dump(), indent=2)
-        print(result_json)
+    # --- Display and Save Results ---
+    print("\n--- Final Strategic Recommendation ---")
+    result_json = json.dumps(selection_result.response.model_dump(), indent=2)
+    print(result_json)
 
-        selection_result.save_clean(output_file)
-        logger.info(f"Full analysis and recommendation saved to '{output_file}'.")
-
-    except ValueError as e:
-        logger.error(f"An error occurred during the scenario selection process: {e}")
+    selection_result.save_clean(output_file)
+    logger.info(f"Full analysis and recommendation saved to '{output_file}'.")
