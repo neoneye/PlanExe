@@ -1,0 +1,208 @@
+"""
+Step 5: Select Fit Scenario
+
+This script is the final step of the strategic analysis pipeline.
+It synthesizes the entire process by:
+1.  Analyzing the initial project plan (001-plan.txt) to understand its core characteristics.
+2.  Evaluating a set of pre-generated strategic scenarios (e.g., from experimental_002-10-levers_scenarios.json) against the plan's profile.
+3.  Selecting the single best-fit scenario.
+4.  Generating a comprehensive justification for the choice.
+
+The output is a single JSON file containing this full analysis, ready for review by decision-makers.
+
+PROMPT> python -m planexe.lever.select_fit_scenario
+"""
+import json
+import logging
+import os
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Dict, Any
+
+from llama_index.core.llms import ChatMessage, MessageRole
+from llama_index.core.llms.llm import LLM
+from pydantic import BaseModel, Field
+
+from planexe.llm_util.llm_executor import LLMExecutor, PipelineStopRequested
+
+logger = logging.getLogger(__name__)
+
+# --- Pydantic Models for Structured Output ---
+
+class PlanCharacteristics(BaseModel):
+    """A structured analysis of the input plan's core nature."""
+    ambition_and_scale: str = Field(
+        description="Analysis of the plan's level of ambition and its scale (e.g., personal, local, global, revolutionary)."
+    )
+    risk_and_novelty: str = Field(
+        description="Assessment of the inherent risk and novelty. Is it a proven formula, an experimental pilot, or a groundbreaking endeavor?"
+    )
+    complexity_and_constraints: str = Field(
+        description="Evaluation of the plan's operational complexity and stated constraints (e.g., budget, timeline, technical requirements)."
+    )
+    domain_and_tone: str = Field(
+        description="The plan's subject matter and overall tone (e.g., corporate, scientific, personal, creative)."
+    )
+    holistic_profile_of_the_plan: str = Field(
+        description="A concise, holistic summary synthesizing the above characteristics into a single profile of the plan's strategic intent."
+    )
+
+class ScenarioFitAssessment(BaseModel):
+    """An assessment of how well a single scenario fits the plan."""
+    scenario_name: str = Field(description="The name of the scenario being assessed.")
+    fit_score: int = Field(
+        description="A numerical score from 1 (poor fit) to 10 (perfect fit) indicating how well this scenario aligns with the plan's holistic profile."
+    )
+    fit_assessment: str = Field(
+        description="A brief (1-2 sentences) rationale for the assigned fit score."
+    )
+
+class FinalChoice(BaseModel):
+    """The final selection and justification."""
+    chosen_scenario_name: str = Field(description="The name of the single best-fit scenario.")
+    justification: str = Field(
+        description="A comprehensive justification (100-150 words) for the chosen scenario. This text MUST explain *why* it's the best fit by explicitly referencing the plan's characteristics (ambition, risk, etc.) and why the other scenarios are less suitable. Use markdown bullet points for clarity."
+    )
+
+class ScenarioSelectionResult(BaseModel):
+    """The root model for the entire analysis output."""
+    plan_characteristics: PlanCharacteristics
+    scenario_assessments: List[ScenarioFitAssessment] = Field(
+        description="An assessment for every single scenario provided."
+    )
+    final_choice: FinalChoice
+
+# --- LLM Prompt ---
+
+SELECT_SCENARIO_SYSTEM_PROMPT = """
+You are a master Strategic Analyst AI. Your task is to perform a final strategic recommendation by analyzing a project plan and selecting the most fitting scenario from a predefined set. You must provide a clear, evidence-based justification for your choice.
+
+**Your process is a three-step analysis:**
+
+1.  **Analyze the Plan's Profile:**
+    - Read the user-provided plan.
+    - Characterize it across four dimensions: `ambition_and_scale`, `risk_and_novelty`, `complexity_and_constraints`, and `domain_and_tone`.
+    - Synthesize these into a `holistic_profile_of_the_plan`.
+
+2.  **Evaluate All Scenarios:**
+    - For EACH scenario provided, assess how well its strategic logic fits the plan's profile.
+    - Assign a `fit_score` (1-10) and a brief `fit_assessment` rationale for each one.
+
+3.  **Make a Final, Justified Choice:**
+    - Based on your evaluations, select the single scenario with the highest fit.
+    - Write a comprehensive `justification` for this choice. Your justification is the most important part of your output. It MUST:
+      - Clearly state *why* the chosen scenario's philosophy aligns with the plan's ambition, risk, and complexity.
+      - Briefly explain *why* the other scenarios are less suitable, creating a strong comparative argument.
+      - Use markdown bullet points to structure the key points.
+
+You MUST respond with a single JSON object that strictly adheres to the `ScenarioSelectionResult` schema.
+"""
+
+@dataclass
+class SelectFitScenario:
+    """Encapsulates the logic for analyzing a plan and selecting the best-fit scenario."""
+    system_prompt: str
+    user_prompt: str
+    response: ScenarioSelectionResult
+    metadata: Dict[str, Any]
+
+    @classmethod
+    def execute(cls, llm_executor: LLMExecutor, project_plan: str, scenarios: List[Dict[str, Any]]) -> 'SelectFitScenario':
+        if not project_plan.strip():
+            raise ValueError("Project plan cannot be empty.")
+        if not scenarios:
+            raise ValueError("Scenarios list cannot be empty.")
+
+        logger.info(f"Analyzing plan and evaluating {len(scenarios)} scenarios.")
+
+        scenarios_json_str = json.dumps(scenarios, indent=2)
+        user_prompt = (
+            f"**Project Plan:**\n```\n{project_plan}\n```\n\n"
+            f"**Strategic Scenarios for Evaluation:**\n```json\n{scenarios_json_str}\n```\n\n"
+            "Please perform the three-step analysis as instructed and provide the final `ScenarioSelectionResult` JSON."
+        )
+
+        system_prompt = SELECT_SCENARIO_SYSTEM_PROMPT.strip()
+        chat_message_list = [
+            ChatMessage(role=MessageRole.SYSTEM, content=system_prompt),
+            ChatMessage(role=MessageRole.USER, content=user_prompt)
+        ]
+
+        def execute_function(llm: LLM) -> dict:
+            sllm = llm.as_structured_llm(ScenarioSelectionResult)
+            chat_response = sllm.chat(chat_message_list)
+            metadata = dict(llm.metadata)
+            metadata["llm_classname"] = llm.class_name()
+            return {"chat_response": chat_response, "metadata": metadata}
+
+        try:
+            result = llm_executor.run(execute_function)
+        except PipelineStopRequested:
+            raise
+        except Exception as e:
+            logger.error("LLM interaction for selecting a scenario failed.", exc_info=True)
+            raise ValueError("LLM interaction failed.") from e
+
+        return cls(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            response=result["chat_response"].raw,
+            metadata=result["metadata"]
+        )
+
+    def save_clean(self, file_path: str) -> None:
+        """Saves the final analysis result to a JSON file."""
+        response_dict = self.response.model_dump()
+        Path(file_path).write_text(json.dumps(response_dict, indent=2))
+
+
+if __name__ == "__main__":
+    from planexe.llm_util.llm_executor import LLMModelFromName
+
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+    # --- Step 1: Define Input Files ---
+    # These files are the inputs to this final script.
+    plan_file = "001-plan.txt"
+    scenarios_file = "experimental_002-10-levers_scenarios.json"
+    output_file = "scenario_selection_result.json"
+
+    # --- Step 2: Load Inputs ---
+    if not os.path.exists(plan_file):
+        logger.error(f"Plan file not found: {plan_file}")
+        exit(1)
+    if not os.path.exists(scenarios_file):
+        logger.error(f"Scenarios file not found: {scenarios_file}")
+        exit(1)
+
+    with open(plan_file, 'r', encoding='utf-8') as f:
+        project_plan_text = f.read()
+
+    with open(scenarios_file, 'r', encoding='utf-8') as f:
+        scenarios_data = json.load(f)
+    scenarios_list = scenarios_data.get('scenarios', [])
+
+    logger.info(f"Loaded plan from '{plan_file}' and {len(scenarios_list)} scenarios from '{scenarios_file}'.")
+
+    # --- Step 3: Execute the Analysis ---
+    model_names = ["ollama-llama3.1"] # or ["openrouter-paid-gemini-2.0-flash-001"]
+    llm_models = LLMModelFromName.from_names(model_names)
+    llm_executor = LLMExecutor(llm_models=llm_models)
+
+    try:
+        selection_result = SelectFitScenario.execute(
+            llm_executor=llm_executor,
+            project_plan=project_plan_text,
+            scenarios=scenarios_list
+        )
+
+        # --- Step 4: Display and Save Results ---
+        print("\n--- Final Strategic Recommendation ---")
+        result_json = json.dumps(selection_result.response.model_dump(), indent=2)
+        print(result_json)
+
+        selection_result.save_clean(output_file)
+        logger.info(f"Full analysis and recommendation saved to '{output_file}'.")
+
+    except ValueError as e:
+        logger.error(f"An error occurred during the scenario selection process: {e}")
