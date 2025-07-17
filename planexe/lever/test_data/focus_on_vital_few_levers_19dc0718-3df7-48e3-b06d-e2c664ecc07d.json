@@ -1,0 +1,58 @@
+{
+  "levers": [
+    {
+      "lever_id": "4ac8ccc1-62d5-49d4-9a5f-884987cbd9f4",
+      "name": "Material Feedstock Optimization Strategy",
+      "consequences": "Immediate: Reduced material waste \u2192 Systemic: Increased efficiency through optimized feedstock management \u2192 Strategic: Enhanced adaptability to variations in material purity and composition.",
+      "options": [
+        "Closed-Loop Recycling and Upcycling",
+        "Advanced Materials Characterization and Selection"
+      ],
+      "review": "Controls Cost vs. Sustainability. Weakness: The options fail to consider the potential impact of optimized feedstock on the overall production cost.",
+      "description": "The Material Feedstock Optimization Strategy focuses on closed-loop recycling and upcycling, as well as advanced materials characterization and selection. This strategy aims to optimize material feedstocks for efficient production of complex components.",
+      "synergy_text": "This lever has strong synergy with the 'Modular Factory Design Strategy' (51a940a6-682e-4373-95a3-ffb33d3e1352) and 'Manufacturing Process Innovation Strategy' (3da4477a-fe7d-4852-89f7-fea740b46e56), as it enables the efficient use of optimized material feedstocks within a modular factory design, and supports innovative manufacturing processes.",
+      "conflict_text": "This lever has potential conflicts with the 'Robotics and Automation Strategy' (e6a4c936-f14e-4243-9e7d-73f7529e3c0c) and 'Emerging Technologies Integration Strategy' (ca8eb0d6-4be8-40c1-b4ad-e7ae0f3fb302), as the optimization of material feedstocks may require adjustments to accommodate robotics integration or emerging technologies."
+    },
+    {
+      "lever_id": "ca8eb0d6-4be8-40c1-b4ad-e7ae0f3fb302",
+      "name": "Emerging Technologies Integration Strategy",
+      "consequences": "Immediate: Increased innovation capacity \u2192 Systemic: Enhanced adaptability through emerging technologies integration \u2192 Strategic: Competitive advantage for space-based applications.",
+      "options": [
+        "Integration of Artificial Intelligence and Machine Learning",
+        "Implementation of Quantum Computing for Materials Characterization"
+      ],
+      "review": "Controls Innovation Capacity vs. Risk Tolerance. Weakness: The options fail to consider the potential impact of emerging technologies on the overall project timeline.",
+      "description": "The Emerging Technologies Integration Strategy focuses on the integration of artificial intelligence and machine learning, as well as the implementation of quantum computing for materials characterization. This strategy aims to integrate emerging technologies for efficient production of complex components.",
+      "synergy_text": "This lever has strong synergy with the 'Manufacturing Process Innovation Strategy' (3da4477a-fe7d-4852-89f7-fea740b46e56) and 'Material Feedstock Optimization Strategy' (4ac8ccc1-62d5-49d4-9a5f-884987cbd9f4), as it enables the efficient use of optimized material feedstocks within a modular factory design, and supports innovative manufacturing processes.",
+      "conflict_text": "This lever has potential conflicts with the 'Robotics and Automation Strategy' (e6a4c936-f14e-4243-9e7d-73f7529e3c0c) and 'Modular Factory Design Strategy' (51a940a6-682e-4373-95a3-ffb33d3e1352), as the integration of emerging technologies may require adjustments to accommodate robotics integration or modular factory design."
+    },
+    {
+      "lever_id": "a2f170db-d363-4706-89be-8ba110408d45",
+      "name": "Talent Acquisition, Development, and Retention",
+      "consequences": "Immediate: Improved skill sets \u2192 Systemic: Increased innovation capacity \u2192 Strategic: Enhanced global competitiveness.",
+      "options": [
+        "Strategic Partnerships with Research Institutions",
+        "In-House Training and Development Programs",
+        "Competitive Compensation and Benefits Packages"
+      ],
+      "review": "Controls Innovation Capacity vs. Attractiveness to Top Talent. Weakness: The options fail to consider the role of diversity, equity, and inclusion in fostering a positive work environment.",
+      "description": "The Talent Acquisition, Development, and Retention lever controls the recruitment, training, and retention of skilled personnel. Its objective is to ensure a highly competent workforce that can drive innovation and excellence in production processes. Key success metrics include reduced turnover rates, improved skills development, and enhanced productivity.",
+      "synergy_text": "This lever has strong synergy with the In-House Training and Development Programs option (as part of Talent Acquisition, Development, and Retention) as it enables the creation of a skilled workforce that can adapt to emerging technologies. It also synergizes with the Strategic Partnerships with Research Institutions option (as part of Talent Acquisition, Development, and Retention) as it promotes collaboration between industry and academia.",
+      "conflict_text": "This lever creates a conflict with the Competitive Compensation and Benefits Packages option (as part of Talent Acquisition, Development, and Retention) as it may require different compensation strategies for various production processes. It also conflicts with the Emerging Technologies and Business Model Innovation Strategy (05d42f5c-02ed-43d3-9191-c15b7dae00b5) as it may need to adapt to new business models and technologies."
+    },
+    {
+      "lever_id": "7fe76fee-dff0-430c-8035-f4ca7fc9b594",
+      "name": "Regulatory Framework and Public-Private Partnerships",
+      "consequences": "Immediate: Reduced regulatory risk \u2192 Systemic: Increased public-private collaboration \u2192 Strategic: Enhanced global leadership.",
+      "options": [
+        "Collaborative Regulation with Industry Leaders",
+        "Public-Private Partnerships for Research and Development",
+        "Government-Supported Incentives for Investment"
+      ],
+      "review": "Controls Regulatory Risk vs. Public Support. Weakness: The options fail to consider the impact of regulatory frameworks on supply chain transparency and accountability.",
+      "description": "The Regulatory Framework and Public-Private Partnerships lever controls the development of regulatory frameworks and public-private partnerships. Its objective is to ensure a conducive business environment that promotes innovation, investment, and growth. Key success metrics include reduced regulatory risks, improved partnership outcomes, and enhanced competitiveness.",
+      "synergy_text": "This lever has strong synergy with the Collaborative Regulation with Industry Leaders option (as part of Regulatory Framework and Public-Private Partnerships) as it enables the creation of a collaborative regulatory environment that promotes industry growth. It also synergizes with the Public-Private Partnerships for Research and Development option (as part of Regulatory Framework and Public-Private Partnerships) as it promotes collaboration between government, industry, and academia.",
+      "conflict_text": "This lever creates a conflict with the Government-Supported Incentives for Investment option (as part of Regulatory Framework and Public-Private Partnerships) as it may require different investment strategies for various production processes. It also conflicts with the Emerging Technologies Integration Strategy (ca8eb0d6-4be8-40c1-b4ad-e7ae0f3fb302) as it may need to adapt to new technologies and business models."
+    }
+  ]
+}
