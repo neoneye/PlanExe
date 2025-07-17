@@ -53,6 +53,7 @@ from planexe.lever.identify_potential_levers import IdentifyPotentialLevers
 from planexe.lever.enrich_potential_levers import EnrichPotentialLevers
 from planexe.lever.focus_on_vital_few_levers import FocusOnVitalFewLevers
 from planexe.lever.lever_scenario_synthesizer import LeverScenarioSynthesizer
+from planexe.lever.select_scenario import SelectScenario
 from planexe.swot.swot_analysis import SWOTAnalysis
 from planexe.expert.expert_finder import ExpertFinder
 from planexe.expert.expert_criticism import ExpertCriticism
@@ -438,6 +439,61 @@ class LeverScenarioSynthesizerTask(PlanTask):
         scenarios.save_raw(str(output_raw_path))
         output_clean_path = self.output()['clean'].path
         scenarios.save_clean(str(output_clean_path))
+
+
+class SelectScenarioTask(PlanTask):
+    """
+    Pick the best fitting scenario to make a plan for.
+    """
+    def requires(self):
+        return {
+            'setup': self.clone(SetupTask),
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'plan_type': self.clone(PlanTypeTask),
+            'levers_vital_few': self.clone(FocusOnVitalFewLeversTask),
+            'levers_scenarios': self.clone(LeverScenarioSynthesizerTask)
+        }
+
+    def output(self):
+        return {
+            'raw': self.local_target(FilenameEnum.LEVERS_SELECTED_SCENARIO_RAW),
+            'clean': self.local_target(FilenameEnum.LEVERS_SELECTED_SCENARIO_CLEAN)
+        }
+
+    def run_inner(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
+        # Read inputs from required tasks.
+        with self.input()['setup'].open("r") as f:
+            plan_prompt = f.read()
+        with self.input()['identify_purpose']['raw'].open("r") as f:
+            identify_purpose_dict = json.load(f)
+        with self.input()['plan_type']['raw'].open("r") as f:
+            plan_type_dict = json.load(f)
+        with self.input()['levers_vital_few']['raw'].open("r") as f:
+            lever_item_list = json.load(f)["levers"]
+        with self.input()['levers_scenarios']['clean'].open("r") as f:
+            scenarios_list = json.load(f).get('scenarios', [])
+
+        query = (
+            f"File 'plan.txt':\n{plan_prompt}\n\n"
+            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
+            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
+            f"File 'levers_vital_few.json':\n{format_json_for_use_in_query(lever_item_list)}\n\n"
+            f"File 'levers_scenarios.json':\n{format_json_for_use_in_query(scenarios_list)}"
+        )
+
+        select_scenario = SelectScenario.execute(
+            llm_executor=llm_executor,
+            project_context=query,
+            scenarios=scenarios_list
+        )
+
+        # Write the result to disk.
+        output_raw_path = self.output()['raw'].path
+        select_scenario.save_raw(str(output_raw_path))
+        output_clean_path = self.output()['clean'].path
+        select_scenario.save_clean(str(output_clean_path))
 
 
 class PhysicalLocationsTask(PlanTask):
@@ -3079,6 +3135,7 @@ class FullPlanPipeline(PlanTask):
             'characterize_levers': self.clone(CharacterizeLeversTask),
             'focus_on_vital_few_levers': self.clone(FocusOnVitalFewLeversTask),
             'lever_scenario_synthesizer': self.clone(LeverScenarioSynthesizerTask),
+            'select_scenario': self.clone(SelectScenarioTask),
             # 'physical_locations': self.clone(PhysicalLocationsTask),
             # 'currency_strategy': self.clone(CurrencyStrategyTask),
             # 'identify_risks': self.clone(IdentifyRisksTask),

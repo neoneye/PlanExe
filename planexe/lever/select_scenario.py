@@ -4,7 +4,7 @@ Step 5: select the best fitting scenario
 This script is the final step of the strategic analysis pipeline.
 It synthesizes the entire process by:
 1.  Analyzing the initial project plan (001-plan.txt) to understand its core characteristics.
-2.  Evaluating a set of pre-generated strategic scenarios (e.g., from experimental_002-10-levers_scenarios.json) against the plan's profile.
+2.  Evaluating a set of pre-generated strategic scenarios (e.g., from 002-10-levers_scenarios.json) against the plan's profile.
 3.  Selecting the single best-fit scenario.
 4.  Generating a comprehensive justification for the choice.
 
@@ -144,11 +144,25 @@ class SelectScenario:
             metadata=result["metadata"]
         )
 
+    def to_dict(self, include_responses=True, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
+        d = {}
+        if include_responses:
+            d["response"] = self.response.model_dump()
+        if include_metadata:
+            d['metadata'] = self.metadata
+        if include_system_prompt:
+            d['system_prompt'] = self.system_prompt
+        if include_user_prompt:
+            d['user_prompt'] = self.user_prompt
+        return d
+
+    def save_raw(self, file_path: str) -> None:
+        Path(file_path).write_text(json.dumps(self.to_dict(), indent=2))
+
     def save_clean(self, file_path: str) -> None:
         """Saves the final analysis result to a JSON file."""
         response_dict = self.response.model_dump()
         Path(file_path).write_text(json.dumps(response_dict, indent=2))
-
 
 if __name__ == "__main__":
     from planexe.llm_util.llm_executor import LLMModelFromName
@@ -177,7 +191,7 @@ if __name__ == "__main__":
         scenarios_data = json.load(f)
     scenarios_list = scenarios_data.get('scenarios', [])
 
-    logger.info(f"Loaded plan '{prompt_id!r}' and {len(scenarios_list)} scenarios from '{scenarios_file_path!r}'.")
+    logger.info(f"Loaded plan {prompt_id!r} and {len(scenarios_list)} scenarios from {scenarios_file_path!r}.")
 
     # --- Execute the Analysis ---
     model_names = ["ollama-llama3.1"]
@@ -192,7 +206,7 @@ if __name__ == "__main__":
 
     # --- Display and Save Results ---
     print("\n--- Final Strategic Recommendation ---")
-    result_json = json.dumps(selection_result.response.model_dump(), indent=2)
+    result_json = json.dumps(selection_result.to_dict(), indent=2)
     print(result_json)
 
     selection_result.save_clean(output_file)
