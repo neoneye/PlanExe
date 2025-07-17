@@ -1,5 +1,5 @@
 """
-Step 5: Select Fit Scenario
+Step 5: select the best fitting scenario
 
 This script is the final step of the strategic analysis pipeline.
 It synthesizes the entire process by:
@@ -10,7 +10,7 @@ It synthesizes the entire process by:
 
 The output is a single JSON file containing this full analysis, ready for review by decision-makers.
 
-PROMPT> python -m planexe.lever.select_fit_scenario
+PROMPT> python -m planexe.lever.select_scenario
 """
 import json
 import logging
@@ -99,15 +99,15 @@ You MUST respond with a single JSON object that strictly adheres to the `Scenari
 """
 
 @dataclass
-class SelectFitScenario:
-    """Encapsulates the logic for analyzing a plan and selecting the best-fit scenario."""
+class SelectScenario:
+    """Analyze a plan and pick the best-fit scenario."""
     system_prompt: str
     user_prompt: str
     response: ScenarioSelectionResult
     metadata: Dict[str, Any]
 
     @classmethod
-    def execute(cls, llm_executor: LLMExecutor, project_plan: str, scenarios: List[Dict[str, Any]]) -> 'SelectFitScenario':
+    def execute(cls, llm_executor: LLMExecutor, project_plan: str, scenarios: List[Dict[str, Any]]) -> 'SelectScenario':
         if not project_plan.strip():
             raise ValueError("Project plan cannot be empty.")
         if not scenarios:
@@ -190,7 +190,7 @@ if __name__ == "__main__":
     llm_models = LLMModelFromName.from_names(model_names)
     llm_executor = LLMExecutor(llm_models=llm_models)
 
-    selection_result = SelectFitScenario.execute(
+    selection_result = SelectScenario.execute(
         llm_executor=llm_executor,
         project_plan=project_plan_text,
         scenarios=scenarios_list
