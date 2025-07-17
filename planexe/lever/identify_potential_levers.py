@@ -247,18 +247,6 @@ class IdentifyPotentialLevers:
     def save_clean(self, file_path: str) -> None:
         levers_dict = self.lever_item_list()
         Path(file_path).write_text(json.dumps(levers_dict, indent=2))
-
-    def save_as_test_data(self, file_path: Path) -> None:
-        levers_dict = self.lever_item_list()
-        levers_json = json.dumps(levers_dict, indent=2)
-        rows = [
-            f"file: 'plan.txt':",
-            self.user_prompt,
-            "",
-            f"file: 'potential_levers.json':",
-            levers_json
-        ]
-        file_path.write_text("\n".join(rows))
     
 if __name__ == "__main__":
     from planexe.llm_util.llm_executor import LLMModelFromName
@@ -294,5 +282,5 @@ if __name__ == "__main__":
     print(json.dumps(json_response, indent=2))
 
     test_data_filename = f"identify_potential_levers_{prompt_id}.txt"
-    result.save_as_test_data(Path(test_data_filename))
+    result.save_clean(Path(test_data_filename))
     print(f"Test data saved to: {test_data_filename!r}")

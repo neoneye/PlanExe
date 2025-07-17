@@ -1,167 +1,162 @@
 [
   {
-    "id": "Lever-1",
+    "lever_id": "51a940a6-682e-4373-95a3-ffb33d3e1352",
+    "name": "Modular Factory Design Strategy",
+    "consequences": "Immediate: Reduced development timeline \u2192 Systemic: Increased production capacity through modularity \u2192 Strategic: Enhanced scalability for future space-based applications.",
+    "options": [
+      "Standardized, Plug-and-Play Modules",
+      "Modular, Scalable, and Adaptable Factory Layout"
+    ],
+    "review": "Controls Complexity vs. Flexibility. Weakness: The options fail to consider the potential impact of modular design on supply chain dynamics."
+  },
+  {
+    "lever_id": "4ac8ccc1-62d5-49d4-9a5f-884987cbd9f4",
+    "name": "Material Feedstock Optimization Strategy",
+    "consequences": "Immediate: Reduced material waste \u2192 Systemic: Increased efficiency through optimized feedstock management \u2192 Strategic: Enhanced adaptability to variations in material purity and composition.",
+    "options": [
+      "Closed-Loop Recycling and Upcycling",
+      "Advanced Materials Characterization and Selection"
+    ],
+    "review": "Controls Cost vs. Sustainability. Weakness: The options fail to consider the potential impact of optimized feedstock on the overall production cost."
+  },
+  {
+    "lever_id": "3da4477a-fe7d-4852-89f7-fea740b46e56",
+    "name": "Manufacturing Process Innovation Strategy",
+    "consequences": "Immediate: Increased production speed \u2192 Systemic: Improved product quality through advanced manufacturing processes \u2192 Strategic: Enhanced competitiveness for space-based applications.",
+    "options": [
+      "Additive Manufacturing of Complex Components",
+      "Advanced Subtractive Manufacturing Techniques"
+    ],
+    "review": "Controls Product Quality vs. Production Speed. Weakness: The options fail to consider the potential impact of innovative manufacturing processes on the overall factory design."
+  },
+  {
+    "lever_id": "e6a4c936-f14e-4243-9e7d-73f7529e3c0c",
+    "name": "Robotics and Automation Strategy",
+    "consequences": "Immediate: Reduced labor costs \u2192 Systemic: Increased precision through automation \u2192 Strategic: Enhanced adaptability to variations in material composition.",
+    "options": [
+      "Advanced Robotics for Complex Component Assembly",
+      "Artificial Intelligence-Powered Quality Control"
+    ],
+    "review": "Controls Labor Costs vs. Productivity. Weakness: The options fail to consider the potential impact of robotics and automation on the overall factory layout."
+  },
+  {
+    "lever_id": "ca8eb0d6-4be8-40c1-b4ad-e7ae0f3fb302",
+    "name": "Emerging Technologies Integration Strategy",
+    "consequences": "Immediate: Increased innovation capacity \u2192 Systemic: Enhanced adaptability through emerging technologies integration \u2192 Strategic: Competitive advantage for space-based applications.",
+    "options": [
+      "Integration of Artificial Intelligence and Machine Learning",
+      "Implementation of Quantum Computing for Materials Characterization"
+    ],
+    "review": "Controls Innovation Capacity vs. Risk Tolerance. Weakness: The options fail to consider the potential impact of emerging technologies on the overall project timeline."
+  },
+  {
+    "lever_id": "e867efdd-edd8-4e85-b9d6-bcdc8872d666",
+    "name": "Material Feedstock Optimization Strategy",
+    "consequences": "Immediate: Reduced material waste \u2192 Systemic: Increased feedstock efficiency \u2192 Strategic: Enhanced supply chain resilience.",
+    "options": [
+      "Sustainable industrial sourcing",
+      "Closed-loop recycling protocols",
+      "Carbon-negative feedstock production"
+    ],
+    "review": "Controls Waste vs. Efficiency."
+  },
+  {
+    "lever_id": "b90e5708-3d9b-466b-92d0-342a090fcd14",
+    "name": "Modular Factory Scalability Strategy",
+    "consequences": "Immediate: Reduced production costs \u2192 Systemic: Increased factory throughput \u2192 Strategic: Enhanced global manufacturing capacity.",
+    "options": [
+      "Scalable module design",
+      "Automated assembly lines",
+      "Artificial intelligence-driven production planning"
+    ],
+    "review": "Controls Cost vs. Throughput."
+  },
+  {
+    "lever_id": "56fc247d-5e51-435e-ac0b-35b31f1ecb7e",
+    "name": "Advanced Manufacturing Technologies Integration Strategy",
+    "consequences": "Immediate: Improved product quality \u2192 Systemic: Increased manufacturing precision \u2192 Strategic: Enhanced competitiveness.",
+    "options": [
+      "Additive manufacturing integration",
+      "Subtractive manufacturing optimization",
+      "Hybrid additive-subtractive manufacturing"
+    ],
+    "review": "Controls Quality vs. Precision."
+  },
+  {
+    "lever_id": "361befcc-2a94-4076-8474-e18acd4a96ad",
+    "name": "Supply Chain Resilience and Adaptability Strategy",
+    "consequences": "Immediate: Reduced supply chain risk \u2192 Systemic: Increased material availability \u2192 Strategic: Enhanced global market share.",
+    "options": [
+      "Diversified supplier base",
+      "Just-in-time inventory management",
+      "Predictive analytics-driven demand forecasting"
+    ],
+    "review": "Controls Risk vs. Availability."
+  },
+  {
+    "lever_id": "05d42f5c-02ed-43d3-9191-c15b7dae00b5",
+    "name": "Emerging Technologies and Business Model Innovation Strategy",
+    "consequences": "Immediate: New revenue streams \u2192 Systemic: Increased market share \u2192 Strategic: Enhanced competitiveness.",
+    "options": [
+      "Blockchain-based supply chain management",
+      "Artificial intelligence-driven product customization",
+      "3D printing-enabled on-demand manufacturing"
+    ],
+    "review": "Controls Inefficiency vs. Opportunity."
+  },
+  {
+    "lever_id": "c32f04b3-d9de-41d9-8dad-7f15e3202383",
     "name": "Modular Factory Architecture",
-    "consequences": "Immediate: Reduced production costs \u2192 Systemic: Increased scalability and adaptability \u2192 Strategic: Competitive advantage through rapid technology transfer.",
+    "consequences": "Immediate: Scalable production capacity \u2192 Systemic: Reduced infrastructure costs \u2192 Strategic: Increased global accessibility.",
     "options": [
-      "Centralized Control",
-      "Decentralized Autonomous Zones",
-      "Hybrid Hub-and-Spoke Model"
+      "Modular, Miniaturized Factories",
+      "Centralized, Large-Scale Production",
+      "Decentralized, Community-Based Manufacturing"
     ],
-    "review": "Controls Centralization vs. Decentralization. Weakness: The options fail to consider the impact of varying material properties on factory layout and operation."
+    "review": "Controls Complexity vs. Cost. Weakness: The options fail to consider the impact of modular design on supply chain resilience."
   },
   {
-    "id": "Lever-2",
-    "name": "Material Feedstock Strategy",
-    "consequences": "Immediate: Reduced waste \u2192 Systemic: Improved material efficiency \u2192 Strategic: Enhanced adaptability through feedstock diversification.",
+    "lever_id": "d581b049-2ba0-46bd-b4b8-3a6f365b5597",
+    "name": "Material Feedstock and Sourcing",
+    "consequences": "Immediate: Reduced material waste \u2192 Systemic: Increased feedstock diversity \u2192 Strategic: Enhanced adaptability to market fluctuations.",
     "options": [
       "Closed-Loop Recycling",
-      "Advanced Material Upcycling",
-      "In-Situ Resource Utilization (ISRU)"
+      "Sustainable, Renewable Feedstocks",
+      "Hybrid Material Sourcing"
     ],
-    "review": "Controls Closed-Loop vs. Open-Loop Systems. Weakness: The options fail to consider the potential for material contamination and its impact on product quality."
+    "review": "Controls Environmental Impact vs. Cost. Weakness: The options fail to consider the role of material properties on manufacturing efficiency."
   },
   {
-    "id": "Lever-3",
-    "name": "Technological Innovation Pathway",
-    "consequences": "Immediate: Improved manufacturing efficiency \u2192 Systemic: Enhanced product quality \u2192 Strategic: Competitive advantage through technological leadership.",
+    "lever_id": "b90a9f0a-f924-4f6a-8184-fb86420d4e9d",
+    "name": "Manufacturing Process and Technology",
+    "consequences": "Immediate: Improved product quality \u2192 Systemic: Enhanced process scalability \u2192 Strategic: Increased competitiveness.",
     "options": [
-      "Incremental Process Improvements",
-      "Radical New Process Developments",
-      "Emerging Technology Integration (e.g., 3D printing, nanotechnology)"
+      "Advanced Additive Manufacturing",
+      "Hybrid Subtractive and Additive Processes",
+      "Artificial Intelligence-Driven Optimization"
     ],
-    "review": "Controls Incremental vs. Radical Innovation. Weakness: The options fail to consider the potential for technological lock-in and its impact on future adaptability."
+    "review": "Controls Product Quality vs. Production Time. Weakness: The options fail to consider the impact of manufacturing technology on talent attraction and retention."
   },
   {
-    "id": "Lever-4",
-    "name": "Talent Acquisition and Development Strategy",
-    "consequences": "Immediate: Improved workforce productivity \u2192 Systemic: Enhanced knowledge sharing and collaboration \u2192 Strategic: Competitive advantage through human capital development.",
+    "lever_id": "a2f170db-d363-4706-89be-8ba110408d45",
+    "name": "Talent Acquisition, Development, and Retention",
+    "consequences": "Immediate: Improved skill sets \u2192 Systemic: Increased innovation capacity \u2192 Strategic: Enhanced global competitiveness.",
     "options": [
-      "Traditional University-Based Recruitment",
-      "Innovation-Centered Talent Attraction",
-      "Emphasis on Interdisciplinary Education and Training"
+      "Strategic Partnerships with Research Institutions",
+      "In-House Training and Development Programs",
+      "Competitive Compensation and Benefits Packages"
     ],
-    "review": "Controls Traditional vs. Innovative Talent Acquisition. Weakness: The options fail to consider the potential for talent poaching and its impact on employee retention."
+    "review": "Controls Innovation Capacity vs. Attractiveness to Top Talent. Weakness: The options fail to consider the role of diversity, equity, and inclusion in fostering a positive work environment."
   },
   {
-    "id": "Lever-5",
-    "name": "Governance and Risk Management Framework",
-    "consequences": "Immediate: Improved regulatory compliance \u2192 Systemic: Enhanced risk management \u2192 Strategic: Competitive advantage through responsible business practices.",
+    "lever_id": "7fe76fee-dff0-430c-8035-f4ca7fc9b594",
+    "name": "Regulatory Framework and Public-Private Partnerships",
+    "consequences": "Immediate: Reduced regulatory risk \u2192 Systemic: Increased public-private collaboration \u2192 Strategic: Enhanced global leadership.",
     "options": [
-      "Compliance-Based Governance",
-      "Risk-Informed Decision Making",
-      "Integrated Sustainability and Social Responsibility"
+      "Collaborative Regulation with Industry Leaders",
+      "Public-Private Partnerships for Research and Development",
+      "Government-Supported Incentives for Investment"
     ],
-    "review": "Controls Compliance vs. Proactivity. Weakness: The options fail to consider the potential for conflicting stakeholder interests and its impact on governance effectiveness."
-  },
-  {
-    "id": "Lever-6",
-    "name": "Modular Architecture Strategy",
-    "consequences": "Immediate: Reduced production costs \u2192 Systemic: Increased scalability through modular design \u2192 Strategic: Enhanced adaptability to emerging technologies.",
-    "options": [
-      "Standardized Modules",
-      "Hybrid Integration",
-      "Open-Source Frameworks"
-    ],
-    "review": "Controls Scalability vs. Interoperability."
-  },
-  {
-    "id": "Lever-7",
-    "name": "Material Optimization Protocol",
-    "consequences": "Immediate: Reduced material waste \u2192 Systemic: Improved product quality through precise material control \u2192 Strategic: Enhanced sustainability and environmental responsibility.",
-    "options": [
-      "Closed-Loop Recycling",
-      "Advanced Materials Science",
-      "Biodegradable Feedstocks"
-    ],
-    "review": "Weakness: The options fail to consider the impact of material selection on production costs."
-  },
-  {
-    "id": "Lever-8",
-    "name": "Additive Manufacturing Standardization",
-    "consequences": "Immediate: Increased production speed \u2192 Systemic: Improved product quality through precise control over additive processes \u2192 Strategic: Enhanced competitiveness and market share.",
-    "options": [
-      "Industry-Specific Standards",
-      "Open-Source Protocols",
-      "Artificial Intelligence-Assisted Design"
-    ],
-    "review": "Controls Product Quality vs. Production Speed."
-  },
-  {
-    "id": "Lever-9",
-    "name": "Subtractive Manufacturing Innovation",
-    "consequences": "Immediate: Increased precision \u2192 Systemic: Improved product quality through precise control over subtractive processes \u2192 Strategic: Enhanced competitiveness and market share.",
-    "options": [
-      "Laser-Based Machining",
-      "Electrochemical Etching",
-      "Nanotechnology-Enabled Processes"
-    ],
-    "review": "Weakness: The options fail to consider the impact of subtractive manufacturing on material waste."
-  },
-  {
-    "id": "Lever-10",
-    "name": "Emerging Technology Integration",
-    "consequences": "Immediate: Increased innovation \u2192 Systemic: Improved product quality through integration of emerging technologies \u2192 Strategic: Enhanced competitiveness and market share.",
-    "options": [
-      "Artificial Intelligence-Augmented Design",
-      "Blockchain-Based Supply Chain Management",
-      "Quantum Computing-Enabled Optimization"
-    ],
-    "review": "Controls Innovation vs. Complexity."
-  },
-  {
-    "id": "Lever-11",
-    "name": "Modular Factory Infrastructure Strategy",
-    "consequences": "Immediate: Reduced capital expenditures \u2192 Systemic: Increased production capacity through modularity \u2192 Strategic: Enhanced scalability and adaptability to emerging technologies.",
-    "options": [
-      "Standardized modular unit design with interchangeable components",
-      "Adaptive factory layout with AI-driven optimization algorithms",
-      "Decentralized, blockchain-secured supply chain management"
-    ],
-    "review": "Controls Complexity vs. Flexibility. Weakness: The options fail to consider the impact of human error on factory operations."
-  },
-  {
-    "id": "Lever-12",
-    "name": "Advanced Materials and Feedstock Strategy",
-    "consequences": "Immediate: Reduced material waste \u2192 Systemic: Improved product quality through precise feedstock control \u2192 Strategic: Enhanced sustainability and environmental responsibility.",
-    "options": [
-      "Closed-loop recycling of industrial by-products",
-      "Graphene-based nanomaterials for advanced electronics and energy storage",
-      "Biodegradable, plant-based polymers for sustainable packaging"
-    ],
-    "review": "Controls Environmental Impact vs. Cost Efficiency. Weakness: The options fail to consider the scalability of these materials in high-volume production."
-  },
-  {
-    "id": "Lever-13",
-    "name": "Artificial Intelligence and Automation Strategy",
-    "consequences": "Immediate: Increased productivity through automation \u2192 Systemic: Enhanced data-driven decision making \u2192 Strategic: Improved competitiveness and market share.",
-    "options": [
-      "Predictive maintenance for optimized factory uptime",
-      "AI-powered quality control with real-time defect detection",
-      "Autonomous robotic assembly lines for high-precision manufacturing"
-    ],
-    "review": "Controls Productivity vs. Job Security. Weakness: The options fail to consider the potential for AI-driven job displacement."
-  },
-  {
-    "id": "Lever-14",
-    "name": "Cybersecurity and Intellectual Property Strategy",
-    "consequences": "Immediate: Reduced risk of intellectual property theft \u2192 Systemic: Enhanced data protection through encryption \u2192 Strategic: Improved competitive advantage through secure innovation.",
-    "options": [
-      "Quantum-resistant cryptography for sensitive data",
-      "Blockchain-based IP management for secure tracking",
-      "AI-powered threat detection and incident response"
-    ],
-    "review": "Controls Security vs. Innovation. Weakness: The options fail to consider the potential for over-reliance on proprietary technologies."
-  },
-  {
-    "id": "Lever-15",
-    "name": "Emerging Technologies and Business Model Strategy",
-    "consequences": "Immediate: Reduced production costs through emerging tech adoption \u2192 Systemic: Enhanced product capabilities through additive manufacturing \u2192 Strategic: Improved market competitiveness through innovative business models.",
-    "options": [
-      "3D printing of complex electronics and propulsion units",
-      "Use of quantum computing for optimized factory operations",
-      "Implementation of a product-as-a-service business model"
-    ],
-    "review": "Controls Innovation vs. Cost Savings. Weakness: The options fail to consider the potential for emerging tech disruption in existing markets."
+    "review": "Controls Regulatory Risk vs. Public Support. Weakness: The options fail to consider the impact of regulatory frameworks on supply chain transparency and accountability."
   }
 ]

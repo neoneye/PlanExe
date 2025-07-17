@@ -1,0 +1,163 @@
+[
+  {
+    "lever_id": "5dad3920-0574-4104-b5e7-a9be056a73aa",
+    "name": "Modular Manufacturing Hub Strategy",
+    "consequences": "Immediate: Establish a $250 million, 5-year manufacturing hub \u2192 Systemic: Develop mass-production-ready AWP plants (500 units/year) \u2192 Strategic: Position Delhi as a global exporter of standardized 'water-positive' solutions.",
+    "options": [
+      "Modular Design Approach",
+      "Advanced Water Purification Technology Integration",
+      "Local Talent Development and Training"
+    ],
+    "review": "Controls Regulatory Environment vs. Innovation Adoption. Weakness: The options fail to consider the impact of potential water quality fluctuations on AWP system efficacy."
+  },
+  {
+    "lever_id": "5d913248-0fcd-41fb-98da-5630637665c4",
+    "name": "Water-Positive Business Model Strategy",
+    "consequences": "Immediate: Establish a revenue stream through export sales \u2192 Systemic: Create a new industry standard for 'water-positive' solutions (500 units/year) \u2192 Strategic: Achieve a 25% reduction in global water scarcity through Delhi's AWP exports.",
+    "options": [
+      "Pay-Per-Liter Pricing Model",
+      "Water-Saving Product Bundling and Up-selling",
+      "Public-Private Partnerships for Large-Scale Deployments"
+    ],
+    "review": "Controls Market Penetration vs. Cost Recovery. Weakness: The options fail to consider the impact of potential changes in global water policies on AWP system adoption."
+  },
+  {
+    "lever_id": "51f49c96-d26c-4de9-9cd9-10e32095917c",
+    "name": "Innovative Water Recycling Technology Strategy",
+    "consequences": "Immediate: Integrate cutting-edge technologies (e.g., nanofiltration, UV treatment) \u2192 Systemic: Achieve a 95% reduction in Yamuna River contamination through AWP plant output \u2192 Strategic: Unlock new revenue streams through the development of complementary water-related products.",
+    "options": [
+      "Integration of Artificial Intelligence and IoT Sensors",
+      "Development of Novel Membrane Materials for Improved Water Quality",
+      "Implementation of Blockchain-Based Transactional Systems"
+    ],
+    "review": "Controls Technological Innovation vs. Regulatory Compliance. Weakness: The options fail to consider the impact of potential changes in water treatment regulations on AWP system design."
+  },
+  {
+    "lever_id": "2adcb0e4-45fa-465c-9947-51ff8aabcca6",
+    "name": "Scalable and Sustainable Operations Strategy",
+    "consequences": "Immediate: Achieve a 20% reduction in manufacturing costs through economies of scale \u2192 Systemic: Implement a closed-loop recycling program for AWP plant components \u2192 Strategic: Position Delhi as a global leader in sustainable water management practices.",
+    "options": [
+      "Implementation of Lean Manufacturing Principles",
+      "Development of Energy-Efficient Water Treatment Systems",
+      "Establishment of a Closed-Loop Recycling Program"
+    ],
+    "review": "Controls Operational Efficiency vs. Environmental Sustainability. Weakness: The options fail to consider the impact of potential changes in global environmental regulations on AWP system operations."
+  },
+  {
+    "lever_id": "38907c45-9a06-4575-b512-516f715c3433",
+    "name": "Global Market Expansion Strategy",
+    "consequences": "Immediate: Establish a presence in 5 new international markets \u2192 Systemic: Achieve a 15% increase in global market share through targeted marketing and sales efforts \u2192 Strategic: Position Delhi as a global leader in the water-positive solutions industry.",
+    "options": [
+      "Strategic Partnerships with International Water Utilities",
+      "Development of Customized AWP Solutions for Emerging Markets",
+      "Implementation of Digital Marketing and Sales Strategies"
+    ],
+    "review": "Controls Market Expansion vs. Brand Reputation. Weakness: The options fail to consider the impact of potential changes in global water policies on AWP system adoption."
+  },
+  {
+    "lever_id": "846bec26-144c-437b-8561-ed651e7989e6",
+    "name": "Modular Manufacturing Hub Strategy",
+    "consequences": "Immediate: Establish a $250 million, 5-year program \u2192 Systemic: Develop a scalable AWP manufacturing model \u2192 Strategic: Position Delhi as a global exporter of water-positive solutions.",
+    "options": [
+      "Standardized Mass Production",
+      "Adaptive Technology Integration",
+      "Emerging Business Model Innovation"
+    ],
+    "review": "Controls Cost vs. Scalability. Weakness: The options fail to consider the impact on existing infrastructure."
+  },
+  {
+    "lever_id": "8bdcd113-3601-4ade-a27b-aff8f347328f",
+    "name": "Water-Positive Supply Chain Development",
+    "consequences": "Immediate: Establish a $250 million, 5-year program \u2192 Systemic: Develop a reliable water-positive supply chain \u2192 Strategic: Reduce dependency on groundwater aquifers.",
+    "options": [
+      "Localized Material Sourcing",
+      "Distributed Manufacturing Network",
+      "Artificial Intelligence-Driven Logistics"
+    ],
+    "review": "Controls Environmental Impact vs. Economic Viability. Weakness: The options fail to consider the social implications of job displacement."
+  },
+  {
+    "lever_id": "98cc3550-bbd9-427b-a164-844cbd43a6de",
+    "name": "Capacity Building and Training",
+    "consequences": "Immediate: Establish a $250 million, 5-year program \u2192 Systemic: Develop local expertise in AWP technology \u2192 Strategic: Foster a culture of innovation.",
+    "options": [
+      "Structured Capacity Development",
+      "Institutional Partnerships and Collaborations",
+      "Community-Led Training Initiatives"
+    ],
+    "review": "Controls Knowledge Transfer vs. Cultural Sensitivity. Weakness: The options fail to consider the potential for knowledge retention."
+  },
+  {
+    "lever_id": "ddc04577-34c4-4ce0-b87c-c6b4fe7b4b7c",
+    "name": "Regulatory Framework and Policy Support",
+    "consequences": "Immediate: Establish a $250 million, 5-year program \u2192 Systemic: Develop supportive regulatory frameworks \u2192 Strategic: Encourage widespread adoption of AWP technology.",
+    "options": [
+      "Flexible Regulatory Frameworks",
+      "Strategic Public-Private Partnerships",
+      "Innovative Policy-Based Incentives"
+    ],
+    "review": "Controls Government Influence vs. Private Sector Engagement. Weakness: The options fail to consider the potential for regulatory capture."
+  },
+  {
+    "lever_id": "7b9ffc23-9ef6-480b-ba10-0aaa887e2b87",
+    "name": "Monitoring and Evaluation Framework",
+    "consequences": "Immediate: Establish a $250 million, 5-year program \u2192 Systemic: Develop a robust M&E framework \u2192 Strategic: Ensure accountability and transparency.",
+    "options": [
+      "Integrated Performance Metrics",
+      "Data-Driven Decision Making",
+      "Stakeholder Engagement and Feedback Mechanisms"
+    ],
+    "review": "Controls Accountability vs. Transparency. Weakness: The options fail to consider the potential for bias in data collection."
+  },
+  {
+    "lever_id": "1905e9ce-38ed-4269-87a9-dd66c1d37ddb",
+    "name": "Modular Manufacturing Hub Strategy",
+    "consequences": "Immediate: Reduce production costs by 30% \u2192 Systemic: Increase manufacturing capacity by 50% within the first two years \u2192 Strategic: Establish Delhi as a global leader in AWP technology exports.",
+    "options": [
+      "Develop a vertically integrated supply chain with local partners to minimize transportation costs and maximize material efficiency.",
+      "Implement a modular design framework that enables rapid scalability, adaptability, and modularity to meet diverse market demands.",
+      "Leverage Industry 4.0 technologies, such as AI-driven quality control and IoT-enabled predictive maintenance, to enhance production quality, reduce downtime, and optimize resource allocation."
+    ],
+    "review": "Controls Cost vs. Quality. Weakness: The options fail to consider the potential risks associated with relying on local partners for critical supply chain components."
+  },
+  {
+    "lever_id": "dae672f6-28a6-4566-8c40-8bd167b51c03",
+    "name": "Advanced Water Purification System (AWP) Optimization",
+    "consequences": "Immediate: Improve water quality by 25% \u2192 Systemic: Increase system efficiency by 20% through optimized treatment processes and reduced energy consumption \u2192 Strategic: Enhance Delhi's reputation as a pioneer in AWP technology, attracting international collaborations and investments.",
+    "options": [
+      "Enhance the AWP system's membrane technology to improve water quality, reduce fouling rates, and increase system lifespan.",
+      "Implement advanced sensors and monitoring systems to optimize treatment processes, predict maintenance needs, and minimize waste generation.",
+      "Develop a closed-loop system that recycles energy, reduces wastewater discharge, and promotes a circular economy in the water sector."
+    ],
+    "review": "Controls Environmental Impact vs. Economic Viability. Weakness: The options fail to consider the potential social implications of implementing advanced technologies in underserved communities."
+  },
+  {
+    "lever_id": "ff0487de-110a-4eb8-b0e9-c9e593493bb0",
+    "name": "Digital Twin and Simulation Strategy",
+    "consequences": "Immediate: Reduce design and production time by 40% \u2192 Systemic: Increase system reliability by 30% through predictive maintenance and real-time monitoring \u2192 Strategic: Establish Delhi as a global leader in AWP technology exports, with a strong focus on digital innovation.",
+    "options": [
+      "Develop a digital twin of the AWP system to simulate various operating scenarios, optimize performance, and predict potential issues before they occur.",
+      "Implement advanced simulation tools to design, test, and validate new AWP technologies, reducing the need for physical prototypes and accelerating innovation."
+    ],
+    "review": "Controls Innovation vs. Scalability. Weakness: The options fail to consider the potential risks associated with relying on digital twins for critical system performance."
+  },
+  {
+    "lever_id": "003acae8-fd1e-4ad7-8df6-b453f77fcacd",
+    "name": "Public-Private Partnership (PPP) Model",
+    "consequences": "Immediate: Reduce project costs by 25% \u2192 Systemic: Increase public-private collaboration and knowledge sharing, leading to improved water management practices \u2192 Strategic: Establish a replicable PPP model that can be scaled up for other urban regions worldwide.",
+    "options": [
+      "Establish a PPP framework that brings together local government agencies, private sector companies, and civil society organizations to co-create and implement the AWP project.",
+      "Develop a blended finance model that combines public funding with private investment to leverage resources, expertise, and risk tolerance."
+    ],
+    "review": "Controls Public-Private Alignment vs. Financial Viability. Weakness: The options fail to consider the potential risks associated with relying on PPPs for critical project components."
+  },
+  {
+    "lever_id": "6f5c2618-6fc0-4578-b7a9-2f916554abc4",
+    "name": "Capacity Building and Knowledge Transfer Strategy",
+    "consequences": "Immediate: Increase local capacity by 50% \u2192 Systemic: Enhance regional knowledge sharing, leading to improved water management practices \u2192 Strategic: Establish Delhi as a global leader in AWP technology exports, with a strong focus on human capital development.",
+    "options": [
+      "Develop a comprehensive training program for local stakeholders, including government officials, private sector professionals, and civil society organizations."
+    ],
+    "review": "Controls Capacity Building vs. Knowledge Transfer. Weakness: The options fail to consider the potential risks associated with relying on external expertise for critical system performance."
+  }
+]

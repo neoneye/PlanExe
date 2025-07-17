@@ -1,0 +1,167 @@
+[
+  {
+    "lever_id": "b2ce283e-1146-4a9b-bb27-e8d3f8f173cf",
+    "name": "Material Adaptation Strategy",
+    "consequences": "Immediate: Reduced concrete consumption \u2192 Systemic: 15% lower environmental impact \u2192 Strategic: Enhanced project scalability through innovative materials.",
+    "options": [
+      "Embracing Advanced Materials Science",
+      "Optimizing Concrete Formulations",
+      "Developing Novel Tunnel Architectures"
+    ],
+    "review": "Controls Cost vs. Environmental Impact. Weakness: The options fail to consider the potential for material suppliers' resistance to changes in formulations or architectures."
+  },
+  {
+    "lever_id": "a5360b3a-1d65-45b9-a448-d757018b6eff",
+    "name": "Operational Efficiency Paradigm",
+    "consequences": "Immediate: Streamlined construction process \u2192 Systemic: 30% faster completion through optimized logistics \u2192 Strategic: Improved project resilience through robust contingency planning.",
+    "options": [
+      "Standardizing Construction Protocols",
+      "Implementing Real-Time Monitoring Systems",
+      "Adopting Modular Construction Techniques"
+    ],
+    "review": "Controls Schedule vs. Quality. Weakness: The options fail to consider the potential for worker resistance to changes in protocols or monitoring systems."
+  },
+  {
+    "lever_id": "57edfc8b-e51b-445a-b90a-926b31cf4784",
+    "name": "Stakeholder Engagement Framework",
+    "consequences": "Immediate: Increased local community buy-in \u2192 Systemic: 20% higher public trust through effective communication \u2192 Strategic: Enhanced project legacy through inclusive decision-making.",
+    "options": [
+      "Developing Community Outreach Programs",
+      "Establishing Regular Stakeholder Meetings",
+      "Creating a Dedicated Public Information Portal"
+    ],
+    "review": "Controls Public Perception vs. Local Interest. Weakness: The options fail to consider the potential for conflicting stakeholder interests."
+  },
+  {
+    "lever_id": "b9bc882d-a03a-41a6-8d0a-31693d8c8ce9",
+    "name": "Risk Management Strategy",
+    "consequences": "Immediate: Reduced risk exposure \u2192 Systemic: 25% lower financial impact through proactive mitigation \u2192 Strategic: Improved project reputation through transparent risk assessment.",
+    "options": [
+      "Conducting Regular Risk Assessments",
+      "Implementing a Tiered Risk Management Structure",
+      "Developing a Comprehensive Emergency Response Plan"
+    ],
+    "review": "Controls Financial Exposure vs. Reputation. Weakness: The options fail to consider the potential for inadequate risk assessment or emergency preparedness."
+  },
+  {
+    "lever_id": "5936af46-9a57-4041-86b0-2c6594c893b1",
+    "name": "Economic Viability Model",
+    "consequences": "Immediate: Enhanced revenue streams \u2192 Systemic: 40% higher economic returns through optimized pricing \u2192 Strategic: Improved project sustainability through diversified funding sources.",
+    "options": [
+      "Developing a Dynamic Pricing Algorithm",
+      "Establishing a Public-Private Partnership Model",
+      "Implementing a Revenue-Sharing Agreement"
+    ],
+    "review": "Controls Financial Returns vs. Sustainability. Weakness: The options fail to consider the potential for market volatility or changes in government policies."
+  },
+  {
+    "lever_id": "48e70e9b-9ea1-4c94-9f85-f7865805f5a0",
+    "name": "Material Adaptation Strategy",
+    "consequences": "Immediate: Increased construction costs \u2192 Systemic: Delays in completion due to material sourcing challenges \u2192 Strategic: Reduced scalability of the tunnel system.",
+    "options": [
+      "Standardized Concrete Mix",
+      "Advanced Materials Integration",
+      "Emerging Tech-Based Tunnel Design"
+    ],
+    "review": "Controls Cost vs. Time. Weakness: The options fail to consider the environmental impact of material extraction and production."
+  },
+  {
+    "lever_id": "1fb46d9d-561f-4f0b-aaba-135da7044e9e",
+    "name": "Structural Reinforcement Pathway",
+    "consequences": "Immediate: Enhanced seismic resilience \u2192 Systemic: Improved passenger safety through optimized tunnel design \u2192 Strategic: Increased public confidence in the project.",
+    "options": [
+      "Traditional Reinforced Concrete",
+      "Advanced Composite Materials",
+      "Artificial Intelligence-Optimized Tunnel Design"
+    ],
+    "review": "Controls Safety vs. Cost. Weakness: The options fail to account for potential cyber threats to AI-powered systems."
+  },
+  {
+    "lever_id": "21938f93-e210-498a-bddb-cc889f7bd89e",
+    "name": "Operational Efficiency Strategy",
+    "consequences": "Immediate: Reduced energy consumption \u2192 Systemic: Increased passenger capacity through optimized train scheduling \u2192 Strategic: Enhanced competitiveness of the rail service.",
+    "options": [
+      "Standardized Rail Operations",
+      "Data-Driven Scheduling Optimization",
+      "Autonomous Train Technology"
+    ],
+    "review": "Controls Efficiency vs. Passenger Experience. Weakness: The options fail to consider the impact on local employment and economic development."
+  },
+  {
+    "lever_id": "b31b304e-0fc6-4e25-a9ab-d9ed87c028f0",
+    "name": "Environmental Mitigation Approach",
+    "consequences": "Immediate: Minimized marine habitat disruption \u2192 Systemic: Reduced carbon footprint through sustainable construction practices \u2192 Strategic: Enhanced project reputation through environmental stewardship.",
+    "options": [
+      "Conventional Environmental Impact Assessment",
+      "Integrated Environmental Management System",
+      "Regenerative Design Principles"
+    ],
+    "review": "Controls Environmental Impact vs. Cost. Weakness: The options fail to account for potential long-term effects on the marine ecosystem."
+  },
+  {
+    "lever_id": "8c4f7ae2-4167-4686-b5a6-06e142a83a0e",
+    "name": "Governance and Stakeholder Engagement Framework",
+    "consequences": "Immediate: Improved public perception \u2192 Systemic: Enhanced stakeholder buy-in through inclusive decision-making \u2192 Strategic: Increased project feasibility through effective risk management.",
+    "options": [
+      "Traditional Public-Private Partnerships",
+      "Collaborative Governance Model",
+      "Decentralized Autonomous Organization"
+    ],
+    "review": "Controls Stakeholder Engagement vs. Decision-Making Autonomy. Weakness: The options fail to consider the potential for conflicting stakeholder interests."
+  },
+  {
+    "lever_id": "971a6213-9b92-4d6b-9545-70d3d2ea000f",
+    "name": "Material Adaptation Strategy",
+    "consequences": "Immediate: Reduced material costs \u2192 Systemic: Increased tunnel durability through advanced concrete mix design \u2192 Strategic: Enhanced project scalability for future infrastructure initiatives.",
+    "options": [
+      "Optimize Existing Materials",
+      "Adopt Advanced Concrete Mix Design",
+      "Implement Novel Material Combinations"
+    ],
+    "review": "Controls Cost vs. Durability. Weakness: The options fail to consider the environmental impact of material extraction and processing."
+  },
+  {
+    "lever_id": "6aa58a1f-516b-48ef-b1c9-2f5d4a083706",
+    "name": "Pillar Placement Optimization",
+    "consequences": "Immediate: Reduced pillar count \u2192 Systemic: Improved tunnel stability through optimized structural design \u2192 Strategic: Enhanced project feasibility for challenging terrain.",
+    "options": [
+      "Standardized Pillar Spacing",
+      "Dynamic Pillar Placement Based on Seafloor Topography",
+      "Artificial Intelligence-Driven Optimal Pillar Configuration"
+    ],
+    "review": "Controls Cost vs. Complexity. Weakness: The options fail to consider the potential impact of pillar placement on marine ecosystems."
+  },
+  {
+    "lever_id": "a356e214-2531-4d3a-9344-d4a8ac803211",
+    "name": "Submerged Tunnel Design Evolution",
+    "consequences": "Immediate: Increased tunnel diameter \u2192 Systemic: Enhanced high-speed rail capabilities through advanced aerodynamics and braking systems \u2192 Strategic: Improved project competitiveness for future infrastructure investments.",
+    "options": [
+      "Incremental Diameter Increases",
+      "Radical Tunnel Shape Innovations Based on Advanced Computational Fluid Dynamics",
+      "Hybrid Tunnel Design Combining Existing and Novel Concepts"
+    ],
+    "review": "Controls Scalability vs. Complexity. Weakness: The options fail to consider the potential impact of design changes on tunnel manufacturing processes."
+  },
+  {
+    "lever_id": "ae1b1811-8309-44c7-9a84-00f08aabe1d8",
+    "name": "Environmental Mitigation Strategies",
+    "consequences": "Immediate: Reduced marine habitat disruption \u2192 Systemic: Improved water quality through advanced wastewater treatment systems \u2192 Strategic: Enhanced project social acceptability through effective environmental mitigation.",
+    "options": [
+      "Standardized Environmental Impact Assessments",
+      "Integrated Environmental Monitoring and Adaptive Management",
+      "Innovative Marine Habitat Restoration Techniques"
+    ],
+    "review": "Controls Social Acceptance vs. Environmental Cost. Weakness: The options fail to consider the potential impact of environmental mitigation on project timelines."
+  },
+  {
+    "lever_id": "b173dd24-b540-4ce9-9c70-6483b88edd12",
+    "name": "Project Governance and Risk Management",
+    "consequences": "Immediate: Reduced project delays \u2192 Systemic: Improved risk management through advanced predictive analytics \u2192 Strategic: Enhanced project deliverability for complex infrastructure initiatives.",
+    "options": [
+      "Traditional Project Governance Frameworks",
+      "Agile Methodologies with Integrated Risk Management",
+      "Innovative Predictive Analytics-Based Risk Assessment and Mitigation"
+    ],
+    "review": "Controls Deliverability vs. Cost. Weakness: The options fail to consider the potential impact of governance changes on stakeholder engagement."
+  }
+]
