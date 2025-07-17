@@ -18,16 +18,12 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Dict, Any
-
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
 from pydantic import BaseModel, Field
-
 from planexe.llm_util.llm_executor import LLMExecutor, PipelineStopRequested
 
 logger = logging.getLogger(__name__)
-
-# --- Pydantic Models for Structured Output ---
 
 class PlanCharacteristics(BaseModel):
     """A structured analysis of the input plan's core nature."""
@@ -72,8 +68,6 @@ class ScenarioSelectionResult(BaseModel):
     )
     final_choice: FinalChoice
 
-# --- LLM Prompt ---
-
 SELECT_SCENARIO_SYSTEM_PROMPT = """
 You are a master Strategic Analyst AI. Your task is to perform a final strategic recommendation by analyzing a project plan and selecting the most fitting scenario from a predefined set. You must provide a clear, evidence-based justification for your choice.
 
@@ -107,8 +101,8 @@ class SelectScenario:
     metadata: Dict[str, Any]
 
     @classmethod
-    def execute(cls, llm_executor: LLMExecutor, project_plan: str, scenarios: List[Dict[str, Any]]) -> 'SelectScenario':
-        if not project_plan.strip():
+    def execute(cls, llm_executor: LLMExecutor, project_context: str, scenarios: List[Dict[str, Any]]) -> 'SelectScenario':
+        if not project_context:
             raise ValueError("Project plan cannot be empty.")
         if not scenarios:
             raise ValueError("Scenarios list cannot be empty.")
@@ -117,7 +111,7 @@ class SelectScenario:
 
         scenarios_json_str = json.dumps(scenarios, indent=2)
         user_prompt = (
-            f"**Project Plan:**\n```\n{project_plan}\n```\n\n"
+            f"**Project Plan:**\n```\n{project_context}\n```\n\n"
             f"**Strategic Scenarios for Evaluation:**\n```json\n{scenarios_json_str}\n```\n\n"
             "Please perform the three-step analysis as instructed and provide the final `ScenarioSelectionResult` JSON."
         )
@@ -177,7 +171,7 @@ if __name__ == "__main__":
         logger.error(f"Scenarios file not found: {scenarios_file_path}")
         exit(1)
 
-    project_plan_text = prompt_item.prompt
+    project_context = prompt_item.prompt
 
     with open(scenarios_file_path, 'r', encoding='utf-8') as f:
         scenarios_data = json.load(f)
@@ -186,13 +180,13 @@ if __name__ == "__main__":
     logger.info(f"Loaded plan '{prompt_id!r}' and {len(scenarios_list)} scenarios from '{scenarios_file_path!r}'.")
 
     # --- Execute the Analysis ---
-    model_names = ["ollama-llama3.1"] # or ["openrouter-paid-gemini-2.0-flash-001"]
+    model_names = ["ollama-llama3.1"]
     llm_models = LLMModelFromName.from_names(model_names)
     llm_executor = LLMExecutor(llm_models=llm_models)
 
     selection_result = SelectScenario.execute(
         llm_executor=llm_executor,
-        project_plan=project_plan_text,
+        project_context=project_context,
         scenarios=scenarios_list
     )
 

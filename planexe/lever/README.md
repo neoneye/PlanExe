@@ -11,7 +11,7 @@ A single, optimized plan is useful, but its weakness is that it's a "point estim
 
 ---
 
-## The 4-Step Pipeline
+## The 5-Step Pipeline
 
 ### Step 1: Brainstorm Potential Levers
 
@@ -57,3 +57,8 @@ Propose 3 different scenarios:
 2. **Medium**
 3. **Slow and safe**
 
+### Step 5: Select the best fitting scenario
+
+Compare each of the scenarios with the initial prompt.
+
+Pick the one that fits the best.
