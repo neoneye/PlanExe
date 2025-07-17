@@ -35,7 +35,7 @@ BATCH_SIZE = 5
 
 class InputLever(BaseModel):
     """Represents a single lever loaded from the initial brainstormed file."""
-    id: str
+    lever_id: str
     name: str
     consequences: str
     options: List[str]
@@ -43,7 +43,7 @@ class InputLever(BaseModel):
 
 class LeverCharacterization(BaseModel):
     """Structured response for a single lever's enrichment from the LLM."""
-    lever_id: str = Field(description="The ID of the lever being described, e.g., 'Lever-1'.")
+    lever_id: str = Field(description="The uuid of the lever")
     description: str = Field(
         description="A comprehensive description (80-100 words) of the lever's purpose, scope, and key success metrics."
     )
@@ -99,9 +99,9 @@ class EnrichPotentialLevers:
         logger.info(f"Characterizing {len(levers_to_characterize)} levers in batches of {BATCH_SIZE}.")
         
         # Prepare the full list of lever names and IDs for context in the prompt
-        full_lever_context_str = "\n".join([f"- {lever.id}: {lever.name}" for lever in levers_to_characterize])
+        full_lever_context_str = "\n".join([f"- {lever.lever_id}: {lever.name}" for lever in levers_to_characterize])
         
-        enriched_levers_map = {lever.id: lever.model_dump() for lever in levers_to_characterize}
+        enriched_levers_map = {lever.lever_id: lever.model_dump() for lever in levers_to_characterize}
         all_metadata = []
 
         system_message = ChatMessage(role=MessageRole.SYSTEM, content=ENRICH_LEVERS_SYSTEM_PROMPT.strip())
@@ -115,7 +115,7 @@ class EnrichPotentialLevers:
             logger.info(f"Processing batch {i//BATCH_SIZE + 1} with {len(batch)} levers...")
 
             lever_details_for_prompt = "\n\n".join(
-                [f"Lever ID: {lever.id}\nName: {lever.name}\nOptions: {json.dumps(lever.options)}" for lever in batch]
+                [f"Lever ID: {lever.lever_id}\nName: {lever.name}\nOptions: {json.dumps(lever.options)}" for lever in batch]
             )
 
             user_prompt = (
@@ -185,12 +185,21 @@ class EnrichPotentialLevers:
 
 if __name__ == "__main__":
     from planexe.llm_util.llm_executor import LLMModelFromName
+    from planexe.prompt.prompt_catalog import PromptCatalog
     
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    prompt_catalog = PromptCatalog()
+    prompt_catalog.load_simple_plan_prompts()
+
+    prompt_id = "19dc0718-3df7-48e3-b06d-e2c664ecc07d"
+    prompt_item = prompt_catalog.find(prompt_id)
+    if not prompt_item:
+        raise ValueError("Prompt item not found.")
+    project_plan = prompt_item.prompt
 
     # This file is created by identify_potential_levers.py
-    input_file = "planexe/lever/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.txt"
-    output_file = "characterized_levers.json"
+    input_file = os.path.join(os.path.dirname(__file__), 'test_data', f'identify_potential_levers_{prompt_id}.json')
+    output_file = f"enrich_potential_levers_{prompt_id}.json"
     
     if not os.path.exists(input_file):
         logger.error(f"Input data file not found at: {input_file}")
@@ -198,14 +207,7 @@ if __name__ == "__main__":
 
     # Parse the multi-part input file
     with open(input_file, 'r', encoding='utf-8') as f:
-        test_data_content = f.read()
-    try:
-        plan_part, levers_part = test_data_content.split("file: 'potential_levers.json':")
-        project_plan = plan_part.replace("file: 'plan.txt':", "").strip()
-        input_levers = json.loads(levers_part.strip())
-    except (ValidationError, ValueError, json.JSONDecodeError) as e:
-        logger.error(f"Failed to parse the input data file '{input_file}'. Error: {e}")
-        exit(1)
+        input_levers = json.load(f)
         
     logger.info(f"Successfully loaded {len(input_levers)} levers from '{input_file}'.")
 
@@ -213,24 +215,20 @@ if __name__ == "__main__":
     llm_models = LLMModelFromName.from_names(model_names)
     llm_executor = LLMExecutor(llm_models=llm_models)
 
-    try:
-        result = EnrichPotentialLevers.execute(
-            llm_executor=llm_executor,
-            project_context=project_plan,
-            raw_levers_list=input_levers
-        )
+    result = EnrichPotentialLevers.execute(
+        llm_executor=llm_executor,
+        project_context=project_plan,
+        raw_levers_list=input_levers
+    )
 
-        print(f"\nSuccessfully processed. Characterized {len(result.characterized_levers)} out of {len(input_levers)} levers.")
-        
-        if result.characterized_levers:
-            print("\n--- Example Characterized Lever ---")
-            example_lever = result.characterized_levers[0]
-            print(json.dumps(example_lever.model_dump(), indent=2))
-        
-            result.save_raw(output_file)
-            logger.info(f"Full list of {len(result.characterized_levers)} characterized levers saved to '{output_file}'.")
-        else:
-            logger.warning("No levers were successfully characterized. Output file will not be created.")
+    print(f"\nSuccessfully processed. Characterized {len(result.characterized_levers)} out of {len(input_levers)} levers.")
+    
+    if not result.characterized_levers:
+        raise ValueError("No levers were successfully characterized.")
+    
+    print("\n--- Example Characterized Lever ---")
+    example_lever = result.characterized_levers[0]
+    print(json.dumps(example_lever.model_dump(), indent=2))
 
-    except ValueError as e:
-        logger.error(f"An unrecoverable error occurred during the process: {e}")
+    result.save_raw(output_file)
+    logger.info(f"Full list of {len(result.characterized_levers)} characterized levers saved to '{output_file}'.")
