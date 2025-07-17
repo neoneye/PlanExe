@@ -12,6 +12,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 from dataclasses import dataclass
+import uuid
 from llama_index.core.llms.llm import LLM
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
@@ -52,8 +53,8 @@ class LeverCleaned(BaseModel):
     The Lever class has some ugly field names, that guide the LLM for what to generate. Changing them and the LLM can't generate as good results.
     This class has nicer field names for the final output.
     """
-    id: str = Field(
-        description="String that identifies this lever. Starts with 'Lever-1' and is incremented for each lever."
+    lever_id: str = Field(
+        description="A uuid that identifies this lever. The levers can be deduplicated and preserve their lever_id without leaving gaps in the numbering."
     )
     name: str = Field(
         description="Name of this lever."
@@ -197,8 +198,9 @@ class IdentifyPotentialLevers:
         # Clean the raw levers
         levers_cleaned: list[LeverCleaned] = []
         for i, lever in enumerate(levers_raw, start=1):
+            lever_id = str(uuid.uuid4())
             lever_cleaned = LeverCleaned(
-                id=f"Lever-{i}",
+                lever_id=lever_id,
                 name=lever.name,
                 consequences=lever.consequences,
                 options=lever.options,
