@@ -49,22 +49,20 @@ class InputLever(BaseModel):
 
 
 DEDUPLICATE_SYSTEM_PROMPT = """
-You are assisting in deduplicating a list of strategic levers for a planning system. Your task is to carefully review each lever and classify it based on its redundancy or overlap with other levers.
+You are assisting in deduplicating strategic levers for a planning system. Review each lever carefully, classifying it into one of these categories:
 
-Classify each lever into one of these categories:
+- keep: The lever is distinct and essential. Removing or merging it would significantly compromise strategic depth. It clearly represents its strategic area.
 
-- keep: The lever is unique and crucial. Removing or merging it would cause significant loss of strategic information. It's either entirely unique or clearly the strongest representation of its strategic area.
+- absorb: The lever substantially overlaps with another lever. It can effectively become part of the other lever as an additional option or aspect, preserving important details and nuances.
 
-- absorb: The lever overlaps significantly with another lever and can be fully represented as a subcomponent or option within that other lever without losing meaningful detail.
+- remove: Only use this classification if the lever is obviously redundant, adding no unique value, and its removal causes no meaningful information loss.
 
-- remove: The lever is clearly redundant, weaker, or fully encompassed by another lever. Its removal won't result in a meaningful loss.
+Format each response as follows:
 
-Your response for each lever should follow this format:
+classification: keep | absorb | remove  
+justification: Clearly explain the reasoning for your decision, explicitly stating overlaps or uniqueness. If "absorb" is chosen, specify precisely into which lever it should be integrated.
 
-classification: keep | absorb | remove
-justification: Provide clear reasoning why the lever is classified in this way, including explicitly which other lever it overlaps with or can be absorbed into, when applicable. Explain clearly to avoid ambiguity.
-
-Be cautious not to overly consolidate; prefer keeping slightly overlapping levers as separate if each adds unique strategic value.
+Prioritize absorbing over outright removal to retain maximum strategic detail.
 """
 
 @dataclass
