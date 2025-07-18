@@ -8,6 +8,7 @@ import logging
 import os
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Optional, List, Any
 
 from llama_index.core.llms import ChatMessage, MessageRole
@@ -102,7 +103,7 @@ class FocusOnVitalFewLevers:
     system_prompt: str
     user_prompt: str
     enriched_levers: list[EnrichedLever]
-    assessment_result: VitalLeversAssessmentResult
+    response: VitalLeversAssessmentResult
     vital_levers: list[EnrichedLever]
     metadata: dict
 
@@ -142,7 +143,7 @@ class FocusOnVitalFewLevers:
         
         try:
             result = llm_executor.run(execute_function)
-            assessment_result = result["chat_response"].raw
+            response = result["chat_response"].raw
             metadata = result["metadata"]
         except PipelineStopRequested:
             raise
@@ -153,7 +154,7 @@ class FocusOnVitalFewLevers:
         # Step 3: Select the "vital few" levers based on the assessment
         vital_levers = cls.select_top_levers(
             all_levers=enriched_levers,
-            assessment=assessment_result,
+            assessment=response,
             target_count=TARGET_VITAL_LEVER_COUNT
         )
         logger.info(f"Selected {len(vital_levers)} vital levers.")
@@ -162,7 +163,7 @@ class FocusOnVitalFewLevers:
             system_prompt=system_prompt,
             user_prompt=focus_prompt,
             enriched_levers=enriched_levers,
-            assessment_result=assessment_result,
+            response=response,
             vital_levers=vital_levers,
             metadata=metadata
         )
@@ -205,14 +206,22 @@ class FocusOnVitalFewLevers:
 
         return vital_levers
 
-    def save_vital_levers(self, file_path: str) -> None:
-        """Saves just the final list of vital levers to a file."""
-        # The output format for the next script expects a simple dictionary for each lever.
-        levers = [lever.model_dump() for lever in self.vital_levers]
-        vital_levers_dict = { "levers": levers }
-        with open(file_path, 'w') as f:
-            json.dump(vital_levers_dict, f, indent=2)
-
+    def to_dict(self, include_response=True, include_vital_levers=True, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
+        d = {}
+        if include_response:
+            d["response"] = self.response.model_dump()
+        if include_vital_levers:
+            d['levers'] = [lever.model_dump() for lever in self.vital_levers]
+        if include_metadata:
+            d['metadata'] = self.metadata
+        if include_system_prompt:
+            d['system_prompt'] = self.system_prompt
+        if include_user_prompt:
+            d['user_prompt'] = self.user_prompt
+        return d
+    
+    def save_raw(self, file_path: str) -> None:
+        Path(file_path).write_text(json.dumps(self.to_dict(), indent=2))
 
 if __name__ == "__main__":
     from planexe.llm_util.llm_executor import LLMModelFromName
@@ -255,20 +264,11 @@ if __name__ == "__main__":
     )
     
     # --- Step 3: Display and Save Results ---
-    print("\n--- Assessment Result Summary ---")
-    print(focus_result.assessment_result.summary)
-    
-    print("\n--- Full Assessment ---")
-    assessment_json = focus_result.assessment_result.model_dump_json(indent=2)
-    print(assessment_json)
-    
-    vital_levers_count = len(focus_result.vital_levers)
-    print(f"\n--- The {vital_levers_count} Vital Few Levers ---")
-    vital_levers_output = {
-        "levers": [lever.model_dump() for lever in focus_result.vital_levers]
-    }
-    print(json.dumps(vital_levers_output, indent=2))
+    print("\n--- Result ---")
+    result_json = json.dumps(focus_result.to_dict(include_system_prompt=False, include_user_prompt=False), indent=2)
+    print(result_json)
 
     # Save the vital levers for the next step in the pipeline
-    focus_result.save_vital_levers(output_filename)
+    focus_result.save_raw(output_filename)
+    vital_levers_count = len(focus_result.vital_levers)
     logger.info(f"Saved the {vital_levers_count} vital few levers to '{output_filename}'")

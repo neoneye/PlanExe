@@ -436,7 +436,7 @@ class FocusOnVitalFewLeversTask(PlanTask):
 
         # Write the result to disk.
         output_raw_path = self.output()['raw'].path
-        focus_on_vital_few_levers.save_vital_levers(str(output_raw_path))
+        focus_on_vital_few_levers.save_raw(str(output_raw_path))
 
 
 class CandidateScenariosTask(PlanTask):
