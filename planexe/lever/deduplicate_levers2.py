@@ -36,7 +36,7 @@ class DeduplicationAnalysis(BaseModel):
         description="A list of all levers with their classification and justification."
     )
     summary: str = Field(
-        description="Briefly mention the most challenging decisions, such as levers that were very similar but kept distinct, and provide the reasoning. Note any major thematic overlaps that were consolidated. Use 60 words."
+        description="Summarize key overlaps consolidated and difficult distinctions retained. Limit to 60 words."
     )
 
 class InputLever(BaseModel):
@@ -49,22 +49,15 @@ class InputLever(BaseModel):
 
 
 DEDUPLICATE_SYSTEM_PROMPT = """
-You are assisting in deduplicating strategic levers for a planning system. Review each lever carefully, classifying it into one of these categories:
+Evaluate each of the provided strategic levers individually. Classify every lever explicitly into one of:
 
-- keep: The lever is distinct and essential. Removing or merging it would significantly compromise strategic depth. It clearly represents its strategic area.
+- keep: Lever is distinct, unique, and essential.
+- absorb: Lever overlaps significantly with another lever. Explicitly state the lever ID it should be merged into.
+- remove: Lever is fully redundant. Removing it loses no meaningful detail. Use this sparingly.
 
-- absorb: The lever substantially overlaps with another lever. It can effectively become part of the other lever as an additional option or aspect, preserving important details and nuances.
+Provide concise, explicit justifications mentioning lever IDs clearly. Always prefer "absorb" over "remove" to retain important details.
 
-- remove: Only use this classification if the lever is obviously redundant, adding no unique value, and its removal causes no meaningful information loss.
-
-Format each response as follows:
-
-classification: keep | absorb | remove  
-justification: Clearly explain the reasoning for your decision, explicitly stating overlaps or uniqueness. If "absorb" is chosen, specify precisely into which lever it should be integrated.
-
-Prioritize absorbing over outright removal to retain maximum strategic detail.
-
-Finally, provide a `summary` of your analysis. In this summary, state the most difficult decisions you made, especially where levers were similar but you chose to keep them separate. Briefly explain the key thematic overlaps you identified and consolidated.
+You must classify and justify **every lever** provided in the input.
 """
 
 @dataclass
@@ -186,7 +179,8 @@ if __name__ == "__main__":
     prompt_catalog = PromptCatalog()
     prompt_catalog.load_simple_plan_prompts()
 
-    prompt_id = "19dc0718-3df7-48e3-b06d-e2c664ecc07d"
+    # prompt_id = "19dc0718-3df7-48e3-b06d-e2c664ecc07d"
+    prompt_id = "b9afce6c-f98d-4e9d-8525-267a9d153b51"
     prompt_item = prompt_catalog.find(prompt_id)
     if not prompt_item:
         raise ValueError("Prompt item not found.")
