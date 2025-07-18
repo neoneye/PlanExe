@@ -7,7 +7,7 @@ However this script uses LLMs to identify and remove near-duplicate levers.
 The LLM is instructed to find groups of similar levers, keep the best one from
 each group, and generate a "removal list" for the redundant ones.
 
-PROMPT> python -m planexe.lever.deduplicate_levers \
+PROMPT> python -m planexe.lever.deduplicate_levers_legacy1 \
     --input planexe/lever/test_data/identify_potential_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.json \
     --output deduplicated.json
 """

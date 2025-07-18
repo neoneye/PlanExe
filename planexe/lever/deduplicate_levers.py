@@ -1,5 +1,5 @@
 """
-PROMPT> python -m planexe.lever.deduplicate_levers2
+PROMPT> python -m planexe.lever.deduplicate_levers
 """
 from enum import Enum
 import json
