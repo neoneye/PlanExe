@@ -48,13 +48,20 @@ class InputLever(BaseModel):
     review: str
 
 
-DEDUPLICATE_SYSTEM_PROMPT = """You are a senior strategy consultant hired to prune near-duplicate “levers”
+DEDUPLICATE_SYSTEM_PROMPT = """You are a senior strategy consultant hired to prune “levers”.
+
+The goal is to identify the most comprehensive, high-level strategic "levers" in each category and absorb the more granular or overlapping levers into it. This results in a smaller set of distinct, mutually exclusive levers.
 
 **Task**
 
 For *each* lever you receive:
 1. Decide its `classification` from {keep | maybe | remove}
+   It's a `keep` when it has the best name, scope and options.
+   It's a `maybe` when it's similar to another lever, but not identical.
+   It's a `remove` when it's redundant and can be fully absorbed by the keeper lever.
 2. Give a concise `justification` (≤40 words)
+   Is the lever really redundant and can be fully absorbed by the keeper lever?
+   If it's a `keep`, explain what makes it good.
 
 After you have classified all levers, return a summary of your confidence in the
 deduplication process. Use a scale of -2 to +2, where 0 is neutral.
