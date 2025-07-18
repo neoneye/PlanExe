@@ -49,13 +49,16 @@ class InputLever(BaseModel):
 
 
 DEDUPLICATE_SYSTEM_PROMPT = """You are a senior strategy consultant hired to prune near-duplicate “levers”
-(ideas for how to influence an infrastructure scenario).
 
 **Task**
 
 For *each* lever you receive:
 1. Decide its `classification` from {keep | maybe | remove}
 2. Give a concise `justification` (≤40 words)
+
+After you have classified all levers, return a summary of your confidence in the
+deduplication process. Use a scale of -2 to +2, where 0 is neutral.
+Did you remove too many levers? Did you keep too many levers?
 
 **Definitions**
 
@@ -64,17 +67,6 @@ For *each* lever you receive:
 • maybe  – similarity is unclear or the text is only partly unique; flag for review.
 • remove – weaker, vaguer, or redundant; every idea it contains is already present
            in another ‘keep’ lever in the same cluster.
-
-**Output**
-
-Return **only** valid JSON – an array of objects that satisfy the schema
-
-[
-  {"lever_id":"…","classification":"keep","justification":"…"},
-  …
-]
-
-Do **not** wrap the JSON in Markdown fences.
 """
 
 @dataclass
