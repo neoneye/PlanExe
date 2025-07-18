@@ -268,8 +268,8 @@ class PotentialLeversTask(PlanTask):
 
     def output(self):
         return {
-            'raw': self.local_target(FilenameEnum.LEVERS_POTENTIAL_RAW),
-            'clean': self.local_target(FilenameEnum.LEVERS_POTENTIAL_CLEAN),
+            'raw': self.local_target(FilenameEnum.POTENTIAL_LEVERS_RAW),
+            'clean': self.local_target(FilenameEnum.POTENTIAL_LEVERS_CLEAN),
         }
 
     def run_inner(self):
@@ -312,7 +312,7 @@ class EnrichLeversTask(PlanTask):
 
     def output(self):
         return {
-            'raw': self.local_target(FilenameEnum.LEVERS_ENRICHED_RAW)
+            'raw': self.local_target(FilenameEnum.ENRICHED_LEVERS_RAW)
         }
 
     def run_inner(self):
@@ -358,7 +358,7 @@ class FocusOnVitalFewLeversTask(PlanTask):
 
     def output(self):
         return {
-            'raw': self.local_target(FilenameEnum.LEVERS_VITAL_FEW_RAW)
+            'raw': self.local_target(FilenameEnum.VITAL_FEW_LEVERS_RAW)
         }
 
     def run_inner(self):
