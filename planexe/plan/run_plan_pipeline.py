@@ -255,7 +255,7 @@ class PlanTypeTask(PlanTask):
         output_markdown_path = self.output()['markdown'].path
         identify_plan_type.save_markdown(str(output_markdown_path))
 
-class IdentifyPotentialLeversTask(PlanTask):
+class PotentialLeversTask(PlanTask):
     """
     Identify potential levers that can be adjusted.
     """
@@ -298,7 +298,7 @@ class IdentifyPotentialLeversTask(PlanTask):
         identify_potential_levers.save_clean(str(output_clean_path))
 
 
-class CharacterizeLeversTask(PlanTask):
+class EnrichLeversTask(PlanTask):
     """
     Enrich potential levers with more information.
     """
@@ -307,7 +307,7 @@ class CharacterizeLeversTask(PlanTask):
             'setup': self.clone(SetupTask),
             'identify_purpose': self.clone(IdentifyPurposeTask),
             'plan_type': self.clone(PlanTypeTask),
-            'levers_potential': self.clone(IdentifyPotentialLeversTask)
+            'potential_levers': self.clone(PotentialLeversTask)
         }
 
     def output(self):
@@ -325,7 +325,7 @@ class CharacterizeLeversTask(PlanTask):
             identify_purpose_dict = json.load(f)
         with self.input()['plan_type']['raw'].open("r") as f:
             plan_type_dict = json.load(f)
-        with self.input()['levers_potential']['clean'].open("r") as f:
+        with self.input()['potential_levers']['clean'].open("r") as f:
             lever_item_list = json.load(f)
 
         query = (
@@ -353,7 +353,7 @@ class FocusOnVitalFewLeversTask(PlanTask):
             'setup': self.clone(SetupTask),
             'identify_purpose': self.clone(IdentifyPurposeTask),
             'plan_type': self.clone(PlanTypeTask),
-            'levers_enriched': self.clone(CharacterizeLeversTask)
+            'enriched_levers': self.clone(EnrichLeversTask)
         }
 
     def output(self):
@@ -371,7 +371,7 @@ class FocusOnVitalFewLeversTask(PlanTask):
             identify_purpose_dict = json.load(f)
         with self.input()['plan_type']['raw'].open("r") as f:
             plan_type_dict = json.load(f)
-        with self.input()['levers_enriched']['raw'].open("r") as f:
+        with self.input()['enriched_levers']['raw'].open("r") as f:
             lever_item_list = json.load(f)["characterized_levers"]
 
         query = (
@@ -3131,8 +3131,8 @@ class FullPlanPipeline(PlanTask):
             'setup': self.clone(SetupTask),
             'identify_purpose': self.clone(IdentifyPurposeTask),
             'plan_type': self.clone(PlanTypeTask),
-            'identify_potential_levers': self.clone(IdentifyPotentialLeversTask),
-            'characterize_levers': self.clone(CharacterizeLeversTask),
+            'potential_levers': self.clone(PotentialLeversTask),
+            'enriched_levers': self.clone(EnrichLeversTask),
             'focus_on_vital_few_levers': self.clone(FocusOnVitalFewLeversTask),
             'candidate_scenarios': self.clone(CandidateScenariosTask),
             'select_scenario': self.clone(SelectScenarioTask),
