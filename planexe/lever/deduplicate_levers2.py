@@ -35,9 +35,6 @@ class DeduplicationAnalysis(BaseModel):
     decisions: List[LeverDecision] = Field(
         description="A list of all levers with their classification and justification."
     )
-    summary: str = Field(
-        description="Summarize key overlaps consolidated and difficult distinctions retained. Limit to 60 words."
-    )
 
 class InputLever(BaseModel):
     """Represents a single lever loaded from the initial brainstormed file."""
