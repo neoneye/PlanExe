@@ -18,6 +18,7 @@ import luigi
 from pathlib import Path
 from llama_index.core.llms.llm import LLM
 
+from planexe.lever.deduplicate_levers import DeduplicateLevers
 from planexe.plan.filenames import FilenameEnum, ExtraFilenameEnum
 from planexe.plan.speedvsdetail import SpeedVsDetailEnum
 from planexe.plan.plan_file import PlanFile
@@ -298,6 +299,52 @@ class PotentialLeversTask(PlanTask):
         identify_potential_levers.save_clean(str(output_clean_path))
 
 
+class DeduplicateLeversTask(PlanTask):
+    """
+    The potential levers usually have some redundant levers.
+    """
+    def requires(self):
+        return {
+            'setup': self.clone(SetupTask),
+            'identify_purpose': self.clone(IdentifyPurposeTask),
+            'plan_type': self.clone(PlanTypeTask),
+            'potential_levers': self.clone(PotentialLeversTask)
+        }
+
+    def output(self):
+        return {
+            'raw': self.local_target(FilenameEnum.DEDUPLICATED_LEVERS_RAW)
+        }
+
+    def run_inner(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
+        # Read inputs from required tasks.
+        with self.input()['setup'].open("r") as f:
+            plan_prompt = f.read()
+        with self.input()['identify_purpose']['raw'].open("r") as f:
+            identify_purpose_dict = json.load(f)
+        with self.input()['plan_type']['raw'].open("r") as f:
+            plan_type_dict = json.load(f)
+        with self.input()['potential_levers']['clean'].open("r") as f:
+            lever_item_list = json.load(f)
+
+        query = (
+            f"File 'plan.txt':\n{plan_prompt}\n\n"
+            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
+            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}"
+        )
+
+        deduplicate_levers = DeduplicateLevers.execute(
+            llm_executor,
+            project_context=query,
+            raw_levers_list=lever_item_list
+        )
+
+        # Write the result to disk.
+        output_raw_path = self.output()['raw'].path
+        deduplicate_levers.save_raw(str(output_raw_path))
+
 class EnrichLeversTask(PlanTask):
     """
     Enrich potential levers with more information.
@@ -307,7 +354,7 @@ class EnrichLeversTask(PlanTask):
             'setup': self.clone(SetupTask),
             'identify_purpose': self.clone(IdentifyPurposeTask),
             'plan_type': self.clone(PlanTypeTask),
-            'potential_levers': self.clone(PotentialLeversTask)
+            'deduplicate_levers': self.clone(DeduplicateLeversTask),
         }
 
     def output(self):
@@ -325,8 +372,9 @@ class EnrichLeversTask(PlanTask):
             identify_purpose_dict = json.load(f)
         with self.input()['plan_type']['raw'].open("r") as f:
             plan_type_dict = json.load(f)
-        with self.input()['potential_levers']['clean'].open("r") as f:
-            lever_item_list = json.load(f)
+        with self.input()['deduplicate_levers']['raw'].open("r") as f:
+            json_dict = json.load(f)
+            lever_item_list = json_dict["deduplicated_levers"]
 
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
@@ -3132,6 +3180,7 @@ class FullPlanPipeline(PlanTask):
             'identify_purpose': self.clone(IdentifyPurposeTask),
             'plan_type': self.clone(PlanTypeTask),
             'potential_levers': self.clone(PotentialLeversTask),
+            'deduplicate_levers': self.clone(DeduplicateLeversTask),
             'enriched_levers': self.clone(EnrichLeversTask),
             'focus_on_vital_few_levers': self.clone(FocusOnVitalFewLeversTask),
             'candidate_scenarios': self.clone(CandidateScenariosTask),
