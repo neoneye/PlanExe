@@ -147,6 +147,8 @@ class IdentifyPotentialLevers:
             user_prompt,
             "more",
             "more",
+            "more",
+            "more",
         ]
 
         raw_responses: list[DocumentDetails] = []
