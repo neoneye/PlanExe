@@ -36,7 +36,7 @@ class DeduplicationAnalysis(BaseModel):
         description="A list of all levers with their classification and justification."
     )
     summary: str = Field(
-        description="How confident are you that you have removed near-duplicates? And not removed too many levers? Use a scale of -2 to +2, where 0 is neutral."
+        description="Briefly mention the most challenging decisions, such as levers that were very similar but kept distinct, and provide the reasoning. Note any major thematic overlaps that were consolidated. Use 60 words."
     )
 
 class InputLever(BaseModel):
@@ -63,6 +63,8 @@ classification: keep | absorb | remove
 justification: Clearly explain the reasoning for your decision, explicitly stating overlaps or uniqueness. If "absorb" is chosen, specify precisely into which lever it should be integrated.
 
 Prioritize absorbing over outright removal to retain maximum strategic detail.
+
+Finally, provide a `summary` of your analysis. In this summary, state the most difficult decisions you made, especially where levers were similar but you chose to keep them separate. Briefly explain the key thematic overlaps you identified and consolidated.
 """
 
 @dataclass
