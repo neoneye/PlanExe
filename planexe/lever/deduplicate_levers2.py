@@ -127,11 +127,19 @@ class DeduplicateLevers:
             logger.error("LLM interaction for deduplication failed.", exc_info=True)
             raise ValueError("LLM interaction failed.") from e
 
+        # The LLM is supposed to return the same number of levers as the input.
+        # However sometimes LLMs skips some levers. So I cannot assume that all the levers in the input are returned.
+        # In case a lever is not returned, then I want to `keep` it.
+
         # Create a mapping from lever_id to classification
         classification_map = {decision.lever_id: decision.classification for decision in analysis_result.decisions}
         
         # Filter levers based on their classification
-        deduplicated_levers = [lever for lever in levers if classification_map.get(lever.lever_id) == LeverClassification.keep]
+        # If a lever is not in the classification_map (was skipped by LLM), treat it as "keep"
+        deduplicated_levers = [
+            lever for lever in levers 
+            if classification_map.get(lever.lever_id, LeverClassification.keep) == LeverClassification.keep
+        ]
         logger.info(f"Final lever count after deduplication: {len(deduplicated_levers)}.")
 
         return cls(
