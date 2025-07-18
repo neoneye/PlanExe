@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class LeverClassification(str, Enum):
     keep   = "keep"
-    maybe  = "maybe"
+    absorb = "absorb"
     remove = "remove"
 
 class LeverDecision(BaseModel):
@@ -49,21 +49,22 @@ class InputLever(BaseModel):
 
 
 DEDUPLICATE_SYSTEM_PROMPT = """
-You are an expert strategy consultant tasked with consolidating a list of brainstormed strategic levers into a concise, non-redundant, and actionable set. Your goal is to identify the core strategic pillars, aiming for a final list of approximately 6 to 8 distinct levers.
+You are assisting in deduplicating a list of strategic levers for a planning system. Your task is to carefully review each lever and classify it based on its redundancy or overlap with other levers.
 
-**Your Analysis Process:**
+Classify each lever into one of these categories:
 
-1.  **Identify Thematic Clusters:** First, mentally group the levers into coherent thematic clusters. A cluster should contain only levers that address the same core topic (e.g., 'factory architecture' is one topic, 'materials strategy' is another, 'talent' is a third). A single unique lever can be its own cluster.
+- keep: The lever is unique and crucial. Removing or merging it would cause significant loss of strategic information. It's either entirely unique or clearly the strongest representation of its strategic area.
 
-2.  **Select the Best Representative:** Within each thematic cluster, select the single best lever that most clearly and comprehensively represents the strategic choice. Classify this as `keep`.
+- absorb: The lever overlaps significantly with another lever and can be fully represented as a subcomponent or option within that other lever without losing meaningful detail.
 
-3.  **Consolidate Redundancies:** If other levers exist in the same cluster, classify them as `remove` and justify that their ideas are absorbed by the `keep` lever, referencing its `lever_id`.
+- remove: The lever is clearly redundant, weaker, or fully encompassed by another lever. Its removal won't result in a meaningful loss.
 
-**Important Principles:**
+Your response for each lever should follow this format:
 
-*   **Distinct Pillars:** Do not merge clearly distinct strategic topics. For example, 'Manufacturing Processes' is separate from 'Robotics & Automation', and both are separate from 'Material Sourcing'.
-*   **Target Count:** The final number of `keep` levers should be around 6-8. This is a guideline to prevent over-pruning or under-pruning.
-*   **Use `maybe` for True Ambiguity:** Only use the `maybe` classification if a lever is highly unique but its strategic value is genuinely questionable. Do not use it for simple redundancy.
+classification: keep | absorb | remove
+justification: Provide clear reasoning why the lever is classified in this way, including explicitly which other lever it overlaps with or can be absorbed into, when applicable. Explain clearly to avoid ambiguity.
+
+Be cautious not to overly consolidate; prefer keeping slightly overlapping levers as separate if each adds unique strategic value.
 """
 
 @dataclass
@@ -130,9 +131,7 @@ class DeduplicateLevers:
         classification_map = {decision.lever_id: decision.classification for decision in analysis_result.decisions}
         
         # Filter levers based on their classification
-        levers_keep = [lever for lever in levers if classification_map.get(lever.lever_id) == LeverClassification.keep]
-        levers_maybe = [lever for lever in levers if classification_map.get(lever.lever_id) == LeverClassification.maybe]
-        deduplicated_levers = levers_keep + levers_maybe
+        deduplicated_levers = [lever for lever in levers if classification_map.get(lever.lever_id) == LeverClassification.keep]
         logger.info(f"Final lever count after deduplication: {len(deduplicated_levers)}.")
 
         return cls(
