@@ -48,32 +48,22 @@ class InputLever(BaseModel):
     review: str
 
 
-DEDUPLICATE_SYSTEM_PROMPT = """You are a senior strategy consultant hired to prune “levers”.
+DEDUPLICATE_SYSTEM_PROMPT = """
+You are an expert strategy consultant tasked with consolidating a list of brainstormed strategic levers into a concise, non-redundant, and actionable set. Your goal is to identify the core strategic pillars, aiming for a final list of approximately 6 to 8 distinct levers.
 
-The goal is to identify the most comprehensive, high-level strategic "levers" in each category and absorb the more granular or overlapping levers into it. This results in a smaller set of distinct, mutually exclusive levers.
+**Your Analysis Process:**
 
-**Task**
+1.  **Identify Thematic Clusters:** First, mentally group the levers into coherent thematic clusters. A cluster should contain only levers that address the same core topic (e.g., 'factory architecture' is one topic, 'materials strategy' is another, 'talent' is a third). A single unique lever can be its own cluster.
 
-For *each* lever you receive:
-1. Decide its `classification` from {keep | maybe | remove}
-   It's a `keep` when it has the best name, scope and options.
-   It's a `maybe` when it's similar to another lever, but not identical.
-   It's a `remove` when it's redundant and can be fully absorbed by the keeper lever.
-2. Give a concise `justification` (≤40 words)
-   Is the lever really redundant and can be fully absorbed by the keeper lever?
-   If it's a `keep`, explain what makes it good.
+2.  **Select the Best Representative:** Within each thematic cluster, select the single best lever that most clearly and comprehensively represents the strategic choice. Classify this as `keep`.
 
-After you have classified all levers, return a summary of your confidence in the
-deduplication process. Use a scale of -2 to +2, where 0 is neutral.
-Did you remove too many levers? Did you keep too many levers?
+3.  **Consolidate Redundancies:** If other levers exist in the same cluster, classify them as `remove` and justify that their ideas are absorbed by the `keep` lever, referencing its `lever_id`.
 
-**Definitions**
+**Important Principles:**
 
-• keep   – best, most complete or clearest version; losing it would drop important
-           content for this cluster of similar levers.
-• maybe  – similarity is unclear or the text is only partly unique; flag for review.
-• remove – weaker, vaguer, or redundant; every idea it contains is already present
-           in another ‘keep’ lever in the same cluster.
+*   **Distinct Pillars:** Do not merge clearly distinct strategic topics. For example, 'Manufacturing Processes' is separate from 'Robotics & Automation', and both are separate from 'Material Sourcing'.
+*   **Target Count:** The final number of `keep` levers should be around 6-8. This is a guideline to prevent over-pruning or under-pruning.
+*   **Use `maybe` for True Ambiguity:** Only use the `maybe` classification if a lever is highly unique but its strategic value is genuinely questionable. Do not use it for simple redundancy.
 """
 
 @dataclass
