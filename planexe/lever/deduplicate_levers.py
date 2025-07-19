@@ -31,7 +31,7 @@ class LeverDecision(BaseModel):
         description="What should happen to this lever."
     )
     justification: str = Field(
-        description="A concise justification for the classification. Use the lever_id to reference the lever that is being kept in its place. Use 40 words."
+        description="A concise justification for the classification. Use the lever_id to reference the lever that is being kept in its place. Use ~80 words."
     )
 
 class DeduplicationAnalysis(BaseModel):
@@ -61,7 +61,16 @@ Evaluate each of the provided strategic levers individually. Classify every leve
 
 Provide concise, explicit justifications mentioning lever IDs clearly. Always prefer "absorb" over "remove" to retain important details.
 
-Always provide a justification for the classification.
+Always provide a justification for the classification. Explain why the lever is distinct from others. Don't use the same uninformative boilerplate.
+
+Respect Hierarchy: When absorbing, merge the more specific lever into the more general one.
+Don't take the more general lever and absorb it into a narrower one.
+Also compare a lever against the group of already-merged levers.
+
+Use "keep" if you lack understanding of what the lever is doing. This way a potential important lever is not getting removed.
+Describe what the issue is in the justification.
+
+Don't play it too safe, so you fail to perform the core task: consolidate the levers and get rid of the duplicates.
 
 You must classify and justify **every lever** provided in the input.
 """
