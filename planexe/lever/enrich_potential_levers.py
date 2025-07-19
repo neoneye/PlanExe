@@ -40,6 +40,7 @@ class InputLever(BaseModel):
     consequences: str
     options: List[str]
     review: str
+    deduplication_justification: str
 
 class LeverCharacterization(BaseModel):
     """Structured response for a single lever's enrichment from the LLM."""
