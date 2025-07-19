@@ -1,4 +1,7 @@
 """
+The identify_potential_levers.py script creates a list of levers, some of which are duplicates.
+This script deduplicates the list.
+
 PROMPT> python -m planexe.lever.deduplicate_levers
 """
 from enum import Enum
@@ -44,6 +47,10 @@ class InputLever(BaseModel):
     options: List[str]
     review: str
 
+class OutputLever(InputLever):
+    """The InputLever and the deduplication justification."""
+    deduplication_justification: str
+
 
 DEDUPLICATE_SYSTEM_PROMPT = """
 Evaluate each of the provided strategic levers individually. Classify every lever explicitly into one of:
@@ -59,11 +66,11 @@ You must classify and justify **every lever** provided in the input.
 
 @dataclass
 class DeduplicateLevers:
-    """Holds the results of the LLM-based deduplication process."""
+    """Holds the results of the deduplication."""
     user_prompt: str
     system_prompt: str
-    analysis_result: DeduplicationAnalysis
-    deduplicated_levers: List[InputLever]
+    response: DeduplicationAnalysis
+    deduplicated_levers: List[OutputLever]
     metadata: Dict[str, Any]
 
     @classmethod
@@ -79,16 +86,16 @@ class DeduplicateLevers:
             An instance of DeduplicateLevers containing the results.
         """
         try:
-            levers = [InputLever(**lever) for lever in raw_levers_list]
+            input_levers = [InputLever(**lever) for lever in raw_levers_list]
         except ValidationError as e:
             raise ValueError(f"Invalid input lever data: {e}")
 
-        if not levers:
-            raise ValueError("No levers to deduplicate.")
+        if not input_levers:
+            raise ValueError("No input levers to deduplicate.")
 
-        logger.info(f"Starting deduplication for {len(levers)} levers.")
+        logger.info(f"Starting deduplication for {len(input_levers)} levers.")
 
-        levers_json = json.dumps([lever.model_dump() for lever in levers], indent=2)        
+        levers_json = json.dumps([lever.model_dump() for lever in input_levers], indent=2)        
         user_prompt = (
             f"**Project Context:**\n{project_context}\n\n"
             "Here is the full list of strategic levers. Please analyze them for duplicates.\n\n"
@@ -114,36 +121,57 @@ class DeduplicateLevers:
         except PipelineStopRequested:
             raise
         except Exception as e:
-            logger.error("LLM interaction for deduplication failed.", exc_info=True)
-            raise ValueError("LLM interaction failed.") from e
+            logger.error("Deduplication failed.", exc_info=True)
+            raise ValueError("Deduplication failed.") from e
 
         # The LLM is supposed to return the same number of levers as the input.
         # However sometimes LLMs skips some levers. So I cannot assume that all the levers in the input are returned.
-        # In case a lever is not returned, then I want to `keep` it.
+        # In case a lever is not returned, then I want to `keep` it. Otherwise, I might lose an important lever.
 
-        # Create a mapping from lever_id to classification
-        classification_map = {decision.lever_id: decision.classification for decision in analysis_result.decisions}
-        
-        # Filter levers based on their classification
-        # If a lever is not in the classification_map (was skipped by LLM), treat it as "keep"
-        deduplicated_levers = [
-            lever for lever in levers 
-            if classification_map.get(lever.lever_id, LeverClassification.keep) == LeverClassification.keep
-        ]
-        logger.info(f"Final lever count after deduplication: {len(deduplicated_levers)}.")
+        # Perform the deduplication.
+        output_levers = []
+        for lever in input_levers:
+            # Find the decision for this lever
+            decision = None
+            for decision_item in analysis_result.decisions:
+                if decision_item.lever_id == lever.lever_id:
+                    decision = decision_item
+                    break
+            if not decision:
+                # Missing decision for this lever. Keep it.
+                deduplication_justification = "Missing deduplication justification. Keeping this lever."
+                output_lever = OutputLever(
+                    **lever.model_dump(),
+                    deduplication_justification=deduplication_justification
+                )
+                output_levers.append(output_lever)
+                continue
+
+            # Check if this is a keeper
+            if decision.classification != LeverClassification.keep:
+                # This is not a keeper
+                continue
+
+            # This is a keeper
+            deduplication_justification = decision.justification
+            output_lever = OutputLever(
+                **lever.model_dump(),
+                deduplication_justification=deduplication_justification
+            )
+            output_levers.append(output_lever)
 
         return cls(
             user_prompt=user_prompt,
             system_prompt=system_prompt,
-            analysis_result=analysis_result,
-            deduplicated_levers=deduplicated_levers,
+            response=analysis_result,
+            deduplicated_levers=output_levers,
             metadata=metadata
         )
 
-    def to_dict(self, include_raw_response=True, include_deduplicated_levers=True, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
+    def to_dict(self, include_response=True, include_deduplicated_levers=True, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
         d = {}
-        if include_raw_response:
-            d["raw_response"] = self.analysis_result.model_dump()
+        if include_response:
+            d["response"] = self.response.model_dump()
         if include_deduplicated_levers:
             d['deduplicated_levers'] = [lever.model_dump() for lever in self.deduplicated_levers]
         if include_metadata:
@@ -163,9 +191,9 @@ class DeduplicateLevers:
         try:
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(output_data, f, indent=2)
-            logger.info(f"Successfully saved {len(output_data)} deduplicated levers to '{file_path}'.")
+            logger.info(f"Successfully saved {len(output_data)} deduplicated levers to {file_path!r}.")
         except IOError as e:
-            logger.error(f"Failed to write output to '{file_path}': {e}")
+            logger.error(f"Failed to write output to {file_path!r}: {e}")
 
 if __name__ == "__main__":
     from planexe.prompt.prompt_catalog import PromptCatalog
@@ -201,9 +229,10 @@ if __name__ == "__main__":
         raw_levers_list=raw_levers_data
     )
 
-    d = result.to_dict(include_raw_response=True, include_deduplicated_levers=True, include_metadata=True, include_system_prompt=False, include_user_prompt=False)
+    d = result.to_dict(include_response=True, include_deduplicated_levers=True, include_metadata=True, include_system_prompt=False, include_user_prompt=False)
     d_json = json.dumps(d, indent=2)
     logger.info(f"Deduplication result: {d_json}")
+    logger.info(f"Lever count after deduplication: {len(result.deduplicated_levers)}.")
 
     # --- Save Output ---
     result.save_clean(output_file)
