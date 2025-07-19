@@ -1,11 +1,13 @@
 """
 Brainstorm what key "levers" can be pulled to change the outcome of the plan.
 
+The output contains near duplicates, these have to be deduplicated. A few lever names appear twice.
+The deduplication is done in the deduplicate_levers.py script.
+
 PROMPT> python -m planexe.lever.identify_potential_levers
 
-IDEA: The output contains near duplicates, these have to be deduplicated. A few lever names appear twice.
-
-IDEA: Your current filter treats each lever in isolation—this is a classic strategic trap. The “vital few” are often those with the highest interaction potential, not just those that look good on their own.
+IDEA: Your current filter treats each lever in isolation — this is a classic strategic trap. 
+The “vital few” are often those with the highest interaction potential, not just those that look good on their own.
 """
 import json
 import logging
@@ -120,7 +122,7 @@ You are an expert strategic analyst. Generate solution space parameters followin
 class IdentifyPotentialLevers:
     system_prompt: Optional[str]
     user_prompt: str
-    raw_responses: list[DocumentDetails]
+    responses: list[DocumentDetails]
     levers: list[LeverCleaned]
     metadata: dict
 
@@ -149,7 +151,7 @@ class IdentifyPotentialLevers:
             "more",
         ]
 
-        raw_responses: list[DocumentDetails] = []
+        responses: list[DocumentDetails] = []
         metadata_list: list[dict] = []
         for user_prompt_index, user_prompt_item in enumerate(user_prompt_list, start=1):
             logger.info(f"Processing user_prompt_index: {user_prompt_index} of {len(user_prompt_list)}")
@@ -187,13 +189,13 @@ class IdentifyPotentialLevers:
                 )
             )
 
-            raw_responses.append(result["chat_response"].raw)
+            responses.append(result["chat_response"].raw)
             metadata_list.append(result["metadata"])
 
         # from the raw_responses, extract the levers into a flatten list
         levers_raw: list[Lever] = []
-        for raw_response in raw_responses:
-            levers_raw.extend(raw_response.levers)
+        for response in responses:
+            levers_raw.extend(response.levers)
 
         # Clean the raw levers
         levers_cleaned: list[LeverCleaned] = []
@@ -215,16 +217,16 @@ class IdentifyPotentialLevers:
         result = IdentifyPotentialLevers(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            raw_responses=raw_responses,
+            responses=responses,
             levers=levers_cleaned,
             metadata=metadata,
         )
         return result    
 
-    def to_dict(self, include_raw_responses=True, include_cleaned_levers=True, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
+    def to_dict(self, include_responses=True, include_cleaned_levers=True, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
         d = {}
-        if include_raw_responses:
-            d["raw_responses"] = [response.model_dump() for response in self.raw_responses]
+        if include_responses:
+            d["responses"] = [response.model_dump() for response in self.responses]
         if include_cleaned_levers:
             d['levers'] = [lever.model_dump() for lever in self.levers]
         if include_metadata:
@@ -277,7 +279,7 @@ if __name__ == "__main__":
     print(f"Query: {query}")
     result = IdentifyPotentialLevers.execute(llm_executor, query)
 
-    print("\nResponse:")
+    print("\nResult:")
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print(json.dumps(json_response, indent=2))
 
