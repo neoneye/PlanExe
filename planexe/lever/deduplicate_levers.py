@@ -61,6 +61,8 @@ Evaluate each of the provided strategic levers individually. Classify every leve
 
 Provide concise, explicit justifications mentioning lever IDs clearly. Always prefer "absorb" over "remove" to retain important details.
 
+Always provide a justification for the classification.
+
 You must classify and justify **every lever** provided in the input.
 """
 
@@ -153,7 +155,10 @@ class DeduplicateLevers:
                 continue
 
             # This is a keeper
-            deduplication_justification = decision.justification
+            deduplication_justification = decision.justification.strip()
+            if len(deduplication_justification) == 0:
+                deduplication_justification = "Empty explanation. Keeping this lever."
+
             output_lever = OutputLever(
                 **lever.model_dump(),
                 deduplication_justification=deduplication_justification
@@ -204,8 +209,8 @@ if __name__ == "__main__":
     prompt_catalog = PromptCatalog()
     prompt_catalog.load_simple_plan_prompts()
 
-    # prompt_id = "19dc0718-3df7-48e3-b06d-e2c664ecc07d"
-    prompt_id = "b9afce6c-f98d-4e9d-8525-267a9d153b51"
+    prompt_id = "19dc0718-3df7-48e3-b06d-e2c664ecc07d"
+    # prompt_id = "b9afce6c-f98d-4e9d-8525-267a9d153b51"
     prompt_item = prompt_catalog.find(prompt_id)
     if not prompt_item:
         raise ValueError("Prompt item not found.")
