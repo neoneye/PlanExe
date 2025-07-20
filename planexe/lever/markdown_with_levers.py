@@ -58,16 +58,17 @@ class MarkdownWithLevers:
         
         for i, lever in enumerate(self.vital_levers):
             lever_index = i + 1
-            rows.append(f"### Lever {lever_index}: {lever.name}")
+            rows.append(f"### Decision {lever_index}: {lever.name}")
             rows.append(f"**Lever ID:** {lever.lever_id}\n")
             rows.append(f"**Description:** {lever.description}\n")
-            rows.append(f"**Consequences:** {lever.consequences}\n")
-            rows.append("**Options:**\n")
+            rows.append(f"**Why It Matters:** {lever.consequences}\n")
+            rows.append("**Strategic Choices:**\n")
             for option in lever.options:
                 rows.append(f"- {option}")
-            rows.append(f"\n**Review:** {lever.review}\n")
-            rows.append(f"**Synergies:** {lever.synergy_text}\n")
-            rows.append(f"**Conflicts:** {lever.conflict_text}\n")
+            rows.append(f"\n**Trade-Off / Risk:** {lever.review}\n")
+            rows.append(f"**Strategic Connections:**\n")
+            rows.append(f"**Synergy:** {lever.synergy_text}\n")
+            rows.append(f"**Conflict:** {lever.conflict_text}\n")
         
         # Filter out levers that are already in vital section
         vital_lever_ids = {lever.lever_id for lever in self.vital_levers}
@@ -81,17 +82,18 @@ class MarkdownWithLevers:
         rows.append("These levers provide additional opportunities and considerations:\n")
         
         for i, lever in enumerate(additional_levers):
-            lever_index = len(self.vital_levers) + i
-            rows.append(f"### Lever {lever_index}: {lever.name}")
+            lever_index = len(self.vital_levers) + i + 1
+            rows.append(f"### Decision {lever_index}: {lever.name}")
             rows.append(f"**Lever ID:** {lever.lever_id}\n")
             rows.append(f"**Description:** {lever.description}\n")
-            rows.append(f"**Consequences:** {lever.consequences}\n")
-            rows.append("**Options:**\n")
+            rows.append(f"**Why It Matters:** {lever.consequences}\n")
+            rows.append("**Strategic Choices:**\n")
             for option in lever.options:
                 rows.append(f"- {option}")
-            rows.append(f"\n**Review:** {lever.review}\n")
-            rows.append(f"**Synergies:** {lever.synergy_text}\n")
-            rows.append(f"**Conflicts:** {lever.conflict_text}\n")
+            rows.append(f"\n**Trade-Off / Risk:** {lever.review}\n")
+            rows.append(f"**Strategic Connections:**\n")
+            rows.append(f"**Synergy:** {lever.synergy_text}\n")
+            rows.append(f"**Conflict:** {lever.conflict_text}\n")
         
         return "\n".join(rows)
     
