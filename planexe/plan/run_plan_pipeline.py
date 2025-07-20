@@ -19,6 +19,7 @@ from pathlib import Path
 from llama_index.core.llms.llm import LLM
 
 from planexe.lever.deduplicate_levers import DeduplicateLevers
+from planexe.lever.scenarios_markdown import ScenariosMarkdown
 from planexe.lever.strategic_decisions_markdown import StrategicDecisionsMarkdown
 from planexe.plan.filenames import FilenameEnum, ExtraFilenameEnum
 from planexe.plan.speedvsdetail import SpeedVsDetailEnum
@@ -571,6 +572,36 @@ class SelectScenarioTask(PlanTask):
         select_scenario.save_raw(str(output_raw_path))
         output_clean_path = self.output()['clean'].path
         select_scenario.save_clean(str(output_clean_path))
+
+
+class ScenariosMarkdownTask(PlanTask):
+    """
+    Present the scenarios in a human readable format.
+    """
+    def requires(self):
+        return {
+            'candidate_scenarios': self.clone(CandidateScenariosTask),
+            'selected_scenario': self.clone(SelectScenarioTask)
+        }
+
+    def output(self):
+        return {
+            'markdown': self.local_target(FilenameEnum.SCENARIOS_MARKDOWN)
+        }
+
+    def run(self):
+        with self.input()['candidate_scenarios']['clean'].open("r") as f:
+            scenarios_list = json.load(f).get('scenarios', [])
+        with self.input()['selected_scenario']['clean'].open("r") as f:
+            selected_scenario_dict = json.load(f)
+
+        # Extract the required data from the selected scenario
+        plan_characteristics = selected_scenario_dict.get('plan_characteristics', {})
+        scenario_assessments = selected_scenario_dict.get('scenario_assessments', [])
+        final_choice = selected_scenario_dict.get('final_choice', {})
+
+        result = ScenariosMarkdown(scenarios_list, plan_characteristics, scenario_assessments, final_choice)
+        result.save_markdown(self.output()['markdown'].path)
 
 
 class PhysicalLocationsTask(PlanTask):
@@ -3215,6 +3246,7 @@ class FullPlanPipeline(PlanTask):
             'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
             'candidate_scenarios': self.clone(CandidateScenariosTask),
             'select_scenario': self.clone(SelectScenarioTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             # 'physical_locations': self.clone(PhysicalLocationsTask),
             # 'currency_strategy': self.clone(CurrencyStrategyTask),
             # 'identify_risks': self.clone(IdentifyRisksTask),
