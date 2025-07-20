@@ -2062,9 +2062,9 @@ class ExpertReviewTask(PlanTask):
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
             f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"Pre-project assessment:\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"Project plan:\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
-            f"SWOT Analysis:\n{swot_markdown}"
+            f"File 'pre-project assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
+            f"File 'project_plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'SWOT Analysis.md':\n{swot_markdown}"
         )
 
         # Define callback functions.
@@ -3196,6 +3196,8 @@ class ReviewPlanTask(PlanTask):
     
     def requires(self):
         return {
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'data_collection': self.clone(DataCollectionTask),
@@ -3211,6 +3213,10 @@ class ReviewPlanTask(PlanTask):
         llm_executor: LLMExecutor = self.create_llm_executor()
 
         # Read inputs from required tasks.
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
@@ -3232,6 +3238,8 @@ class ReviewPlanTask(PlanTask):
 
         # Build the query.
         query = (
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
             f"File 'data-collection.md':\n{data_collection_markdown}\n\n"
@@ -3277,6 +3285,8 @@ class ExecutiveSummaryTask(PlanTask):
     
     def requires(self):
         return {
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'data_collection': self.clone(DataCollectionTask),
@@ -3291,6 +3301,10 @@ class ExecutiveSummaryTask(PlanTask):
     
     def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
@@ -3314,6 +3328,8 @@ class ExecutiveSummaryTask(PlanTask):
 
         # Build the query.
         query = (
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
             f"File 'data-collection.md':\n{data_collection_markdown}\n\n"
@@ -3348,6 +3364,8 @@ class QuestionsAndAnswersTask(PlanTask):
     
     def requires(self):
         return {
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'team_markdown': self.clone(TeamMarkdownTask),
             'related_resources': self.clone(RelatedResourcesTask),
@@ -3364,6 +3382,10 @@ class QuestionsAndAnswersTask(PlanTask):
     
     def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
@@ -3387,6 +3409,8 @@ class QuestionsAndAnswersTask(PlanTask):
 
         # Build the query.
         query = (
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
             f"File 'data-collection.md':\n{data_collection_markdown}\n\n"
