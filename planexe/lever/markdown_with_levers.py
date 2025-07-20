@@ -67,21 +67,14 @@ class MarkdownWithLevers:
         rows.append("# Project Levers Analysis")
         
         # Add vital levers section
-        rows.append("## Vital Few Levers")
-        rows.append("These are the most critical levers that should be prioritized:")
+        rows.append("## Primary Decisions")
+        rows.append("The vital few decisions that have the most impact.\n")
         
         for i, lever in enumerate(self.vital_levers):
             lever_index = i + 1
             rows.append(f"### Decision {lever_index}: {lever.name}")
             rows.append(f"**Lever ID:** {lever.lever_id}\n")
-            
-            # Add assessment information if available
-            if lever.lever_id in self.lever_assessments:
-                assessment = self.lever_assessments[lever.lever_id]
-                rows.append(f"**Strategic Importance:** {assessment.strategic_importance}")
-                rows.append(f"**Assessment Justification:** {assessment.justification}\n")
-            
-            rows.append(f"**Description:** {lever.description}\n")
+            rows.append(f"**The Core Decision:** {lever.description}\n")
             rows.append(f"**Why It Matters:** {lever.consequences}\n")
             rows.append("**Strategic Choices:**\n")
             for option in lever.options:
@@ -90,30 +83,28 @@ class MarkdownWithLevers:
             rows.append(f"**Strategic Connections:**\n")
             rows.append(f"**Synergy:** {lever.synergy_text}\n")
             rows.append(f"**Conflict:** {lever.conflict_text}\n")
-        
+
+            # Add assessment information if available
+            if lever.lever_id in self.lever_assessments:
+                assessment = self.lever_assessments[lever.lever_id]
+                rows.append(f"**Justification:** *{assessment.strategic_importance}*, {assessment.justification}\n")
+            
         # Filter out levers that are already in vital section
         vital_lever_ids = {lever.lever_id for lever in self.vital_levers}
         additional_levers = [lever for lever in self.enrich_levers if lever.lever_id not in vital_lever_ids]
         
-        logger.info(f"Filtered out {len(self.enrich_levers) - len(additional_levers)} duplicate levers from additional section.")
+        # logger.info(f"Filtered out {len(self.enrich_levers) - len(additional_levers)} duplicate levers from additional section.")
         
         # Add remaining levers section
         rows.append("---")
-        rows.append("## Additional Levers")
-        rows.append("These levers provide additional opportunities and considerations:\n")
+        rows.append("## Secondary Decisions")
+        rows.append("These decisions are less significant, but still worth considering.\n")
         
         for i, lever in enumerate(additional_levers):
             lever_index = len(self.vital_levers) + i + 1
             rows.append(f"### Decision {lever_index}: {lever.name}")
             rows.append(f"**Lever ID:** {lever.lever_id}\n")
-            
-            # Add assessment information if available
-            if lever.lever_id in self.lever_assessments:
-                assessment = self.lever_assessments[lever.lever_id]
-                rows.append(f"**Strategic Importance:** {assessment.strategic_importance}")
-                rows.append(f"**Assessment Justification:** {assessment.justification}\n")
-            
-            rows.append(f"**Description:** {lever.description}\n")
+            rows.append(f"**The Core Decision:** {lever.description}\n")
             rows.append(f"**Why It Matters:** {lever.consequences}\n")
             rows.append("**Strategic Choices:**\n")
             for option in lever.options:
@@ -122,6 +113,11 @@ class MarkdownWithLevers:
             rows.append(f"**Strategic Connections:**\n")
             rows.append(f"**Synergy:** {lever.synergy_text}\n")
             rows.append(f"**Conflict:** {lever.conflict_text}\n")
+
+            # Add assessment information if available
+            if lever.lever_id in self.lever_assessments:
+                assessment = self.lever_assessments[lever.lever_id]
+                rows.append(f"**Justification:** *{assessment.strategic_importance}*, {assessment.justification}\n")
         
         return "\n".join(rows)
     

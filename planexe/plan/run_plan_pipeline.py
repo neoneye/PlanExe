@@ -459,9 +459,11 @@ class MarkdownWithLeversTask(PlanTask):
         with self.input()['enriched_levers']['raw'].open("r") as f:
             enrich_lever_list = json.load(f)["characterized_levers"]
         with self.input()['levers_vital_few']['raw'].open("r") as f:
-            vital_lever_list = json.load(f)["levers"]
+            vital_data = json.load(f)
+            vital_lever_list = vital_data["levers"]
+            lever_assessments_list = vital_data.get("response", {}).get("lever_assessments", [])
 
-        markdown_with_levers = MarkdownWithLevers(enrich_lever_list, vital_lever_list)
+        markdown_with_levers = MarkdownWithLevers(enrich_lever_list, vital_lever_list, lever_assessments_list)
         markdown_with_levers.save_markdown(self.output()['markdown'].path)
 
 
