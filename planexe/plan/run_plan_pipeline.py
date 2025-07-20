@@ -1156,6 +1156,8 @@ class GovernancePhase1AuditTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask)
         }
@@ -1170,6 +1172,10 @@ class GovernancePhase1AuditTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
         with self.input()['project_plan']['raw'].open("r") as f:
@@ -1178,6 +1184,8 @@ class GovernancePhase1AuditTask(PlanTask):
         # Build the query.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}"
         )
@@ -1198,6 +1206,8 @@ class GovernancePhase2BodiesTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'governance_phase1_audit': self.clone(GovernancePhase1AuditTask)
@@ -1213,6 +1223,10 @@ class GovernancePhase2BodiesTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
         with self.input()['project_plan']['raw'].open("r") as f:
@@ -1223,6 +1237,8 @@ class GovernancePhase2BodiesTask(PlanTask):
         # Build the query.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"File 'governance-phase1-audit.json':\n{format_json_for_use_in_query(governance_phase1_audit_dict)}"
@@ -1244,6 +1260,8 @@ class GovernancePhase3ImplPlanTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'governance_phase2_bodies': self.clone(GovernancePhase2BodiesTask)
@@ -1259,6 +1277,10 @@ class GovernancePhase3ImplPlanTask(PlanTask):
         # Read inputs from required tasks.  
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
         with self.input()['project_plan']['raw'].open("r") as f:
@@ -1269,6 +1291,8 @@ class GovernancePhase3ImplPlanTask(PlanTask):
         # Build the query.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"File 'governance-phase2-bodies.json':\n{format_json_for_use_in_query(governance_phase2_bodies_dict)}"
@@ -1289,6 +1313,8 @@ class GovernancePhase4DecisionEscalationMatrixTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'governance_phase2_bodies': self.clone(GovernancePhase2BodiesTask),
@@ -1305,6 +1331,10 @@ class GovernancePhase4DecisionEscalationMatrixTask(PlanTask):
         # Read inputs from required tasks.  
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
         with self.input()['project_plan']['raw'].open("r") as f:
@@ -1317,6 +1347,8 @@ class GovernancePhase4DecisionEscalationMatrixTask(PlanTask):
         # Build the query.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"File 'governance-phase2-bodies.json':\n{format_json_for_use_in_query(governance_phase2_bodies_dict)}\n\n"
@@ -1338,6 +1370,8 @@ class GovernancePhase5MonitoringProgressTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'governance_phase2_bodies': self.clone(GovernancePhase2BodiesTask),
@@ -1355,6 +1389,10 @@ class GovernancePhase5MonitoringProgressTask(PlanTask):
         # Read inputs from required tasks.  
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
         with self.input()['project_plan']['raw'].open("r") as f:
@@ -1369,6 +1407,8 @@ class GovernancePhase5MonitoringProgressTask(PlanTask):
         # Build the query.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"File 'governance-phase2-bodies.json':\n{format_json_for_use_in_query(governance_phase2_bodies_dict)}\n\n"
@@ -1391,6 +1431,8 @@ class GovernancePhase6ExtraTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'governance_phase1_audit': self.clone(GovernancePhase1AuditTask),
@@ -1410,6 +1452,10 @@ class GovernancePhase6ExtraTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
         with self.input()['project_plan']['raw'].open("r") as f:
@@ -1428,6 +1474,8 @@ class GovernancePhase6ExtraTask(PlanTask):
         # Build the query.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"File 'governance-phase1-audit.json':\n{format_json_for_use_in_query(governance_phase1_audit_dict)}\n\n"
@@ -1495,6 +1543,8 @@ class RelatedResourcesTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask)
         }
@@ -1509,6 +1559,10 @@ class RelatedResourcesTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
         with self.input()['project_plan']['raw'].open("r") as f:
@@ -1517,6 +1571,8 @@ class RelatedResourcesTask(PlanTask):
         # Build the query.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}"
         )
@@ -1536,6 +1592,8 @@ class FindTeamMembersTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'preproject': self.clone(PreProjectAssessmentTask),
             'project_plan': self.clone(ProjectPlanTask),
@@ -1552,6 +1610,10 @@ class FindTeamMembersTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
         with self.input()['preproject']['clean'].open("r") as f:
@@ -1564,6 +1626,8 @@ class FindTeamMembersTask(PlanTask):
         # Build the query.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
@@ -1591,6 +1655,8 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'preproject': self.clone(PreProjectAssessmentTask),
             'project_plan': self.clone(ProjectPlanTask),
@@ -1608,6 +1674,10 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
         with self.input()['preproject']['clean'].open("r") as f:
@@ -1622,6 +1692,8 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
         # Build the query.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
@@ -1650,6 +1722,8 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'preproject': self.clone(PreProjectAssessmentTask),
             'project_plan': self.clone(ProjectPlanTask),
@@ -1667,6 +1741,10 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
         with self.input()['preproject']['clean'].open("r") as f:
@@ -1681,6 +1759,8 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
         # Build the query.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
@@ -1709,6 +1789,8 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'preproject': self.clone(PreProjectAssessmentTask),
             'project_plan': self.clone(ProjectPlanTask),
@@ -1726,6 +1808,10 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
         with self.input()['preproject']['clean'].open("r") as f:
@@ -1740,6 +1826,8 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
         # Build the query.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
@@ -1768,6 +1856,8 @@ class ReviewTeamTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'preproject': self.clone(PreProjectAssessmentTask),
             'project_plan': self.clone(ProjectPlanTask),
@@ -1782,6 +1872,10 @@ class ReviewTeamTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
         with self.input()['preproject']['clean'].open("r") as f:
@@ -1801,6 +1895,8 @@ class ReviewTeamTask(PlanTask):
         # Build the query.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
@@ -1858,6 +1954,8 @@ class SWOTAnalysisTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'identify_purpose': self.clone(IdentifyPurposeTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'preproject': self.clone(PreProjectAssessmentTask),
@@ -1875,6 +1973,10 @@ class SWOTAnalysisTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['identify_purpose']['raw'].open("r") as f:
             identify_purpose_dict = json.load(f)
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
@@ -1889,6 +1991,8 @@ class SWOTAnalysisTask(PlanTask):
         # Build the query for SWOT analysis.
         query = (
             f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
             f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
@@ -1923,6 +2027,8 @@ class ExpertReviewTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'preproject': self.clone(PreProjectAssessmentTask),
             'project_plan': self.clone(ProjectPlanTask),
             'swot_analysis': self.clone(SWOTAnalysisTask)
@@ -1939,6 +2045,10 @@ class ExpertReviewTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['preproject']['clean'].open("r") as f:
             pre_project_assessment_dict = json.load(f)
         with self.input()['project_plan']['raw'].open("r") as f:
@@ -1949,7 +2059,9 @@ class ExpertReviewTask(PlanTask):
 
         # Build the query.
         query = (
-            f"Initial plan: {plan_prompt}\n\n"
+            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"Pre-project assessment:\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
             f"Project plan:\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
             f"SWOT Analysis:\n{swot_markdown}"
@@ -1992,6 +2104,8 @@ class DataCollectionTask(PlanTask):
     
     def requires(self):
         return {
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'related_resources': self.clone(RelatedResourcesTask),
@@ -2002,6 +2116,10 @@ class DataCollectionTask(PlanTask):
     
     def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
@@ -2017,6 +2135,8 @@ class DataCollectionTask(PlanTask):
 
         # Build the query.
         query = (
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
             f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}\n\n"
@@ -2049,6 +2169,8 @@ class IdentifyDocumentsTask(PlanTask):
     def requires(self):
         return {
             'identify_purpose': self.clone(IdentifyPurposeTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'related_resources': self.clone(RelatedResourcesTask),
@@ -2061,6 +2183,10 @@ class IdentifyDocumentsTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['identify_purpose']['raw'].open("r") as f:
             identify_purpose_dict = json.load(f)
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
@@ -2076,6 +2202,8 @@ class IdentifyDocumentsTask(PlanTask):
 
         # Build the query.
         query = (
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
             f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}\n\n"
@@ -2111,6 +2239,8 @@ class FilterDocumentsToFindTask(PlanTask):
     def requires(self):
         return {
             'identify_purpose': self.clone(IdentifyPurposeTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'identified_documents': self.clone(IdentifyDocumentsTask),
@@ -2120,6 +2250,10 @@ class FilterDocumentsToFindTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['identify_purpose']['raw'].open("r") as f:
             identify_purpose_dict = json.load(f)
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
@@ -2130,6 +2264,8 @@ class FilterDocumentsToFindTask(PlanTask):
         # Build the query.
         process_documents, integer_id_to_document_uuid = FilterDocumentsToFind.process_documents_and_integer_ids(documents_to_find)
         query = (
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
             f"File 'documents.json':\n{process_documents}"
@@ -2162,6 +2298,8 @@ class FilterDocumentsToCreateTask(PlanTask):
     def requires(self):
         return {
             'identify_purpose': self.clone(IdentifyPurposeTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'identified_documents': self.clone(IdentifyDocumentsTask),
@@ -2171,6 +2309,10 @@ class FilterDocumentsToCreateTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['identify_purpose']['raw'].open("r") as f:
             identify_purpose_dict = json.load(f)
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
@@ -2181,6 +2323,8 @@ class FilterDocumentsToCreateTask(PlanTask):
         # Build the query.
         process_documents, integer_id_to_document_uuid = FilterDocumentsToCreate.process_documents_and_integer_ids(documents_to_create)
         query = (
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
             f"File 'documents.json':\n{process_documents}"
@@ -2209,6 +2353,8 @@ class DraftDocumentsToFindTask(PlanTask):
     def requires(self):
         return {
             'identify_purpose': self.clone(IdentifyPurposeTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'filter_documents_to_find': self.clone(FilterDocumentsToFindTask),
@@ -2220,6 +2366,10 @@ class DraftDocumentsToFindTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['identify_purpose']['raw'].open("r") as f:
             identify_purpose_dict = json.load(f)
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
@@ -2241,6 +2391,8 @@ class DraftDocumentsToFindTask(PlanTask):
 
             # Build the query.
             query = (
+                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
                 f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
                 f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
                 f"File 'document.json':\n{document}"
@@ -2287,6 +2439,8 @@ class DraftDocumentsToCreateTask(PlanTask):
     def requires(self):
         return {
             'identify_purpose': self.clone(IdentifyPurposeTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'filter_documents_to_create': self.clone(FilterDocumentsToCreateTask),
@@ -2298,6 +2452,10 @@ class DraftDocumentsToCreateTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['identify_purpose']['raw'].open("r") as f:
             identify_purpose_dict = json.load(f)
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
@@ -2319,6 +2477,8 @@ class DraftDocumentsToCreateTask(PlanTask):
 
             # Build the query.
             query = (
+                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
                 f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
                 f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
                 f"File 'document.json':\n{document}"
@@ -2455,6 +2615,8 @@ class CreateWBSLevel2Task(PlanTask):
     """
     def requires(self):
         return {
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'wbs_level1': self.clone(CreateWBSLevel1Task),
             'data_collection': self.clone(DataCollectionTask),
@@ -2470,18 +2632,24 @@ class CreateWBSLevel2Task(PlanTask):
         logger.info("Creating Work Breakdown Structure (WBS) Level 2...")
 
         # Read inputs from required tasks.
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
-        
+            project_plan_dict = json.load(f)        
         with self.input()['data_collection']['markdown'].open("r") as f:
             data_collection_markdown = f.read()
-
         with self.input()['wbs_level1']['clean'].open("r") as f:
             wbs_level1_result_json = json.load(f)
         
-        # Build the query using CreateWBSLevel2's format_query method.
-        query = CreateWBSLevel2.format_query(project_plan_dict, wbs_level1_result_json)
-        query += f"\n\nData collection:\n{data_collection_markdown}"
+        query = (
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+            f"File 'project_plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'WBS Level 1.json':\n{format_json_for_use_in_query(wbs_level1_result_json)}\n\n"
+            f"File 'data_collection.md':\n{data_collection_markdown}"
+        )
         
         # Execute the WBS Level 2 creation.
         create_wbs_level2 = CreateWBSLevel2.execute(llm, query)
@@ -2539,15 +2707,19 @@ class CreatePitchTask(PlanTask):
     
     def requires(self):
         return {
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'wbs_project': self.clone(WBSProjectLevel1AndLevel2Task),
             'related_resources': self.clone(RelatedResourcesTask)
         }
     
     def run_with_llm(self, llm: LLM) -> None:
-        logger.info("Creating pitch...")
-        
         # Read the project plan JSON.
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['project_plan']['raw'].open("r") as f:
             project_plan_dict = json.load(f)
         
@@ -2561,9 +2733,11 @@ class CreatePitchTask(PlanTask):
         
         # Build the query
         query = (
-            f"The project plan:\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
-            f"Work Breakdown Structure:\n{format_json_for_use_in_query(wbs_project_json)}\n\n"
-            f"Similar projects:\n{format_json_for_use_in_query(related_resources_dict)}"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+            f"File 'project_plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'Work Breakdown Structure.json':\n{format_json_for_use_in_query(wbs_project_json)}\n\n"
+            f"File 'similar_projects.json':\n{format_json_for_use_in_query(related_resources_dict)}"
         )
         
         # Execute the pitch creation.
@@ -2595,8 +2769,6 @@ class ConvertPitchToMarkdownTask(PlanTask):
         }
     
     def run_with_llm(self, llm: LLM) -> None:
-        logger.info("Converting raw pitch to markdown...")
-        
         # Read the project plan JSON.
         with self.input()['pitch'].open("r") as f:
             pitch_json = json.load(f)
@@ -2613,8 +2785,6 @@ class ConvertPitchToMarkdownTask(PlanTask):
         markdown_path = self.output()['markdown'].path
         converted.save_markdown(markdown_path)
 
-        logger.info("Converted raw pitch to markdown.")
-
 
 class IdentifyTaskDependenciesTask(PlanTask):
     """
@@ -2625,6 +2795,8 @@ class IdentifyTaskDependenciesTask(PlanTask):
     
     def requires(self):
         return {
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'wbs_level2': self.clone(CreateWBSLevel2Task),
             'data_collection': self.clone(DataCollectionTask),
@@ -2634,18 +2806,25 @@ class IdentifyTaskDependenciesTask(PlanTask):
         logger.info("Identifying task dependencies...")
         
         # Read inputs from required tasks.
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
-        
+            project_plan_dict = json.load(f)        
         with self.input()['data_collection']['markdown'].open("r") as f:
             data_collection_markdown = f.read()
-        
         with self.input()['wbs_level2']['clean'].open("r") as f:
             major_phases_with_subtasks = json.load(f)
         
-        # Build the query using the provided format method.
-        query = IdentifyWBSTaskDependencies.format_query(project_plan_dict, major_phases_with_subtasks)
-        query += f"\n\nData collection:\n{data_collection_markdown}"
+        # Build the query
+        query = (
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+            f"File 'project_plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'Work Breakdown Structure.json':\n{format_json_for_use_in_query(major_phases_with_subtasks)}\n\n"
+            f"File 'data_collection.md':\n{data_collection_markdown}"
+        )
         
         # Execute the dependency identification.
         identify_dependencies = IdentifyWBSTaskDependencies.execute(llm, query)
