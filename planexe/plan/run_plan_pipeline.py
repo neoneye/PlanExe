@@ -462,8 +462,9 @@ class StrategicDecisionsMarkdownTask(PlanTask):
             vital_data = json.load(f)
             vital_lever_list = vital_data["levers"]
             lever_assessments_list = vital_data.get("response", {}).get("lever_assessments", [])
+            vital_levers_summary = vital_data.get("response", {}).get("summary", "")
 
-        result = StrategicDecisionsMarkdown(enrich_lever_list, vital_lever_list, lever_assessments_list)
+        result = StrategicDecisionsMarkdown(enrich_lever_list, vital_lever_list, vital_levers_summary, lever_assessments_list)
         result.save_markdown(self.output()['markdown'].path)
 
 

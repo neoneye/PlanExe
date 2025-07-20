@@ -47,10 +47,11 @@ class LeverAssessment(BaseModel):
     justification: str
 
 class StrategicDecisionsMarkdown:
-    def __init__(self, enrich_levers: List[Dict[str, Any]], vital_levers: List[Dict[str, Any]], lever_assessments: List[Dict[str, Any]] = None):
+    def __init__(self, enrich_levers: List[Dict[str, Any]], vital_levers: List[Dict[str, Any]], vital_levers_summary: str, lever_assessments: List[Dict[str, Any]]):
         # Convert dictionaries to Pydantic models
         self.enrich_levers = [EnrichLever(**lever) for lever in enrich_levers]
         self.vital_levers = [VitalLever(**lever) for lever in vital_levers]
+        self.vital_levers_summary = vital_levers_summary.strip()
         
         # Convert assessment data to Pydantic models
         self.lever_assessments = {}
@@ -69,6 +70,9 @@ class StrategicDecisionsMarkdown:
         # Add vital levers section
         rows.append("## Primary Decisions")
         rows.append("The vital few decisions that have the most impact.\n")
+
+        if len(self.vital_levers_summary) > 0:
+            rows.append(f"\n{self.vital_levers_summary}\n")
         
         for i, lever in enumerate(self.vital_levers):
             lever_index = i + 1
@@ -165,9 +169,10 @@ if __name__ == "__main__":
         vital_data = json.load(f)
     vital_levers_list = vital_data.get('levers', [])
     lever_assessments_list = vital_data.get('response', {}).get('lever_assessments', [])
+    vital_levers_summary = vital_data.get('response', {}).get('summary', '')
     logger.info(f"Loaded {len(vital_levers_list)} vital levers and {len(lever_assessments_list)} assessments.")
 
-    markdown_with_levers = StrategicDecisionsMarkdown(raw_levers_list, vital_levers_list, lever_assessments_list)
+    markdown_with_levers = StrategicDecisionsMarkdown(raw_levers_list, vital_levers_list, vital_levers_summary, lever_assessments_list)
     markdown_content = markdown_with_levers.to_markdown()
 
     # Save the markdown file
