@@ -786,6 +786,8 @@ class MakeAssumptionsTask(PlanTask):
             'setup': self.clone(SetupTask),
             'identify_purpose': self.clone(IdentifyPurposeTask),
             'plan_type': self.clone(PlanTypeTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'physical_locations': self.clone(PhysicalLocationsTask),
             'currency_strategy': self.clone(CurrencyStrategyTask),
             'identify_risks': self.clone(IdentifyRisksTask)
@@ -799,8 +801,6 @@ class MakeAssumptionsTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        logger.info("Making assumptions about the plan...")
-
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -808,6 +808,10 @@ class MakeAssumptionsTask(PlanTask):
             identify_purpose_dict = json.load(f)
         with self.input()['plan_type']['raw'].open("r") as f:
             plan_type_dict = json.load(f)
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['physical_locations']['raw'].open("r") as f:
             physical_locations_dict = json.load(f)
         with self.input()['currency_strategy']['raw'].open("r") as f:
@@ -819,6 +823,8 @@ class MakeAssumptionsTask(PlanTask):
             f"File 'plan.txt':\n{plan_prompt}\n\n"
             f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
             f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'physical_locations.json':\n{format_json_for_use_in_query(physical_locations_dict)}\n\n"
             f"File 'currency_strategy.json':\n{format_json_for_use_in_query(currency_strategy_dict)}\n\n"
             f"File 'identify_risks.json':\n{format_json_for_use_in_query(identify_risks_dict)}"
@@ -843,6 +849,8 @@ class DistillAssumptionsTask(PlanTask):
         return {
             'setup': self.clone(SetupTask),
             'identify_purpose': self.clone(IdentifyPurposeTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'make_assumptions': self.clone(MakeAssumptionsTask)
         }
 
@@ -853,13 +861,15 @@ class DistillAssumptionsTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        logger.info("Distilling assumptions...")
-
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
         with self.input()['identify_purpose']['raw'].open("r") as f:
             identify_purpose_dict = json.load(f)
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         make_assumptions_target = self.input()['make_assumptions']['clean']
         with make_assumptions_target.open("r") as f:
             assumptions_raw_data = json.load(f)
@@ -867,6 +877,8 @@ class DistillAssumptionsTask(PlanTask):
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
             f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.json':\n{format_json_for_use_in_query(assumptions_raw_data)}"
         )
 
@@ -3269,8 +3281,8 @@ class FullPlanPipeline(PlanTask):
             'physical_locations': self.clone(PhysicalLocationsTask),
             'currency_strategy': self.clone(CurrencyStrategyTask),
             'identify_risks': self.clone(IdentifyRisksTask),
-            # 'make_assumptions': self.clone(MakeAssumptionsTask),
-            # 'assumptions': self.clone(DistillAssumptionsTask),
+            'make_assumptions': self.clone(MakeAssumptionsTask),
+            'assumptions': self.clone(DistillAssumptionsTask),
             # 'review_assumptions': self.clone(ReviewAssumptionsTask),
             # 'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
             # 'pre_project_assessment': self.clone(PreProjectAssessmentTask),
