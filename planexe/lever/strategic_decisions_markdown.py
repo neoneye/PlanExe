@@ -64,9 +64,6 @@ class StrategicDecisionsMarkdown:
         """Generate markdown content with vital levers first, then the rest."""
         rows = []
         
-        # Add title
-        rows.append("# Project Levers Analysis")
-        
         # Add vital levers section
         rows.append("## Primary Decisions")
         rows.append("The vital few decisions that have the most impact.\n")
@@ -77,7 +74,7 @@ class StrategicDecisionsMarkdown:
         for i, lever in enumerate(self.vital_levers):
             lever_index = i + 1
             rows.append(f"### Decision {lever_index}: {lever.name}")
-            rows.append(f"**Lever ID:** {lever.lever_id}\n")
+            rows.append(f"**Lever ID:** `{lever.lever_id}`\n")
             rows.append(f"**The Core Decision:** {lever.description}\n")
             rows.append(f"**Why It Matters:** {lever.consequences}\n")
             rows.append("**Strategic Choices:**\n")
@@ -107,7 +104,7 @@ class StrategicDecisionsMarkdown:
         for i, lever in enumerate(additional_levers):
             lever_index = len(self.vital_levers) + i + 1
             rows.append(f"### Decision {lever_index}: {lever.name}")
-            rows.append(f"**Lever ID:** {lever.lever_id}\n")
+            rows.append(f"**Lever ID:** `{lever.lever_id}`\n")
             rows.append(f"**The Core Decision:** {lever.description}\n")
             rows.append(f"**Why It Matters:** {lever.consequences}\n")
             rows.append("**Strategic Choices:**\n")
