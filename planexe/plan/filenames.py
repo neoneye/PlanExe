@@ -11,7 +11,7 @@ class FilenameEnum(str, Enum):
     DEDUPLICATED_LEVERS_RAW = "002-7-deduplicated_levers_raw.json"
     ENRICHED_LEVERS_RAW = "002-8-enriched_levers_raw.json"
     VITAL_FEW_LEVERS_RAW = "002-9-vital_few_levers_raw.json"
-    LEVERS_MARKDOWN = "002-10-levers.md"
+    STRATEGIC_DECISIONS_MARKDOWN = "002-10-strategic_decisions.md"
     CANDIDATE_SCENARIOS_RAW = "002-11-candidate_scenarios_raw.json"
     CANDIDATE_SCENARIOS_CLEAN = "002-12-candidate_scenarios.json"
     SELECTED_SCENARIO_RAW = "002-13-selected_scenario_raw.json"

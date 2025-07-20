@@ -19,7 +19,7 @@ from pathlib import Path
 from llama_index.core.llms.llm import LLM
 
 from planexe.lever.deduplicate_levers import DeduplicateLevers
-from planexe.lever.markdown_with_levers import MarkdownWithLevers
+from planexe.lever.strategic_decisions_markdown import StrategicDecisionsMarkdown
 from planexe.plan.filenames import FilenameEnum, ExtraFilenameEnum
 from planexe.plan.speedvsdetail import SpeedVsDetailEnum
 from planexe.plan.plan_file import PlanFile
@@ -440,7 +440,7 @@ class FocusOnVitalFewLeversTask(PlanTask):
         focus_on_vital_few_levers.save_raw(str(output_raw_path))
 
 
-class MarkdownWithLeversTask(PlanTask):
+class StrategicDecisionsMarkdownTask(PlanTask):
     """
     Human readable markdown with the levers.
     """
@@ -452,7 +452,7 @@ class MarkdownWithLeversTask(PlanTask):
 
     def output(self):
         return {
-            'markdown': self.local_target(FilenameEnum.LEVERS_MARKDOWN)
+            'markdown': self.local_target(FilenameEnum.STRATEGIC_DECISIONS_MARKDOWN)
         }
 
     def run(self):
@@ -463,8 +463,8 @@ class MarkdownWithLeversTask(PlanTask):
             vital_lever_list = vital_data["levers"]
             lever_assessments_list = vital_data.get("response", {}).get("lever_assessments", [])
 
-        markdown_with_levers = MarkdownWithLevers(enrich_lever_list, vital_lever_list, lever_assessments_list)
-        markdown_with_levers.save_markdown(self.output()['markdown'].path)
+        result = StrategicDecisionsMarkdown(enrich_lever_list, vital_lever_list, lever_assessments_list)
+        result.save_markdown(self.output()['markdown'].path)
 
 
 class CandidateScenariosTask(PlanTask):
@@ -3211,7 +3211,7 @@ class FullPlanPipeline(PlanTask):
             'deduplicate_levers': self.clone(DeduplicateLeversTask),
             'enriched_levers': self.clone(EnrichLeversTask),
             'focus_on_vital_few_levers': self.clone(FocusOnVitalFewLeversTask),
-            'markdown_with_levers': self.clone(MarkdownWithLeversTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
             'candidate_scenarios': self.clone(CandidateScenariosTask),
             'select_scenario': self.clone(SelectScenarioTask),
             # 'physical_locations': self.clone(PhysicalLocationsTask),

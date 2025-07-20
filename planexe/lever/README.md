@@ -67,3 +67,8 @@ Propose 3 different scenarios:
 Compare each of the scenarios with the initial prompt.
 
 Pick the one that fits the best.
+
+# Ideas
+
+IDEA: Rewrite for a Leadership Audience. The goal is to be brief, clear, and persuasive.
+The reader don't need the justification repeated six times. They need the conclusion.

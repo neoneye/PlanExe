@@ -7,9 +7,9 @@ Input files:
 - focus_on_vital_few_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.json
 
 Output file:
-- markdown_with_levers_19dc0718-3df7-48e3-b06d-e2c664ecc07d.md
+- strategic_decisions_markdown_19dc0718-3df7-48e3-b06d-e2c664ecc07d.md
 
-PROMPT> python -m planexe.lever.markdown_with_levers
+PROMPT> python -m planexe.lever.strategic_decisions_markdown
 """
 import logging
 from pydantic import BaseModel, Field
@@ -46,7 +46,7 @@ class LeverAssessment(BaseModel):
     strategic_importance: str
     justification: str
 
-class MarkdownWithLevers:
+class StrategicDecisionsMarkdown:
     def __init__(self, enrich_levers: List[Dict[str, Any]], vital_levers: List[Dict[str, Any]], lever_assessments: List[Dict[str, Any]] = None):
         # Convert dictionaries to Pydantic models
         self.enrich_levers = [EnrichLever(**lever) for lever in enrich_levers]
@@ -167,10 +167,10 @@ if __name__ == "__main__":
     lever_assessments_list = vital_data.get('response', {}).get('lever_assessments', [])
     logger.info(f"Loaded {len(vital_levers_list)} vital levers and {len(lever_assessments_list)} assessments.")
 
-    markdown_with_levers = MarkdownWithLevers(raw_levers_list, vital_levers_list, lever_assessments_list)
+    markdown_with_levers = StrategicDecisionsMarkdown(raw_levers_list, vital_levers_list, lever_assessments_list)
     markdown_content = markdown_with_levers.to_markdown()
 
     # Save the markdown file
-    output_filename = f"markdown_with_levers_{prompt_id}.md"
+    output_filename = f"strategic_decisions_markdown_{prompt_id}.md"
     markdown_with_levers.save_markdown(output_filename)
     logger.info(f"Saved markdown file to {output_filename!r}")
