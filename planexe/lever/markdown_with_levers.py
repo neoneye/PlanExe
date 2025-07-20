@@ -39,11 +39,25 @@ class VitalLever(BaseModel):
     synergy_text: str
     conflict_text: str
 
+class LeverAssessment(BaseModel):
+    """Represents the assessment of a single lever from the focus_on_vital_few_levers.py module."""
+    lever_id: str
+    lever_name: str
+    strategic_importance: str
+    justification: str
+
 class MarkdownWithLevers:
-    def __init__(self, enrich_levers: List[Dict[str, Any]], vital_levers: List[Dict[str, Any]]):
+    def __init__(self, enrich_levers: List[Dict[str, Any]], vital_levers: List[Dict[str, Any]], lever_assessments: List[Dict[str, Any]] = None):
         # Convert dictionaries to Pydantic models
         self.enrich_levers = [EnrichLever(**lever) for lever in enrich_levers]
         self.vital_levers = [VitalLever(**lever) for lever in vital_levers]
+        
+        # Convert assessment data to Pydantic models
+        self.lever_assessments = {}
+        if lever_assessments:
+            for assessment in lever_assessments:
+                assessment_model = LeverAssessment(**assessment)
+                self.lever_assessments[assessment_model.lever_id] = assessment_model
     
     def to_markdown(self) -> str:
         """Generate markdown content with vital levers first, then the rest."""
@@ -60,6 +74,13 @@ class MarkdownWithLevers:
             lever_index = i + 1
             rows.append(f"### Decision {lever_index}: {lever.name}")
             rows.append(f"**Lever ID:** {lever.lever_id}\n")
+            
+            # Add assessment information if available
+            if lever.lever_id in self.lever_assessments:
+                assessment = self.lever_assessments[lever.lever_id]
+                rows.append(f"**Strategic Importance:** {assessment.strategic_importance}")
+                rows.append(f"**Assessment Justification:** {assessment.justification}\n")
+            
             rows.append(f"**Description:** {lever.description}\n")
             rows.append(f"**Why It Matters:** {lever.consequences}\n")
             rows.append("**Strategic Choices:**\n")
@@ -85,6 +106,13 @@ class MarkdownWithLevers:
             lever_index = len(self.vital_levers) + i + 1
             rows.append(f"### Decision {lever_index}: {lever.name}")
             rows.append(f"**Lever ID:** {lever.lever_id}\n")
+            
+            # Add assessment information if available
+            if lever.lever_id in self.lever_assessments:
+                assessment = self.lever_assessments[lever.lever_id]
+                rows.append(f"**Strategic Importance:** {assessment.strategic_importance}")
+                rows.append(f"**Assessment Justification:** {assessment.justification}\n")
+            
             rows.append(f"**Description:** {lever.description}\n")
             rows.append(f"**Why It Matters:** {lever.consequences}\n")
             rows.append("**Strategic Choices:**\n")
@@ -132,7 +160,7 @@ if __name__ == "__main__":
     raw_levers_list = characterized_data.get('characterized_levers', [])
     logger.info(f"Loaded {len(raw_levers_list)} enriched levers.")
 
-    # Load the vital levers
+    # Load the vital levers and assessments
     vital_levers_file = os.path.join(os.path.dirname(__file__), 'test_data', vital_levers_filename)
     if not os.path.exists(vital_levers_file):
         logger.error(f"Vital levers file not found at: {vital_levers_file!r}. Please run focus_on_vital_few_levers.py first.")
@@ -140,9 +168,10 @@ if __name__ == "__main__":
     with open(vital_levers_file, 'r', encoding='utf-8') as f:
         vital_data = json.load(f)
     vital_levers_list = vital_data.get('levers', [])
-    logger.info(f"Loaded {len(vital_levers_list)} vital levers.")
+    lever_assessments_list = vital_data.get('response', {}).get('lever_assessments', [])
+    logger.info(f"Loaded {len(vital_levers_list)} vital levers and {len(lever_assessments_list)} assessments.")
 
-    markdown_with_levers = MarkdownWithLevers(raw_levers_list, vital_levers_list)
+    markdown_with_levers = MarkdownWithLevers(raw_levers_list, vital_levers_list, lever_assessments_list)
     markdown_content = markdown_with_levers.to_markdown()
 
     # Save the markdown file
