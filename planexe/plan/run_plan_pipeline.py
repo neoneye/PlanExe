@@ -676,7 +676,9 @@ class CurrencyStrategyTask(PlanTask):
             'setup': self.clone(SetupTask),
             'identify_purpose': self.clone(IdentifyPurposeTask),
             'plan_type': self.clone(PlanTypeTask),
-            'physical_locations': self.clone(PhysicalLocationsTask)
+            'physical_locations': self.clone(PhysicalLocationsTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask)
         }
 
     def output(self):
@@ -686,8 +688,6 @@ class CurrencyStrategyTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        logger.info("Currency strategy for the plan...")
-
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -695,7 +695,10 @@ class CurrencyStrategyTask(PlanTask):
             identify_purpose_dict = json.load(f)
         with self.input()['plan_type']['raw'].open("r") as f:
             plan_type_dict = json.load(f)
-
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['physical_locations']['raw'].open("r") as f:
             physical_locations_dict = json.load(f)
 
@@ -703,6 +706,8 @@ class CurrencyStrategyTask(PlanTask):
             f"File 'plan.txt':\n{plan_prompt}\n\n"
             f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
             f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'physical_locations.json':\n{format_json_for_use_in_query(physical_locations_dict)}"
         )
 
@@ -724,6 +729,8 @@ class IdentifyRisksTask(PlanTask):
             'setup': self.clone(SetupTask),
             'identify_purpose': self.clone(IdentifyPurposeTask),
             'plan_type': self.clone(PlanTypeTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'physical_locations': self.clone(PhysicalLocationsTask),
             'currency_strategy': self.clone(CurrencyStrategyTask)
         }
@@ -735,8 +742,6 @@ class IdentifyRisksTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        logger.info("Identifying risks for the plan...")
-
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
@@ -744,6 +749,10 @@ class IdentifyRisksTask(PlanTask):
             identify_purpose_dict = json.load(f)
         with self.input()['plan_type']['raw'].open("r") as f:
             plan_type_dict = json.load(f)
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
         with self.input()['physical_locations']['raw'].open("r") as f:
             physical_locations_dict = json.load(f)
         with self.input()['currency_strategy']['raw'].open("r") as f:
@@ -753,6 +762,8 @@ class IdentifyRisksTask(PlanTask):
             f"File 'plan.txt':\n{plan_prompt}\n\n"
             f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
             f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'physical_locations.json':\n{format_json_for_use_in_query(physical_locations_dict)}\n\n"
             f"File 'currency_strategy.json':\n{format_json_for_use_in_query(currency_strategy_dict)}"
         )
@@ -3256,8 +3267,8 @@ class FullPlanPipeline(PlanTask):
             'select_scenario': self.clone(SelectScenarioTask),
             'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'physical_locations': self.clone(PhysicalLocationsTask),
-            # 'currency_strategy': self.clone(CurrencyStrategyTask),
-            # 'identify_risks': self.clone(IdentifyRisksTask),
+            'currency_strategy': self.clone(CurrencyStrategyTask),
+            'identify_risks': self.clone(IdentifyRisksTask),
             # 'make_assumptions': self.clone(MakeAssumptionsTask),
             # 'assumptions': self.clone(DistillAssumptionsTask),
             # 'review_assumptions': self.clone(ReviewAssumptionsTask),
