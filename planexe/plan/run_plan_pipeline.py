@@ -19,6 +19,7 @@ from pathlib import Path
 from llama_index.core.llms.llm import LLM
 
 from planexe.lever.deduplicate_levers import DeduplicateLevers
+from planexe.lever.markdown_with_levers import MarkdownWithLevers
 from planexe.plan.filenames import FilenameEnum, ExtraFilenameEnum
 from planexe.plan.speedvsdetail import SpeedVsDetailEnum
 from planexe.plan.plan_file import PlanFile
@@ -437,6 +438,31 @@ class FocusOnVitalFewLeversTask(PlanTask):
         # Write the result to disk.
         output_raw_path = self.output()['raw'].path
         focus_on_vital_few_levers.save_raw(str(output_raw_path))
+
+
+class MarkdownWithLeversTask(PlanTask):
+    """
+    Human readable markdown with the levers.
+    """
+    def requires(self):
+        return {
+            'enriched_levers': self.clone(EnrichLeversTask),
+            'levers_vital_few': self.clone(FocusOnVitalFewLeversTask)
+        }
+
+    def output(self):
+        return {
+            'markdown': self.local_target(FilenameEnum.LEVERS_MARKDOWN)
+        }
+
+    def run(self):
+        with self.input()['enriched_levers']['raw'].open("r") as f:
+            enrich_lever_list = json.load(f)["characterized_levers"]
+        with self.input()['levers_vital_few']['raw'].open("r") as f:
+            vital_lever_list = json.load(f)["levers"]
+
+        markdown_with_levers = MarkdownWithLevers(enrich_lever_list, vital_lever_list)
+        markdown_with_levers.save_markdown(self.output()['markdown'].path)
 
 
 class CandidateScenariosTask(PlanTask):
@@ -3183,6 +3209,7 @@ class FullPlanPipeline(PlanTask):
             'deduplicate_levers': self.clone(DeduplicateLeversTask),
             'enriched_levers': self.clone(EnrichLeversTask),
             'focus_on_vital_few_levers': self.clone(FocusOnVitalFewLeversTask),
+            'markdown_with_levers': self.clone(MarkdownWithLeversTask),
             'candidate_scenarios': self.clone(CandidateScenariosTask),
             'select_scenario': self.clone(SelectScenarioTask),
             # 'physical_locations': self.clone(PhysicalLocationsTask),
