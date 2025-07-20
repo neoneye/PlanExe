@@ -612,7 +612,9 @@ class PhysicalLocationsTask(PlanTask):
         return {
             'setup': self.clone(SetupTask),
             'identify_purpose': self.clone(IdentifyPurposeTask),
-            'plan_type': self.clone(PlanTypeTask)
+            'plan_type': self.clone(PlanTypeTask),
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask)
         }
 
     def output(self):
@@ -631,6 +633,10 @@ class PhysicalLocationsTask(PlanTask):
             identify_purpose_dict = json.load(f)
         with self.input()['plan_type']['raw'].open("r") as f:
             plan_type_dict = json.load(f)
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
 
         output_raw_path = self.output()['raw'].path
         output_markdown_path = self.output()['markdown'].path
@@ -640,7 +646,9 @@ class PhysicalLocationsTask(PlanTask):
             query = (
                 f"File 'plan.txt':\n{plan_prompt}\n\n"
                 f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
-                f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}"
+                f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
+                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                f"File 'scenarios.md':\n{scenarios_markdown}"
             )
 
             physical_locations = PhysicalLocations.execute(llm, query)
@@ -3247,7 +3255,7 @@ class FullPlanPipeline(PlanTask):
             'candidate_scenarios': self.clone(CandidateScenariosTask),
             'select_scenario': self.clone(SelectScenarioTask),
             'scenarios_markdown': self.clone(ScenariosMarkdownTask),
-            # 'physical_locations': self.clone(PhysicalLocationsTask),
+            'physical_locations': self.clone(PhysicalLocationsTask),
             # 'currency_strategy': self.clone(CurrencyStrategyTask),
             # 'identify_risks': self.clone(IdentifyRisksTask),
             # 'make_assumptions': self.clone(MakeAssumptionsTask),
