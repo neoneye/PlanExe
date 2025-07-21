@@ -93,7 +93,8 @@ from planexe.plan.pipeline_environment import PipelineEnvironment, PipelineEnvir
 logger = logging.getLogger(__name__)
 DEFAULT_LLM_MODEL = "ollama-llama3.1"
 
-
+REPORT_EXECUTE_PLAN_SECTION_HIDDEN = True
+# REPORT_EXECUTE_PLAN_SECTION_HIDDEN = False
 
 class PlanTask(luigi.Task):
     # Default it to the current timestamp, eg. 19841231_235959
@@ -3485,7 +3486,7 @@ class ReportTask(PlanTask):
         rg.append_csv('Work Breakdown Structure', self.input()['wbs_project123']['csv'].path)
         rg.append_markdown('Review Plan', self.input()['review_plan']['markdown'].path)
         rg.append_html('Questions & Answers', self.input()['questions_and_answers']['html'].path)
-        rg.save_report(self.output().path, title=title)
+        rg.save_report(self.output().path, title=title, execute_plan_section_hidden=REPORT_EXECUTE_PLAN_SECTION_HIDDEN)
 
 class FullPlanPipeline(PlanTask):
     def requires(self):
