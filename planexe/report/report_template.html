@@ -34,6 +34,9 @@
         .section-initial-plan-hidden {
             display: none;
         }
+        .section-execute-plan-hidden {
+            display: none;
+        }
         table { 
             border-collapse: collapse;
             width: 100%;
@@ -153,6 +156,19 @@
     </div>
     <!--CONTENT-END-->
 
+    <div class="section EXECUTE_PLAN_CSS_PLACEHOLDER">
+        <button class="collapsible">Execute Plan</button>
+        <div class="content">        
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 18px; margin-top: 18px;">
+                <input type="checkbox" id="planexe-execute-confirm-checkbox">
+                <label for="planexe-execute-confirm-checkbox" style="cursor:pointer;">I hereby acknowledge the consequences, outlined within this plan.</label>
+            </div>
+            <button id="planexe-execute-button" class="fancy-execute-btn" disabled>Execute</button>
+            <span id="planexe-execute-button-warning" style="display:none; margin-left: 16px; color: #d35400; font-size: 1.08em; vertical-align: middle;">⚠️ Ready to execute! ⚠️</span>
+            <div id="planexe-execute-message" style="margin-top:18px;"></div>
+        </div>
+    </div>
+
     <!--HTML_BODY_SCRIPT_INSERT_HERE-->
     <script>
         var coll = document.getElementsByClassName("collapsible");
@@ -170,5 +186,127 @@
             });
         }
     </script>
+    <script>
+// Checkbox controls button enable/disable and button text
+const checkbox = document.getElementById('planexe-execute-confirm-checkbox');
+const executeBtn = document.getElementById('planexe-execute-button');
+const animationMsg = document.getElementById('planexe-execute-message');
+
+function updateExecuteBtnState() {
+    if (checkbox.checked) {
+        executeBtn.disabled = false;
+        executeBtn.innerHTML = 'Execute';
+        executeBtn.classList.add('execute-active');
+        executeBtn.classList.remove('ready');
+        document.getElementById('planexe-execute-button-warning').style.display = '';
+    } else {
+        executeBtn.disabled = true;
+        executeBtn.innerHTML = 'Execute';
+        executeBtn.classList.remove('execute-active', 'ready');
+        document.getElementById('planexe-execute-button-warning').style.display = 'none';
+    }
+}
+
+// Initial state
+updateExecuteBtnState();
+
+checkbox.addEventListener('change', updateExecuteBtnState);
+
+// Fancy animation on Execute
+executeBtn.addEventListener('click', function() {
+    if (executeBtn.disabled) return;
+    executeBtn.classList.remove('execute-active');
+    executeBtn.classList.add('executing');
+    executeBtn.innerHTML = '<span class="spinner"></span> Executing...';
+    document.getElementById('planexe-execute-button-warning').style.display = 'none';
+    animationMsg.innerHTML = '';
+    setTimeout(() => {
+        executeBtn.classList.remove('executing');
+        executeBtn.classList.add('ready');
+        executeBtn.innerHTML = 'Done!';
+        animationMsg.innerHTML = '<span style="color: #27ae60; font-weight: bold; font-size: 1.1em;">Plan execution complete!</span>';
+        
+        // Redirect to execute page after 2 seconds
+        setTimeout(() => {
+            const pageTitle = document.title || 'PlanExe report without title';
+            const encodedTitle = encodeURIComponent(pageTitle);
+            window.location.href = `https://neoneye.github.io/PlanExe-web/execute/?title=${encodedTitle}`;
+        }, 2000);
+    }, 2200);
+});
+</script>
+<style>
+.fancy-execute-btn {
+    background: linear-gradient(90deg, #2f3833 0%, #2980b9 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 14px 36px;
+    font-size: 1.1em;
+    font-weight: normal;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(41,128,185,0.08);
+    transition: box-shadow 0.3s, transform 0.2s, color 0.2s, border 0.2s;
+    position: relative;
+    outline: none;
+}
+.fancy-execute-btn.execute-active {
+    background: #fff;
+    color: #666;
+    border: 1.5px solid #666;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.fancy-execute-btn.execute-active:hover {
+    color: #333 !important;
+    border: 1.5px solid #333 !important;
+    animation: execute-pulse-simple 1s infinite;
+}
+@keyframes execute-pulse-simple {
+    0% { background-color: #ccc; }
+    10% { background-color: #fff; }
+    20% { background-color: #ccc; }
+    30% { background-color: #fff; }
+    90% { background-color: #fff; }
+    100% { background-color: #ccc; }
+}
+.fancy-execute-btn:disabled {
+    background: #f8f9fa;
+    color: #bbb;
+    cursor: not-allowed;
+    box-shadow: none;
+    border: 1.5px solid #bbb;
+}
+.fancy-execute-btn.executing {
+    background: repeating-linear-gradient(90deg, #757876 0%, #596770 50%, #4d6055 100%);
+    animation: pulse 0.7s infinite alternate;
+    box-shadow: 0 0 16px 2px #2980b933;
+    transform: scale(1.04);
+}
+@keyframes pulse {
+    0% { box-shadow: 0 0 16px 2px #27ae6033; }
+    100% { box-shadow: 0 0 32px 6px #2980b933; }
+}
+.fancy-execute-btn .spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #fff;
+    border-top: 3px solid #2980b9;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.fancy-execute-btn.ready {
+    background: #bdbfbe;
+    color: #333;
+    box-shadow: 0 0 12px 2px #27ae6033;
+    transform: scale(1.01);
+}
+</style>
 </body>
 </html>

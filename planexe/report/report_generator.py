@@ -144,7 +144,7 @@ class ReportGenerator:
         else:
             logging.warning(f"Document: '{document_title}'. Could not find HTML_BODY_SCRIPT_START and HTML_BODY_SCRIPT_END in {file_path}")
 
-    def generate_html_report(self, title: Optional[str] = None) -> str:
+    def generate_html_report(self, title: Optional[str] = None, execute_plan_section_hidden: bool = True) -> str:
         """Generate an HTML report from the gathered data."""
 
         resolved_title = title if title else "PlanExe Project Report"
@@ -162,6 +162,11 @@ class ReportGenerator:
         html_template = html_template.replace('<!--HTML_BODY_SCRIPT_INSERT_HERE-->', html_body_script)
 
         html_template = html_template.replace('HEAD_TITLE_INSERT_HERE', escaped_title)
+
+        if execute_plan_section_hidden:
+            html_template = html_template.replace('EXECUTE_PLAN_CSS_PLACEHOLDER', 'section-execute-plan-hidden')
+        else:
+            html_template = html_template.replace('EXECUTE_PLAN_CSS_PLACEHOLDER', 'section-execute-plan-visible')
 
         html_parts = []
         # Title and Timestamp
@@ -201,9 +206,12 @@ class ReportGenerator:
 
         return html
 
-    def save_report(self, output_path: Path, title: Optional[str] = None) -> None:
+    def save_report(self, output_path: Path, title: Optional[str] = None, execute_plan_section_hidden: bool = True) -> None:
         """Generate and save the report."""
-        html_report = self.generate_html_report(title)
+        html_report = self.generate_html_report(
+            title=title, 
+            execute_plan_section_hidden=execute_plan_section_hidden
+        )
         
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_report)
@@ -245,7 +253,7 @@ def main():
     report_generator.append_markdown('Team', input_path / FilenameEnum.TEAM_MARKDOWN.value)
     report_generator.append_markdown('Expert Criticism', input_path / FilenameEnum.EXPERT_CRITICISM_MARKDOWN.value)
     report_generator.append_csv('Work Breakdown Structure', input_path / FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_CSV.value)
-    report_generator.save_report(output_path, title="Demo Project Report")
+    report_generator.save_report(output_path, title="Demo Project Report", execute_plan_section_hidden=False)
         
     if not args.no_browser:
         # Try to open the report in the default browser
