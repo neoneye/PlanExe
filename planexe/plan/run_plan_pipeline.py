@@ -962,8 +962,6 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
         return {
             'identify_purpose': self.clone(IdentifyPurposeTask),
             'plan_type': self.clone(PlanTypeTask),
-            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
-            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'physical_locations': self.clone(PhysicalLocationsTask),
             'currency_strategy': self.clone(CurrencyStrategyTask),
             'identify_risks': self.clone(IdentifyRisksTask),
@@ -985,8 +983,6 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
         title_path_list = [
             ('Purpose', self.input()['identify_purpose']['markdown'].path),
             ('Plan Type', self.input()['plan_type']['markdown'].path),
-            ('Strategic Decisions', self.input()['strategic_decisions_markdown']['markdown'].path),
-            ('Scenarios', self.input()['scenarios_markdown']['markdown'].path),
             ('Physical Locations', self.input()['physical_locations']['markdown'].path),
             ('Currency Strategy', self.input()['currency_strategy']['markdown'].path),
             ('Identify Risks', self.input()['identify_risks']['markdown'].path),
