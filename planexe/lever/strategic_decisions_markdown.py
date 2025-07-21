@@ -78,8 +78,8 @@ class StrategicDecisionsMarkdown:
             rows.append(f"**The Core Decision:** {lever.description}\n")
             rows.append(f"**Why It Matters:** {lever.consequences}\n")
             rows.append("**Strategic Choices:**\n")
-            for option in lever.options:
-                rows.append(f"- {option}")
+            for option_index, option in enumerate(lever.options, 1):
+                rows.append(f"{option_index}. {option}")
             rows.append(f"\n**Trade-Off / Risk:** {lever.review}\n")
             rows.append(f"**Strategic Connections:**\n")
             rows.append(f"**Synergy:** {lever.synergy_text}\n")
@@ -108,8 +108,8 @@ class StrategicDecisionsMarkdown:
             rows.append(f"**The Core Decision:** {lever.description}\n")
             rows.append(f"**Why It Matters:** {lever.consequences}\n")
             rows.append("**Strategic Choices:**\n")
-            for option in lever.options:
-                rows.append(f"- {option}")
+            for option_index, option in enumerate(lever.options, 1):
+                rows.append(f"{option_index}. {option}")
             rows.append(f"\n**Trade-Off / Risk:** {lever.review}\n")
             rows.append(f"**Strategic Connections:**\n")
             rows.append(f"**Synergy:** {lever.synergy_text}\n")
