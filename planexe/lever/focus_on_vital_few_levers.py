@@ -1,5 +1,5 @@
 """
-This was generated with Gemini 2.5 Pro.
+The 80 20 rule. Extract the vital few levers that have the most impact on the project's outcome.
 
 PROMPT> python -m planexe.lever.focus_on_vital_few_levers
 """

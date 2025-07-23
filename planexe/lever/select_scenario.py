@@ -1,14 +1,5 @@
 """
-Step 5: select the best fitting scenario
-
-This script is the final step of the strategic analysis pipeline.
-It synthesizes the entire process by:
-1.  Analyzing the initial project plan (001-plan.txt) to understand its core characteristics.
-2.  Evaluating a set of pre-generated strategic scenarios (e.g., from 002-10-levers_scenarios.json) against the plan's profile.
-3.  Selecting the single best-fit scenario.
-4.  Generating a comprehensive justification for the choice.
-
-The output is a single JSON file containing this full analysis, ready for review by decision-makers.
+Select the best fitting scenario from the 3 candidate scenarios
 
 PROMPT> python -m planexe.lever.select_scenario
 """

@@ -1,11 +1,7 @@
 """
-This was generated with Gemini 2.5 Pro.
 Enrich the potential levers with fields such as: "description", "synergy_text", "conflict_text".
 
-Step 2: Enrich and Characterize Levers
-
 - This module takes the raw, brainstormed list of potential levers.
-- It performs an "Advanced Enrichment" using an LLM in efficient batches.
 - For each lever, it generates three critical fields:
   1. `description`: A clear explanation of the lever's purpose and scope.
   2. `synergy_text`: A summary of its most significant positive interactions with other levers in the system.

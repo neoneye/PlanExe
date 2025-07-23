@@ -1,13 +1,13 @@
 """
-Step 5: Generate Strategic Scenarios
+Synthesize Strategic Scenarios
 
-- This is the final step of the strategic analysis pipeline.
 - It takes the filtered list of "vital few" levers as input.
 - It uses an LLM to synthesize these levers into a small number of distinct,
   internally-coherent strategic scenarios.
 - Each scenario represents a plausible pathway for the project, complete with a
   name, a strategic logic, and a specific setting for each vital lever.
 - This transforms the analysis from a list of factors into a clear choice for decision-makers.
+- The next step is to evaluate the scenarios and select the best one.
 
 PROMPT> python -m planexe.lever.candidate_scenarios
 """
