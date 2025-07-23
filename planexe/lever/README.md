@@ -70,5 +70,23 @@ Pick the one that fits the best.
 
 # Ideas
 
+IDEA: scenarios. stress-test against external shocks rather than just internal lever choices.
+For each scenario describe how external factors (competition, regulatory changes, etc.) might impact that strategy.
+a new competitor could quickly erode the first-mover advantage.
+scenarios that can absorb shocks and still deliver on its objectives.
+
+IDEA: Pioneers gambit. Has a way too strong enthusiasm for technology and buzzwords. 
+It may be a path that no one has done before, so there is a high chance of risk.
+Present fewer cutting-edge ideas.
+The Pioneers gambit leaves no margin for error.
+
+IDEA: In the candidate scenarios. The rest of the planning process treats the strategic choice as binary rather than a spectrum.
+Make the rest of the pipeline less confined to the selected combination of options.
+
+IDEA: Your current filter treats each lever in isolation — this is a classic strategic trap. 
+The “vital few” are often those with the highest interaction potential, not just those that look good on their own.
+The identified levers are [MECE (Mutually Exclusive, Collectively Exhaustive)](https://en.wikipedia.org/wiki/MECE_principle), 
+where they are isolated. However sometimes levers with overlap may be of interest.
+
 IDEA: Rewrite for a Leadership Audience. The goal is to be brief, clear, and persuasive.
 The reader don't need the justification repeated six times. They need the conclusion.

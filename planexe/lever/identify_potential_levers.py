@@ -5,9 +5,6 @@ The output contains near duplicates, these have to be deduplicated. A few lever 
 The deduplication is done in the deduplicate_levers.py script.
 
 PROMPT> python -m planexe.lever.identify_potential_levers
-
-IDEA: Your current filter treats each lever in isolation — this is a classic strategic trap. 
-The “vital few” are often those with the highest interaction potential, not just those that look good on their own.
 """
 import json
 import logging
