@@ -194,8 +194,8 @@ if __name__ == "__main__":
         raise ValueError("Prompt item not found.")
     project_plan = prompt_item.prompt
 
-    # This file is created by identify_potential_levers.py
-    input_file = os.path.join(os.path.dirname(__file__), 'test_data', f'identify_potential_levers_{prompt_id}.json')
+    # This file is created by deduplicate_levers.py
+    input_file = os.path.join(os.path.dirname(__file__), 'test_data', f'deduplicate_levers_{prompt_id}.json')
     output_file = f"enrich_potential_levers_{prompt_id}.json"
     
     if not os.path.exists(input_file):

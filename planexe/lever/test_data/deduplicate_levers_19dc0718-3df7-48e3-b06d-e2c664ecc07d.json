@@ -1,0 +1,118 @@
+[
+  {
+    "lever_id": "51a940a6-682e-4373-95a3-ffb33d3e1352",
+    "name": "Modular Factory Design Strategy",
+    "consequences": "Immediate: Reduced development timeline \u2192 Systemic: Increased production capacity through modularity \u2192 Strategic: Enhanced scalability for future space-based applications.",
+    "options": [
+      "Standardized, Plug-and-Play Modules",
+      "Modular, Scalable, and Adaptable Factory Layout"
+    ],
+    "review": "Controls Complexity vs. Flexibility. Weakness: The options fail to consider the potential impact of modular design on supply chain dynamics.",
+    "deduplication_justification": "Modular Factory Design Strategy is distinct and essential for the project, as it controls complexity vs. flexibility and has a direct impact on factory design."
+  },
+  {
+    "lever_id": "4ac8ccc1-62d5-49d4-9a5f-884987cbd9f4",
+    "name": "Material Feedstock Optimization Strategy",
+    "consequences": "Immediate: Reduced material waste \u2192 Systemic: Increased efficiency through optimized feedstock management \u2192 Strategic: Enhanced adaptability to variations in material purity and composition.",
+    "options": [
+      "Closed-Loop Recycling and Upcycling",
+      "Advanced Materials Characterization and Selection"
+    ],
+    "review": "Controls Cost vs. Sustainability. Weakness: The options fail to consider the potential impact of optimized feedstock on the overall production cost.",
+    "deduplication_justification": "Material Feedstock Optimization Strategy is essential for controlling waste vs. efficiency and has a direct impact on supply chain resilience."
+  },
+  {
+    "lever_id": "e6a4c936-f14e-4243-9e7d-73f7529e3c0c",
+    "name": "Robotics and Automation Strategy",
+    "consequences": "Immediate: Reduced labor costs \u2192 Systemic: Increased precision through automation \u2192 Strategic: Enhanced adaptability to variations in material composition.",
+    "options": [
+      "Advanced Robotics for Complex Component Assembly",
+      "Artificial Intelligence-Powered Quality Control"
+    ],
+    "review": "Controls Labor Costs vs. Productivity. Weakness: The options fail to consider the potential impact of robotics and automation on the overall factory layout.",
+    "deduplication_justification": "Robotics and Automation Strategy is essential for controlling labor costs vs. productivity and has a direct impact on factory layout."
+  },
+  {
+    "lever_id": "ca8eb0d6-4be8-40c1-b4ad-e7ae0f3fb302",
+    "name": "Emerging Technologies Integration Strategy",
+    "consequences": "Immediate: Increased innovation capacity \u2192 Systemic: Enhanced adaptability through emerging technologies integration \u2192 Strategic: Competitive advantage for space-based applications.",
+    "options": [
+      "Integration of Artificial Intelligence and Machine Learning",
+      "Implementation of Quantum Computing for Materials Characterization"
+    ],
+    "review": "Controls Innovation Capacity vs. Risk Tolerance. Weakness: The options fail to consider the potential impact of emerging technologies on the overall project timeline.",
+    "deduplication_justification": "Emerging Technologies Integration Strategy is essential for controlling innovation capacity vs. risk tolerance and has a direct impact on project timeline."
+  },
+  {
+    "lever_id": "b90e5708-3d9b-466b-92d0-342a090fcd14",
+    "name": "Modular Factory Scalability Strategy",
+    "consequences": "Immediate: Reduced production costs \u2192 Systemic: Increased factory throughput \u2192 Strategic: Enhanced global manufacturing capacity.",
+    "options": [
+      "Scalable module design",
+      "Automated assembly lines",
+      "Artificial intelligence-driven production planning"
+    ],
+    "review": "Controls Cost vs. Throughput.",
+    "deduplication_justification": "Modular Factory Scalability Strategy is essential for controlling cost vs. throughput and has a direct impact on factory design."
+  },
+  {
+    "lever_id": "56fc247d-5e51-435e-ac0b-35b31f1ecb7e",
+    "name": "Advanced Manufacturing Technologies Integration Strategy",
+    "consequences": "Immediate: Improved product quality \u2192 Systemic: Increased manufacturing precision \u2192 Strategic: Enhanced competitiveness.",
+    "options": [
+      "Additive manufacturing integration",
+      "Subtractive manufacturing optimization",
+      "Hybrid additive-subtractive manufacturing"
+    ],
+    "review": "Controls Quality vs. Precision.",
+    "deduplication_justification": "Advanced Manufacturing Technologies Integration Strategy is essential for controlling quality vs. precision and has a direct impact on factory design."
+  },
+  {
+    "lever_id": "05d42f5c-02ed-43d3-9191-c15b7dae00b5",
+    "name": "Emerging Technologies and Business Model Innovation Strategy",
+    "consequences": "Immediate: New revenue streams \u2192 Systemic: Increased market share \u2192 Strategic: Enhanced competitiveness.",
+    "options": [
+      "Blockchain-based supply chain management",
+      "Artificial intelligence-driven product customization",
+      "3D printing-enabled on-demand manufacturing"
+    ],
+    "review": "Controls Inefficiency vs. Opportunity.",
+    "deduplication_justification": "Emerging Technologies and Business Model Innovation Strategy is essential for controlling inefficiency vs. opportunity and has a direct impact on market share."
+  },
+  {
+    "lever_id": "d581b049-2ba0-46bd-b4b8-3a6f365b5597",
+    "name": "Material Feedstock and Sourcing",
+    "consequences": "Immediate: Reduced material waste \u2192 Systemic: Increased feedstock diversity \u2192 Strategic: Enhanced adaptability to market fluctuations.",
+    "options": [
+      "Closed-Loop Recycling",
+      "Sustainable, Renewable Feedstocks",
+      "Hybrid Material Sourcing"
+    ],
+    "review": "Controls Environmental Impact vs. Cost. Weakness: The options fail to consider the role of material properties on manufacturing efficiency.",
+    "deduplication_justification": "Material Feedstock and Sourcing is essential for controlling environmental impact vs. cost and has a direct impact on supply chain resilience."
+  },
+  {
+    "lever_id": "a2f170db-d363-4706-89be-8ba110408d45",
+    "name": "Talent Acquisition, Development, and Retention",
+    "consequences": "Immediate: Improved skill sets \u2192 Systemic: Increased innovation capacity \u2192 Strategic: Enhanced global competitiveness.",
+    "options": [
+      "Strategic Partnerships with Research Institutions",
+      "In-House Training and Development Programs",
+      "Competitive Compensation and Benefits Packages"
+    ],
+    "review": "Controls Innovation Capacity vs. Attractiveness to Top Talent. Weakness: The options fail to consider the role of diversity, equity, and inclusion in fostering a positive work environment.",
+    "deduplication_justification": "Talent Acquisition, Development, and Retention is essential for controlling innovation capacity vs. attractiveness to top talent and has a direct impact on factory design."
+  },
+  {
+    "lever_id": "7fe76fee-dff0-430c-8035-f4ca7fc9b594",
+    "name": "Regulatory Framework and Public-Private Partnerships",
+    "consequences": "Immediate: Reduced regulatory risk \u2192 Systemic: Increased public-private collaboration \u2192 Strategic: Enhanced global leadership.",
+    "options": [
+      "Collaborative Regulation with Industry Leaders",
+      "Public-Private Partnerships for Research and Development",
+      "Government-Supported Incentives for Investment"
+    ],
+    "review": "Controls Regulatory Risk vs. Public Support. Weakness: The options fail to consider the impact of regulatory frameworks on supply chain transparency and accountability.",
+    "deduplication_justification": "Regulatory Framework and Public-Private Partnerships is essential for controlling regulatory risk vs. public support and has a direct impact on supply chain transparency."
+  }
+]
