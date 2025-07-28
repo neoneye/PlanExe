@@ -39,8 +39,8 @@ class ExportGanttToCSV:
         # order tasks by early‑start so the chart looks natural
         activities = sorted(project_schedule.activities.values(), key=lambda a: a.es)
         for index, act in enumerate(activities, start=1):
-            start   = project_start + timedelta(days=float(act.es))
-            dur_txt = f"{int(act.duration)}d" if act.duration % 1 == 0 else f"{act.duration}d"
+            activity_start = project_start + timedelta(days=float(act.es))
+            activity_end = activity_start + timedelta(days=float(act.duration))
 
             name = act.title if act.title else act.id
             label = ExportGanttToCSV._escape_cell(name)
@@ -56,8 +56,8 @@ class ExportGanttToCSV:
             project_name = "Sample Upload Project 1"
             originating_department = "PlanExe Team"
             project_description = label
-            project_start_date = start.strftime("%-m/%-d/%Y")
-            project_end_date = (start + timedelta(days=float(act.duration))).strftime("%-m/%-d/%Y")
+            project_start_date = activity_start.strftime("%-m/%-d/%Y")
+            project_end_date = activity_end.strftime("%-m/%-d/%Y")
             project_progress = "0"
             parent_project_key = ""
             parent_project_name = ""
