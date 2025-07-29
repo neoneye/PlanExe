@@ -79,6 +79,7 @@ from planexe.team.team_markdown_document import TeamMarkdownDocumentBuilder
 from planexe.team.review_team import ReviewTeam
 from planexe.wbs.wbs_task import WBSTask, WBSProject
 from planexe.wbs.wbs_populate import WBSPopulate
+from planexe.wbs.wbs_task_html_tooltip import WBSTaskHTMLTooltip
 from planexe.schedule.hierarchy_estimator_wbs import HierarchyEstimatorWBS
 from planexe.schedule.export_dhtmlx_gantt import ExportDHTMLXGantt
 from planexe.schedule.project_schedule_wbs import ProjectScheduleWBS
@@ -3118,36 +3119,7 @@ class CreateScheduleTask(PlanTask):
         # logger.debug(f"durations_dict {durations_dict}")
         # logger.debug(f"wbs_project {wbs_project.to_dict()}")
 
-
-        def formal_list_as_html_bullet_points(list_of_items: list[str]) -> str:
-            return "<ul>" + "".join([f"<li>{html.escape(item)}</li>" for item in list_of_items]) + "</ul>"
-
-        task_id_to_tooltip_dict = {}
-
-        def visit_task(task: WBSTask):
-            fields = task.extra_fields
-
-            html_items = []
-
-            html_items.append(f"<b>{html.escape(task.description)}</b>")
-
-            if 'final_deliverable' in fields:
-                html_items.append("<b>Final deliverable:</b>")
-                html_items.append(html.escape(fields['final_deliverable']))
-
-            if 'detailed_description' in fields:
-                html_items.append(html.escape(fields['detailed_description']))
-
-            if 'resources_needed' in fields:
-                html_items.append("<b>Resources needed:</b>")
-                html_items.append(formal_list_as_html_bullet_points(fields['resources_needed']))
-
-            if len(html_items) > 0:
-                task_id_to_tooltip_dict[task.id] = "<br>".join(html_items)
-
-            for child in task.task_children:
-                visit_task(child)
-        visit_task(wbs_project.root_task)
+        task_id_to_tooltip_dict: dict[str, str] = WBSTaskHTMLTooltip.html_tooltips(wbs_project)
 
         # The number of hours per day is hardcoded. This should be determined by the task_duration agent. Is it 8 hours or 24 hours, or instead of days is it hours or weeks.
         # hours_per_day = 8
