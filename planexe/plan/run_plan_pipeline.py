@@ -12,7 +12,7 @@ from decimal import Decimal
 import html
 import logging
 import json
-from typing import Optional
+from typing import Any, Optional
 import luigi
 from pathlib import Path
 from llama_index.core.llms.llm import LLM
@@ -55,6 +55,8 @@ from planexe.lever.enrich_potential_levers import EnrichPotentialLevers
 from planexe.lever.focus_on_vital_few_levers import FocusOnVitalFewLevers
 from planexe.lever.candidate_scenarios import CandidateScenarios
 from planexe.lever.select_scenario import SelectScenario
+from planexe.schedule.project_schedule_populator import ProjectSchedulePopulator
+from planexe.schedule.schedule import ProjectSchedule
 from planexe.swot.swot_analysis import SWOTAnalysis
 from planexe.expert.expert_finder import ExpertFinder
 from planexe.expert.expert_criticism import ExpertCriticism
@@ -3106,36 +3108,22 @@ class CreateScheduleTask(PlanTask):
         with self.input()['dependencies'].open("r") as f:
             dependencies_dict = json.load(f)
         with self.input()['durations'].open("r") as f:
-            durations_dict = json.load(f)
+            duration_list: list[dict[str, Any]] = json.load(f)
         wbs_project_path = self.input()['wbs_project123']['full'].path
         with open(wbs_project_path, "r") as f:
             wbs_project_dict = json.load(f)
         wbs_project = WBSProject.from_dict(wbs_project_dict)
 
         # logger.debug(f"dependencies_dict {dependencies_dict}")
-        # logger.debug(f"durations_dict {durations_dict}")
+        # logger.debug(f"duration_list {duration_list}")
         # logger.debug(f"wbs_project {wbs_project.to_dict()}")
 
         task_id_to_tooltip_dict: dict[str, str] = WBSTaskHTMLTooltip.html_tooltips(wbs_project)
 
-        # The number of hours per day is hardcoded. This should be determined by the task_duration agent. Is it 8 hours or 24 hours, or instead of days is it hours or weeks.
-        # hours_per_day = 8
-        hours_per_day = 1
-        task_id_to_duration_dict = {}
-        for duration_dict in durations_dict:
-            task_id = duration_dict['task_id']
-            duration = duration_dict['days_realistic'] * hours_per_day
-            if duration < 0:
-                logger.warning(f"Duration for task {task_id} is negative: {duration}. Setting to 1.")
-                duration = 1
-            task_id_to_duration_dict[task_id] = Decimal(duration)
-
-        # Estimate the durations for all tasks in the WBS project.
-        task_id_to_duration_dict2 = HierarchyEstimatorWBS.run(wbs_project, task_id_to_duration_dict)
-
-        # Convert the WBSProject to a ProjectSchedule.
-        project_schedule = ProjectScheduleWBS.convert(wbs_project, task_id_to_duration_dict2)
-        # logger.debug(f"project_schedule {project_schedule}")
+        project_schedule: ProjectSchedule = ProjectSchedulePopulator.populate(
+            wbs_project=wbs_project,
+            duration_list=duration_list
+        )
 
         # Identify the tasks that should be treated as project activities.
         task_ids_to_treat_as_project_activities = wbs_project.task_ids_with_one_or_more_children()
