@@ -2,7 +2,6 @@
 python -m planexe.proof_of_concepts.run_extract_one_user
 """
 import json
-from typing import List, Optional
 from pydantic import BaseModel
 from planexe.llm_factory import get_llm
 

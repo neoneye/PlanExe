@@ -2,10 +2,7 @@
 PROMPT> python -m planexe.swot.app_swot_analysis
 """
 import gradio as gr
-import os
-import json
 import logging
-from typing import List, Optional
 from planexe.swot.swot_analysis import SWOTAnalysis
 from planexe.llm_factory import LLMInfo, get_llm
 from planexe.prompt.prompt_catalog import PromptCatalog

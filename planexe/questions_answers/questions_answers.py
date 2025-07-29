@@ -4,7 +4,6 @@ For a reader of the plan that is unfamiliar with the domain, provide a list of Q
 PROMPT> python -m planexe.questions_answers.questions_answers
 """
 import html
-import os
 import json
 import time
 import logging

@@ -11,7 +11,6 @@ So for example if it's a chinese project, then there is both chinese and english
 
 PROMPT> python -m planexe.document.identify_documents
 """
-import os
 import json
 import time
 import logging

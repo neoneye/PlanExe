@@ -7,7 +7,6 @@ import json
 import time
 import logging
 from math import ceil
-from typing import Optional
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
@@ -241,7 +240,6 @@ def swot_phase2_conduct_analysis(llm: LLM, user_prompt: str, system_prompt: str)
 if __name__ == "__main__":
     from planexe.prompt.prompt_catalog import PromptCatalog
     from planexe.llm_factory import get_llm
-    import os
 
     swot_type = 0
     if swot_type == 0:

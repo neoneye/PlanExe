@@ -30,7 +30,7 @@ class ExpertConsultation(BaseModel):
     user_secondary_actions: list[str] = Field(description="List of actionable steps the user should take.")
     follow_up_consultation: str = Field(description="What to talk about in the next consultation.")
 
-EXPERT_CRITICISM_SYSTEM_PROMPT = f"""
+EXPERT_CRITICISM_SYSTEM_PROMPT = """
 You are acting as a highly experienced:
 PLACEHOLDER_ROLE
 

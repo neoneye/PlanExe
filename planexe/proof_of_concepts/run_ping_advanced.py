@@ -7,7 +7,7 @@ from planexe.llm_factory import get_llm
 from llama_index.core.llms import ChatMessage
 import json
 from pydantic import BaseModel
-from llama_index.core.llms import ChatMessage, MessageRole
+from llama_index.core.llms import MessageRole
 
 model = "ollama-llama3.1"
 

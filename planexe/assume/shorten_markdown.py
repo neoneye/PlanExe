@@ -12,7 +12,6 @@ from typing import Optional
 from dataclasses import dataclass
 from llama_index.core.llms.llm import LLM
 from llama_index.core.llms import ChatMessage, MessageRole
-from planexe.format_json_for_use_in_query import format_json_for_use_in_query
 from planexe.markdown_util.fix_bullet_lists import fix_bullet_lists
 from planexe.markdown_util.remove_bold_formatting import remove_bold_formatting
 

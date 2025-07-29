@@ -114,44 +114,44 @@ class SWOTAnalysis:
             rows.append(f"\n## Purpose\n{self.purpose}")
             rows.append(f"\n## Purpose detailed\n{self.purpose_detailed}")
 
-        rows.append(f"\n## Strengths 👍💪🦾")
+        rows.append("\n## Strengths 👍💪🦾")
         for item in self.response_conduct.get('strengths', []):
             rows.append(f"- {item}")
 
-        rows.append(f"\n## Weaknesses 👎😱🪫⚠️")
+        rows.append("\n## Weaknesses 👎😱🪫⚠️")
         for item in self.response_conduct.get('weaknesses', []):
             rows.append(f"- {item}")
 
-        rows.append(f"\n## Opportunities 🌈🌐")
+        rows.append("\n## Opportunities 🌈🌐")
         for item in self.response_conduct.get('opportunities', []):
             rows.append(f"- {item}")
 
-        rows.append(f"\n## Threats ☠️🛑🚨☢︎💩☣︎")
+        rows.append("\n## Threats ☠️🛑🚨☢︎💩☣︎")
         for item in self.response_conduct.get('threats', []):
             rows.append(f"- {item}")
 
-        rows.append(f"\n## Recommendations 💡✅")
+        rows.append("\n## Recommendations 💡✅")
         for item in self.response_conduct.get('recommendations', []):
             rows.append(f"- {item}")
 
-        rows.append(f"\n## Strategic Objectives 🎯🔭⛳🏅")
+        rows.append("\n## Strategic Objectives 🎯🔭⛳🏅")
         for item in self.response_conduct.get('strategic_objectives', []):
             rows.append(f"- {item}")
 
-        rows.append(f"\n## Assumptions 🤔🧠🔍")
+        rows.append("\n## Assumptions 🤔🧠🔍")
         for item in self.response_conduct.get('assumptions', []):
             rows.append(f"- {item}")
 
-        rows.append(f"\n## Missing Information 🧩🤷‍♂️🤷‍♀️")
+        rows.append("\n## Missing Information 🧩🤷‍♂️🤷‍♀️")
         for item in self.response_conduct.get('missing_information', []):
             rows.append(f"- {item}")
 
-        rows.append(f"\n## Questions 🙋❓💬📌")
+        rows.append("\n## Questions 🙋❓💬📌")
         for item in self.response_conduct.get('user_questions', []):
             rows.append(f"- {item}")
 
         if include_metadata:
-            rows.append(f"\n## Metadata 📊🔧💾")
+            rows.append("\n## Metadata 📊🔧💾")
             rows.append("```json")
             json_dict = self.metadata.copy()
             json_dict['duration_response_type'] = self.response_purpose['metadata']['duration']

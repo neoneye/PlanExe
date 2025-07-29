@@ -13,7 +13,7 @@ https://github.com/mermaid-js/mermaid/blob/develop/packages/mermaid/src/diagrams
 PROMPT> python -m planexe.schedule.export_mermaid_gantt
 """
 from datetime import date, timedelta
-from planexe.schedule.schedule import ProjectSchedule, PredecessorInfo
+from planexe.schedule.schedule import ProjectSchedule
 
 class ExportMermaidGantt:
     @staticmethod
