@@ -74,7 +74,7 @@ class ReportGenerator:
             try:
                 df = pd.read_csv(file_path, delimiter=delimiter)
                 return df
-            except:
+            except Exception:
                 # If that fails, try with more options
                 try:
                     df = pd.read_csv(file_path, delimiter=delimiter, 
@@ -262,12 +262,12 @@ def main():
             url = f'file://{output_path.absolute()}'
             print(f"Opening report in browser: {url}")
             if not webbrowser.open(url):
-                print(f"Could not open browser automatically.")
-                print(f"Please open this file in your web browser:")
+                print("Could not open browser automatically.")
+                print("Please open this file in your web browser:")
                 print(f"  {output_path}")
         except Exception as e:
             print(f"Error opening browser: {e}")
-            print(f"Please open this file in your web browser:")
+            print("Please open this file in your web browser:")
             print(f"  {output_path}")
 
 if __name__ == "__main__":

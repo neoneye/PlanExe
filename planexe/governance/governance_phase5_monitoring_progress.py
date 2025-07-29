@@ -8,7 +8,6 @@ Gemini 2.5's opinion about llama 3.1:
 
 PROMPT> python -m planexe.governance.governance_phase5_monitoring_progress
 """
-import os
 import json
 import time
 import logging
@@ -148,7 +147,7 @@ class GovernancePhase5MonitoringProgress:
             if i > 1:
                 rows.append("")
             rows.append(f"### {i}. {item.approach}")
-            rows.append(f"**Monitoring Tools/Platforms:**\n")
+            rows.append("**Monitoring Tools/Platforms:**\n")
             for monitoring_tool_platform in item.monitoring_tools_platforms:
                 rows.append(f"  - {monitoring_tool_platform}")
             rows.append(f"\n**Frequency:** {item.frequency}")

@@ -1,5 +1,5 @@
 import json
-from typing import List, Optional
+from typing import Optional
 from pydantic import BaseModel, Field
 from planexe.llm_factory import get_llm
 

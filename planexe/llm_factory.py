@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from planexe.utils.planexe_dotenv import PlanExeDotEnv
 from planexe.utils.planexe_config import PlanExeConfig, PlanExeConfigError
 from planexe.utils.planexe_llmconfig import PlanExeLLMConfig
-from typing import Optional, Any, Dict
+from typing import Optional, Any
 from llama_index.core.llms.llm import LLM
 from llama_index.llms.mistralai import MistralAI
 from llama_index.llms.ollama import Ollama
@@ -84,7 +84,7 @@ class LLMInfo:
             else:
                 count_not_running += 1
 
-            if ollama_info.is_running == False:
+            if not ollama_info.is_running:
                 print(f"Ollama is not running on {running_on}. Please start the Ollama service, in order to use the models via Ollama.")
             elif ollama_info.error_message:
                 print(f"Error message: {ollama_info.error_message}")

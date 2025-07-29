@@ -12,7 +12,7 @@ Output file:
 PROMPT> python -m planexe.lever.scenarios_markdown
 """
 import logging
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)

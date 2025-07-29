@@ -12,7 +12,7 @@ Output file:
 PROMPT> python -m planexe.lever.strategic_decisions_markdown
 """
 import logging
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -81,7 +81,7 @@ class StrategicDecisionsMarkdown:
             for option_index, option in enumerate(lever.options, 1):
                 rows.append(f"{option_index}. {option}")
             rows.append(f"\n**Trade-Off / Risk:** {lever.review}\n")
-            rows.append(f"**Strategic Connections:**\n")
+            rows.append("**Strategic Connections:**\n")
             rows.append(f"**Synergy:** {lever.synergy_text}\n")
             rows.append(f"**Conflict:** {lever.conflict_text}\n")
 
@@ -111,7 +111,7 @@ class StrategicDecisionsMarkdown:
             for option_index, option in enumerate(lever.options, 1):
                 rows.append(f"{option_index}. {option}")
             rows.append(f"\n**Trade-Off / Risk:** {lever.review}\n")
-            rows.append(f"**Strategic Connections:**\n")
+            rows.append("**Strategic Connections:**\n")
             rows.append(f"**Synergy:** {lever.synergy_text}\n")
             rows.append(f"**Conflict:** {lever.conflict_text}\n")
 

@@ -64,7 +64,7 @@ class Document:
     name: str
     content: str
 
-QUERY_PREAMBLE = f"""
+QUERY_PREAMBLE = """
 Provide detailed and accurate cost estimates for the provided tasks.
 
 Use the following guidelines:
@@ -210,8 +210,6 @@ if __name__ == "__main__":
     import os
     from wbs_table_for_cost_estimation.wbs_table_for_cost_estimation import WBSTableForCostEstimation
     from chunk_dataframe_with_context.chunk_dataframe_with_context import chunk_dataframe_with_context
-    import pandas as pd
-    from pandas import DataFrame
 
     dotenv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.env'))
     dotenv_dict = dotenv_values(dotenv_path=dotenv_path)

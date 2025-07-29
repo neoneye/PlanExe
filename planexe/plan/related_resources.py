@@ -3,7 +3,6 @@ Suggest similar past or existing projects that can be used as a reference for th
 
 PROMPT> python -m planexe.plan.related_resources
 """
-import os
 import json
 import time
 import logging

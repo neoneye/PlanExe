@@ -12,7 +12,6 @@ from decimal import Decimal
 import html
 import logging
 import json
-import time
 from typing import Optional
 import luigi
 from pathlib import Path
@@ -50,7 +49,6 @@ from planexe.governance.governance_phase5_monitoring_progress import GovernanceP
 from planexe.governance.governance_phase6_extra import GovernancePhase6Extra
 from planexe.plan.related_resources import RelatedResources
 from planexe.questions_answers.questions_answers import QuestionsAnswers
-from planexe.schedule.export_frappe_gantt import ExportFrappeGantt
 from planexe.schedule.export_mermaid_gantt import ExportMermaidGantt
 from planexe.lever.identify_potential_levers import IdentifyPotentialLevers
 from planexe.lever.enrich_potential_levers import EnrichPotentialLevers
@@ -86,10 +84,9 @@ from planexe.schedule.project_schedule_wbs import ProjectScheduleWBS
 from planexe.llm_util.llm_executor import LLMExecutor, LLMModelFromName, ShouldStopCallbackParameters, PipelineStopRequested
 from planexe.llm_factory import get_llm_names_by_priority, SPECIAL_AUTO_ID, is_valid_llm_name
 from planexe.format_json_for_use_in_query import format_json_for_use_in_query
-from planexe.utils.get_env_as_string import get_env_as_string
 from planexe.report.report_generator import ReportGenerator
 from planexe.luigi_util.obtain_output_files import ObtainOutputFiles
-from planexe.plan.pipeline_environment import PipelineEnvironment, PipelineEnvironmentEnum
+from planexe.plan.pipeline_environment import PipelineEnvironment
 
 logger = logging.getLogger(__name__)
 DEFAULT_LLM_MODEL = "ollama-llama3.1"
@@ -3581,7 +3578,7 @@ class ExecutePipeline:
                     raise ValueError(f"Invalid LLM model: {llm_model!r}. Please check your llm_config.json file and add the model.")
                 llm_models = [llm_model]
 
-        logger.info(f"These are the LLM models that will be used in the pipeline:")
+        logger.info("These are the LLM models that will be used in the pipeline:")
         for index, llm_name in enumerate(llm_models):
             logger.info(f"{index}. {llm_name!r}")
         return llm_models
@@ -3696,7 +3693,7 @@ class DemoStoppingExecutePipeline(ExecutePipeline):
     when a task completes it raises PipelineStopRequested and causes the pipeline to stop.
     """
     def _handle_task_completion(self, parameters: HandleTaskCompletionParameters) -> None:
-        logger.info(f"DemoStoppingExecutePipeline._handle_task_completion: Demo of stopping the pipeline.")
+        logger.info("DemoStoppingExecutePipeline._handle_task_completion: Demo of stopping the pipeline.")
         raise PipelineStopRequested("Demo: Stopping the pipeline after task completion")
 
 

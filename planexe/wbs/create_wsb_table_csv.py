@@ -1,4 +1,3 @@
-import os
 import json
 from planexe.wbs.wbs_task import WBSTask, WBSProject
 
@@ -58,5 +57,5 @@ if __name__ == "__main__":
 
     instance = CreateWBSTableCSV(wsb_project)
     instance.execute()
-    print(f"Generated wbs_table.csv")
+    print("Generated wbs_table.csv")
     print(instance.to_csv_string())

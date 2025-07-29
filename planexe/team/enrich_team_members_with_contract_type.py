@@ -3,14 +3,12 @@ Enrich the team members with what kind of contract type they have.
 
 PROMPT> python -m planexe.team.enrich_team_members_with_contract_type
 """
-import os
 import json
 import time
 import logging
 from enum import Enum
 from math import ceil
 from dataclasses import dataclass
-from typing import List, Optional
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
@@ -161,7 +159,7 @@ class EnrichTeamMembersWithContractType:
         enriched_team_member_list = document_details.team_members
         id_to_enriched_team_member = {item.id: item for item in enriched_team_member_list}
         for team_member_index, team_member in enumerate(result_team_member_list):
-            if not 'id' in team_member:
+            if 'id' not in team_member:
                 logger.warning(f"Team member #{team_member_index} does not have an id")
                 continue
             id = team_member['id']

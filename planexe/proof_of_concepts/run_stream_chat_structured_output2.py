@@ -6,14 +6,12 @@ from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.instrumentation import get_dispatcher
 from llama_index.core.instrumentation.events.base import BaseEvent
 from llama_index.core.instrumentation.event_handlers.base import BaseEventHandler
-from llama_index.core.instrumentation.events.llm import LLMChatInProgressEvent, LLMChatEndEvent
+from llama_index.core.instrumentation.events.llm import LLMChatInProgressEvent
 from llama_index.core.instrumentation.dispatcher import instrument_tags
 
 from typing import (
     Any,
-    Dict,
-    List,
-    Optional
+    Dict
 )
 
 @dataclass

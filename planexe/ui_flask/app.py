@@ -74,7 +74,7 @@ class UserState:
 
 class MyFlaskApp:
     def __init__(self):
-        logger.info(f"MyFlaskApp.__init__. Starting...")
+        logger.info("MyFlaskApp.__init__. Starting...")
 
         self.planexe_config = PlanExeConfig.load()
         logger.info(f"MyFlaskApp.__init__. planexe_config: {self.planexe_config!r}")
@@ -263,7 +263,6 @@ class MyFlaskApp:
         @self.app.route("/jobs", methods=["POST"])
         def create_job():
             try:
-                data = request.json
                 run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
                 run_id_dir = (self.planexe_run_dir / run_id).absolute()
                 response_data, status_code = self._create_job_internal(run_id, run_id_dir)

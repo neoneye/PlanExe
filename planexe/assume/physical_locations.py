@@ -7,7 +7,6 @@ Pick suitable physical locations for the project plan.
 
 PROMPT> python -m planexe.assume.physical_locations
 """
-import os
 import json
 import time
 import logging

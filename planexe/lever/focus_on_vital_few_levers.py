@@ -9,11 +9,11 @@ import os
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Optional, List, Any
+from typing import List
 
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 
 from planexe.llm_util.llm_executor import LLMExecutor, PipelineStopRequested
 

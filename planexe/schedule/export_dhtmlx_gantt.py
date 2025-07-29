@@ -11,7 +11,6 @@ PROMPT> python -m planexe.schedule.export_dhtmlx_gantt
 from datetime import date, timedelta
 import json
 import html
-from pathlib import Path
 import importlib.resources
 from planexe.schedule.schedule import ProjectSchedule, DependencyType, PredecessorInfo
 from planexe.utils.dedent_strip import dedent_strip

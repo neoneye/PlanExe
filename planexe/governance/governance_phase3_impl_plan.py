@@ -7,7 +7,6 @@ setting up tools (dashboards, reporting templates), and establishing key procedu
 
 PROMPT> python -m planexe.governance.governance_phase3_impl_plan
 """
-import os
 import json
 import time
 import logging
@@ -160,10 +159,10 @@ class GovernancePhase3ImplPlan:
             rows.append(f"### {i}. {item.step_description}")
             rows.append(f"\n**Responsible Body/Role:** {item.responsible_body_or_role}")
             rows.append(f"\n**Suggested Timeframe:** {item.suggested_timeframe}")
-            rows.append(f"\n**Key Outputs/Deliverables:**\n")
+            rows.append("\n**Key Outputs/Deliverables:**\n")
             for output in item.key_outputs_deliverables:
                 rows.append(f"- {output}")
-            rows.append(f"\n**Dependencies:**\n")
+            rows.append("\n**Dependencies:**\n")
             for dependency in item.dependencies:
                 rows.append(f"- {dependency}")
 

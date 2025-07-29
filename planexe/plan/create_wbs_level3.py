@@ -10,9 +10,7 @@ import json
 import time
 from dataclasses import dataclass
 from math import ceil
-from typing import List, Optional
 from uuid import uuid4
-from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from llama_index.core.llms.llm import LLM
 from planexe.format_json_for_use_in_query import format_json_for_use_in_query
@@ -39,7 +37,7 @@ class WBSTaskDetails(BaseModel):
         description="List of subtasks."
     )
 
-QUERY_PREAMBLE = f"""
+QUERY_PREAMBLE = """
 Decompose a big task into smaller, more manageable subtasks.
 
 Split the task into 3 to 5 subtasks.

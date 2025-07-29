@@ -3,7 +3,6 @@ Governance extra fields
 
 PROMPT> python -m planexe.governance.governance_phase6_extra
 """
-import os
 import json
 import time
 import logging
@@ -152,7 +151,7 @@ class GovernancePhase6Extra:
         """
         rows = []
                 
-        rows.append(f"## Governance Validation Checks")
+        rows.append("## Governance Validation Checks")
         for i, item in enumerate(document_details.governance_validation_checks, 1):
             if i == 1:
                 rows.append("")
