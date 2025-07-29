@@ -3104,7 +3104,7 @@ class CreateScheduleTask(PlanTask):
     def run_inner(self):
         # Read inputs from required tasks.
         with self.input()['dependencies'].open("r") as f:
-            json.load(f)
+            dependencies_dict = json.load(f)
         with self.input()['durations'].open("r") as f:
             durations_dict = json.load(f)
         wbs_project_path = self.input()['wbs_project123']['full'].path
