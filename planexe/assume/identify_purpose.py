@@ -10,7 +10,6 @@ import time
 from math import ceil
 import logging
 import json
-from typing import Optional
 from enum import Enum
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
@@ -167,7 +166,6 @@ if __name__ == "__main__":
     from planexe.llm_factory import get_llm
     from pandas import DataFrame
     from tqdm import tqdm
-    import os
     import json
 
     llm = get_llm("ollama-llama3.1", temperature=0.0)

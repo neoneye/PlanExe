@@ -79,7 +79,6 @@ class InterceptLastResponse(BaseCallbackHandler):
 if __name__ == "__main__":
     from planexe.llm_factory import get_llm
     from enum import Enum
-    from llama_index.core.instrumentation.dispatcher import instrument_tags
     from llama_index.core.llms import ChatMessage, MessageRole
 
     class CostType(str, Enum):

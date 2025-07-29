@@ -8,8 +8,7 @@ import time
 from datetime import datetime
 import logging
 from math import ceil
-from uuid import uuid4
-from typing import List, Optional, Any
+from typing import Optional
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from llama_index.core.llms.llm import LLM

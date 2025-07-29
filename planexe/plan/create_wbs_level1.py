@@ -3,11 +3,9 @@ WBS Level 1: Create a Work Breakdown Structure (WBS) from a project plan.
 
 https://en.wikipedia.org/wiki/Work_breakdown_structure
 """
-import os
 import json
 import time
 from math import ceil
-from typing import List, Optional
 from uuid import uuid4
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
@@ -24,7 +22,7 @@ class WBSLevel1(BaseModel):
         description="A detailed description of the projects ultimate outcome or product upon completion. Clearly states the final state or result that the team aims to achieve."
     )
 
-QUERY_PREAMBLE = f"""
+QUERY_PREAMBLE = """
 The task here:
 Create a work breakdown structure level 1 for this project.
 

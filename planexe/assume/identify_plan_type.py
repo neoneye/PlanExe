@@ -3,7 +3,6 @@ Determine if the plan can be executed digitally without any physical location. O
 
 PROMPT> python -m planexe.assume.identify_plan_type
 """
-import os
 import json
 import time
 import logging

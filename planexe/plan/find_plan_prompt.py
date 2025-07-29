@@ -1,5 +1,4 @@
 from planexe.prompt.prompt_catalog import PromptCatalog
-import os
 
 def find_plan_prompt(prompt_id: str) -> str:
     prompt_catalog = PromptCatalog()

@@ -1,4 +1,3 @@
-import os
 import json
 import logging
 from planexe.wbs.wbs_task import WBSTask, WBSProject

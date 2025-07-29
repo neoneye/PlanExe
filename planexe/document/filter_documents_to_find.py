@@ -18,7 +18,7 @@ import logging
 from math import ceil
 from enum import Enum
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
@@ -424,5 +424,5 @@ if __name__ == "__main__":
     print(f"\n\nIDs to keep:\n{result.ids_to_keep}")
     print(f"\n\nUUIDs to keep:\n{result.uuids_to_keep}")
 
-    print(f"\n\nFiltered documents:")
+    print("\n\nFiltered documents:")
     print(json.dumps(result.filtered_documents_raw_json, indent=2))

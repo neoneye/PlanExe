@@ -6,8 +6,6 @@ import os
 import json
 import time
 from math import ceil
-from typing import List, Optional
-from uuid import uuid4
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from llama_index.core.llms.llm import LLM
@@ -45,7 +43,7 @@ class TimeEstimates(BaseModel):
         description="List with tasks with time estimates."
     )
 
-QUERY_PREAMBLE = f"""
+QUERY_PREAMBLE = """
 Assign estimated durations for each task and subtask.
 Ensure a consistent voice and phrasing across tasks.
 

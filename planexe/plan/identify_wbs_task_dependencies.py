@@ -20,8 +20,6 @@ import os
 import json
 import time
 from math import ceil
-from typing import List, Optional
-from uuid import uuid4
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from llama_index.core.llms.llm import LLM
@@ -52,7 +50,7 @@ class DependencyMapping(BaseModel):
         description="List with dependency mappings between tasks."
     )
 
-QUERY_PREAMBLE = f"""
+QUERY_PREAMBLE = """
 Find the 10 most critical important task dependencies. Don't attempt making an exhaustive list.
 
 Understanding how tasks relate to each other is crucial for accurate timeline planning. 

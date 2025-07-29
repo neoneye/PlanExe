@@ -3,13 +3,11 @@ From a project description, find a team for solving the job.
 
 PROMPT> python -m planexe.team.find_team_members
 """
-import os
 import json
 import time
 import logging
 from math import ceil
 from dataclasses import dataclass
-from typing import List, Optional
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM

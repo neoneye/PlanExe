@@ -11,7 +11,6 @@ PROMPT> python -m planexe.schedule.export_dhtmlx_gantt
 from datetime import date, timedelta
 import json
 import html
-from pathlib import Path
 import importlib.resources
 from planexe.schedule.schedule import ProjectSchedule, DependencyType, PredecessorInfo
 from planexe.utils.dedent_strip import dedent_strip
@@ -72,7 +71,7 @@ class ExportDHTMLXGantt:
         # order tasks by early‑start so the chart looks natural
         for act in sorted(project_schedule.activities.values(), key=lambda a: a.es):
             start = project_start + timedelta(days=float(act.es))
-            end = project_start + timedelta(days=float(act.ef))
+            project_start + timedelta(days=float(act.ef))
             
             title = act.title if act.title else act.id
 

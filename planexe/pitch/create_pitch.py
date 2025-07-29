@@ -7,8 +7,6 @@ import os
 import json
 import time
 from math import ceil
-from typing import List, Optional
-from uuid import uuid4
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from llama_index.core.llms.llm import LLM
@@ -46,7 +44,7 @@ class ProjectPitch(BaseModel):
         description="Show the broader impact and sustainability of the project."
     )
 
-QUERY_PREAMBLE = f"""
+QUERY_PREAMBLE = """
 Craft a compelling pitch for this project that starts with an attention-grabbing hook, 
 presents its purpose clearly, and highlights the benefits or value it brings. Use a tone 
 that conveys enthusiasm and aligns with the goals and values of the intended audience, 

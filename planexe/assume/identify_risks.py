@@ -10,7 +10,6 @@ IDEA: assign uuid's to each risk. So later stages of the plan can refer to the r
 
 PROMPT> python -m planexe.assume.identify_risks
 """
-import os
 import json
 import time
 import logging
@@ -20,7 +19,6 @@ from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
-from planexe.format_json_for_use_in_query import format_json_for_use_in_query
 
 logger = logging.getLogger(__name__)
 

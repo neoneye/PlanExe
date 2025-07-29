@@ -6,7 +6,6 @@ Gemini 2.5 has this opinion about llama3.1's response.
 
 PROMPT> python -m planexe.governance.governance_phase2_bodies
 """
-import os
 import json
 import time
 import logging
@@ -165,15 +164,15 @@ class GovernancePhase2Bodies:
         for i, body in enumerate(document_details.internal_governance_bodies, 1):
             rows.append(f"### {i}. {body.name}")
             rows.append(f"\n**Rationale for Inclusion:** {body.rationale_for_inclusion}")
-            rows.append(f"\n**Responsibilities:**\n")
+            rows.append("\n**Responsibilities:**\n")
             for resp in body.responsibilities:
                 rows.append(f"- {resp}")
                 
-            rows.append(f"\n**Initial Setup Actions:**\n")
+            rows.append("\n**Initial Setup Actions:**\n")
             for action in body.initial_setup_actions:
                 rows.append(f"- {action}")
                 
-            rows.append(f"\n**Membership:**\n")
+            rows.append("\n**Membership:**\n")
             for member in body.membership:
                 rows.append(f"- {member}")
                 
@@ -181,7 +180,7 @@ class GovernancePhase2Bodies:
             rows.append(f"\n**Decision Mechanism:** {body.decision_mechanism}")
             rows.append(f"\n**Meeting Cadence:** {body.meeting_cadence}")
             
-            rows.append(f"\n**Typical Agenda Items:**\n")
+            rows.append("\n**Typical Agenda Items:**\n")
             for item in body.typical_agenda_items:
                 rows.append(f"- {item}")
                 

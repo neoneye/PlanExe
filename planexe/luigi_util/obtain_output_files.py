@@ -6,7 +6,7 @@ It doesn't identify extra files outputted by the tasks.
 There are several tasks that outputs extra files, these are not identified by this class.
 """
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Set, Union
 import luigi
 import logging
 from pathlib import Path

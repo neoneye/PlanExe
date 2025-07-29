@@ -6,11 +6,9 @@ https://en.wikipedia.org/wiki/Work_breakdown_structure
 Focus is on the "Process style". 
 Focus is not on the "product style".
 """
-import os
 import json
 import time
 from math import ceil
-from typing import List, Optional
 from uuid import uuid4
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
@@ -48,7 +46,7 @@ class WorkBreakdownStructure(BaseModel):
         description="List with each major phase broken down into subtasks or activities."
     )
 
-QUERY_PREAMBLE = f"""
+QUERY_PREAMBLE = """
 Create a work breakdown structure level 2 for this project.
 
 A task can always be broken down into smaller, more manageable subtasks.
