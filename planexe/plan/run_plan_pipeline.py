@@ -49,6 +49,7 @@ from planexe.governance.governance_phase5_monitoring_progress import GovernanceP
 from planexe.governance.governance_phase6_extra import GovernancePhase6Extra
 from planexe.plan.related_resources import RelatedResources
 from planexe.questions_answers.questions_answers import QuestionsAnswers
+from planexe.schedule.export_gantt_to_csv import ExportGanttToCSV
 from planexe.schedule.export_mermaid_gantt import ExportMermaidGantt
 from planexe.lever.identify_potential_levers import IdentifyPotentialLevers
 from planexe.lever.enrich_potential_levers import EnrichPotentialLevers
@@ -3092,8 +3093,9 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
 class CreateScheduleTask(PlanTask):
     def output(self):
         return {
-            'mermaid': self.local_target(FilenameEnum.SCHEDULE_MERMAID_GANTT_HTML),
-            'dhtmlx': self.local_target(FilenameEnum.SCHEDULE_DHTMLX_GANTT_HTML)
+            'mermaid': self.local_target(FilenameEnum.SCHEDULE_GANTT_MERMAID_HTML),
+            'dhtmlx': self.local_target(FilenameEnum.SCHEDULE_GANTT_DHTMLX_HTML),
+            'machai': self.local_target(FilenameEnum.SCHEDULE_GANTT_MACHAI_CSV)
         }
     
     def requires(self):
@@ -3137,6 +3139,8 @@ class CreateScheduleTask(PlanTask):
             task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities,
             task_id_to_tooltip_dict=task_id_to_tooltip_dict
         )
+
+        ExportGanttToCSV.save(project_schedule, self.output()['machai'].path)
 
 class ReviewPlanTask(PlanTask):
     """
