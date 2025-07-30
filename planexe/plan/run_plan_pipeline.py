@@ -50,7 +50,7 @@ from planexe.governance.governance_phase6_extra import GovernancePhase6Extra
 from planexe.plan.related_resources import RelatedResources
 from planexe.questions_answers.questions_answers import QuestionsAnswers
 from planexe.schedule.export_gantt_to_csv import ExportGanttToCSV
-from planexe.schedule.export_mermaid_gantt import ExportMermaidGantt
+from planexe.schedule.export_mermaid_gantt import ExportGanttMermaid
 from planexe.lever.identify_potential_levers import IdentifyPotentialLevers
 from planexe.lever.enrich_potential_levers import EnrichPotentialLevers
 from planexe.lever.focus_on_vital_few_levers import FocusOnVitalFewLevers
@@ -3131,7 +3131,7 @@ class CreateScheduleTask(PlanTask):
         task_ids_to_treat_as_project_activities = wbs_project.task_ids_with_one_or_more_children()
 
         # ExportFrappeGantt.save(project_schedule, self.output()['frappe'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
-        ExportMermaidGantt.save(project_schedule, self.output()['mermaid'].path)
+        ExportGanttMermaid.save(project_schedule, self.output()['mermaid'].path)
 
         ExportGanttDHTMLX.save(
             project_schedule, 

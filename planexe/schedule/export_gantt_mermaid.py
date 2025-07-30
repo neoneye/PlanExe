@@ -10,12 +10,12 @@ No way to assign a custom css class to a specific activity, so it can be styled 
 CSS styling of mermaid:
 https://github.com/mermaid-js/mermaid/blob/develop/packages/mermaid/src/diagrams/gantt/styles.js
 
-PROMPT> python -m planexe.schedule.export_mermaid_gantt
+PROMPT> python -m planexe.schedule.export_gantt_mermaid
 """
 from datetime import date, timedelta
 from planexe.schedule.schedule import ProjectSchedule
 
-class ExportMermaidGantt:
+class ExportGanttMermaid:
     @staticmethod
     def _escape_mermaid(text: str) -> str:
         """Escape special characters for Mermaid syntax. Replace characters that could break Mermaid syntax."""
@@ -71,7 +71,7 @@ class ExportMermaidGantt:
             dur_txt = f"{int(act.duration)}d" if act.duration % 1 == 0 else f"{act.duration}d"
 
             name = act.title if act.title else act.id
-            label = ExportMermaidGantt._escape_mermaid(name)
+            label = ExportGanttMermaid._escape_mermaid(name)
 
             # insert a section for every 10 activities
             if index % 10 == 0:
@@ -105,7 +105,7 @@ class ExportMermaidGantt:
         title = kwargs.get("title", "Project schedule")
         project_start = kwargs.get("project_start", None)
 
-        mermaid_code = ExportMermaidGantt.to_mermaid_gantt(project_schedule, project_start, title=title)
+        mermaid_code = ExportGanttMermaid.to_mermaid_gantt(project_schedule, project_start, title=title)
 
         html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -168,4 +168,4 @@ if __name__ == "__main__":
     """)
 
     project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
-    ExportMermaidGantt.save(project_schedule, "mermaid_gantt.html") 
+    ExportGanttMermaid.save(project_schedule, "gantt_mermaid.html") 
