@@ -27,14 +27,14 @@ Frappe Gantt version 1.0.x, with +100 tasks, the scrolling is laggy.
 Frappe Gantt version 1.0.x, the activity durations are N time units. I prefer this behavior.
 However older versions have activity duration are N+1 time units. I don't like that behavior.
 
-PROMPT> python -m planexe.schedule.export_frappe_gantt
+PROMPT> python -m planexe.schedule.export_gantt_frappe
 """
 from datetime import date, timedelta
 import json
 import html
 from planexe.schedule.schedule import ProjectSchedule, DependencyType, PredecessorInfo
 
-class ExportFrappeGantt:
+class ExportGanttFrappe:
     @staticmethod
     def _dep_summary(preds: list[PredecessorInfo]) -> str:
         """Return 'A FS, B SS+2' etc. for the tooltip/label."""
@@ -84,7 +84,7 @@ class ExportFrappeGantt:
                     "progress":    0,
                     "dependencies": ",".join(fs_0),
                     # anything extra can live under an arbitrary key:
-                    "meta": ExportFrappeGantt._dep_summary(a.parsed_predecessors),
+                    "meta": ExportGanttFrappe._dep_summary(a.parsed_predecessors),
                 }
             )
         return tasks
@@ -112,7 +112,7 @@ class ExportFrappeGantt:
         project_start = kwargs.get("project_start", None)
 
         tasks_json = json.dumps(
-            ExportFrappeGantt.to_frappe_gantt_tasks(project_schedule, project_start),
+            ExportGanttFrappe.to_frappe_gantt_tasks(project_schedule, project_start),
             indent=2
         )
         html_page = f"""<!DOCTYPE html>
@@ -180,4 +180,4 @@ if __name__ == "__main__":
     """)
 
     project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
-    ExportFrappeGantt.save(project_schedule, "frappe_gantt.html") 
+    ExportGanttFrappe.save(project_schedule, "gantt_frappe.html") 

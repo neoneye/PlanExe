@@ -3130,7 +3130,7 @@ class CreateScheduleTask(PlanTask):
         # Identify the tasks that should be treated as project activities.
         task_ids_to_treat_as_project_activities = wbs_project.task_ids_with_one_or_more_children()
 
-        # ExportFrappeGantt.save(project_schedule, self.output()['frappe'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
+        # ExportGanttFrappe.save(project_schedule, self.output()['frappe'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
         ExportGanttMermaid.save(project_schedule, self.output()['mermaid'].path)
 
         ExportGanttDHTMLX.save(
