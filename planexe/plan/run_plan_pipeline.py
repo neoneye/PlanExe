@@ -49,15 +49,11 @@ from planexe.governance.governance_phase5_monitoring_progress import GovernanceP
 from planexe.governance.governance_phase6_extra import GovernancePhase6Extra
 from planexe.plan.related_resources import RelatedResources
 from planexe.questions_answers.questions_answers import QuestionsAnswers
-from planexe.schedule.export_gantt_to_csv import ExportGanttToCSV
-from planexe.schedule.export_mermaid_gantt import ExportGanttMermaid
 from planexe.lever.identify_potential_levers import IdentifyPotentialLevers
 from planexe.lever.enrich_potential_levers import EnrichPotentialLevers
 from planexe.lever.focus_on_vital_few_levers import FocusOnVitalFewLevers
 from planexe.lever.candidate_scenarios import CandidateScenarios
 from planexe.lever.select_scenario import SelectScenario
-from planexe.schedule.project_schedule_populator import ProjectSchedulePopulator
-from planexe.schedule.schedule import ProjectSchedule
 from planexe.swot.swot_analysis import SWOTAnalysis
 from planexe.expert.expert_finder import ExpertFinder
 from planexe.expert.expert_criticism import ExpertCriticism
@@ -81,9 +77,11 @@ from planexe.team.review_team import ReviewTeam
 from planexe.wbs.wbs_task import WBSTask, WBSProject
 from planexe.wbs.wbs_populate import WBSPopulate
 from planexe.wbs.wbs_task_html_tooltip import WBSTaskHTMLTooltip
-from planexe.schedule.hierarchy_estimator_wbs import HierarchyEstimatorWBS
+from planexe.schedule.project_schedule_populator import ProjectSchedulePopulator
+from planexe.schedule.schedule import ProjectSchedule
 from planexe.schedule.export_gantt_dhtmlx import ExportGanttDHTMLX
-from planexe.schedule.project_schedule_wbs import ProjectScheduleWBS
+from planexe.schedule.export_gantt_to_csv import ExportGanttToCSV
+from planexe.schedule.export_gantt_mermaid import ExportGanttMermaid
 from planexe.llm_util.llm_executor import LLMExecutor, LLMModelFromName, ShouldStopCallbackParameters, PipelineStopRequested
 from planexe.llm_factory import get_llm_names_by_priority, SPECIAL_AUTO_ID, is_valid_llm_name
 from planexe.format_json_for_use_in_query import format_json_for_use_in_query
