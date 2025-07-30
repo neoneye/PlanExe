@@ -82,7 +82,7 @@ from planexe.wbs.wbs_task import WBSTask, WBSProject
 from planexe.wbs.wbs_populate import WBSPopulate
 from planexe.wbs.wbs_task_html_tooltip import WBSTaskHTMLTooltip
 from planexe.schedule.hierarchy_estimator_wbs import HierarchyEstimatorWBS
-from planexe.schedule.export_dhtmlx_gantt import ExportDHTMLXGantt
+from planexe.schedule.export_gantt_dhtmlx import ExportGanttDHTMLX
 from planexe.schedule.project_schedule_wbs import ProjectScheduleWBS
 from planexe.llm_util.llm_executor import LLMExecutor, LLMModelFromName, ShouldStopCallbackParameters, PipelineStopRequested
 from planexe.llm_factory import get_llm_names_by_priority, SPECIAL_AUTO_ID, is_valid_llm_name
@@ -3133,7 +3133,7 @@ class CreateScheduleTask(PlanTask):
         # ExportFrappeGantt.save(project_schedule, self.output()['frappe'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
         ExportMermaidGantt.save(project_schedule, self.output()['mermaid'].path)
 
-        ExportDHTMLXGantt.save(
+        ExportGanttDHTMLX.save(
             project_schedule, 
             self.output()['dhtmlx'].path, 
             task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities,

@@ -6,7 +6,7 @@ I'm a developer, not a license lawyer. DHTMLX Gantt is GPL. PlanExe is MIT.
 AFAIK, linking to a GPL component via a CDN from an MIT-licensed project is 
 considered compatible and does not force the MIT project code to become GPL.
 
-PROMPT> python -m planexe.schedule.export_dhtmlx_gantt
+PROMPT> python -m planexe.schedule.export_gantt_dhtmlx
 """
 from datetime import date, timedelta
 import json
@@ -15,7 +15,7 @@ import importlib.resources
 from planexe.schedule.schedule import ProjectSchedule, DependencyType, PredecessorInfo
 from planexe.utils.dedent_strip import dedent_strip
 
-class ExportDHTMLXGantt:
+class ExportGanttDHTMLX:
     @staticmethod
     def _dep_summary(preds: list[PredecessorInfo]) -> str:
         """Return 'A FS, B SS+2' etc. for the tooltip/label."""
@@ -90,7 +90,7 @@ class ExportDHTMLXGantt:
                 "duration": float(act.duration),
                 "progress": 0,
                 "open": True,
-                "meta": ExportDHTMLXGantt._dep_summary(act.parsed_predecessors)
+                "meta": ExportGanttDHTMLX._dep_summary(act.parsed_predecessors)
             }
             if act.parent_id:
                 task["parent"] = act.parent_id
@@ -111,7 +111,7 @@ class ExportDHTMLXGantt:
                     "id": f"link_{link_id}",
                     "source": pred.activity_id,
                     "target": act.id,
-                    "type": ExportDHTMLXGantt._get_dhtmlx_link_type(pred.dep_type),
+                    "type": ExportGanttDHTMLX._get_dhtmlx_link_type(pred.dep_type),
                     "lag": float(pred.lag)
                 }
                 links.append(link)
@@ -146,7 +146,7 @@ class ExportDHTMLXGantt:
         task_ids_to_treat_as_project_activities = kwargs.get("task_ids_to_treat_as_project_activities", set())
         task_id_to_tooltip_dict = kwargs.get("task_id_to_tooltip_dict", {})
         
-        gantt_data = ExportDHTMLXGantt.to_dhtmlx_gantt_data(
+        gantt_data = ExportGanttDHTMLX.to_dhtmlx_gantt_data(
             project_schedule, 
             project_start, 
             task_ids_to_treat_as_project_activities, 
@@ -154,7 +154,7 @@ class ExportDHTMLXGantt:
         )
         gantt_data_json = json.dumps(gantt_data, indent=2)
 
-        template_path = importlib.resources.files('planexe.schedule') / 'export_dhtmlx_gantt_template.html'
+        template_path = importlib.resources.files('planexe.schedule') / 'export_gantt_dhtmlx_template.html'
         with importlib.resources.as_file(template_path) as path_to_template:
             with open(path_to_template, "r", encoding="utf-8") as f:
                 html_template = f.read()
@@ -183,4 +183,4 @@ if __name__ == "__main__":
     """)
 
     project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
-    ExportDHTMLXGantt.save(project_schedule, "dhtmlx_gantt.html") 
+    ExportGanttDHTMLX.save(project_schedule, "gantt_dhtmlx.html") 
