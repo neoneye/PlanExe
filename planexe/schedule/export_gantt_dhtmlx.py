@@ -13,6 +13,7 @@ import json
 import html
 import re
 import importlib.resources
+from typing import Optional
 from planexe.schedule.schedule import ProjectSchedule, DependencyType, PredecessorInfo
 from planexe.utils.dedent_strip import dedent_strip
 
@@ -159,8 +160,13 @@ class ExportGanttDHTMLX:
             • ``None``         → today (``date.today()``)
         title
             Shown at the top of the chart.
+        csv_data
+            CSV data to embed in the HTML file.
+            If ``None``, the "Export to CSV" button is hidden.
+            If a string, it's the CSV data, eg: `"hello;csv;world"` and the button is shown.
         """
         title = kwargs.get("title", "Project schedule")
+        csv_data: Optional[str] = kwargs.get("csv_data", None)
         project_start = kwargs.get("project_start", None)
         task_ids_to_treat_as_project_activities = kwargs.get("task_ids_to_treat_as_project_activities", set())
         task_id_to_tooltip_dict = kwargs.get("task_id_to_tooltip_dict", {})
@@ -178,8 +184,6 @@ class ExportGanttDHTMLX:
             with open(path_to_template, "r", encoding="utf-8") as f:
                 html_template = f.read()
         
-        csv_data = "hello;csv;world"
-        # csv_data = None
         if csv_data:
             csv_data_value = f'"{csv_data}"'
         else:
@@ -213,5 +217,6 @@ if __name__ == "__main__":
         H;F(SF2),G;3;Multiple preds (G is FS default)
     """)
 
+    csv_data = "demo;of;csv;data"
     project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
-    ExportGanttDHTMLX.save(project_schedule, "gantt_dhtmlx.html") 
+    ExportGanttDHTMLX.save(project_schedule, "gantt_dhtmlx.html", csv_data=csv_data) 
