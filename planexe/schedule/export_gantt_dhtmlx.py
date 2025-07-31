@@ -62,9 +62,12 @@ class ExportGanttDHTMLX:
         return f'"PlanExe_Export_{sanitized}.csv"'
 
     @staticmethod
-    def _sanitize_csv_data(csv_data: str) -> str:
+    def _javascript_csv_data(csv_data: Optional[str]) -> str:
         """
-        Sanitize CSV data by replacing problematic characters with underscores.
+        Convert CSV data to a JavaScript-safe string value.
+        
+        If csv_data is None, returns "null".
+        If csv_data is a string, sanitizes it and wraps it in double quotes.
         
         Characters that can cause problems in CSV data and are replaced:
         - Double quotes (") - can break CSV parsing and JavaScript string literals
@@ -75,19 +78,22 @@ class ExportGanttDHTMLX:
         
         Parameters
         ----------
-        csv_data : str
-            The CSV data to sanitize
+        csv_data : Optional[str]
+            The CSV data to convert, or None
             
         Returns
         -------
         str
-            Sanitized CSV data with problematic characters replaced by underscores
+            JavaScript-safe string value: "null" if input is None, otherwise sanitized and quoted CSV data
         """
+        if csv_data is None:
+            return "null"
+        
         # Replace problematic characters with underscores
         sanitized = re.sub(r'[\t"\\]', '_', csv_data)
         # Replace newline with \n
         sanitized = sanitized.replace("\n", "\\n")
-        return sanitized
+        return f'"{sanitized}"'
 
     @staticmethod
     def to_dhtmlx_gantt_data(
@@ -213,18 +219,13 @@ class ExportGanttDHTMLX:
             with open(path_to_template, "r", encoding="utf-8") as f:
                 html_template = f.read()
         
-        if csv_data:
-            sanitized_csv_data = ExportGanttDHTMLX._sanitize_csv_data(csv_data)
-            csv_data_value = f'"{sanitized_csv_data}"'
-        else:
-            csv_data_value = "null"
-        
-        csv_filename = ExportGanttDHTMLX._javascript_csv_filename(title)
+        csv_data_value = ExportGanttDHTMLX._javascript_csv_data(csv_data)
+        csv_filename_value = ExportGanttDHTMLX._javascript_csv_filename(title)
 
         html_content = html_template.replace("PLACEHOLDER_TITLE", html.escape(title))
         html_content = html_content.replace("PLACEHOLDER_GANTT_DATA_DHTMLX", gantt_data_json)
         html_content = html_content.replace("PLACEHOLDER_GANTT_DATA_CSV", csv_data_value)
-        html_content = html_content.replace("PLACEHOLDER_GANTT_FILENAME_CSV", csv_filename)
+        html_content = html_content.replace("PLACEHOLDER_GANTT_FILENAME_CSV", csv_filename_value)
 
         with open(path, "w", encoding="utf-8") as fp:
             fp.write(html_content)
