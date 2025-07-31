@@ -43,9 +43,10 @@ class ExportGanttDHTMLX:
         }[dep_type]
 
     @staticmethod
-    def _format_csv_filename(title: str) -> str:
+    def _javascript_csv_filename(title: str) -> str:
         """
         Convert title to a sanitized filename for the CSV file.
+        The filename is wrapped in double quotes.
         
         Parameters
         ----------
@@ -55,10 +56,10 @@ class ExportGanttDHTMLX:
         Returns
         -------
         str
-            A sanitized filename with format 'PlanExe_Export_{sanitized_title}.csv'
+            A sanitized filename with format '"PlanExe_Export_{sanitized_title}.csv"'
         """
         sanitized = re.sub(r'[^a-zA-Z0-9]+', '_', title).strip('_') or "MissingTitle"
-        return f"PlanExe_Export_{sanitized}.csv"
+        return f'"PlanExe_Export_{sanitized}.csv"'
 
     @staticmethod
     def _sanitize_csv_data(csv_data: str) -> str:
@@ -218,13 +219,12 @@ class ExportGanttDHTMLX:
         else:
             csv_data_value = "null"
         
-        csv_filename = ExportGanttDHTMLX._format_csv_filename(title)
-        csv_filename_value = f'"{csv_filename}"'
+        csv_filename = ExportGanttDHTMLX._javascript_csv_filename(title)
 
         html_content = html_template.replace("PLACEHOLDER_TITLE", html.escape(title))
         html_content = html_content.replace("PLACEHOLDER_GANTT_DATA_DHTMLX", gantt_data_json)
         html_content = html_content.replace("PLACEHOLDER_GANTT_DATA_CSV", csv_data_value)
-        html_content = html_content.replace("PLACEHOLDER_GANTT_FILENAME_CSV", csv_filename_value)
+        html_content = html_content.replace("PLACEHOLDER_GANTT_FILENAME_CSV", csv_filename)
 
         with open(path, "w", encoding="utf-8") as fp:
             fp.write(html_content)
