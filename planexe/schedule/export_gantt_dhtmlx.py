@@ -11,6 +11,7 @@ PROMPT> python -m planexe.schedule.export_gantt_dhtmlx
 from datetime import date, timedelta
 import json
 import html
+import re
 import importlib.resources
 from planexe.schedule.schedule import ProjectSchedule, DependencyType, PredecessorInfo
 from planexe.utils.dedent_strip import dedent_strip
@@ -39,6 +40,24 @@ class ExportGanttDHTMLX:
             DependencyType.FF: "2",  # finish_to_finish
             DependencyType.SF: "3"   # start_to_finish
         }[dep_type]
+
+    @staticmethod
+    def _format_csv_filename(title: str) -> str:
+        """
+        Convert title to a sanitized filename for the CSV file.
+        
+        Parameters
+        ----------
+        title : str
+            The title to convert to a filename
+            
+        Returns
+        -------
+        str
+            A sanitized filename with format 'PlanExe_Export_{sanitized_title}.csv'
+        """
+        sanitized_title = re.sub(r'[^a-zA-Z0-9]+', '_', title).strip('_') or "MissingTitle"
+        return f"PlanExe_Export_{sanitized_title}.csv"
 
     @staticmethod
     def to_dhtmlx_gantt_data(
@@ -166,7 +185,7 @@ class ExportGanttDHTMLX:
         else:
             csv_data_value = "null"
         
-        csv_filename = "planexe_export.csv"
+        csv_filename = ExportGanttDHTMLX._format_csv_filename(title)
         csv_filename_value = f'"{csv_filename}"'
 
         html_content = html_template.replace("PLACEHOLDER_TITLE", html.escape(title))
