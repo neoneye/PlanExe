@@ -89,6 +89,9 @@
     // When a string, it's the CSV data, eg: `"hello;csv;world"` and the button is shown.
     const GANTT_DATA_CSV = PLACEHOLDER_GANTT_DATA_CSV;
 
+    // This must be a string, eg: `"planexe_export.csv"`
+    const GANTT_FILENAME_CSV = PLACEHOLDER_GANTT_FILENAME_CSV;
+
     // This must be json. It's not a string.
     const GANTT_DATA_DHTMLX = PLACEHOLDER_GANTT_DATA_DHTMLX;
 
@@ -208,7 +211,7 @@
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
-        link.setAttribute('download', 'planexe_export.csv');
+        link.setAttribute('download', GANTT_FILENAME_CSV);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();

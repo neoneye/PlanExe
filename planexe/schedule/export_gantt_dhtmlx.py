@@ -165,10 +165,14 @@ class ExportGanttDHTMLX:
             csv_data_value = f'"{csv_data}"'
         else:
             csv_data_value = "null"
+        
+        csv_filename = "planexe_export.csv"
+        csv_filename_value = f'"{csv_filename}"'
 
         html_content = html_template.replace("PLACEHOLDER_TITLE", html.escape(title))
         html_content = html_content.replace("PLACEHOLDER_GANTT_DATA_DHTMLX", gantt_data_json)
         html_content = html_content.replace("PLACEHOLDER_GANTT_DATA_CSV", csv_data_value)
+        html_content = html_content.replace("PLACEHOLDER_GANTT_FILENAME_CSV", csv_filename_value)
 
         with open(path, "w", encoding="utf-8") as fp:
             fp.write(html_content)
