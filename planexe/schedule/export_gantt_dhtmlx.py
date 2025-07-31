@@ -57,8 +57,36 @@ class ExportGanttDHTMLX:
         str
             A sanitized filename with format 'PlanExe_Export_{sanitized_title}.csv'
         """
-        sanitized_title = re.sub(r'[^a-zA-Z0-9]+', '_', title).strip('_') or "MissingTitle"
-        return f"PlanExe_Export_{sanitized_title}.csv"
+        sanitized = re.sub(r'[^a-zA-Z0-9]+', '_', title).strip('_') or "MissingTitle"
+        return f"PlanExe_Export_{sanitized}.csv"
+
+    @staticmethod
+    def _sanitize_csv_data(csv_data: str) -> str:
+        """
+        Sanitize CSV data by replacing problematic characters with underscores.
+        
+        Characters that can cause problems in CSV data and are replaced:
+        - Double quotes (") - can break CSV parsing and JavaScript string literals
+        - Backslashes (\\\\) - can cause escaping issues in JavaScript
+        - Tabs (\\t) - can interfere with CSV parsing
+
+        Newlines are replaced with \\n.
+        
+        Parameters
+        ----------
+        csv_data : str
+            The CSV data to sanitize
+            
+        Returns
+        -------
+        str
+            Sanitized CSV data with problematic characters replaced by underscores
+        """
+        # Replace problematic characters with underscores
+        sanitized = re.sub(r'[\t"\\]', '_', csv_data)
+        # Replace newline with \n
+        sanitized = sanitized.replace("\n", "\\n")
+        return sanitized
 
     @staticmethod
     def to_dhtmlx_gantt_data(
@@ -185,7 +213,8 @@ class ExportGanttDHTMLX:
                 html_template = f.read()
         
         if csv_data:
-            csv_data_value = f'"{csv_data}"'
+            sanitized_csv_data = ExportGanttDHTMLX._sanitize_csv_data(csv_data)
+            csv_data_value = f'"{sanitized_csv_data}"'
         else:
             csv_data_value = "null"
         
@@ -217,6 +246,6 @@ if __name__ == "__main__":
         H;F(SF2),G;3;Multiple preds (G is FS default)
     """)
 
-    csv_data = "demo;of;csv;data"
+    csv_data = "de\"mo;of;csv\na;\tb\t;c\nx;y;z"
     project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
     ExportGanttDHTMLX.save(project_schedule, "gantt_dhtmlx.html", csv_data=csv_data) 
