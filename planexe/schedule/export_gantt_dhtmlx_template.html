@@ -85,6 +85,13 @@
 
 <!--HTML_BODY_SCRIPT_START-->
 <script type="module">
+    // When `null`, the "Export to CSV" button is hidden.
+    // When a string, it's the CSV data, eg: `"hello;csv;world"` and the button is shown.
+    const GANTT_DATA_CSV = PLACEHOLDER_GANTT_DATA_CSV;
+
+    // This must be json. It's not a string.
+    const GANTT_DATA_DHTMLX = PLACEHOLDER_GANTT_DATA_DHTMLX;
+
     function zoomFit() {
         const tasks = gantt.getTaskByTime();
         if (tasks.length > 0) {
@@ -193,6 +200,21 @@
         gantt.render();
     }
 
+    function downloadCSV() {
+        if (GANTT_DATA_CSV === null) {
+            return;
+        }
+        const blob = new Blob([GANTT_DATA_CSV], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'planexe_export.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
     // Gantt Initialization
     gantt.config.readonly = true;
     gantt.config.date_format = "%Y-%m-%d";
@@ -219,7 +241,6 @@
         return task.custom_tooltip || "No tooltip";
     };
     
-    const gantt_data_dhtmlx = PLACEHOLDER_GANTT_DATA_DHTMLX;
 	gantt.plugins({
 		tooltip: true
 	});
@@ -228,22 +249,11 @@
 		tooltips.tooltip.setViewport(gantt.$task_data);
 	});
     gantt.init("gantt_container");
-    gantt.parse(gantt_data_dhtmlx);
+    gantt.parse(GANTT_DATA_DHTMLX);
 
-    // CSV content embedded in the page
-    const csvContent = "hello;csv;world";
-    
-    // Function to download CSV
-    function downloadCSV() {
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', 'export.csv');
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    // Hide the export to CSV button if there is no CSV data
+    if (GANTT_DATA_CSV === null) {
+        document.getElementById('exportToCSVButton').style.display = 'none';
     }
 
     document.getElementById('zoomFitButton').addEventListener('click', zoomFit);

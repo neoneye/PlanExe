@@ -159,8 +159,16 @@ class ExportGanttDHTMLX:
             with open(path_to_template, "r", encoding="utf-8") as f:
                 html_template = f.read()
         
+        csv_data = "hello;csv;world"
+        # csv_data = None
+        if csv_data:
+            csv_data_value = f'"{csv_data}"'
+        else:
+            csv_data_value = "null"
+
         html_content = html_template.replace("PLACEHOLDER_TITLE", html.escape(title))
         html_content = html_content.replace("PLACEHOLDER_GANTT_DATA_DHTMLX", gantt_data_json)
+        html_content = html_content.replace("PLACEHOLDER_GANTT_DATA_CSV", csv_data_value)
 
         with open(path, "w", encoding="utf-8") as fp:
             fp.write(html_content)
