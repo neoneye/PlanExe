@@ -219,7 +219,7 @@
         return task.custom_tooltip || "No tooltip";
     };
     
-    const gantt_data = PLACEHOLDER_GANTT_DATA;
+    const gantt_data_dhtmlx = PLACEHOLDER_GANTT_DATA_DHTMLX;
 	gantt.plugins({
 		tooltip: true
 	});
@@ -228,7 +228,7 @@
 		tooltips.tooltip.setViewport(gantt.$task_data);
 	});
     gantt.init("gantt_container");
-    gantt.parse(gantt_data);
+    gantt.parse(gantt_data_dhtmlx);
 
     // CSV content embedded in the page
     const csvContent = "hello;csv;world";
