@@ -3125,6 +3125,10 @@ class CreateScheduleTask(PlanTask):
             duration_list=duration_list
         )
 
+        csv_data: str = ExportGanttToCSV.to_gantt_to_csv(project_schedule)
+
+        ExportGanttToCSV.save(project_schedule, self.output()['machai'].path)
+
         # Identify the tasks that should be treated as project activities.
         task_ids_to_treat_as_project_activities = wbs_project.task_ids_with_one_or_more_children()
 
@@ -3135,10 +3139,9 @@ class CreateScheduleTask(PlanTask):
             project_schedule, 
             self.output()['dhtmlx'].path, 
             task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities,
-            task_id_to_tooltip_dict=task_id_to_tooltip_dict
+            task_id_to_tooltip_dict=task_id_to_tooltip_dict,
+            csv_data=csv_data
         )
-
-        ExportGanttToCSV.save(project_schedule, self.output()['machai'].path)
 
 class ReviewPlanTask(PlanTask):
     """
