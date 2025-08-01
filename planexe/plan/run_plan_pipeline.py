@@ -3091,9 +3091,9 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
 class CreateScheduleTask(PlanTask):
     def output(self):
         return {
-            'mermaid': self.local_target(FilenameEnum.SCHEDULE_GANTT_MERMAID_HTML),
-            'dhtmlx': self.local_target(FilenameEnum.SCHEDULE_GANTT_DHTMLX_HTML),
-            'machai': self.local_target(FilenameEnum.SCHEDULE_GANTT_MACHAI_CSV)
+            'mermaid_html': self.local_target(FilenameEnum.SCHEDULE_GANTT_MERMAID_HTML),
+            'dhtmlx_html': self.local_target(FilenameEnum.SCHEDULE_GANTT_DHTMLX_HTML),
+            'machai_csv': self.local_target(FilenameEnum.SCHEDULE_GANTT_MACHAI_CSV)
         }
     
     def requires(self):
@@ -3130,17 +3130,17 @@ class CreateScheduleTask(PlanTask):
 
         csv_data: str = ExportGanttToCSV.to_gantt_to_csv(project_schedule)
 
-        ExportGanttToCSV.save(project_schedule, self.output()['machai'].path)
+        ExportGanttToCSV.save(project_schedule, self.output()['machai_csv'].path)
 
         # Identify the tasks that should be treated as project activities.
         task_ids_to_treat_as_project_activities = wbs_project.task_ids_with_one_or_more_children()
 
-        # ExportGanttFrappe.save(project_schedule, self.output()['frappe'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
-        ExportGanttMermaid.save(project_schedule, self.output()['mermaid'].path)
+        # ExportGanttFrappe.save(project_schedule, self.output()['frappe_html'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
+        ExportGanttMermaid.save(project_schedule, self.output()['mermaid_html'].path)
 
         ExportGanttDHTMLX.save(
             project_schedule, 
-            self.output()['dhtmlx'].path, 
+            self.output()['dhtmlx_html'].path, 
             task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities,
             task_id_to_tooltip_dict=task_id_to_tooltip_dict,
             title=title,
@@ -3435,8 +3435,8 @@ class ReportTask(PlanTask):
         rg = ReportGenerator()
         rg.append_markdown('Initial Plan', self.input()['setup'].path, css_classes=['section-initial-plan-hidden'])
         rg.append_markdown('Executive Summary', self.input()['executive_summary']['markdown'].path)
-        rg.append_html('Gantt Overview', self.input()['create_schedule']['mermaid'].path)
-        rg.append_html('Gantt Interactive', self.input()['create_schedule']['dhtmlx'].path)
+        rg.append_html('Gantt Overview', self.input()['create_schedule']['mermaid_html'].path)
+        rg.append_html('Gantt Interactive', self.input()['create_schedule']['dhtmlx_html'].path)
         rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
         rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
         rg.append_markdown('Strategic Decisions', self.input()['strategic_decisions_markdown']['markdown'].path)
