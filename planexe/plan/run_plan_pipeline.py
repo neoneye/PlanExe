@@ -3098,13 +3098,16 @@ class CreateScheduleTask(PlanTask):
     
     def requires(self):
         return {
+            'wbs_level1': self.clone(CreateWBSLevel1Task),
             'dependencies': self.clone(IdentifyTaskDependenciesTask),
             'durations': self.clone(EstimateTaskDurationsTask),
             'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task)
         }
     
     def run_inner(self):
-        # Read inputs from required tasks.
+        # For the report title, use the 'project_title' of the WBS Level 1 result.
+        with self.input()['wbs_level1']['project_title'].open("r") as f:
+            title = f.read()
         with self.input()['dependencies'].open("r") as f:
             dependencies_dict = json.load(f)
         with self.input()['durations'].open("r") as f:
@@ -3140,6 +3143,7 @@ class CreateScheduleTask(PlanTask):
             self.output()['dhtmlx'].path, 
             task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities,
             task_id_to_tooltip_dict=task_id_to_tooltip_dict,
+            title=title,
             csv_data=csv_data
         )
 
