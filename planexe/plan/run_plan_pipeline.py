@@ -16,7 +16,7 @@ from typing import Any, Optional
 import luigi
 from pathlib import Path
 from llama_index.core.llms.llm import LLM
-
+from planexe.plan.pipeline_config import PIPELINE_CONFIG
 from planexe.lever.deduplicate_levers import DeduplicateLevers
 from planexe.lever.scenarios_markdown import ScenariosMarkdown
 from planexe.lever.strategic_decisions_markdown import StrategicDecisionsMarkdown
@@ -3128,16 +3128,26 @@ class CreateScheduleTask(PlanTask):
             duration_list=duration_list
         )
 
-        csv_data: str = ExportGanttToCSV.to_gantt_csv(project_schedule)
+        # Export the Gantt chart to CSV.
+        # Always run the CSV export so that the code gets exercised, otherwise the code will rot.
+        csv_data: str | None = ExportGanttToCSV.to_gantt_csv(project_schedule)
+        if PIPELINE_CONFIG.enable_csv_export == False:
+            # When disabled, then hide the "Export to CSV" button and don't embed the CSV data in the html report.
+            csv_data = None
 
-        ExportGanttToCSV.save(project_schedule, self.output()['machai_csv'].path)
+        ExportGanttToCSV.save(project_schedule, self.output()['machai_csv'].path, csv_data=csv_data)
 
         # Identify the tasks that should be treated as project activities.
         task_ids_to_treat_as_project_activities = wbs_project.task_ids_with_one_or_more_children()
 
+        # Export the Gantt chart to Frappe.
+        # I'm disappointed by Frappe, it lacks a lot of features that are present in DHTMLX.
         # ExportGanttFrappe.save(project_schedule, self.output()['frappe_html'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
+
+        # Export the Gantt chart to Mermaid.
         ExportGanttMermaid.save(project_schedule, self.output()['mermaid_html'].path)
 
+        # Export the Gantt chart to DHTMLX.
         ExportGanttDHTMLX.save(
             project_schedule, 
             self.output()['dhtmlx_html'].path, 
