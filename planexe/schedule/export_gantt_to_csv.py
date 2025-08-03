@@ -13,7 +13,7 @@ class ExportGanttToCSV:
         return text
     
     @staticmethod
-    def to_gantt_to_csv(
+    def to_gantt_csv(
         project_schedule: ProjectSchedule
     ) -> str:
         project_start = date.today()
@@ -90,7 +90,7 @@ class ExportGanttToCSV:
 
     @staticmethod
     def save(project_schedule: ProjectSchedule, path: str, **kwargs) -> None:
-        csv_text = ExportGanttToCSV.to_gantt_to_csv(project_schedule)
+        csv_text = ExportGanttToCSV.to_gantt_csv(project_schedule)
         with open(path, "w", encoding="utf-8") as f:
             f.write(csv_text)
 

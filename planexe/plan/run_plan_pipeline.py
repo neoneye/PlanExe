@@ -3128,7 +3128,7 @@ class CreateScheduleTask(PlanTask):
             duration_list=duration_list
         )
 
-        csv_data: str = ExportGanttToCSV.to_gantt_to_csv(project_schedule)
+        csv_data: str = ExportGanttToCSV.to_gantt_csv(project_schedule)
 
         ExportGanttToCSV.save(project_schedule, self.output()['machai_csv'].path)
 
