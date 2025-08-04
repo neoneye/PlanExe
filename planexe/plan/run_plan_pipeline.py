@@ -3142,9 +3142,8 @@ class CreateScheduleTask(PlanTask):
 
         ExportGanttCSV.save(
             project_schedule, 
-            self.output()['machai_csv'].path, 
-            task_id_to_tooltip_dict=task_id_to_text_tooltip_dict, 
-            csv_data=csv_data
+            self.output()['machai_csv'].path,
+            task_id_to_tooltip_dict=task_id_to_text_tooltip_dict
         )
 
         # Identify the tasks that should be treated as project activities.
