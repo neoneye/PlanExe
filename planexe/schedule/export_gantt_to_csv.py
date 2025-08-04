@@ -8,8 +8,11 @@ class ExportGanttToCSV:
     @staticmethod
     def _escape_cell(text: str) -> str:
         """Replace characters that could break CSV syntax."""
-        text = text.replace(':', '\\:')
-        text = text.replace(';', '\\;')
+        text = text.replace(':', '_')
+        text = text.replace(';', '_')
+        text = text.replace('\'', '_')
+        text = text.replace('\"', '_')
+        text = text.replace('\n', '\\n')
         return text
     
     @staticmethod
@@ -21,7 +24,6 @@ class ExportGanttToCSV:
 
         separator = ";"
 
-
         column_names: list[str] = [
             "project_key",
             "project_name",
@@ -31,8 +33,6 @@ class ExportGanttToCSV:
             "project_end_date",
             "project_progress",
             "parent_project_key",
-            "parent_project_name",
-            "dependent_on_parent_project_key",
         ]
         row0 = separator.join(column_names)
         rows: list[str] = [row0]
@@ -43,8 +43,11 @@ class ExportGanttToCSV:
             activity_start = project_start + timedelta(days=float(act.es))
             activity_end = activity_start + timedelta(days=float(act.duration))
 
-            name = act.title if act.title else act.id
-            label = ExportGanttToCSV._escape_cell(name)
+            project_name_raw = act.title if act.title else act.id
+
+            # use \n to separate the lines.
+            # project_description_raw = act.description if act.description else ""
+            project_description_raw = task_id_to_tooltip_dict.get(act.id, "No description")
 
             # Use the first predecessor as the parent, Ignore the rest.
             parent_id = None
@@ -54,23 +57,18 @@ class ExportGanttToCSV:
             # print(f"parent_id: {parent_id}")
 
             project_key = act.id
-            project_name = "Sample Upload Project 1"
-            originating_department = "PlanExe Team"
-            project_description = label
+            project_name = ExportGanttToCSV._escape_cell(project_name_raw)
+            originating_department = "PlanExe"
+            project_description = ExportGanttToCSV._escape_cell(project_description_raw)
             project_start_date = activity_start.strftime("%-m/%-d/%Y")
             project_end_date = activity_end.strftime("%-m/%-d/%Y")
             project_progress = "0"
             parent_project_key = ""
-            parent_project_name = ""
-            dependent_on_parent_project_key = ""
 
             if parent_id is not None:
                 parent_activity = project_schedule.activities.get(parent_id)
                 if parent_activity is not None:
                     parent_project_key = parent_activity.id
-                    parent_project_name_raw = parent_activity.title if parent_activity.title else parent_activity.id
-                    parent_project_name = ExportGanttToCSV._escape_cell(parent_project_name_raw)
-                    dependent_on_parent_project_key = parent_activity.id
 
             column_values: list[str] = [
                 project_key,
@@ -81,8 +79,6 @@ class ExportGanttToCSV:
                 project_end_date,
                 project_progress,
                 parent_project_key,
-                parent_project_name,
-                dependent_on_parent_project_key,
             ]
             row = separator.join(column_values)
             rows.append(row)
@@ -113,6 +109,14 @@ if __name__ == "__main__":
     """)
 
     project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
-    # Create an empty tooltip dict for the test example
-    task_id_to_tooltip_dict = {}
+    # Edge case texts that can break the CSV syntax.
+    task_id_to_tooltip_dict = {
+        'A': 'A tooltip', 
+        'B': 'Bline1\nBline2\nBline3', 
+        'C': 'C;C;C', 
+        'D': 'D:D:D',
+        'E': 'E\nE\\nE\\\nE\\\\nE',
+        'F': '"',
+        'G': '\\"',
+    }
     ExportGanttToCSV.save(project_schedule, "gantt.csv", task_id_to_tooltip_dict) 
