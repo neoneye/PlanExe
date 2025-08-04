@@ -65,6 +65,11 @@ class ExportGanttCSV:
             project_key = act.id
             project_name = ExportGanttCSV._escape_cell(project_name_raw)
             project_description = ExportGanttCSV._escape_cell(project_description_raw)
+
+            # No need for a description when it's the identical to the the name.
+            if project_description == project_name:
+                project_description = ""
+
             project_start_date = activity_start.strftime("%-m/%-d/%Y")
             project_end_date = activity_end.strftime("%-m/%-d/%Y")
             project_progress = "0"

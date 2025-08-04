@@ -37,7 +37,7 @@ class TestExportGanttCSV(unittest.TestCase):
             'A': 'A tooltip', 
             'B': 'Bline1\nBline2\nBline3', 
             'C': 'C;C;C', 
-            'D': 'D:D:D',
+            'D': 'TitleD',
             'E': 'E\nE\\nE\\\nE\\\\nE',
             'F': '"',
             'G': '\\"',
@@ -53,6 +53,6 @@ class TestExportGanttCSV(unittest.TestCase):
         self.assertIn("E;TitleE;E\\nE\\nE\\\\nE\\\\nE;8/6/2025;8/7/2025;0;C;PlanExe", s)
         self.assertIn("F;TitleF;_;8/7/2025;8/9/2025;0;C;PlanExe", s)
         self.assertIn("B;TitleB;Bline1\\nBline2\\nBline3;8/9/2025;8/11/2025;0;A;PlanExe", s)
-        self.assertIn("D;TitleD;D:D:D;8/10/2025;8/14/2025;0;B;PlanExe", s)
+        self.assertIn("D;TitleD;;8/10/2025;8/14/2025;0;B;PlanExe", s)
         self.assertIn("G;TitleG;\\_;8/11/2025;8/15/2025;0;D;PlanExe", s)
         self.assertIn("H;TitleH;No description;8/15/2025;8/18/2025;0;F;PlanExe", s)
