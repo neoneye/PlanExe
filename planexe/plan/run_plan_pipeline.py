@@ -76,7 +76,7 @@ from planexe.team.team_markdown_document import TeamMarkdownDocumentBuilder
 from planexe.team.review_team import ReviewTeam
 from planexe.wbs.wbs_task import WBSTask, WBSProject
 from planexe.wbs.wbs_populate import WBSPopulate
-from planexe.wbs.wbs_task_html_tooltip import WBSTaskHTMLTooltip
+from planexe.wbs.wbs_task_tooltip import WBSTaskTooltip
 from planexe.schedule.project_schedule_populator import ProjectSchedulePopulator
 from planexe.schedule.schedule import ProjectSchedule
 from planexe.schedule.export_gantt_dhtmlx import ExportGanttDHTMLX
@@ -3121,7 +3121,7 @@ class CreateScheduleTask(PlanTask):
         # logger.debug(f"duration_list {duration_list}")
         # logger.debug(f"wbs_project {wbs_project.to_dict()}")
 
-        task_id_to_tooltip_dict: dict[str, str] = WBSTaskHTMLTooltip.html_tooltips(wbs_project)
+        task_id_to_tooltip_dict: dict[str, str] = WBSTaskTooltip.html_tooltips(wbs_project)
 
         project_schedule: ProjectSchedule = ProjectSchedulePopulator.populate(
             wbs_project=wbs_project,
