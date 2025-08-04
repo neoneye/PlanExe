@@ -67,14 +67,7 @@ class ExportGanttDHTMLX:
         Convert CSV data to a JavaScript-safe string value.
         
         If csv_data is None, returns "null".
-        If csv_data is a string, sanitizes it and wraps it in double quotes.
-        
-        Characters that can cause problems in CSV data and are replaced:
-        - Double quotes (") - can break CSV parsing and JavaScript string literals
-        - Backslashes (\\\\) - can cause escaping issues in JavaScript
-        - Tabs (\\t) - can interfere with CSV parsing
-
-        Newlines are replaced with \\n.
+        If csv_data is a string, convert it to a JavaScript-safe string value.
         
         Parameters
         ----------
@@ -88,12 +81,8 @@ class ExportGanttDHTMLX:
         """
         if csv_data is None:
             return "null"
-        
-        # Replace problematic characters with underscores
-        sanitized = re.sub(r'[\t"\\]', '_', csv_data)
-        # Replace newline with \n
-        sanitized = sanitized.replace("\n", "\\n")
-        return f'"{sanitized}"'
+
+        return json.dumps(csv_data)
 
     @staticmethod
     def to_dhtmlx_gantt_data(
