@@ -3121,7 +3121,9 @@ class CreateScheduleTask(PlanTask):
         # logger.debug(f"duration_list {duration_list}")
         # logger.debug(f"wbs_project {wbs_project.to_dict()}")
 
-        task_id_to_tooltip_dict: dict[str, str] = WBSTaskTooltip.html_tooltips(wbs_project)
+        # Tooltips with a detailed description of each task.
+        task_id_to_html_tooltip_dict: dict[str, str] = WBSTaskTooltip.html_tooltips(wbs_project)
+        task_id_to_text_tooltip_dict: dict[str, str] = WBSTaskTooltip.text_tooltips(wbs_project)
 
         project_schedule: ProjectSchedule = ProjectSchedulePopulator.populate(
             wbs_project=wbs_project,
@@ -3130,12 +3132,20 @@ class CreateScheduleTask(PlanTask):
 
         # Export the Gantt chart to CSV.
         # Always run the CSV export so that the code gets exercised, otherwise the code will rot.
-        csv_data: str | None = ExportGanttToCSV.to_gantt_csv(project_schedule)
+        csv_data: str = ExportGanttToCSV.to_gantt_csv(
+            project_schedule=project_schedule, 
+            task_id_to_tooltip_dict=task_id_to_text_tooltip_dict
+        )
         if PIPELINE_CONFIG.enable_csv_export == False:
             # When disabled, then hide the "Export to CSV" button and don't embed the CSV data in the html report.
             csv_data = None
 
-        ExportGanttToCSV.save(project_schedule, self.output()['machai_csv'].path, csv_data=csv_data)
+        ExportGanttToCSV.save(
+            project_schedule, 
+            self.output()['machai_csv'].path, 
+            task_id_to_tooltip_dict=task_id_to_text_tooltip_dict, 
+            csv_data=csv_data
+        )
 
         # Identify the tasks that should be treated as project activities.
         task_ids_to_treat_as_project_activities = wbs_project.task_ids_with_one_or_more_children()
@@ -3152,7 +3162,7 @@ class CreateScheduleTask(PlanTask):
             project_schedule, 
             self.output()['dhtmlx_html'].path, 
             task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities,
-            task_id_to_tooltip_dict=task_id_to_tooltip_dict,
+            task_id_to_tooltip_dict=task_id_to_html_tooltip_dict,
             title=title,
             csv_data=csv_data
         )

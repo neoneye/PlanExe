@@ -14,7 +14,8 @@ class ExportGanttToCSV:
     
     @staticmethod
     def to_gantt_csv(
-        project_schedule: ProjectSchedule
+        project_schedule: ProjectSchedule,
+        task_id_to_tooltip_dict: dict[str, str]
     ) -> str:
         project_start = date.today()
 
@@ -89,8 +90,8 @@ class ExportGanttToCSV:
         return "\n".join(rows)
 
     @staticmethod
-    def save(project_schedule: ProjectSchedule, path: str, **kwargs) -> None:
-        csv_text = ExportGanttToCSV.to_gantt_csv(project_schedule)
+    def save(project_schedule: ProjectSchedule, path: str, task_id_to_tooltip_dict: dict[str, str], **kwargs) -> None:
+        csv_text = ExportGanttToCSV.to_gantt_csv(project_schedule, task_id_to_tooltip_dict)
         with open(path, "w", encoding="utf-8") as f:
             f.write(csv_text)
 
@@ -112,4 +113,6 @@ if __name__ == "__main__":
     """)
 
     project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
-    ExportGanttToCSV.save(project_schedule, "gantt.csv") 
+    # Create an empty tooltip dict for the test example
+    task_id_to_tooltip_dict = {}
+    ExportGanttToCSV.save(project_schedule, "gantt.csv", task_id_to_tooltip_dict) 
