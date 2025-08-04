@@ -28,15 +28,15 @@ class WBSTaskTooltip:
             items.append(str(task.description))
 
             if 'final_deliverable' in fields:
-                items.append("Final deliverable:")
+                items.append("\nFinal deliverable:")
                 items.append(str(fields['final_deliverable']))
 
             if 'detailed_description' in fields:
-                items.append("Description:")
+                items.append("\nDescription:")
                 items.append(str(fields['detailed_description']))
 
             if 'resources_needed' in fields:
-                items.append("Resources needed:")
+                items.append("\nResources needed:")
                 items.append(format_list_as_text(fields['resources_needed']))
 
             if len(items) > 0:

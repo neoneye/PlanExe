@@ -26,7 +26,7 @@ class TestWBSTaskTooltip(unittest.TestCase):
         # Assert
         tooltip = task_id_to_tooltip_dict["2900c638-8e2a-4b7b-96ea-e096a7bc8b5e"]
         self.assertIn("Denmark Solar Farm", tooltip)
-        self.assertIn("Final deliverable:\nOperational Solar Farm", tooltip)
+        self.assertIn("\n\nFinal deliverable:\nOperational Solar Farm", tooltip)
 
     def test_text_tooltips_task_with_children(self):
         # Arrange
@@ -38,7 +38,7 @@ class TestWBSTaskTooltip(unittest.TestCase):
         # Assert
         tooltip = task_id_to_tooltip_dict["2d6452f9-274f-4160-aca4-642e9b0c6446"]
         self.assertIn("Obtain Land Permit", tooltip)
-        self.assertIn("Resources needed:", tooltip)
+        self.assertIn("\n\nResources needed:\n", tooltip)
         self.assertIn("• Land permit", tooltip)
         
     def test_html_tooltips_root_task(self):
