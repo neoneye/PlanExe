@@ -1,4 +1,11 @@
 """
+CSV serialization of the gantt chart data.
+
+In my opinion CSV is a terrible format for PlanExe data.
+With CSV it's uncertain what symbols are allowed. So I'm purging the symbols that are known to break the CSV syntax.
+Extra data about the tasks aren't stored in the CSV file.
+For a serialization/deserialization then json or xml will be a better choice.
+
 PROMPT> python -m planexe.schedule.export_gantt_csv
 """
 from datetime import date, timedelta
@@ -86,7 +93,7 @@ class ExportGanttCSV:
         return "\n".join(rows)
 
     @staticmethod
-    def save(project_schedule: ProjectSchedule, path: str, task_id_to_tooltip_dict: dict[str, str], **kwargs) -> None:
+    def save(project_schedule: ProjectSchedule, path: str, task_id_to_tooltip_dict: dict[str, str]) -> None:
         csv_text = ExportGanttCSV.to_gantt_csv(project_schedule, task_id_to_tooltip_dict)
         with open(path, "w", encoding="utf-8") as f:
             f.write(csv_text)
@@ -98,25 +105,14 @@ if __name__ == "__main__":
 
     input = dedent_strip("""
         Activity;Predecessor;Duration;Comment
-        A;-;3;Start node
-        B;A(FS2);2;
-        C;A(SS);2; C starts when A starts
-        D;B(SS1);4; D starts 1 after B starts
-        E;C(SF3);1; E starts 3 after C finishes (E_ef >= C_es + 3)? No SF is Start-Finish E_lf >= C_es + lag + E_dur
-        F;C(FF3);2; F finishes 3 after C finishes
-        G;D(SS1),E;4;Multiple preds (E is FS default)
-        H;F(SF2),G;3;Multiple preds (G is FS default)
+        A;-;1;Start node
+        B;A(FS);2;
+        C;B(FS);3;
     """)
-
     project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
-    # Edge case texts that can break the CSV syntax.
     task_id_to_tooltip_dict = {
-        'A': 'A tooltip', 
-        'B': 'Bline1\nBline2\nBline3', 
-        'C': 'C;C;C', 
-        'D': 'D:D:D',
-        'E': 'E\nE\\nE\\\nE\\\\nE',
-        'F': '"',
-        'G': '\\"',
+        'A': 'TooltipA', 
+        'B': 'TooltipB', 
+        'C': 'TooltipC', 
     }
     ExportGanttCSV.save(project_schedule, "gantt.csv", task_id_to_tooltip_dict) 
