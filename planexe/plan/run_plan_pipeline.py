@@ -80,7 +80,7 @@ from planexe.wbs.wbs_task_tooltip import WBSTaskTooltip
 from planexe.schedule.project_schedule_populator import ProjectSchedulePopulator
 from planexe.schedule.schedule import ProjectSchedule
 from planexe.schedule.export_gantt_dhtmlx import ExportGanttDHTMLX
-from planexe.schedule.export_gantt_to_csv import ExportGanttToCSV
+from planexe.schedule.export_gantt_csv import ExportGanttCSV
 from planexe.schedule.export_gantt_mermaid import ExportGanttMermaid
 from planexe.llm_util.llm_executor import LLMExecutor, LLMModelFromName, ShouldStopCallbackParameters, PipelineStopRequested
 from planexe.llm_factory import get_llm_names_by_priority, SPECIAL_AUTO_ID, is_valid_llm_name
@@ -3132,7 +3132,7 @@ class CreateScheduleTask(PlanTask):
 
         # Export the Gantt chart to CSV.
         # Always run the CSV export so that the code gets exercised, otherwise the code will rot.
-        csv_data: str = ExportGanttToCSV.to_gantt_csv(
+        csv_data: str = ExportGanttCSV.to_gantt_csv(
             project_schedule=project_schedule, 
             task_id_to_tooltip_dict=task_id_to_text_tooltip_dict
         )
@@ -3140,7 +3140,7 @@ class CreateScheduleTask(PlanTask):
             # When disabled, then hide the "Export to CSV" button and don't embed the CSV data in the html report.
             csv_data = None
 
-        ExportGanttToCSV.save(
+        ExportGanttCSV.save(
             project_schedule, 
             self.output()['machai_csv'].path, 
             task_id_to_tooltip_dict=task_id_to_text_tooltip_dict, 

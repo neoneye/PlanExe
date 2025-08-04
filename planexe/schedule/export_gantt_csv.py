@@ -1,10 +1,10 @@
 """
-PROMPT> python -m planexe.schedule.export_gantt_to_csv
+PROMPT> python -m planexe.schedule.export_gantt_csv
 """
 from datetime import date, timedelta
 from planexe.schedule.schedule import ProjectSchedule, PredecessorInfo
 
-class ExportGanttToCSV:
+class ExportGanttCSV:
     @staticmethod
     def _escape_cell(text: str) -> str:
         """Replace characters that could break CSV syntax."""
@@ -57,9 +57,9 @@ class ExportGanttToCSV:
             # print(f"parent_id: {parent_id}")
 
             project_key = act.id
-            project_name = ExportGanttToCSV._escape_cell(project_name_raw)
+            project_name = ExportGanttCSV._escape_cell(project_name_raw)
             originating_department = "PlanExe"
-            project_description = ExportGanttToCSV._escape_cell(project_description_raw)
+            project_description = ExportGanttCSV._escape_cell(project_description_raw)
             project_start_date = activity_start.strftime("%-m/%-d/%Y")
             project_end_date = activity_end.strftime("%-m/%-d/%Y")
             project_progress = "0"
@@ -87,7 +87,7 @@ class ExportGanttToCSV:
 
     @staticmethod
     def save(project_schedule: ProjectSchedule, path: str, task_id_to_tooltip_dict: dict[str, str], **kwargs) -> None:
-        csv_text = ExportGanttToCSV.to_gantt_csv(project_schedule, task_id_to_tooltip_dict)
+        csv_text = ExportGanttCSV.to_gantt_csv(project_schedule, task_id_to_tooltip_dict)
         with open(path, "w", encoding="utf-8") as f:
             f.write(csv_text)
 
@@ -119,4 +119,4 @@ if __name__ == "__main__":
         'F': '"',
         'G': '\\"',
     }
-    ExportGanttToCSV.save(project_schedule, "gantt.csv", task_id_to_tooltip_dict) 
+    ExportGanttCSV.save(project_schedule, "gantt.csv", task_id_to_tooltip_dict) 
