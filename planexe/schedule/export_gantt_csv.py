@@ -15,7 +15,6 @@ class ExportGanttCSV:
     @staticmethod
     def _escape_cell(text: str) -> str:
         """Replace characters that could break CSV syntax."""
-        text = text.replace(':', '_')
         text = text.replace(';', '_')
         text = text.replace('\'', '_')
         text = text.replace('\"', '_')

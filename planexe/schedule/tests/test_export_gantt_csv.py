@@ -9,7 +9,7 @@ class TestExportGanttCSV(unittest.TestCase):
         """Symbols that can break the CSV syntax."""
         f = ExportGanttCSV._escape_cell
         self.assertEqual(f("A"), "A")
-        self.assertEqual(f("A:B"), "A_B")
+        self.assertEqual(f("A:B"), "A:B")
         self.assertEqual(f("A;B"), "A_B")
         self.assertEqual(f("A'B"), "A_B")
         self.assertEqual(f("A\"B"), "A_B")
@@ -53,6 +53,6 @@ class TestExportGanttCSV(unittest.TestCase):
         self.assertIn("E;TitleE;PlanExe;E\\nE\\nE\\\\nE\\\\nE;8/6/2025;8/7/2025;0;C", s)
         self.assertIn("F;TitleF;PlanExe;_;8/7/2025;8/9/2025;0;C", s)
         self.assertIn("B;TitleB;PlanExe;Bline1\\nBline2\\nBline3;8/9/2025;8/11/2025;0;A", s)
-        self.assertIn("D;TitleD;PlanExe;D_D_D;8/10/2025;8/14/2025;0;B", s)
+        self.assertIn("D;TitleD;PlanExe;D:D:D;8/10/2025;8/14/2025;0;B", s)
         self.assertIn("G;TitleG;PlanExe;\\_;8/11/2025;8/15/2025;0;D", s)
         self.assertIn("H;TitleH;PlanExe;No description;8/15/2025;8/18/2025;0;F", s)
