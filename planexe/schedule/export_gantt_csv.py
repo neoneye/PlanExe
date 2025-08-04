@@ -33,12 +33,12 @@ class ExportGanttCSV:
         column_names: list[str] = [
             "project_key",
             "project_name",
-            "originating_department",
             "project_description",
             "project_start_date",
             "project_end_date",
             "project_progress",
             "parent_project_key",
+            "originating_department",
         ]
         row0 = separator.join(column_names)
         rows: list[str] = [row0]
@@ -64,12 +64,12 @@ class ExportGanttCSV:
 
             project_key = act.id
             project_name = ExportGanttCSV._escape_cell(project_name_raw)
-            originating_department = "PlanExe"
             project_description = ExportGanttCSV._escape_cell(project_description_raw)
             project_start_date = activity_start.strftime("%-m/%-d/%Y")
             project_end_date = activity_end.strftime("%-m/%-d/%Y")
             project_progress = "0"
             parent_project_key = ""
+            originating_department = "PlanExe"
 
             if parent_id is not None:
                 parent_activity = project_schedule.activities.get(parent_id)
@@ -79,12 +79,12 @@ class ExportGanttCSV:
             column_values: list[str] = [
                 project_key,
                 project_name,
-                originating_department,
                 project_description,
                 project_start_date,
                 project_end_date,
                 project_progress,
                 parent_project_key,
+                originating_department,
             ]
             row = separator.join(column_values)
             rows.append(row)
