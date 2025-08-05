@@ -4,12 +4,12 @@ CSV serialization of the gantt chart data.
 In my opinion CSV is a terrible format for PlanExe data.
 With CSV it's uncertain what symbols are allowed. So I'm purging the symbols that are known to break the CSV syntax.
 Extra data about the tasks aren't stored in the CSV file.
-For a serialization/deserialization then json or xml will be a better choice.
+For proper serialization/deserialization then json or xml will be a better choice.
 
 PROMPT> python -m planexe.schedule.export_gantt_csv
 """
 from datetime import date, timedelta
-from planexe.schedule.schedule import ProjectSchedule, PredecessorInfo
+from planexe.schedule.schedule import ProjectSchedule
 
 class ExportGanttCSV:
     @staticmethod
@@ -45,22 +45,19 @@ class ExportGanttCSV:
 
         # order tasks by early‑start so the chart looks natural
         activities = sorted(project_schedule.activities.values(), key=lambda a: a.es)
-        for index, act in enumerate(activities, start=1):
+        for act in activities:
             activity_start = project_start + timedelta(days=float(act.es))
             activity_end = activity_start + timedelta(days=float(act.duration))
 
             project_name_raw = act.title if act.title else act.id
-
-            # use \n to separate the lines.
-            # project_description_raw = act.description if act.description else ""
             project_description_raw = task_id_to_tooltip_dict.get(act.id, "No description")
 
-            # Use the first predecessor as the parent, Ignore the rest.
+            # This is a kludge solution. Use the first predecessor as the parent, ignore the rest.
+            # This is the shortcoming of using CSV and not json or xml.
             parent_id = None
             for pred in act.parsed_predecessors:
                 parent_id = pred.activity_id
                 break
-            # print(f"parent_id: {parent_id}")
 
             project_key = act.id
             project_name = ExportGanttCSV._escape_cell(project_name_raw)
