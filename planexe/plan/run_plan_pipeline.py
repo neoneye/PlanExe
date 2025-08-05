@@ -7,11 +7,12 @@ If it's an already finished run, then remove the "999-pipeline_complete.txt" fil
 PROMPT> RUN_ID_DIR=/absolute/path/to/PlanExe_20250216_150332 python -m planexe.plan.run_plan_pipeline
 """
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 import html
 import logging
 import json
+import re
 from typing import Any, Optional
 import luigi
 from pathlib import Path
@@ -193,6 +194,42 @@ class SetupTask(PlanTask):
         plan_prompt = find_plan_prompt("4dc34d55-0d0d-4e9d-92f4-23765f49dd29")
         plan_file = PlanFile.create(plan_prompt)
         plan_file.save(self.output().path)
+
+
+class StartTimeTask(PlanTask):
+    """
+    Captures the timestamp when the pipeline was started
+    """
+    def output(self):
+        return self.local_target(FilenameEnum.START_TIME)
+
+    def run_inner(self):
+        # Get current time in UTC, rounded to seconds
+        utc_time = datetime.now(timezone.utc).replace(microsecond=0)
+        
+        # Get local time with timezone information
+        local_time = utc_time.astimezone()
+
+        # Format as YYYY-MM-DDTHH:MM:SSZ (with Z suffix instead of +00:00)
+        # As in https://en.wikipedia.org/wiki/ISO_8601
+        utc_str = utc_time.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        # Verify that the utc string has the format YYYY-MM-DDTHH:MM:SSZ
+        if not re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$", utc_str):
+            raise ValueError(f"Invalid UTC string: {utc_str!r}")
+        
+        # Get timezone name from the local time
+        timezone_name = local_time.tzname() or "unknown"
+        
+        d = {
+            "server_iso_utc": utc_str,
+            "server_iso_local": local_time.isoformat(),
+            "server_timezone_name": timezone_name
+        }
+
+        output_raw_path = self.output().path
+        with open(output_raw_path, "w") as f:
+            json.dump(d, f, indent=2)
 
 
 class IdentifyPurposeTask(PlanTask):

@@ -1,7 +1,8 @@
 from enum import Enum
 
 class FilenameEnum(str, Enum):
-    INITIAL_PLAN = "001-plan.txt"
+    INITIAL_PLAN = "001-1-plan.txt"
+    START_TIME = "001-2-start_time.json"
     IDENTIFY_PURPOSE_RAW = "002-1-identify_purpose_raw.json"
     IDENTIFY_PURPOSE_MARKDOWN = "002-2-identify_purpose.md"
     PLAN_TYPE_RAW = "002-3-plan_type_raw.json"
