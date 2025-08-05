@@ -32,7 +32,7 @@ class ExportGanttMermaid:
     @staticmethod
     def to_mermaid_gantt(
         project_schedule: ProjectSchedule,
-        project_start: date | str | None = None,
+        project_start: date,
         *,
         title: str = "Project schedule",
     ) -> str:
@@ -44,17 +44,14 @@ class ExportGanttMermaid:
         project_schedule
             The project schedule to visualize
         project_start
-            • ``datetime.date`` → use it as day 0  
-            • ``"YYYY‑MM‑DD"``  → parsed with ``date.fromisoformat``  
-            • ``None``         → today (``date.today()``)
+            ``datetime.date`` → use it as day 0  
         title
             Shown at the top of the chart.
         """
-        # normalise the reference date -------------------------------------------------
-        if project_start is None:
-            project_start = date.today()
-        elif isinstance(project_start, str):
-            project_start = date.fromisoformat(project_start)
+        if not isinstance(project_schedule, ProjectSchedule):
+            raise ValueError("project_schedule must be a ProjectSchedule")
+        if not isinstance(project_start, date):
+            raise ValueError("project_start must be a date")
 
         # build the Mermaid text -------------------------------------------------------
         lines: list[str] = [
@@ -84,7 +81,7 @@ class ExportGanttMermaid:
         return "\n".join(lines)
 
     @staticmethod
-    def save(project_schedule: ProjectSchedule, path: str, **kwargs) -> None:
+    def save(project_schedule: ProjectSchedule, path: str, project_start: date, **kwargs) -> None:
         """
         Write a self‑contained HTML page with an embedded Mermaid Gantt chart.
         Simply open the resulting file in any modern browser.
@@ -96,14 +93,11 @@ class ExportGanttMermaid:
         path
             Where to save the HTML file
         project_start
-            • ``datetime.date`` → use it as day 0  
-            • ``"YYYY‑MM‑DD"``  → parsed with ``date.fromisoformat``  
-            • ``None``         → today (``date.today()``)
+            ``datetime.date`` → use it as day 0
         title
             Shown at the top of the chart.
         """
         title = kwargs.get("title", "Project schedule")
-        project_start = kwargs.get("project_start", None)
 
         mermaid_code = ExportGanttMermaid.to_mermaid_gantt(project_schedule, project_start, title=title)
 
@@ -168,4 +162,5 @@ if __name__ == "__main__":
     """)
 
     project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
-    ExportGanttMermaid.save(project_schedule, "gantt_mermaid.html") 
+    project_start = date(1984, 12, 30)
+    ExportGanttMermaid.save(project_schedule, "gantt_mermaid.html", project_start) 

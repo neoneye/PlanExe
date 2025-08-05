@@ -3145,8 +3145,8 @@ class CreateScheduleTask(PlanTask):
             csv_data = None
 
         ExportGanttCSV.save(
-            project_schedule, 
-            self.output()['machai_csv'].path,
+            project_schedule=project_schedule, 
+            path=self.output()['machai_csv'].path,
             project_start=project_start,
             task_id_to_tooltip_dict=task_id_to_text_tooltip_dict
         )
@@ -3159,12 +3159,16 @@ class CreateScheduleTask(PlanTask):
         # ExportGanttFrappe.save(project_schedule, self.output()['frappe_html'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
 
         # Export the Gantt chart to Mermaid.
-        ExportGanttMermaid.save(project_schedule, self.output()['mermaid_html'].path)
+        ExportGanttMermaid.save(
+            project_schedule=project_schedule, 
+            path=self.output()['mermaid_html'].path, 
+            project_start=project_start
+        )
 
         # Export the Gantt chart to DHTMLX.
         ExportGanttDHTMLX.save(
-            project_schedule, 
-            self.output()['dhtmlx_html'].path, 
+            project_schedule=project_schedule, 
+            path=self.output()['dhtmlx_html'].path, 
             project_start=project_start,
             task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities,
             task_id_to_tooltip_dict=task_id_to_html_tooltip_dict,
