@@ -49,7 +49,7 @@ class ExportGanttFrappe:
     @staticmethod
     def to_frappe_gantt_tasks(
         project_schedule: ProjectSchedule,
-        project_start: date | str | None = None,
+        project_start: date,
     ) -> list[dict]:
         """
         Return a list of dicts ready for `new Gantt(container, tasks, …)`.
@@ -60,10 +60,10 @@ class ExportGanttFrappe:
             • stash the full "A SS+1, B FF‑2…" text in `meta`
             so a custom pop‑up can still show it.
         """
-        if project_start is None:
-            project_start = date.today()
-        elif isinstance(project_start, str):
-            project_start = date.fromisoformat(project_start)
+        if not isinstance(project_schedule, ProjectSchedule):
+            raise ValueError("project_schedule must be a ProjectSchedule")
+        if not isinstance(project_start, date):
+            raise ValueError("project_start must be a date")
 
         tasks = []
         for a in sorted(project_schedule.activities.values(), key=lambda x: x.es):
@@ -90,7 +90,7 @@ class ExportGanttFrappe:
         return tasks
 
     @staticmethod
-    def save(project_schedule: ProjectSchedule, path: str, **kwargs) -> None:
+    def save(project_schedule: ProjectSchedule, path: str, project_start: date, **kwargs) -> None:
         """
         Write a self‑contained HTML file that renders a Frappe‑Gantt chart.
         Open it directly in any modern browser.
@@ -102,14 +102,11 @@ class ExportGanttFrappe:
         path
             Where to save the HTML file
         project_start
-            • ``datetime.date`` → use it as day 0  
-            • ``"YYYY‑MM‑DD"``  → parsed with ``date.fromisoformat``  
-            • ``None``         → today (``date.today()``)
+            ``datetime.date`` → use it as day 0
         title
             Shown at the top of the chart.
         """
         title = kwargs.get("title", "Project schedule")
-        project_start = kwargs.get("project_start", None)
 
         tasks_json = json.dumps(
             ExportGanttFrappe.to_frappe_gantt_tasks(project_schedule, project_start),
@@ -180,4 +177,5 @@ if __name__ == "__main__":
     """)
 
     project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
-    ExportGanttFrappe.save(project_schedule, "gantt_frappe.html") 
+    project_start = date(1984, 12, 30)
+    ExportGanttFrappe.save(project_schedule, "gantt_frappe.html", project_start) 

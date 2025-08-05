@@ -3156,7 +3156,12 @@ class CreateScheduleTask(PlanTask):
 
         # Export the Gantt chart to Frappe.
         # I'm disappointed by Frappe, it lacks a lot of features that are present in DHTMLX.
-        # ExportGanttFrappe.save(project_schedule, self.output()['frappe_html'].path, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities)
+        # ExportGanttFrappe.save(
+        #     project_schedule=project_schedule, 
+        #     path=self.output()['frappe_html'].path, 
+        #     project_start=project_start,
+        #     task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities
+        # )
 
         # Export the Gantt chart to Mermaid.
         ExportGanttMermaid.save(
