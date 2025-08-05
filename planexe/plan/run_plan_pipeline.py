@@ -3165,6 +3165,7 @@ class CreateScheduleTask(PlanTask):
         ExportGanttDHTMLX.save(
             project_schedule, 
             self.output()['dhtmlx_html'].path, 
+            project_start=project_start,
             task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities,
             task_id_to_tooltip_dict=task_id_to_html_tooltip_dict,
             title=title,

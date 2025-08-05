@@ -87,7 +87,7 @@ class ExportGanttDHTMLX:
     @staticmethod
     def to_dhtmlx_gantt_data(
         project_schedule: ProjectSchedule,
-        project_start: date | str | None,
+        project_start: date,
         task_ids_to_treat_as_project_activities: set[str],
         task_id_to_tooltip_dict: dict[str, str]
     ) -> dict:
@@ -99,14 +99,16 @@ class ExportGanttDHTMLX:
         project_schedule
             The project schedule to visualize
         project_start
-            • ``datetime.date`` → use it as day 0  
-            • ``"YYYY‑MM‑DD"``  → parsed with ``date.fromisoformat``  
-            • ``None``         → today (``date.today()``)
+            ``datetime.date`` → use it as day 0  
         """
-        if project_start is None:
-            project_start = date.today()
-        elif isinstance(project_start, str):
-            project_start = date.fromisoformat(project_start)
+        if not isinstance(project_schedule, ProjectSchedule):
+            raise ValueError("project_schedule must be a ProjectSchedule")
+        if not isinstance(project_start, date):
+            raise ValueError("project_start must be a date")
+        if not isinstance(task_ids_to_treat_as_project_activities, set):
+            raise ValueError("task_ids_to_treat_as_project_activities must be a set")
+        if not isinstance(task_id_to_tooltip_dict, dict):
+            raise ValueError("task_id_to_tooltip_dict must be a dict")
 
         tasks = []
         links = []
@@ -167,7 +169,7 @@ class ExportGanttDHTMLX:
         }
 
     @staticmethod
-    def save(project_schedule: ProjectSchedule, path: str, **kwargs) -> None:
+    def save(project_schedule: ProjectSchedule, path: str, project_start: date, **kwargs) -> None:
         """
         Write a self‑contained HTML page with an embedded DHTMLX Gantt chart.
         Simply open the resulting file in any modern browser.
@@ -179,9 +181,7 @@ class ExportGanttDHTMLX:
         path
             Where to save the HTML file
         project_start
-            • ``datetime.date`` → use it as day 0  
-            • ``"YYYY‑MM‑DD"``  → parsed with ``date.fromisoformat``  
-            • ``None``         → today (``date.today()``)
+            ``datetime.date`` → use it as day 0  
         title
             Shown at the top of the chart.
         csv_data
@@ -191,7 +191,6 @@ class ExportGanttDHTMLX:
         """
         title = kwargs.get("title", "Project schedule")
         csv_data: Optional[str] = kwargs.get("csv_data", None)
-        project_start = kwargs.get("project_start", None)
         task_ids_to_treat_as_project_activities = kwargs.get("task_ids_to_treat_as_project_activities", set())
         task_id_to_tooltip_dict = kwargs.get("task_id_to_tooltip_dict", {})
         
@@ -236,6 +235,7 @@ if __name__ == "__main__":
         H;F(SF2),G;3;Multiple preds (G is FS default)
     """)
 
-    csv_data = "de\"mo;of;csv\na;\tb\t;c\nx;y;z"
+    csv_data = "demo;of;csv\na;b;c\nx;y;z"
     project_schedule = ProjectSchedule.create(parse_schedule_input_data(input))
-    ExportGanttDHTMLX.save(project_schedule, "gantt_dhtmlx.html", csv_data=csv_data) 
+    project_start = date(1984, 12, 30)
+    ExportGanttDHTMLX.save(project_schedule, "gantt_dhtmlx.html", project_start, csv_data=csv_data) 
