@@ -24,9 +24,15 @@ class ExportGanttCSV:
     @staticmethod
     def to_gantt_csv(
         project_schedule: ProjectSchedule,
+        project_start: date,
         task_id_to_tooltip_dict: dict[str, str]
     ) -> str:
-        project_start = date.today()
+        if not isinstance(project_schedule, ProjectSchedule):
+            raise ValueError("project_schedule must be a ProjectSchedule")
+        if not isinstance(project_start, date):
+            raise ValueError("project_start must be a date")
+        if not isinstance(task_id_to_tooltip_dict, dict):
+            raise ValueError("task_id_to_tooltip_dict must be a dict")
 
         separator = ";"
 
@@ -94,8 +100,8 @@ class ExportGanttCSV:
         return "\n".join(rows)
 
     @staticmethod
-    def save(project_schedule: ProjectSchedule, path: str, task_id_to_tooltip_dict: dict[str, str]) -> None:
-        csv_text = ExportGanttCSV.to_gantt_csv(project_schedule, task_id_to_tooltip_dict)
+    def save(project_schedule: ProjectSchedule, path: str, project_start: date, task_id_to_tooltip_dict: dict[str, str]) -> None:
+        csv_text = ExportGanttCSV.to_gantt_csv(project_schedule, project_start, task_id_to_tooltip_dict)
         with open(path, "w", encoding="utf-8") as f:
             f.write(csv_text)
 
@@ -116,4 +122,5 @@ if __name__ == "__main__":
         'B': 'TooltipB', 
         'C': 'TooltipC', 
     }
-    ExportGanttCSV.save(project_schedule, "gantt.csv", task_id_to_tooltip_dict) 
+    project_start = date(1984, 12, 30)
+    ExportGanttCSV.save(project_schedule, "gantt.csv", project_start, task_id_to_tooltip_dict) 

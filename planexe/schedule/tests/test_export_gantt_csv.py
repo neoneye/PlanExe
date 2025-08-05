@@ -1,4 +1,5 @@
 import unittest
+from datetime import date
 from planexe.schedule.export_gantt_csv import ExportGanttCSV
 from planexe.schedule.parse_schedule_input_data import parse_schedule_input_data
 from planexe.schedule.schedule import ProjectSchedule
@@ -42,9 +43,10 @@ class TestExportGanttCSV(unittest.TestCase):
             'F': '"',
             'G': '\\"',
         }
+        project_start = date(2025, 8, 4)
 
         # Act
-        s = ExportGanttCSV.to_gantt_csv(project_schedule, task_id_to_tooltip_dict)
+        s = ExportGanttCSV.to_gantt_csv(project_schedule, project_start, task_id_to_tooltip_dict)
 
         # Assert
         self.assertIn("project_key;project_name;project_description;project_start_date;project_end_date;project_progress;parent_project_key;originating_department", s)

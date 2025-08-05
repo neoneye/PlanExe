@@ -7,7 +7,7 @@ If it's an already finished run, then remove the "999-pipeline_complete.txt" fil
 PROMPT> RUN_ID_DIR=/absolute/path/to/PlanExe_20250216_150332 python -m planexe.plan.run_plan_pipeline
 """
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 import html
 import logging
@@ -3117,6 +3117,9 @@ class CreateScheduleTask(PlanTask):
             wbs_project_dict = json.load(f)
         wbs_project = WBSProject.from_dict(wbs_project_dict)
 
+        # The start date should be obtained from the very first task in the pipeline.
+        project_start = date.today()
+
         # logger.debug(f"dependencies_dict {dependencies_dict}")
         # logger.debug(f"duration_list {duration_list}")
         # logger.debug(f"wbs_project {wbs_project.to_dict()}")
@@ -3134,6 +3137,7 @@ class CreateScheduleTask(PlanTask):
         # Always run the CSV export so that the code gets exercised, otherwise the code will rot.
         csv_data: str = ExportGanttCSV.to_gantt_csv(
             project_schedule=project_schedule, 
+            project_start=project_start,
             task_id_to_tooltip_dict=task_id_to_text_tooltip_dict
         )
         if PIPELINE_CONFIG.enable_csv_export == False:
@@ -3143,6 +3147,7 @@ class CreateScheduleTask(PlanTask):
         ExportGanttCSV.save(
             project_schedule, 
             self.output()['machai_csv'].path,
+            project_start=project_start,
             task_id_to_tooltip_dict=task_id_to_text_tooltip_dict
         )
 
