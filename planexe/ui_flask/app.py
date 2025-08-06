@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 import os
 import re
@@ -13,6 +14,7 @@ from enum import Enum
 from pathlib import Path
 from flask import Flask, render_template, Response, request, jsonify, send_file
 import importlib.resources
+from planexe.plan.start_time import StartTime
 from planexe.utils.planexe_dotenv import DotEnvKeyEnum, PlanExeDotEnv
 from planexe.utils.planexe_config import PlanExeConfig
 from planexe.plan.generate_run_id import generate_run_id
@@ -305,7 +307,8 @@ class MyFlaskApp:
                 self.jobs[current_user.current_run_id].stop_event.set()
                 current_user.current_run_id = None
 
-            run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
+            start_time: datetime = datetime.now().astimezone()
+            run_id = generate_run_id(use_uuid=CONFIG.use_uuid_as_run_id, start_time=start_time)
             run_id_dir = (self.planexe_run_dir / run_id).absolute()
 
             logger.info(f"endpoint /run. current working directory: {Path.cwd()}")
@@ -316,8 +319,12 @@ class MyFlaskApp:
                 raise Exception(f"The run_id_dir is not supposed to exist at this point. However the run_id_dir already exists: {run_id_dir!r}")
             run_id_dir.mkdir(parents=True, exist_ok=True)
 
+            # Create the start_time file.
+            start_time_file = StartTime.create(start_time)
+            start_time_file.save(str(run_id_dir / FilenameEnum.START_TIME.value))
+
             # Create the initial plan file.
-            plan_file = PlanFile.create(prompt_param)
+            plan_file = PlanFile.create(vague_plan_description=prompt_param, start_time=start_time)
             plan_file.save(str(run_id_dir / FilenameEnum.INITIAL_PLAN.value))
 
             response_data, status_code = self._create_job_internal(run_id, run_id_dir)
