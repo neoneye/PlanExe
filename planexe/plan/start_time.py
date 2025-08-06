@@ -1,6 +1,9 @@
 """
 Captures the timestamp when the PlanExe job was initiated.
-This is used for creating Gantt charts.
+This should run as early as possible in the pipeline to capture the true start time of the job,
+since a job may run for 30+ minutes.
+
+The start time is used as the project start date for creating Gantt charts.
 This ensures that it's the same reference time for all tasks in the pipeline.
 """
 from dataclasses import dataclass, asdict

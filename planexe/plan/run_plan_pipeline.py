@@ -20,8 +20,6 @@ from planexe.lever.scenarios_markdown import ScenariosMarkdown
 from planexe.lever.strategic_decisions_markdown import StrategicDecisionsMarkdown
 from planexe.plan.filenames import FilenameEnum, ExtraFilenameEnum
 from planexe.plan.speedvsdetail import SpeedVsDetailEnum
-from planexe.plan.plan_file import PlanFile
-from planexe.plan.find_plan_prompt import find_plan_prompt
 from planexe.assume.identify_purpose import IdentifyPurpose
 from planexe.assume.identify_plan_type import IdentifyPlanType
 from planexe.assume.physical_locations import PhysicalLocations
@@ -46,7 +44,6 @@ from planexe.governance.governance_phase4_decision_escalation_matrix import Gove
 from planexe.governance.governance_phase5_monitoring_progress import GovernancePhase5MonitoringProgress
 from planexe.governance.governance_phase6_extra import GovernancePhase6Extra
 from planexe.plan.related_resources import RelatedResources
-from planexe.plan.start_time import StartTime
 from planexe.questions_answers.questions_answers import QuestionsAnswers
 from planexe.lever.identify_potential_levers import IdentifyPotentialLevers
 from planexe.lever.enrich_potential_levers import EnrichPotentialLevers
@@ -181,42 +178,25 @@ class PlanTask(luigi.Task):
 
 
 class StartTimeTask(PlanTask):
-    """
-    Captures the timestamp when the pipeline was started.
-    This task should run as early as possible to capture the true start time
-    of the job, even if the job runs for 30+ minutes.
-    
-    IMPORTANT: This task has no dependencies and should be one of the very first
-    tasks to execute in the pipeline to ensure accurate timing capture.
-    """
+    """The timestamp when the pipeline was started."""
     def output(self):
         return self.local_target(FilenameEnum.START_TIME)
 
-    def run_inner(self):
-        # Capture timestamp immediately when this task runs
-        # This ensures we get the earliest possible timestamp for the job
-        t = datetime.now().astimezone()
-        start_time = StartTime.create(t)
-        start_time.save(self.output().path)
+    def run(self):
+        # The Gradio/Flask app that starts the luigi pipeline, must first create the `START_TIME` file inside the `run_id_dir`.
+        # This code will ONLY run if the Gradio/Flask app *failed* to create the file.
+        raise AssertionError(f"This code is not supposed to be run. Before starting the pipeline the '{FilenameEnum.START_TIME.value}' file must be present in the `run_id_dir`: {self.run_id_dir!r}")
 
 
 class SetupTask(PlanTask):
+    """The plan prompt text provided by the user."""
     def output(self):
         return self.local_target(FilenameEnum.INITIAL_PLAN)
 
-    def run_inner(self):
-        # The Gradio app should create the `run_id_dir` and `plan.txt` file.
-        # This code will ONLY run if the Gradio app *failed* to create the file with the user provided prompt.
-        # If this code gets run, then I don't have access to the user provided prompt, so I'm picking a random prompt.
-        # This way the pipeline can proceed, however the generated plan will be garbage.
-
-        # Ensure the run directory exists.
-        self.run_id_dir.mkdir(parents=True, exist_ok=True)
-
-        # Pick a random prompt.
-        plan_prompt = find_plan_prompt("4dc34d55-0d0d-4e9d-92f4-23765f49dd29")
-        plan_file = PlanFile.create(plan_prompt)
-        plan_file.save(self.output().path)
+    def run(self):
+        # The Gradio/Flask app that starts the luigi pipeline, must first create the `INITIAL_PLAN` file inside the `run_id_dir`.
+        # This code will ONLY run if the Gradio/Flask app *failed* to create the file.
+        raise AssertionError(f"This code is not supposed to be run. Before starting the pipeline the '{FilenameEnum.INITIAL_PLAN.value}' file must be present in the `run_id_dir`: {self.run_id_dir!r}")
 
 
 class IdentifyPurposeTask(PlanTask):
