@@ -3122,6 +3122,7 @@ class CreateScheduleTask(PlanTask):
     
     def requires(self):
         return {
+            'start_time': self.clone(StartTimeTask),
             'wbs_level1': self.clone(CreateWBSLevel1Task),
             'dependencies': self.clone(IdentifyTaskDependenciesTask),
             'durations': self.clone(EstimateTaskDurationsTask),
@@ -3141,8 +3142,17 @@ class CreateScheduleTask(PlanTask):
             wbs_project_dict = json.load(f)
         wbs_project = WBSProject.from_dict(wbs_project_dict)
 
-        # The start date should be obtained from the very first task in the pipeline.
-        project_start = date.today()
+        # Read the start time from the StartTimeTask to get the actual pipeline start date
+        with self.input()['start_time'].open("r") as f:
+            start_time_dict = json.load(f)
+
+        # The start_time.server_iso_utc is in format "YYYY-MM-DDTHH:MM:SSZ"
+        utc_timestamp = start_time_dict['server_iso_utc']
+        # The 'Z' suffix for UTC is not supported by fromisoformat() in Python < 3.11. Replace, ensures compatibility.
+        project_start_dt1: datetime = datetime.fromisoformat(utc_timestamp.replace('Z', '+00:00'))
+        # Set time to midnight UTC
+        project_start_dt2: datetime = project_start_dt1.replace(hour=0, minute=0, second=0, microsecond=0)
+        project_start: date = project_start_dt2.date()
 
         # logger.debug(f"dependencies_dict {dependencies_dict}")
         # logger.debug(f"duration_list {duration_list}")
