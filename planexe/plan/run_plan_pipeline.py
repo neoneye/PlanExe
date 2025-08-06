@@ -3129,10 +3129,8 @@ class CreateScheduleTask(PlanTask):
         # The start_time.server_iso_utc is in format "YYYY-MM-DDTHH:MM:SSZ"
         utc_timestamp = start_time_dict['server_iso_utc']
         # The 'Z' suffix for UTC is not supported by fromisoformat() in Python < 3.11. Replace, ensures compatibility.
-        project_start_dt1: datetime = datetime.fromisoformat(utc_timestamp.replace('Z', '+00:00'))
-        # Set time to midnight UTC
-        project_start_dt2: datetime = project_start_dt1.replace(hour=0, minute=0, second=0, microsecond=0)
-        project_start: date = project_start_dt2.date()
+        project_start_dt: datetime = datetime.fromisoformat(utc_timestamp.replace('Z', '+00:00'))
+        project_start: date = project_start_dt.date()
 
         # logger.debug(f"dependencies_dict {dependencies_dict}")
         # logger.debug(f"duration_list {duration_list}")
