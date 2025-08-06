@@ -280,13 +280,13 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
             raise Exception(f"The run path is not supposed to exist at this point. However the run path already exists: {run_path}")
         os.makedirs(run_path)
 
-        # Create the initial plan file.
-        plan_file = PlanFile.create(vague_plan_description=plan_prompt, start_time=start_time)
-        plan_file.save(os.path.join(run_path, FilenameEnum.INITIAL_PLAN.value))
-
         # Create the start_time file.
         start_time_file = StartTime.create(start_time)
         start_time_file.save(os.path.join(run_path, FilenameEnum.START_TIME.value))
+
+        # Create the initial plan file.
+        plan_file = PlanFile.create(vague_plan_description=plan_prompt, start_time=start_time)
+        plan_file.save(os.path.join(run_path, FilenameEnum.INITIAL_PLAN.value))
 
     # Create a SpeedVsDetailEnum instance from the session_state.speedvsdetail.
     # Sporadic I have experienced that session_state.speedvsdetail is a string and other times it's a SpeedVsDetailEnum.
