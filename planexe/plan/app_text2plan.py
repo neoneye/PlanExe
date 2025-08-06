@@ -5,6 +5,7 @@ PROMPT> python -m planexe.plan.app_text2plan
 Start the UI in multi user mode, as on: Hugging Face Spaces.
 PROMPT> IS_HUGGINGFACE_SPACES=true HUGGINGFACE_SPACES_BROWSERSTATE_SECRET=random123 python -m planexe.plan.app_text2plan
 """
+from datetime import datetime
 import gradio as gr
 import os
 import subprocess
@@ -22,6 +23,7 @@ from planexe.plan.filenames import FilenameEnum
 from planexe.plan.plan_file import PlanFile
 from planexe.plan.speedvsdetail import SpeedVsDetailEnum
 from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
+from planexe.plan.start_time import StartTime
 from planexe.prompt.prompt_catalog import PromptCatalog
 from planexe.purge.purge_old_runs import start_purge_scheduler
 from planexe.huggingface_spaces.is_huggingface_spaces import is_huggingface_spaces
@@ -265,7 +267,8 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
             raise Exception(f"The run path is supposed to exist from an earlier run. However the no run path exists: {run_path}")
         
     elif submit_or_retry == "submit":
-        run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
+        start_time: datetime = datetime.now().astimezone()
+        run_id = generate_run_id(use_uuid=CONFIG.use_uuid_as_run_id, start_time=start_time)
         run_path = os.path.join(RUN_DIR, run_id)
         absolute_path_to_run_dir = os.path.abspath(run_path)
 
@@ -278,8 +281,12 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
         os.makedirs(run_path)
 
         # Create the initial plan file.
-        plan_file = PlanFile.create(plan_prompt)
+        plan_file = PlanFile.create(vague_plan_description=plan_prompt, start_time=start_time)
         plan_file.save(os.path.join(run_path, FilenameEnum.INITIAL_PLAN.value))
+
+        # Create the start_time file.
+        start_time_file = StartTime.create(start_time)
+        start_time_file.save(os.path.join(run_path, FilenameEnum.START_TIME.value))
 
     # Create a SpeedVsDetailEnum instance from the session_state.speedvsdetail.
     # Sporadic I have experienced that session_state.speedvsdetail is a string and other times it's a SpeedVsDetailEnum.
