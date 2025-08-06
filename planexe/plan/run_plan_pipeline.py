@@ -3596,6 +3596,16 @@ class ExecutePipeline:
     luigi_build_return_value: Optional[bool] = field(default=None, init=False)
 
     def setup(self) -> None:
+        # Check that the run_id_dir exists and contains the required files.
+        if not self.run_id_dir.exists():
+            raise FileNotFoundError(f"The run_id_dir does not exist: {self.run_id_dir!r}")
+        if not self.run_id_dir.is_dir():
+            raise NotADirectoryError(f"The run_id_dir is not a directory: {self.run_id_dir!r}")
+        if not (self.run_id_dir / FilenameEnum.START_TIME.value).exists():
+            raise FileNotFoundError(f"The '{FilenameEnum.START_TIME.value}' file does not exist in the run_id_dir: {self.run_id_dir!r}")
+        if not (self.run_id_dir / FilenameEnum.INITIAL_PLAN.value).exists():
+            raise FileNotFoundError(f"The '{FilenameEnum.INITIAL_PLAN.value}' file does not exist in the run_id_dir: {self.run_id_dir!r}")
+
         full_plan_pipeline_task = FullPlanPipeline(
             run_id_dir=self.run_id_dir, 
             speedvsdetail=self.speedvsdetail, 
@@ -3819,6 +3829,17 @@ if __name__ == '__main__':
         execute_pipeline = ExecutePipeline(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models)
     else:
         execute_pipeline = DemoStoppingExecutePipeline(run_id_dir=run_id_dir, speedvsdetail=speedvsdetail, llm_models=llm_models)
-    execute_pipeline.setup()
+    
+    try:
+        execute_pipeline.setup()
+    except Exception as e:
+        logger.error(f"Failed to setup pipeline: {e}")
+        sys.exit(1)
+    
     logger.info(f"execute_pipeline: {execute_pipeline!r}")
-    execute_pipeline.run()
+    
+    try:
+        execute_pipeline.run()
+    except Exception as e:
+        logger.error(f"Failed to run pipeline: {e}")
+        sys.exit(1)
