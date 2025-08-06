@@ -180,6 +180,26 @@ class PlanTask(luigi.Task):
         raise NotImplementedError("Subclasses must implement this method.")
 
 
+class StartTimeTask(PlanTask):
+    """
+    Captures the timestamp when the pipeline was started.
+    This task should run as early as possible to capture the true start time
+    of the job, even if the job runs for 30+ minutes.
+    
+    IMPORTANT: This task has no dependencies and should be one of the very first
+    tasks to execute in the pipeline to ensure accurate timing capture.
+    """
+    def output(self):
+        return self.local_target(FilenameEnum.START_TIME)
+
+    def run_inner(self):
+        # Capture timestamp immediately when this task runs
+        # This ensures we get the earliest possible timestamp for the job
+        t = datetime.now().astimezone()
+        start_time = StartTime.create(t)
+        start_time.save(self.output().path)
+
+
 class SetupTask(PlanTask):
     def output(self):
         return self.local_target(FilenameEnum.INITIAL_PLAN)
@@ -197,19 +217,6 @@ class SetupTask(PlanTask):
         plan_prompt = find_plan_prompt("4dc34d55-0d0d-4e9d-92f4-23765f49dd29")
         plan_file = PlanFile.create(plan_prompt)
         plan_file.save(self.output().path)
-
-
-class StartTimeTask(PlanTask):
-    """
-    Captures the timestamp when the pipeline was started
-    """
-    def output(self):
-        return self.local_target(FilenameEnum.START_TIME)
-
-    def run_inner(self):
-        t = datetime.now().astimezone()
-        start_time = StartTime.create(t)
-        start_time.save(self.output().path)
 
 
 class IdentifyPurposeTask(PlanTask):
@@ -3508,6 +3515,7 @@ class ReportTask(PlanTask):
 class FullPlanPipeline(PlanTask):
     def requires(self):
         return {
+            'start_time': self.clone(StartTimeTask),
             'setup': self.clone(SetupTask),
             'identify_purpose': self.clone(IdentifyPurposeTask),
             'plan_type': self.clone(PlanTypeTask),
