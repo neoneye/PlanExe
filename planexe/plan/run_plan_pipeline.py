@@ -185,6 +185,11 @@ class SetupTask(PlanTask):
         return self.local_target(FilenameEnum.INITIAL_PLAN)
 
     def run_inner(self):
+        # The Gradio app should create the `run_id_dir` and `plan.txt` file.
+        # This code will ONLY run if the Gradio app *failed* to create the file with the user provided prompt.
+        # If this code gets run, then I don't have access to the user provided prompt, so I'm picking a random prompt.
+        # This way the pipeline can proceed, however the generated plan will be garbage.
+
         # Ensure the run directory exists.
         self.run_id_dir.mkdir(parents=True, exist_ok=True)
 
