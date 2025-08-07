@@ -10,6 +10,7 @@ PROMPT> python -m planexe.schedule.export_gantt_csv
 """
 from datetime import date, timedelta
 from planexe.schedule.schedule import ProjectSchedule
+from planexe.utils.enumerate_duplicate_strings import enumerate_duplicate_strings
 
 class ExportGanttCSV:
     @staticmethod
@@ -34,6 +35,14 @@ class ExportGanttCSV:
         if not isinstance(task_id_to_tooltip_dict, dict):
             raise ValueError("task_id_to_tooltip_dict must be a dict")
 
+        # Enumerate duplicate activity titles.
+        # Duplicated gets assigned a suffix like this: (1), (2), (3), etc.
+        id_to_name_with_possible_duplicates: dict[str, str] = {}
+        activities = sorted(project_schedule.activities.values(), key=lambda a: a.es)
+        for act in activities:
+            id_to_name_with_possible_duplicates[act.id] = act.title or act.id
+        id_to_name_without_duplicates = enumerate_duplicate_strings(id_to_name_with_possible_duplicates)
+
         separator = ";"
 
         column_names: list[str] = [
@@ -51,11 +60,11 @@ class ExportGanttCSV:
 
         # order tasks by early‑start so the chart looks natural
         activities = sorted(project_schedule.activities.values(), key=lambda a: a.es)
-        for act in activities:
+        for act_index, act in enumerate(activities, start=1):
             activity_start = project_start + timedelta(days=float(act.es))
             activity_end = activity_start + timedelta(days=float(act.duration))
 
-            project_name_raw = act.title if act.title else act.id
+            project_name_raw = id_to_name_without_duplicates.get(act.id, f'{act.id} ({act_index})')
             project_description_raw = task_id_to_tooltip_dict.get(act.id, "No description")
 
             # This is a kludge solution. Use the first predecessor as the parent, ignore the rest.
