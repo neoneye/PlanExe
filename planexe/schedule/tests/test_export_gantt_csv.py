@@ -49,7 +49,7 @@ class TestExportGanttCSV(unittest.TestCase):
         s = ExportGanttCSV.to_gantt_csv(project_schedule, project_start, task_id_to_tooltip_dict)
 
         # Assert
-        self.assertIn("project_key;project_name;project_description;project_start_date;project_end_date;project_progress;parent_project_key;originating_department", s)
+        self.assertIn("project_key;project_name;project_description;project_start_date;project_end_date;project_progress;project_parent;originating_department", s)
         self.assertIn("A;TitleA;A tooltip;8/4/2025;8/7/2025;0;;PlanExe", s)
         self.assertIn("C;TitleC;C_C_C;8/4/2025;8/6/2025;0;A;PlanExe", s)
         self.assertIn("E;TitleE;E\\nE\\nE\\\\nE\\\\nE;8/6/2025;8/7/2025;0;C;PlanExe", s)
