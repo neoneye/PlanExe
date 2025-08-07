@@ -1,27 +1,22 @@
 """
 CSV serialization of the gantt chart data.
 
+This module uses pandas to generate CSV output. The separator is a comma,
+and fields containing special characters (like commas or newlines) are
+quoted according to standard CSV conventions.
+
 In my opinion CSV is a terrible format for PlanExe data.
-With CSV it's uncertain what symbols are allowed. So I'm purging the symbols that are known to break the CSV syntax.
 Extra data about the tasks aren't stored in the CSV file.
 For proper serialization/deserialization then json or xml will be a better choice.
 
 PROMPT> python -m planexe.schedule.export_gantt_csv
 """
 from datetime import date, timedelta
+import pandas as pd
 from planexe.schedule.schedule import ProjectSchedule
 from planexe.utils.enumerate_duplicate_strings import enumerate_duplicate_strings
 
 class ExportGanttCSV:
-    @staticmethod
-    def _escape_cell(text: str) -> str:
-        """Replace characters that could break CSV syntax."""
-        text = text.replace(';', '_')
-        text = text.replace('\'', '_')
-        text = text.replace('\"', '_')
-        text = text.replace('\n', '\\n')
-        return text
-    
     @staticmethod
     def to_gantt_csv(
         project_schedule: ProjectSchedule,
@@ -42,30 +37,16 @@ class ExportGanttCSV:
         for act in activities:
             id_to_name_with_possible_duplicates[act.id] = act.title or act.id
         id_to_name_without_duplicates = enumerate_duplicate_strings(id_to_name_with_possible_duplicates)
-
-        separator = ";"
-
-        column_names: list[str] = [
-            "project_key",
-            "project_name",
-            "project_description",
-            "project_start_date",
-            "project_end_date",
-            "project_progress",
-            "project_parent",
-            "originating_department",
-        ]
-        row0 = separator.join(column_names)
-        rows: list[str] = [row0]
-
+        
+        data_rows: list[dict[str, str]] = []
         # order tasks by early‑start so the chart looks natural
         activities = sorted(project_schedule.activities.values(), key=lambda a: a.es)
         for act_index, act in enumerate(activities, start=1):
             activity_start = project_start + timedelta(days=float(act.es))
             activity_end = activity_start + timedelta(days=float(act.duration))
 
-            project_name_raw = id_to_name_without_duplicates.get(act.id, f'{act.id} ({act_index})')
-            project_description_raw = task_id_to_tooltip_dict.get(act.id, "No description")
+            project_name = id_to_name_without_duplicates.get(act.id, f'{act.id} ({act_index})')
+            project_description = task_id_to_tooltip_dict.get(act.id, "No description")
 
             # This is a kludge solution. Use the first predecessor as the parent, ignore the rest.
             # This is the shortcoming of using CSV and not json or xml.
@@ -75,8 +56,6 @@ class ExportGanttCSV:
                 break
 
             project_key = act.id
-            project_name = ExportGanttCSV._escape_cell(project_name_raw)
-            project_description = ExportGanttCSV._escape_cell(project_description_raw)
 
             # No need for a description when it's the identical to the the name.
             if project_description == project_name:
@@ -93,20 +72,19 @@ class ExportGanttCSV:
                 if parent_activity is not None:
                     project_parent = parent_activity.id
 
-            column_values: list[str] = [
-                project_key,
-                project_name,
-                project_description,
-                project_start_date,
-                project_end_date,
-                project_progress,
-                project_parent,
-                originating_department,
-            ]
-            row = separator.join(column_values)
-            rows.append(row)
+            data_rows.append({
+                "project_key": project_key,
+                "project_name": project_name,
+                "project_description": project_description,
+                "project_start_date": project_start_date,
+                "project_end_date": project_end_date,
+                "project_progress": project_progress,
+                "project_parent": project_parent,
+                "originating_department": originating_department,
+            })
 
-        return "\n".join(rows)
+        df = pd.DataFrame(data_rows)
+        return df.to_csv(sep=',', index=False, lineterminator='\n')
 
     @staticmethod
     def save(project_schedule: ProjectSchedule, path: str, project_start: date, task_id_to_tooltip_dict: dict[str, str]) -> None:
