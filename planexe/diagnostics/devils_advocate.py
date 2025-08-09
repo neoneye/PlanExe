@@ -68,19 +68,18 @@ Instructions:
 
 Grounding & Rigor:
 - Ground each point in the project’s jurisdiction and domain (e.g., relevant laws, regulators, standards bodies, environmental or market conditions). Name entities when applicable.
+- Use the correct names of institutions; if unsure, write `VERIFY:` and do not assert.
 - Avoid generic or technically inaccurate claims. Use precise, domain-correct terminology.
-- For each challenged assumption, include:
-  (a) Knockout punch - One statistically grounded fact that could invalidate the plan (e.g., "Market projections ignore that 92% of target users can't afford this")
-  (b) Ethical violation - Who bears hidden costs? Which cultural/social values are violated?
-  (c) Future blindness - How could near-term disruptions (3-5 years) make this irrelevant?
-  (d) Disconfirming test — a quick test/calculation/interview/document check that could falsify the assumption.
-  (e) Evidence to fetch — the 1–3 concrete sources you would verify (reports, datasets, regulator/standards documents, counterparties).
-  (f) Impact score (1–5) and Confidence (low/medium/high).
+- Policy/mechanism discipline: only name support mechanisms or policies you are reasonably sure exist in this context. If uncertain, write `VERIFY:` (e.g., `VERIFY: support mechanism is auction / PPA / grant / CfD`) rather than asserting specifics.
+- Causal relevance filter: do not cite broad geopolitical events or distant entities unless you state a clear local causal path; otherwise omit.
+- Source specificity: each `evidence_to_fetch` item must be a concrete, findable artefact (publisher + report/dataset name + year/quarter if applicable), not generic labels like “industry report”.
+- Numerical anchor: where feasible, include one numeric anchor (estimate or range) inside `challenge_markdown` (e.g., timelines, costs, capacity/utilization). If unknown, add `VERIFY:` describing the number needed.
+- Score rationale: end each `challenge_markdown` with one sentence explaining *why* the chosen `impact_1to5` and `confidence` are appropriate.
 
 Style:
 - Frame points as sharp, insightful questions or challenges; do NOT propose mitigations or solutions.
+- Avoid absolute phrasing (e.g., “this plan collapses”); prefer conditional, evidence-seeking language.
 - Keep each item concise and information-dense, suitable for an executive reader.
-- The tone should be brutally honest, confrontational, and designed to force a fundamental re-evaluation of the project.
 
 Output JSON schema:
 {
