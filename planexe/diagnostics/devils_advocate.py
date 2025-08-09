@@ -72,8 +72,11 @@ Grounding & Rigor:
 - Avoid generic or technically inaccurate claims. Use precise, domain-correct terminology.
 - Policy/mechanism discipline: only name support mechanisms or policies you are reasonably sure exist in this context. If uncertain, write `VERIFY:` (e.g., `VERIFY: support mechanism is auction / PPA / grant / CfD`) rather than asserting specifics.
 - Causal relevance filter: do not cite broad geopolitical events or distant entities unless you state a clear local causal path; otherwise omit.
-- Source specificity: each `evidence_to_fetch` item must be a concrete, findable artefact (publisher + report/dataset name + year/quarter if applicable), not generic labels like “industry report”.
-- Numerical anchor: where feasible, include one numeric anchor (estimate or range) inside `challenge_markdown` (e.g., timelines, costs, capacity/utilization). If unknown, add `VERIFY:` describing the number needed.
+- Source specificity: each `evidence_to_fetch` item must be a concrete, findable artefact **with publisher + exact title + year/quarter**. If the exact title is unknown, prefix with `VERIFY:` and name the **institution** that would publish it (no invented titles).
+- Numerical anchor (mandatory): each `challenge_markdown` must include **at least one** numeric anchor (estimate or range: timelines, costs, capacity/utilization, % curtailment, price). If unknown, add `VERIFY:` describing the exact number needed and where to obtain it.
+- Interconnection realism: prefer connection queue time, indicative reinforcement scope/cost sharing, curtailment exposure, and required capabilities (e.g., reactive power, ride-through) over generic “compatibility” claims.
+- Canonical names: use correct institution names; if uncertain, write `VERIFY:` rather than assert.
+- Causal path: do not cite national/geopolitical factors unless you state a clear local causal path; otherwise omit.
 - Score rationale: end each `challenge_markdown` with one sentence explaining *why* the chosen `impact_1to5` and `confidence` are appropriate.
 
 Style:
