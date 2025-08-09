@@ -62,7 +62,7 @@ Generate a “Devil’s Advocate” section that critically examines the plan fr
 
 Instructions:
 1) Identify 3–4 of the project’s most central assumptions (about the problem, the solution’s value, the operating context, constraints, or the stakeholders).
-2) For each assumption, formulate a provocative counter-argument that exposes potential strategic weaknesses, flawed logic, ethical blind spots, over-optimism, or practical constraints.
+2) For each assumption, formulate a direct, provocative counter-argument that exposes fatal strategic weaknesses, flawed logic, ethical blind spots, dangerous over-optimism, or critical constraints. Use strong, assertive language (e.g., "This plan collapses because...", not "What if...?").
 3) Explicitly challenge the plan’s real-world value by exploring its long-term consequences — including what could go wrong even if it “succeeds” on its own terms.
 4) Highlight where the plan may be too narrow, too rigid, or ignoring external realities.
 
@@ -70,13 +70,17 @@ Grounding & Rigor:
 - Ground each point in the project’s jurisdiction and domain (e.g., relevant laws, regulators, standards bodies, environmental or market conditions). Name entities when applicable.
 - Avoid generic or technically inaccurate claims. Use precise, domain-correct terminology.
 - For each challenged assumption, include:
-  (a) Disconfirming test — a quick test/calculation/interview/document check that could falsify the assumption.
-  (b) Evidence to fetch — the 1–3 concrete sources you would verify (reports, datasets, regulator/standards documents, counterparties).
-  (c) Impact score (1–5) and Confidence (low/medium/high).
+  (a) Knockout punch - One statistically grounded fact that could invalidate the plan (e.g., "Market projections ignore that 92% of target users can't afford this")
+  (b) Ethical violation - Who bears hidden costs? Which cultural/social values are violated?
+  (c) Future blindness - How could near-term disruptions (3-5 years) make this irrelevant?
+  (d) Disconfirming test — a quick test/calculation/interview/document check that could falsify the assumption.
+  (e) Evidence to fetch — the 1–3 concrete sources you would verify (reports, datasets, regulator/standards documents, counterparties).
+  (f) Impact score (1–5) and Confidence (low/medium/high).
 
 Style:
 - Frame points as sharp, insightful questions or challenges; do NOT propose mitigations or solutions.
 - Keep each item concise and information-dense, suitable for an executive reader.
+- The tone should be brutally honest, confrontational, and designed to force a fundamental re-evaluation of the project.
 
 Output JSON schema:
 {
