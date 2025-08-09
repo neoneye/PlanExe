@@ -75,3 +75,45 @@ class TestEnumerateDuplicateStrings(unittest.TestCase):
             'e': 'duplicate y (2)',
         }
         self.assertEqual(result, expected)
+
+    def test_duplicates_case_insensitive1(self):
+        # Arrange
+        input = {
+            'a': 'duplicate x',
+            'b': 'duplicate Y',
+            'c': 'duplicate X',
+            'd': 'unique',
+            'e': 'duplicate y',
+        }
+
+        # Act
+        result = enumerate_duplicate_strings(input)
+
+        # Assert
+        expected = {
+            'a': 'duplicate x (1)',
+            'b': 'duplicate Y (1)',
+            'c': 'duplicate X (2)',
+            'd': 'unique',
+            'e': 'duplicate y (2)',
+        }
+        self.assertEqual(result, expected)
+
+    def test_duplicates_case_insensitive2(self):
+        # Arrange
+        input = {
+            'a': 'duplicate ÆØÅ',
+            'b': 'duplicate æøå',
+            'c': 'unique',
+        }
+
+        # Act
+        result = enumerate_duplicate_strings(input)
+
+        # Assert
+        expected = {
+            'a': 'duplicate ÆØÅ (1)',
+            'b': 'duplicate æøå (2)',
+            'c': 'unique',
+        }
+        self.assertEqual(result, expected)
