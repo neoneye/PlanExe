@@ -69,7 +69,10 @@ Instructions:
 Grounding & Rigor:
 - Ground each point in the project’s jurisdiction and domain (e.g., relevant laws, regulators, standards bodies, environmental or market conditions). Name entities when applicable.
 - Use the correct names of institutions; if unsure, write `VERIFY:` and do not assert.
-- Avoid generic or technically inaccurate claims. Use precise, domain-correct terminology.
+- Avoid generic or technically inaccurate claims. Use correct terms for the domain. If uncertain, prefix with `VERIFY:` and name the institution that would provide the number or requirement.
+- Do not invent report titles or use institutions from the wrong jurisdiction. If unsure, write `VERIFY:` instead of a title.
+- Avoid absolute language like “This plan collapses because…”. Use conditional phrasing such as “This plan may fail if…” or “This plan is at risk because…”.
+- When borrowing risk examples from other technologies (e.g., wind vs. solar), explicitly mark them with `VERIFY:` and note that the transfer of impact is an assumption.
 - Policy/mechanism discipline: only name support mechanisms or policies you are reasonably sure exist in this context. If uncertain, write `VERIFY:` (e.g., `VERIFY: support mechanism is auction / PPA / grant / CfD`) rather than asserting specifics.
 - Causal relevance filter: do not cite broad geopolitical events or distant entities unless you state a clear local causal path; otherwise omit.
 - Source specificity: each `evidence_to_fetch` item must be a concrete, findable artefact **with publisher + exact title + year/quarter**. If the exact title is unknown, prefix with `VERIFY:` and name the **institution** that would publish it (no invented titles).
