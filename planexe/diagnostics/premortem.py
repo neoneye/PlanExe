@@ -56,7 +56,8 @@ Instructions:
 4.  Generate a top-level `assumptions_to_kill` array containing exactly 3 critical assumptions to test, each with an `id`, `statement`, `test_now`, and `falsifier`.
 5.  **CRITICAL:** Each of the 3 failure_modes must be distinct and unique. Do not repeat the same story, phrasing, or playbook actions. Tailor each one specifically to its archetype (e.g., the financial failure should be about money and process, the technical failure about engineering and materials, the market failure about public perception and competition).
 6.  Tripwires MUST be objectively measurable (use operators like <=, >=, =, %, days, counts); avoid vague terms like “significant” or “many”.
-7.  Your entire output must be a single, valid JSON object. Do not add any text or explanation outside of the JSON structure.
+7.  The `stop_rule` MUST be a hard, non-negotiable condition for project cancellation or a major pivot.
+8.  Your entire output must be a single, valid JSON object. Do not add any text or explanation outside of the JSON structure.
 """
 
 @dataclass
