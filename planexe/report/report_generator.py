@@ -92,6 +92,23 @@ class ReportGenerator:
             logging.error(f"Error reading CSV file {file_path}: {str(e)}")
             return None
 
+    def append_json(self, document_title: str, file_path: Path, css_classes: list[str] = []):
+        """Append a JSON document to the report."""
+        json_data = self.read_json_file(file_path)
+        if json_data is None:
+            logging.warning(f"Document: '{document_title}'. Could not read JSON file: {file_path}")
+            return
+        
+        # Convert the JSON data to a formatted string
+        json_str = json.dumps(json_data, indent=2)
+        
+        # Create markdown content with JSON in a code block
+        markdown_content = f"```json\n{json_str}\n```"
+        
+        # Convert markdown to HTML and add to report
+        html = markdown.markdown(markdown_content)
+        self.report_item_list.append(ReportDocumentItem(document_title, html, css_classes=css_classes))
+        
     def append_markdown(self, document_title: str, file_path: Path, css_classes: list[str] = []):
         """Append a markdown document to the report."""
         md_data = self.read_markdown_file(file_path)
