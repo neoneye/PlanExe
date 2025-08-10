@@ -61,22 +61,24 @@ Objective:
 Generate a “Devil’s Advocate” section that critically examines the plan from a skeptical perspective, assuming it may be flawed or fundamentally misguided.
 
 Instructions:
-1) Identify 3–4 of the project’s most central assumptions (about the problem, the solution’s value, the operating context, constraints, or the stakeholders).
+1) Identify at least 4 of the project’s most central assumptions (about the problem, the solution’s value, the operating context, constraints, or the stakeholders). If you have fewer than 4 on the first pass, generate additional distinct assumptions until you reach 4.
 2) For each assumption, formulate a direct, provocative counter-argument that exposes fatal strategic weaknesses, flawed logic, ethical blind spots, dangerous over-optimism, or critical constraints. Use strong, assertive language (e.g., "This plan collapses because...", not "What if...?").
 3) Explicitly challenge the plan’s real-world value by exploring its long-term consequences — including what could go wrong even if it “succeeds” on its own terms.
 4) Highlight where the plan may be too narrow, too rigid, or ignoring external realities.
+5) Aim for **coverage** across different risk families when possible (e.g., policy/economics, approvals/compliance & environment, integration with external systems, technical/performance, stakeholders/human factors). Do not repeat the same risk in different words.
 
 Grounding & Rigor:
 - Ground each point in the project’s jurisdiction and domain (e.g., relevant laws, regulators, standards bodies, environmental or market conditions). Name entities when applicable.
 - Use the correct names of institutions; if unsure, write `VERIFY:` and do not assert.
 - Avoid generic or technically inaccurate claims. Use precise, domain-correct terminology. If uncertain, prefix with `VERIFY:` and name the institution that would provide the number or requirement.
+- Use **canonical institution names**. If unsure of the exact name, write `VERIFY: correct institution name` rather than guessing. Do not invent report titles.
 - Do not invent report titles or use institutions from the wrong jurisdiction. If unsure, write `VERIFY:` instead of a title.
 - Avoid absolute language like “This plan collapses because…”. Use conditional phrasing such as “This plan may fail if…” or “This plan is at risk because…”.
 - When borrowing risk examples from other technologies (e.g., wind vs. solar), explicitly mark them with `VERIFY:` and note that the transfer of impact is an assumption.
-- Policy/mechanism discipline: only name support mechanisms or policies you are reasonably sure exist in this context. If uncertain, write `VERIFY:` (e.g., `VERIFY: support mechanism is auction / PPA / grant / CfD`) rather than asserting specifics.
+- Policy/mechanism discipline: only name support mechanisms or policies you are reasonably sure exist in this context. If uncertain, write `VERIFY:` to mark the mechanism type instead of asserting specifics.
 - Causal relevance filter: do not cite broad geopolitical events or distant entities unless you state a clear local causal path; otherwise omit.
-- Source specificity: each `evidence_to_fetch` item must be a concrete, findable artefact **with publisher + exact title + year/quarter**. If the exact title is unknown, prefix with `VERIFY:` and name the **institution** that would publish it (no invented titles).
-- Numerical anchor (**mandatory**): each `challenge_markdown` must include **at least one** numeric anchor (estimate or range: timelines, costs, capacity/utilization, curtailment %, price, MW, months). If unknown, add `VERIFY:` describing the exact number needed and where to obtain it.
+- Source specificity: each `evidence_to_fetch` item must be a concrete, findable artefact **with publisher + exact title + year/quarter**. If the exact title is unknown, prefix with `VERIFY:` and provide **institution + topic + time window** (e.g., `VERIFY: [Institution] publication on [topic], [YYYY or Qn-YYYY]`). Do **not** fabricate titles.
+- Numerical anchor (**mandatory**): each `challenge_markdown` must include **at least one** numeric anchor (estimate or range: timelines, costs, throughput/capacity, error rates, prices, headcount, months, etc.). If unknown, add `VERIFY:` describing the exact number needed and where to obtain it.
 - Interconnection realism: prefer connection queue time, indicative reinforcement scope/cost sharing, curtailment exposure, and required capabilities (e.g., reactive power, ride-through) over generic “compatibility” claims.
 - Canonical names: use correct institution names; if uncertain, write `VERIFY:` rather than assert.
 - Causal path: do not cite national/geopolitical factors unless you state a clear local causal path; otherwise omit.
@@ -94,9 +96,9 @@ Output JSON schema:
       "issue_index": 1,
       "issue_title": "...",
       "assumption": "...",
-      "challenge_markdown": "... includes ≥1 number or `VERIFY:` placeholder and ends with '*Why this score?* ...'",
+      "challenge_markdown": "... includes ≥1 number or `VERIFY:` placeholder and ends with exactly '*Why this score?* ...'",
       "disconfirming_test": "...",
-      "evidence_to_fetch": ["publisher + exact title + year/quarter", "publisher + exact title + year/quarter"],
+      "evidence_to_fetch": ["publisher + exact title + year/quarter OR `VERIFY: Institution + topic + time window`", "…"],
       "impact_1to5": 1-5,
       "confidence": "low|medium|high"
     }
