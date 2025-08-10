@@ -66,6 +66,13 @@ Instructions:
 3) Explicitly challenge the plan’s real-world value by exploring its long-term consequences — including what could go wrong even if it “succeeds” on its own terms.
 4) Highlight where the plan may be too narrow, too rigid, or ignoring external realities.
 5) Aim for **coverage** across different risk families when possible (e.g., policy/economics, approvals/compliance & environment, integration with external systems, technical/performance, stakeholders/human factors). Do not repeat the same risk in different words.
+6) Include **one explicit second-order consequence** in each challenge (e.g., “If X succeeds, in 12–24 months Y will likely happen …”).
+7) End every `challenge_markdown` with a line that begins exactly: `*Why this score?* ` followed by a one-sentence justification of both `impact_1to5` and `confidence`.
+
+Hard requirements (no exceptions):
+- **Never** output null/None or empty strings/lists for any field. If unknown, write a `VERIFY:` placeholder that names the *institution/source* and the *metric/topic* you would fetch.
+- Every `challenge_markdown` must include ≥1 **numeric anchor** (estimate/range: timelines, costs, throughput/capacity, error rates, prices, headcount, months, etc.) or a `VERIFY:` numeric placeholder.
+- End every `challenge_markdown` with: `*Why this score?* ` followed by one sentence justifying both `impact_1to5` and `confidence`.
 
 Grounding & Rigor:
 - Ground each point in the project’s jurisdiction and domain (e.g., relevant laws, regulators, standards bodies, environmental or market conditions). Name entities when applicable.
@@ -77,7 +84,9 @@ Grounding & Rigor:
 - When borrowing risk examples from other technologies (e.g., wind vs. solar), explicitly mark them with `VERIFY:` and note that the transfer of impact is an assumption.
 - Policy/mechanism discipline: only name support mechanisms or policies you are reasonably sure exist in this context. If uncertain, write `VERIFY:` to mark the mechanism type instead of asserting specifics.
 - Causal relevance filter: do not cite broad geopolitical events or distant entities unless you state a clear local causal path; otherwise omit.
-- Source specificity: each `evidence_to_fetch` item must be a concrete, findable artefact **with publisher + exact title + year/quarter**. If the exact title is unknown, prefix with `VERIFY:` and provide **institution + topic + time window** (e.g., `VERIFY: [Institution] publication on [topic], [YYYY or Qn-YYYY]`). Do **not** fabricate titles.
+- Source specificity: each `evidence_to_fetch` item must be a concrete, findable artefact **with publisher + exact title + year/quarter**. If the exact title is unknown, use:  
+  `VERIFY: {Institution} — {topic/metric} — {YYYY or Qn-YYYY}`.  
+  Do **not** fabricate titles or use the wrong institution.
 - Numerical anchor (**mandatory**): each `challenge_markdown` must include **at least one** numeric anchor (estimate or range: timelines, costs, throughput/capacity, error rates, prices, headcount, months, etc.). If unknown, add `VERIFY:` describing the exact number needed and where to obtain it.
 - Interconnection realism: prefer connection queue time, indicative reinforcement scope/cost sharing, curtailment exposure, and required capabilities (e.g., reactive power, ride-through) over generic “compatibility” claims.
 - Canonical names: use correct institution names; if uncertain, write `VERIFY:` rather than assert.
@@ -96,10 +105,10 @@ Output JSON schema:
       "issue_index": 1,
       "issue_title": "...",
       "assumption": "...",
-      "challenge_markdown": "... includes ≥1 number or `VERIFY:` placeholder and ends with exactly '*Why this score?* ...'",
-      "disconfirming_test": "...",
-      "evidence_to_fetch": ["publisher + exact title + year/quarter OR `VERIFY: Institution + topic + time window`", "…"],
-      "impact_1to5": 1-5,
+      "challenge_markdown": "… ≥1 number or `VERIFY:` placeholder, contains one explicit second-order consequence, and ends with exactly '*Why this score?* ...'",
+      "disconfirming_test": "Non-empty. If unknown: `VERIFY: {Institution} — {procedure/metric needed}`",
+      "evidence_to_fetch": ["Non-empty. Each item is publisher + exact title + year/quarter OR `VERIFY: {Institution} — {topic/metric} — {YYYY/Qn-YYYY}`"],
+      "impact_1to5": 1|2|3|4|5,
       "confidence": "low|medium|high"
     }
   ]
