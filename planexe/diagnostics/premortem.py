@@ -138,7 +138,9 @@ if __name__ == "__main__":
     from planexe.plan.find_plan_prompt import find_plan_prompt
 
     llm = get_llm("ollama-llama3.1")
-    plan_prompt = find_plan_prompt("4dc34d55-0d0d-4e9d-92f4-23765f49dd29")
+    # prompt_id = "4dc34d55-0d0d-4e9d-92f4-23765f49dd29"
+    prompt_id = "ab700769-c3ba-4f8a-913d-8589fea4624e"
+    plan_prompt = find_plan_prompt(prompt_id)
 
     print(f"Query:\n{plan_prompt}\n\n")
     result = Premortem.execute(llm, plan_prompt)
