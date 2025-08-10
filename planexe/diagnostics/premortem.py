@@ -1,6 +1,8 @@
 """
 Imagine that the project has failed, and work backwards to identify plausible reasons why.
 
+https://en.wikipedia.org/wiki/Pre-mortem
+
 PROMPT> python -m planexe.diagnostics.premortem
 """
 import json
