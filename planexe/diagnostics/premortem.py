@@ -58,8 +58,12 @@ Instructions:
 5.  For each of the 3 failure_modes, you MUST populate all the following fields: `failure_mode_index`, `failure_mode_archetype`, `failure_mode_title`, `risk_analysis`, `early_warning_signs`, `owner`, `likelihood_5`, `impact_5`, `tripwires`, `playbook`, and `stop_rule`.
 6.  **CRITICAL:** Each of the 3 failure_modes must be distinct and unique. Do not repeat the same story, phrasing, or playbook actions. Tailor each one specifically to its archetype (e.g., the financial failure should be about money and process, the technical failure about engineering and materials, the market failure about public perception and competition).
 7.  Tripwires MUST be objectively measurable (use operators like <=, >=, =, %, days, counts); avoid vague terms like “significant” or “many”.
-8.  The `stop_rule` MUST be a hard, non-negotiable condition for project cancellation or a major pivot.
-9.  Your entire output must be a single, valid JSON object. Do not add any text or explanation outside of the JSON structure.
+8.  The `playbook` array MUST contain exactly 3 actions as follows:
+    1.  An immediate containment/control action, e.g., 'Contain: Stop the bleeding.'
+    2.  An assessment/triage action, e.g., 'Assess: Figure out how bad the damage is.'
+    3.  A strategic response action, e.g., 'Respond: Take strategic action based on the assessment.'
+9.  The `stop_rule` MUST be a hard, non-negotiable condition for project cancellation or a major pivot.
+10.  Your entire output must be a single, valid JSON object. Do not add any text or explanation outside of the JSON structure.
 """
 
 @dataclass
@@ -130,6 +134,10 @@ class Premortem:
         if include_user_prompt:
             d['user_prompt'] = self.user_prompt
         return d
+
+    def save_raw(self, file_path: str) -> None:
+        with open(file_path, 'w') as f:
+            f.write(json.dumps(self.to_dict(), indent=2))
     
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -138,6 +146,7 @@ if __name__ == "__main__":
     from planexe.plan.find_plan_prompt import find_plan_prompt
 
     llm = get_llm("ollama-llama3.1")
+    # llm = get_llm("openrouter-paid-openai-gpt-oss-20b")
     # prompt_id = "4dc34d55-0d0d-4e9d-92f4-23765f49dd29"
     prompt_id = "ab700769-c3ba-4f8a-913d-8589fea4624e"
     plan_prompt = find_plan_prompt(prompt_id)
