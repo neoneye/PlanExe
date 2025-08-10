@@ -17,12 +17,16 @@ from llama_index.core.llms.llm import LLM
 
 logger = logging.getLogger(__name__)
 
-class NarrativeItem(BaseModel):
-    narrative_index: int = Field(description="Enumerate the narrative items starting from 1")
-    narrative_archetype: str = Field(description="The archetype of failure: 'Process/Financial', 'Technical/Logistical', or 'Market/Human'.")
-    narrative_title: str = Field(description="A compelling, story-like title (e.g., 'The Gridlock Gamble').")
-    detailed_story_markdown: str = Field(description="A detailed, multi-paragraph story of the failure. Explain the causal chain. Write a full story.")
-    early_warning_signs_markdown: str = Field(description="A markdown list of 2-3 specific, observable events or metrics that preceded this failure.")
+class FailureModeItem(BaseModel):
+    failure_mode_index: int = Field(description="Enumerate the failure_mode items starting from 1")
+    failure_mode_archetype: str = Field(description="The archetype of failure: 'Process/Financial', 'Technical/Logistical', or 'Market/Human'.")
+    failure_mode_title: str = Field(description="A compelling, story-like title (e.g., 'The Gridlock Gamble').")
+    risk_analysis: str = Field(
+        description="Structured, factual breakdown of causes, contributing factors, and impacts for the failure mode. Use bullet points or short factual sentences. Avoid narratives or fictional elements."
+    )
+    early_warning_signs: List[str] = Field(
+        description="Clear, measurable indicators that this failure mode may occur. Each must be objectively testable."
+    )
     owner: Optional[str] = Field(None, description="The single role who owns this risk (e.g., 'Permitting Lead', 'Head of Engineering').")
     likelihood_5: Optional[int] = Field(None, description="Integer from 1 (rare) to 5 (almost certain) of this failure occurring.")
     impact_5: Optional[int] = Field(None, description="Integer from 1 (minor) to 5 (catastrophic) if this failure occurs.")
@@ -37,7 +41,7 @@ class Assumption(BaseModel):
     falsifier: str = Field(description="The specific result from the test that would prove the assumption false.")
 
 class PremortemAnalysis(BaseModel):
-    narratives: List[NarrativeItem] = Field(description="A list containing exactly 3 distinct failure narratives, one for each archetype.")
+    failure_modes: List[FailureModeItem] = Field(description="A list containing exactly 3 distinct failure failure_modes, one for each archetype.")
     assumptions_to_kill: Optional[List[Assumption]] = Field(None, description="A list of 3 critical, underlying assumptions to test immediately.")
 
 PREMORTEM_SYSTEM_PROMPT = """
@@ -46,12 +50,13 @@ Persona: You are a senior project analyst. Your primary goal is to write compell
 Objective: Imagine the user's project has failed completely. Generate a comprehensive premortem analysis as a single JSON object.
 
 Instructions:
-1.  Generate a top-level `narratives` array containing exactly 3 detailed, story-like failure narratives, one for each archetype: Process/Financial, Technical/Logistical, and Market/Human.
-2.  Each story in the `narratives` array must be a detailed, multi-paragraph story with a clear causal chain. Do not write short summaries.
-3.  For each of the 3 narratives, you MUST populate all the following fields: `narrative_index`, `narrative_archetype`, `narrative_title`, `detailed_story_markdown`, `early_warning_signs_markdown`, `owner`, `likelihood_5`, `impact_5`, `tripwires`, `playbook`, and `stop_rule`.
+1.  Generate a top-level `failure_modes` array containing exactly 3 detailed, story-like failure failure_modes, one for each archetype: Process/Financial, Technical/Logistical, and Market/Human.
+2.  Each story in the `failure_modes` array must be a detailed, multi-paragraph story with a clear causal chain. Do not write short summaries.
+3.  For each of the 3 failure_modes, you MUST populate all the following fields: `failure_mode_index`, `failure_mode_archetype`, `failure_mode_title`, `risk_analysis`, `early_warning_signs`, `owner`, `likelihood_5`, `impact_5`, `tripwires`, `playbook`, and `stop_rule`.
 4.  Generate a top-level `assumptions_to_kill` array containing exactly 3 critical assumptions to test, each with an `id`, `statement`, `test_now`, and `falsifier`.
-5.  **CRITICAL:** Each of the 3 narratives must be distinct and unique. Do not repeat the same story, phrasing, or playbook actions. Tailor each one specifically to its archetype (e.g., the financial failure should be about money and process, the technical failure about engineering and materials, the market failure about public perception and competition).
-6.  Your entire output must be a single, valid JSON object. Do not add any text or explanation outside of the JSON structure.
+5.  **CRITICAL:** Each of the 3 failure_modes must be distinct and unique. Do not repeat the same story, phrasing, or playbook actions. Tailor each one specifically to its archetype (e.g., the financial failure should be about money and process, the technical failure about engineering and materials, the market failure about public perception and competition).
+6.  Tripwires MUST be objectively measurable (use operators like <=, >=, =, %, days, counts); avoid vague terms like “significant” or “many”.
+7.  Your entire output must be a single, valid JSON object. Do not add any text or explanation outside of the JSON structure.
 """
 
 @dataclass
@@ -63,8 +68,10 @@ class Premortem:
     
     @classmethod
     def execute(cls, llm: LLM, user_prompt: str) -> 'Premortem':
-        if not isinstance(llm, LLM): raise ValueError("Invalid LLM instance.")
-        if not isinstance(user_prompt, str): raise ValueError("Invalid user_prompt.")
+        if not isinstance(llm, LLM):
+            raise ValueError("Invalid LLM instance.")
+        if not isinstance(user_prompt, str):
+            raise ValueError("Invalid user_prompt.")
         
         logger.debug(f"User Prompt:\n{user_prompt}")
         system_prompt = PREMORTEM_SYSTEM_PROMPT.strip()
