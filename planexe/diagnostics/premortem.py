@@ -17,6 +17,12 @@ from llama_index.core.llms.llm import LLM
 
 logger = logging.getLogger(__name__)
 
+class AssumptionItem(BaseModel):
+    id: str = Field(description="A unique ID for the assumption, e.g., 'A1', 'A2'.")
+    statement: str = Field(description="The core assumption we are making that, if false, would kill the project.")
+    test_now: str = Field(description="A concrete, immediate action to test if this assumption is true.")
+    falsifier: str = Field(description="The specific result from the test that would prove the assumption false.")
+
 class FailureModeItem(BaseModel):
     failure_mode_index: int = Field(description="Enumerate the failure_mode items starting from 1")
     failure_mode_archetype: str = Field(description="The archetype of failure: 'Process/Financial', 'Technical/Logistical', or 'Market/Human'.")
@@ -34,15 +40,9 @@ class FailureModeItem(BaseModel):
     playbook: Optional[List[str]] = Field(None, description="Array of exactly 3 brief, imperative action steps for the owner to take if a tripwire is hit.")
     stop_rule: Optional[str] = Field(None, description="A single, short, hard stop condition that would trigger project cancellation or a major pivot.")
 
-class Assumption(BaseModel):
-    id: str = Field(description="A unique ID for the assumption, e.g., 'A1', 'A2'.")
-    statement: str = Field(description="The core assumption we are making that, if false, would kill the project.")
-    test_now: str = Field(description="A concrete, immediate action to test if this assumption is true.")
-    falsifier: str = Field(description="The specific result from the test that would prove the assumption false.")
-
 class PremortemAnalysis(BaseModel):
+    assumptions_to_kill: List[AssumptionItem] = Field(description="A list of 3 critical, underlying assumptions to test immediately.")
     failure_modes: List[FailureModeItem] = Field(description="A list containing exactly 3 distinct failure failure_modes, one for each archetype.")
-    assumptions_to_kill: Optional[List[Assumption]] = Field(None, description="A list of 3 critical, underlying assumptions to test immediately.")
 
 PREMORTEM_SYSTEM_PROMPT = """
 Persona: You are a senior project analyst. Your primary goal is to write compelling, detailed, and distinct failure stories that are also operationally actionable.
@@ -50,10 +50,10 @@ Persona: You are a senior project analyst. Your primary goal is to write compell
 Objective: Imagine the user's project has failed completely. Generate a comprehensive premortem analysis as a single JSON object.
 
 Instructions:
-1.  Generate a top-level `failure_modes` array containing exactly 3 detailed, story-like failure failure_modes, one for each archetype: Process/Financial, Technical/Logistical, and Market/Human.
-2.  Each story in the `failure_modes` array must be a detailed, multi-paragraph story with a clear causal chain. Do not write short summaries.
-3.  For each of the 3 failure_modes, you MUST populate all the following fields: `failure_mode_index`, `failure_mode_archetype`, `failure_mode_title`, `risk_analysis`, `early_warning_signs`, `owner`, `likelihood_5`, `impact_5`, `tripwires`, `playbook`, and `stop_rule`.
-4.  Generate a top-level `assumptions_to_kill` array containing exactly 3 critical assumptions to test, each with an `id`, `statement`, `test_now`, and `falsifier`.
+1.  Generate a top-level `assumptions_to_kill` array containing exactly 3 critical assumptions to test, each with an `id`, `statement`, `test_now`, and `falsifier`. An assumption is a belief held without proof (e.g., "The supply chain is stable"), not a project goal.
+2.  Generate a top-level `failure_modes` array containing exactly 3 detailed, story-like failure failure_modes, one for each archetype: Process/Financial, Technical/Logistical, and Market/Human.
+3.  Each story in the `failure_modes` array must be a detailed, multi-paragraph story with a clear causal chain. Do not write short summaries.
+4.  For each of the 3 failure_modes, you MUST populate all the following fields: `failure_mode_index`, `failure_mode_archetype`, `failure_mode_title`, `risk_analysis`, `early_warning_signs`, `owner`, `likelihood_5`, `impact_5`, `tripwires`, `playbook`, and `stop_rule`.
 5.  **CRITICAL:** Each of the 3 failure_modes must be distinct and unique. Do not repeat the same story, phrasing, or playbook actions. Tailor each one specifically to its archetype (e.g., the financial failure should be about money and process, the technical failure about engineering and materials, the market failure about public perception and competition).
 6.  Tripwires MUST be objectively measurable (use operators like <=, >=, =, %, days, counts); avoid vague terms like “significant” or “many”.
 7.  The `stop_rule` MUST be a hard, non-negotiable condition for project cancellation or a major pivot.
