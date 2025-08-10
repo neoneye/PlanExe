@@ -143,6 +143,6 @@ if __name__ == "__main__":
     
     response_data = result.to_dict(include_metadata=True, include_system_prompt=False, include_user_prompt=False)
     
-    print("\n\nResponse:\n")
+    print("\n\nResponse:")
     print(json.dumps(response_data, indent=2))
     
