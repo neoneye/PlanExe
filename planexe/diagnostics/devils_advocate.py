@@ -1,6 +1,9 @@
 """
 Challenge the plan’s core premises.
 
+https://en.wikipedia.org/wiki/Devil%27s_advocate
+https://en.wikipedia.org/wiki/Group_decision-making
+
 PROMPT> python -m planexe.diagnostics.devils_advocate
 """
 import json
