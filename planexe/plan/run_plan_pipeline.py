@@ -3581,7 +3581,7 @@ class ReportTask(PlanTask):
         rg.append_csv('Work Breakdown Structure', self.input()['wbs_project123']['csv'].path)
         rg.append_markdown('Review Plan', self.input()['review_plan']['markdown'].path)
         rg.append_html('Questions & Answers', self.input()['questions_and_answers']['html'].path)
-        rg.append_markdown('Premortem', self.input()['premortem']['markdown'].path)
+        rg.append_markdown_with_tables('Premortem', self.input()['premortem']['markdown'].path)
         rg.save_report(self.output().path, title=title, execute_plan_section_hidden=REPORT_EXECUTE_PLAN_SECTION_HIDDEN)
 
 class FullPlanPipeline(PlanTask):

@@ -118,6 +118,15 @@ class ReportGenerator:
         html = markdown.markdown(md_data)
         self.report_item_list.append(ReportDocumentItem(document_title, html, css_classes=css_classes))
     
+    def append_markdown_with_tables(self, document_title: str, file_path: Path, css_classes: list[str] = []):
+        """Append a markdown document to the report. Render markdown tables as HTML tables."""
+        md_data = self.read_markdown_file(file_path)
+        if md_data is None:
+            logging.warning(f"Document: '{document_title}'. Could not read markdown file: {file_path}")
+            return
+        html = markdown.markdown(md_data, extensions=['tables'])
+        self.report_item_list.append(ReportDocumentItem(document_title, html, css_classes=css_classes))
+    
     def append_csv(self, document_title: str, file_path: Path, css_classes: list[str] = []):
         """Append a CSV to the report."""
         df_data = self.read_csv_file(file_path)
