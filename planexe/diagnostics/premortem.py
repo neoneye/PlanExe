@@ -268,7 +268,7 @@ class Premortem:
             rows.append("\n")
 
             stop_rule_text = failure_mode.stop_rule or 'Not specified'
-            rows.append(f"> 🛑 **STOP RULE:** {stop_rule_text}\n")
+            rows.append(f"**STOP RULE:** {stop_rule_text}\n")
 
         return "\n".join(rows)
     
