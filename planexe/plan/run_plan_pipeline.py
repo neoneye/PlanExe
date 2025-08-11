@@ -3270,22 +3270,10 @@ class ReviewPlanTask(PlanTask):
         markdown_path = self.output()['markdown'].path
         review_plan.save_markdown(markdown_path)
 
-        logger.info("Reviewed the plan.")
-
 
 class ExecutiveSummaryTask(PlanTask):
     """
-    Create an executive summary of the plan.
-    
-    It depends on:
-      - ConsolidateAssumptionsMarkdownTask: provides the assumptions as Markdown.
-      - ProjectPlanTask: provides the project plan as Markdown.
-      - SWOTAnalysisTask: provides the SWOT analysis as Markdown.
-      - TeamMarkdownTask: provides the team as Markdown.
-      - ConvertPitchToMarkdownTask: provides the pitch as Markdown.
-      - ExpertReviewTask: provides the expert criticism as Markdown.
-      - WBSProjectLevel1AndLevel2AndLevel3Task: provides the table csv file.
-      - ReviewPlanTask: provides the reviewed plan as Markdown.
+    Create an executive summary of the plan.    
     """
     def output(self):
         return {
@@ -3360,8 +3348,6 @@ class ExecutiveSummaryTask(PlanTask):
         executive_summary.save_raw(json_path)
         markdown_path = self.output()['markdown'].path
         executive_summary.save_markdown(markdown_path)
-
-        logger.info("Created executive summary.")
 
 
 class QuestionsAndAnswersTask(PlanTask):
