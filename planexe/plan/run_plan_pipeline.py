@@ -3472,6 +3472,9 @@ class PremortemTask(PlanTask):
             data_collection_markdown = f.read()
         with self.input()['related_resources']['raw'].open("r") as f:
             related_resources_dict = json.load(f)
+            del related_resources_dict["metadata"]
+            del related_resources_dict["user_prompt"]
+            del related_resources_dict["system_prompt"]
         with self.input()['swot_analysis']['markdown'].open("r") as f:
             swot_analysis_markdown = f.read()
         with self.input()['team_markdown'].open("r") as f:
@@ -3485,7 +3488,10 @@ class PremortemTask(PlanTask):
         with self.input()['review_plan']['markdown'].open("r") as f:
             review_plan_markdown = f.read()
         with self.input()['questions_and_answers']['raw'].open("r") as f:
-            questions_and_answers_raw = f.read()
+            questions_and_answers_dict = json.load(f)
+            del questions_and_answers_dict["metadata"]
+            del questions_and_answers_dict["user_prompt"]
+            del questions_and_answers_dict["system_prompt"]
 
         # Build the query.
         query = (
@@ -3501,7 +3507,7 @@ class PremortemTask(PlanTask):
             f"File 'expert-review.md':\n{expert_review}\n\n"
             f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}\n\n"
             f"File 'review-plan.md':\n{review_plan_markdown}\n\n"
-            f"File 'questions-and-answers.json':\n{questions_and_answers_raw}"
+            f"File 'questions-and-answers.json':\n{format_json_for_use_in_query(questions_and_answers_dict)}"
         )
 
         # Invoke the LLM
