@@ -171,6 +171,25 @@ class Premortem:
         return "\n".join(f"- {item}" for item in items)
 
     @staticmethod
+    def _calculate_risk_level(likelihood: Optional[int], impact: Optional[int]) -> str:
+        """Calculates a qualitative risk level from likelihood and impact scores."""
+        if likelihood is None or impact is None:
+            return f"Likelihood {likelihood}/5, Impact {impact}/5"
+        
+        score = likelihood * impact
+        if score >= 15:
+            classification = "CRITICAL"
+        elif score >= 9:
+            classification = "HIGH"
+        elif score >= 4:
+            classification = "MEDIUM"
+        else:
+            classification = "LOW"
+        
+        calculation = f"{classification} ({score}/25) = Likelihood {likelihood}/5 × Impact {impact}/5"
+        return calculation
+
+    @staticmethod
     def convert_to_markdown(premortem_analysis: PremortemAnalysis) -> str:
         """
         Convert the premortem analysis to markdown format.
@@ -202,7 +221,8 @@ class Premortem:
             rows.append(f"**Archetype:** {failure_mode.failure_mode_archetype}\n")
             rows.append(f"**Root Cause:** Assumption {failure_mode.root_cause_assumption_id}\n")
             rows.append(f"**Owner:** {failure_mode.owner or 'Unassigned'}\n")
-            rows.append(f"**Risk Score:** Likelihood {failure_mode.likelihood_5}/5, Impact {failure_mode.impact_5}/5\n")
+            risk_level_str = Premortem._calculate_risk_level(failure_mode.likelihood_5, failure_mode.impact_5)
+            rows.append(f"**Risk Level:** {risk_level_str}\n")
             
             rows.append(f"\n#### Failure Narrative\n{failure_mode.risk_analysis}\n")
 
