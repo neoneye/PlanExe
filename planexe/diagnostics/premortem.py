@@ -2,6 +2,8 @@
 Imagine that the project has failed, and work backwards to identify plausible reasons why.
 
 https://en.wikipedia.org/wiki/Pre-mortem
+Premortem is a risk assessment method by Gary A. Klein
+https://en.wikipedia.org/wiki/Gary_A._Klein
 
 PROMPT> python -m planexe.diagnostics.premortem
 
