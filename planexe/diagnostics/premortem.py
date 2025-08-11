@@ -28,7 +28,7 @@ from planexe.llm_util.llm_executor import LLMExecutor, PipelineStopRequested
 logger = logging.getLogger(__name__)
 
 class AssumptionItem(BaseModel):
-    assumption_id: str = Field(description="A unique ID for the assumption, enumerated as 'A1', 'A2', 'A3'.")
+    assumption_id: str = Field(description="Enumerate the assumption items starting from 'A1', 'A2', 'A3', 'A4', etc. Do not restart at A1.")
     statement: str = Field(description="The core assumption we are making that, if false, would kill the project.")
     test_now: str = Field(description="A concrete, immediate action to test if this assumption is true.")
     falsifier: str = Field(description="The specific result from the test that would prove the assumption false.")
@@ -63,7 +63,7 @@ Objective: Imagine the user's project has failed completely. Generate a comprehe
 Instructions:
 1.  Generate a top-level `assumptions_to_kill` array containing exactly 3 critical assumptions to test, each with an `id`, `statement`, `test_now`, and `falsifier`. An assumption is a belief held without proof (e.g., "The supply chain is stable"), not a project goal.
 2.  Generate a top-level `failure_modes` array containing exactly 3 detailed, story-like failure failure_modes, one for each archetype: Process/Financial, Technical/Logistical, and Market/Human.
-3.  **CRITICAL LINKING STEP: For each `failure_mode`, you MUST identify its root cause by setting the `root_cause_assumption_id` field to the `assumption_id` of one of the assumptions you created in step 1.** Each assumption ("A1", "A2", "A3") must be used as a root cause exactly once.
+3.  **CRITICAL LINKING STEP: For each `failure_mode`, you MUST identify its root cause by setting the `root_cause_assumption_id` field to the `assumption_id` of one of the assumptions you created in step 1. ** Each assumption ("A1", "A2", "A3", "A4", etc.) must be used as a root cause exactly once.
 4.  Each story in the `failure_modes` array must be a detailed, multi-paragraph story with a clear causal chain. Do not write short summaries.
 5.  For each of the 3 failure_modes, you MUST populate all the following fields: `failure_mode_index`, `failure_mode_archetype`, `failure_mode_title`, `risk_analysis`, `early_warning_signs`, `owner`, `likelihood_5`, `impact_5`, `tripwires`, `playbook`, and `stop_rule`.
 6.  **CRITICAL:** Each of the 3 failure_modes must be distinct and unique. Do not repeat the same story, phrasing, or playbook actions. Tailor each one specifically to its archetype (e.g., the financial failure should be about money and process, the technical failure about engineering and materials, the market failure about public perception and competition).
@@ -73,7 +73,7 @@ Instructions:
     2.  An assessment/triage action, e.g., 'Assess: Figure out how bad the damage is.'
     3.  A strategic response action, e.g., 'Respond: Take strategic action based on the assessment.'
 9.  The `stop_rule` MUST be a hard, non-negotiable condition for project cancellation or a major pivot.
-10.  Your entire output must be a single, valid JSON object. Do not add any text or explanation outside of the JSON structure.
+10. Your entire output must be a single, valid JSON object. Do not add any text or explanation outside of the JSON structure.
 """
 
 @dataclass
@@ -105,45 +105,85 @@ class Premortem:
             )
         ]
 
-        def execute_function(llm: LLM) -> dict:
-            sllm = llm.as_structured_llm(PremortemAnalysis)
-            start_time = time.perf_counter()
-            
-            chat_response = sllm.chat(chat_message_list)
-            pydantic_response = chat_response.raw
-            
-            end_time = time.perf_counter()
-            duration = int(ceil(end_time - start_time))
-            
-            metadata = dict(llm.metadata)
-            metadata["llm_classname"] = llm.class_name()
-            metadata["duration"] = duration
-            
-            return {
-                "pydantic_response": pydantic_response,
-                "metadata": metadata,
-                "duration": duration
-            }
+        user_prompt_list = [
+            user_prompt,
+            "Generate 3 new assumptions that are thematically different from the previous ones. Start assumption_id at A4.",
+            "Generate 3 new assumptions that are thematically different from the previous ones and covers different archetypes. Start assumption_id at A7.",
+        ]
 
-        try:
-            result = llm_executor.run(execute_function)
-        except PipelineStopRequested:
-            # Re-raise PipelineStopRequested without wrapping it
-            raise
-        except Exception as e:
-            logger.debug(f"LLM chat interaction failed: {e}")
-            logger.error("LLM chat interaction failed.", exc_info=True)
-            raise ValueError("LLM chat interaction failed.") from e
+        responses: list[PremortemAnalysis] = []
+        metadata_list: list[dict] = []
+        for user_prompt_index, user_prompt_item in enumerate(user_prompt_list, start=1):
+            logger.info(f"Processing user_prompt_index: {user_prompt_index} of {len(user_prompt_list)}")
+            chat_message_list.append(
+                ChatMessage(
+                    role=MessageRole.USER,
+                    content=user_prompt_item,
+                )
+            )
 
-        json_response = result["pydantic_response"].model_dump()
+            def execute_function(llm: LLM) -> dict:
+                sllm = llm.as_structured_llm(PremortemAnalysis)
+                start_time = time.perf_counter()
+                
+                chat_response = sllm.chat(chat_message_list)
+                pydantic_response = chat_response.raw
+                
+                end_time = time.perf_counter()
+                duration = int(ceil(end_time - start_time))
+                
+                metadata = dict(llm.metadata)
+                metadata["llm_classname"] = llm.class_name()
+                metadata["duration"] = duration
+                
+                return {
+                    "pydantic_response": pydantic_response,
+                    "metadata": metadata,
+                    "duration": duration
+                }
+
+            try:
+                result = llm_executor.run(execute_function)
+            except PipelineStopRequested:
+                # Re-raise PipelineStopRequested without wrapping it
+                raise
+            except Exception as e:
+                logger.debug(f"LLM chat interaction failed: {e}")
+                logger.error("LLM chat interaction failed.", exc_info=True)
+                raise ValueError("LLM chat interaction failed.") from e
+            
+            chat_message_list.append(
+                ChatMessage(
+                    role=MessageRole.ASSISTANT,
+                    content=result["pydantic_response"].model_dump(),
+                )
+            )
+
+            responses.append(result["pydantic_response"])
+            metadata_list.append(result["metadata"])
+
+        # Use the last response as the primary result
+        assumptions_to_kill: list[AssumptionItem] = []
+        failure_modes: list[FailureModeItem] = []
+        for response in responses:
+            assumptions_to_kill.extend(response.assumptions_to_kill)
+            failure_modes.extend(response.failure_modes)
+
+        final_response = PremortemAnalysis(
+            assumptions_to_kill=assumptions_to_kill,
+            failure_modes=failure_modes
+        )
+        
+        json_response = final_response.model_dump()
         response_byte_count = len(json.dumps(json_response).encode('utf-8'))
         
-        logger.info(f"LLM chat interaction completed in {result['duration']} seconds. Response byte count: {response_byte_count}")
+        logger.info(f"LLM chat interaction completed. Response byte count: {response_byte_count}")
         
-        metadata = result["metadata"]
+        metadata = {}
+        metadata["models"] = metadata_list
         metadata["response_byte_count"] = response_byte_count
 
-        markdown = cls.convert_to_markdown(result["pydantic_response"])
+        markdown = cls.convert_to_markdown(final_response)
 
         return Premortem(
             system_prompt=system_prompt,
