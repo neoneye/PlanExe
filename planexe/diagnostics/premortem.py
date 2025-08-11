@@ -79,6 +79,7 @@ class Premortem:
     user_prompt: str
     response: dict
     metadata: dict
+    markdown: str
     
     @classmethod
     def execute(cls, llm: LLM, user_prompt: str) -> 'Premortem':
@@ -125,14 +126,17 @@ class Premortem:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
+        markdown = cls.convert_to_markdown(pydantic_response)
+
         return Premortem(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
-            metadata=metadata
+            metadata=metadata,
+            markdown=markdown
         )
     
-    def to_dict(self, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
+    def to_dict(self, include_metadata=True, include_system_prompt=True, include_user_prompt=True, include_markdown=True) -> dict:
         d = self.response.copy()
         if include_metadata:
             d['metadata'] = self.metadata
@@ -140,11 +144,83 @@ class Premortem:
             d['system_prompt'] = self.system_prompt
         if include_user_prompt:
             d['user_prompt'] = self.user_prompt
+        if include_markdown:
+            d['markdown'] = self.markdown
         return d
 
     def save_raw(self, file_path: str) -> None:
         with open(file_path, 'w') as f:
             f.write(json.dumps(self.to_dict(), indent=2))
+
+    def save_markdown(self, output_file_path: str):
+        """Save the markdown output to a file."""
+        with open(output_file_path, 'w', encoding='utf-8') as out_f:
+            out_f.write(self.markdown)
+
+    @staticmethod
+    def _format_bullet_list(items: list[str]) -> str:
+        """
+        Format a list of strings into a markdown bullet list.
+        
+        Args:
+            items: List of strings to format as bullet points
+            
+        Returns:
+            Formatted markdown bullet list
+        """
+        return "\n".join(f"- {item}" for item in items)
+
+    @staticmethod
+    def convert_to_markdown(premortem_analysis: PremortemAnalysis) -> str:
+        """
+        Convert the premortem analysis to markdown format.
+        """
+        rows = []
+        
+        # Header
+        rows.append("# Premortem Analysis\n")
+        rows.append("This document analyzes potential failure modes by imagining the project has already failed and working backwards to identify root causes.\n")
+        
+        # Assumptions to Kill
+        rows.append("## Critical Assumptions to Test\n")
+        rows.append("Before we begin, we must validate these three core beliefs:\n")
+        
+        for assumption in premortem_analysis.assumptions_to_kill:
+            rows.append(f"### Assumption {assumption.assumption_id}: {assumption.statement}\n")
+            rows.append(f"**How We'll Test It Now:** {assumption.test_now}\n")
+            rows.append(f"**What Would Prove It False:** {assumption.falsifier}\n")
+            rows.append("")
+        
+        # Failure Modes
+        rows.append("## Premortem - Imagining Failure to Prevent It\n")
+        rows.append("We've explored what could happen if our assumptions are wrong. Here are the most likely failure scenarios and our response plans:\n")
+        
+        for index, failure_mode in enumerate(premortem_analysis.failure_modes):
+            if index > 0:
+                rows.append("---\n")
+            rows.append(f"### {failure_mode.failure_mode_index}. {failure_mode.failure_mode_title}\n")
+            rows.append(f"**Archetype:** {failure_mode.failure_mode_archetype}\n")
+            rows.append(f"**Root Cause:** Assumption {failure_mode.root_cause_assumption_id}\n")
+            rows.append(f"**Owner:** {failure_mode.owner or 'Unassigned'}\n")
+            rows.append(f"**Risk Score:** Likelihood {failure_mode.likelihood_5}/5, Impact {failure_mode.impact_5}/5\n")
+            
+            rows.append(f"\n#### Risk Analysis\n{failure_mode.risk_analysis}\n")
+            
+            rows.append("#### Early Warnings")
+            warning_signs = Premortem._format_bullet_list(failure_mode.early_warning_signs)
+            rows.append(f"\n{warning_signs}\n")
+            
+            rows.append("#### Tripwires")
+            tripwires = Premortem._format_bullet_list(failure_mode.tripwires or [])
+            rows.append(f"\n{tripwires}\n")
+            
+            rows.append("#### Playbook")
+            playbook = Premortem._format_bullet_list(failure_mode.playbook or [])
+            rows.append(f"\n{playbook}\n")
+            
+            rows.append(f"#### Stop Rule\n{failure_mode.stop_rule or 'Not specified'}\n")
+        
+        return "\n".join(rows)
     
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -161,8 +237,11 @@ if __name__ == "__main__":
     print(f"Query:\n{plan_prompt}\n\n")
     result = Premortem.execute(llm, plan_prompt)
     
-    response_data = result.to_dict(include_metadata=True, include_system_prompt=False, include_user_prompt=False)
+    response_data = result.to_dict(include_metadata=True, include_system_prompt=False, include_user_prompt=False, include_markdown=False)
     
     print("\n\nResponse:")
     print(json.dumps(response_data, indent=2))
+    
+    print(f"\n\nMarkdown Output:")
+    print(result.markdown)
     

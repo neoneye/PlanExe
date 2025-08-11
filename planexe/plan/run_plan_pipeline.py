@@ -3448,6 +3448,7 @@ class PremortemTask(PlanTask):
     def output(self):
         return {
             'raw': self.local_target(FilenameEnum.PREMORTEM_RAW),
+            'markdown': self.local_target(FilenameEnum.PREMORTEM_MARKDOWN)
         }
     
     def requires(self):
@@ -3521,6 +3522,8 @@ class PremortemTask(PlanTask):
         # Save the results.
         json_path = self.output()['raw'].path
         premortem.save_raw(json_path)
+        markdown_path = self.output()['markdown'].path
+        premortem.save_markdown(markdown_path)
 
 class ReportTask(PlanTask):
     """
@@ -3578,7 +3581,7 @@ class ReportTask(PlanTask):
         rg.append_csv('Work Breakdown Structure', self.input()['wbs_project123']['csv'].path)
         rg.append_markdown('Review Plan', self.input()['review_plan']['markdown'].path)
         rg.append_html('Questions & Answers', self.input()['questions_and_answers']['html'].path)
-        rg.append_json('Premortem', self.input()['premortem']['raw'].path)
+        rg.append_markdown('Premortem', self.input()['premortem']['markdown'].path)
         rg.save_report(self.output().path, title=title, execute_plan_section_hidden=REPORT_EXECUTE_PLAN_SECTION_HIDDEN)
 
 class FullPlanPipeline(PlanTask):
