@@ -1619,10 +1619,10 @@ class FindTeamMembersTask(PlanTask):
             consolidate_assumptions_markdown = f.read()
         with self.input()['preproject']['clean'].open("r") as f:
             pre_project_assessment_dict = json.load(f)
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
-        with self.input()['related_resources']['raw'].open("r") as f:
-            related_resources_dict = json.load(f)
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
+        with self.input()['related_resources']['markdown'].open("r") as f:
+            related_resources_markdown = f.read()
 
         # Build the query.
         query = (
@@ -1631,8 +1631,8 @@ class FindTeamMembersTask(PlanTask):
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
-            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
+            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
+            f"File 'related-resources.md':\n{related_resources_markdown}"
         )
 
         # Execute.
@@ -1683,12 +1683,12 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
             consolidate_assumptions_markdown = f.read()
         with self.input()['preproject']['clean'].open("r") as f:
             pre_project_assessment_dict = json.load(f)
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
         with self.input()['find_team_members']['clean'].open("r") as f:
             team_member_list = json.load(f)
-        with self.input()['related_resources']['raw'].open("r") as f:
-            related_resources_dict = json.load(f)
+        with self.input()['related_resources']['markdown'].open("r") as f:
+            related_resources_markdown = f.read()
 
         # Build the query.
         query = (
@@ -1697,9 +1697,9 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
             f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\n"
-            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
+            f"File 'related-resources.md':\n{related_resources_markdown}"
         )
 
         # Execute.
@@ -1750,12 +1750,12 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
             consolidate_assumptions_markdown = f.read()
         with self.input()['preproject']['clean'].open("r") as f:
             pre_project_assessment_dict = json.load(f)
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
         with self.input()['enrich_team_members_with_contract_type']['clean'].open("r") as f:
             team_member_list = json.load(f)
-        with self.input()['related_resources']['raw'].open("r") as f:
-            related_resources_dict = json.load(f)
+        with self.input()['related_resources']['markdown'].open("r") as f:
+            related_resources_markdown = f.read()
 
         # Build the query.
         query = (
@@ -1764,9 +1764,9 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
             f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\n"
-            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
+            f"File 'related-resources.md':\n{related_resources_markdown}"
         )
 
         # Execute.
@@ -1817,12 +1817,12 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
             consolidate_assumptions_markdown = f.read()
         with self.input()['preproject']['clean'].open("r") as f:
             pre_project_assessment_dict = json.load(f)
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
         with self.input()['enrich_team_members_with_background_story']['clean'].open("r") as f:
             team_member_list = json.load(f)
-        with self.input()['related_resources']['raw'].open("r") as f:
-            related_resources_dict = json.load(f)
+        with self.input()['related_resources']['markdown'].open("r") as f:
+            related_resources_markdown = f.read()
 
         # Build the query.
         query = (
@@ -1831,9 +1831,9 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
             f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\n"
-            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
+            f"File 'related-resources.md':\n{related_resources_markdown}"
         )
 
         # Execute.
@@ -1881,12 +1881,12 @@ class ReviewTeamTask(PlanTask):
             consolidate_assumptions_markdown = f.read()
         with self.input()['preproject']['clean'].open("r") as f:
             pre_project_assessment_dict = json.load(f)
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
         with self.input()['enrich_team_members_with_environment_info']['clean'].open("r") as f:
             team_member_list = json.load(f)
-        with self.input()['related_resources']['raw'].open("r") as f:
-            related_resources_dict = json.load(f)
+        with self.input()['related_resources']['markdown'].open("r") as f:
+            related_resources_markdown = f.read()
 
         # Convert the team members to a Markdown document.
         builder = TeamMarkdownDocumentBuilder()
@@ -1900,9 +1900,9 @@ class ReviewTeamTask(PlanTask):
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
             f"File 'team-members.md':\n{team_document_markdown}\n\n"
-            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
+            f"File 'related-resources.md':\n{related_resources_markdown}"
         )
 
         # Execute.
@@ -1984,10 +1984,10 @@ class SWOTAnalysisTask(PlanTask):
             consolidate_assumptions_markdown = f.read()
         with self.input()['preproject']['clean'].open("r") as f:
             pre_project_assessment_dict = json.load(f)
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
-        with self.input()['related_resources']['raw'].open("r") as f:
-            related_resources_dict = json.load(f)
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
+        with self.input()['related_resources']['markdown'].open("r") as f:
+            related_resources_markdown = f.read()
 
         # Build the query for SWOT analysis.
         query = (
@@ -1996,8 +1996,8 @@ class SWOTAnalysisTask(PlanTask):
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
             f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
-            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}"
+            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
+            f"File 'related-resources.md':\n{related_resources_markdown}"
         )
 
         # Execute the SWOT analysis.
@@ -2052,8 +2052,8 @@ class ExpertReviewTask(PlanTask):
             scenarios_markdown = f.read()
         with self.input()['preproject']['clean'].open("r") as f:
             pre_project_assessment_dict = json.load(f)
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
         swot_markdown_path = self.input()['swot_analysis']['markdown'].path
         with open(swot_markdown_path, "r", encoding="utf-8") as f:
             swot_markdown = f.read()
@@ -2064,7 +2064,7 @@ class ExpertReviewTask(PlanTask):
             f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'pre-project assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project_plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'project_plan.md':\n{project_plan_markdown}\n\n"
             f"File 'SWOT Analysis.md':\n{swot_markdown}"
         )
 
@@ -2125,8 +2125,8 @@ class DataCollectionTask(PlanTask):
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
             project_plan_markdown = f.read()
-        with self.input()['related_resources']['raw'].open("r") as f:
-            related_resources_dict = json.load(f)
+        with self.input()['related_resources']['markdown'].open("r") as f:
+            related_resources_markdown = f.read()
         with self.input()['swot_analysis']['markdown'].open("r") as f:
             swot_analysis_markdown = f.read()
         with self.input()['team_markdown'].open("r") as f:
@@ -2140,7 +2140,7 @@ class DataCollectionTask(PlanTask):
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}\n\n"
+            f"File 'related-resources.md':\n{related_resources_markdown}\n\n"
             f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
             f"File 'team.md':\n{team_markdown}\n\n"
             f"File 'expert-review.md':\n{expert_review}"
@@ -2192,8 +2192,8 @@ class IdentifyDocumentsTask(PlanTask):
             assumptions_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
             project_plan_markdown = f.read()
-        with self.input()['related_resources']['raw'].open("r") as f:
-            related_resources_dict = json.load(f)
+        with self.input()['related_resources']['markdown'].open("r") as f:
+            related_resources_markdown = f.read()
         with self.input()['swot_analysis']['markdown'].open("r") as f:
             swot_analysis_markdown = f.read()
         with self.input()['team_markdown'].open("r") as f:
@@ -2207,7 +2207,7 @@ class IdentifyDocumentsTask(PlanTask):
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}\n\n"
+            f"File 'related-resources.md':\n{related_resources_markdown}\n\n"
             f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
             f"File 'team.md':\n{team_markdown}\n\n"
             f"File 'expert-review.md':\n{expert_review}"
@@ -2637,8 +2637,8 @@ class CreateWBSLevel2Task(PlanTask):
             strategic_decisions_markdown = f.read()
         with self.input()['scenarios_markdown']['markdown'].open("r") as f:
             scenarios_markdown = f.read()
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)        
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()        
         with self.input()['data_collection']['markdown'].open("r") as f:
             data_collection_markdown = f.read()
         with self.input()['wbs_level1']['clean'].open("r") as f:
@@ -2647,7 +2647,7 @@ class CreateWBSLevel2Task(PlanTask):
         query = (
             f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'project_plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'project_plan.md':\n{project_plan_markdown}\n\n"
             f"File 'WBS Level 1.json':\n{format_json_for_use_in_query(wbs_level1_result_json)}\n\n"
             f"File 'data_collection.md':\n{data_collection_markdown}"
         )
@@ -2721,24 +2721,24 @@ class CreatePitchTask(PlanTask):
             strategic_decisions_markdown = f.read()
         with self.input()['scenarios_markdown']['markdown'].open("r") as f:
             scenarios_markdown = f.read()
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
         
         with self.input()['wbs_project'].open("r") as f:
             wbs_project_dict = json.load(f)
         wbs_project = WBSProject.from_dict(wbs_project_dict)
         wbs_project_json = wbs_project.to_dict()
 
-        with self.input()['related_resources']['raw'].open("r") as f:
-            related_resources_dict = json.load(f)
+        with self.input()['related_resources']['markdown'].open("r") as f:
+            related_resources_markdown = f.read()
         
         # Build the query
         query = (
             f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'project_plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'project_plan.md':\n{project_plan_markdown}\n\n"
             f"File 'Work Breakdown Structure.json':\n{format_json_for_use_in_query(wbs_project_json)}\n\n"
-            f"File 'similar_projects.json':\n{format_json_for_use_in_query(related_resources_dict)}"
+            f"File 'similar_projects.md':\n{related_resources_markdown}"
         )
         
         # Execute the pitch creation.
@@ -2811,8 +2811,8 @@ class IdentifyTaskDependenciesTask(PlanTask):
             strategic_decisions_markdown = f.read()
         with self.input()['scenarios_markdown']['markdown'].open("r") as f:
             scenarios_markdown = f.read()
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)        
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()        
         with self.input()['data_collection']['markdown'].open("r") as f:
             data_collection_markdown = f.read()
         with self.input()['wbs_level2']['clean'].open("r") as f:
@@ -2822,7 +2822,7 @@ class IdentifyTaskDependenciesTask(PlanTask):
         query = (
             f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'project_plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+            f"File 'project_plan.md':\n{project_plan_markdown}\n\n"
             f"File 'Work Breakdown Structure.json':\n{format_json_for_use_in_query(major_phases_with_subtasks)}\n\n"
             f"File 'data_collection.md':\n{data_collection_markdown}"
         )
@@ -3470,11 +3470,8 @@ class PremortemTask(PlanTask):
             project_plan_markdown = f.read()
         with self.input()['data_collection']['markdown'].open("r") as f:
             data_collection_markdown = f.read()
-        with self.input()['related_resources']['raw'].open("r") as f:
-            related_resources_dict = json.load(f)
-            del related_resources_dict["metadata"]
-            del related_resources_dict["user_prompt"]
-            del related_resources_dict["system_prompt"]
+        with self.input()['related_resources']['markdown'].open("r") as f:
+            related_resources_markdown = f.read()
         with self.input()['swot_analysis']['markdown'].open("r") as f:
             swot_analysis_markdown = f.read()
         with self.input()['team_markdown'].open("r") as f:
@@ -3487,11 +3484,8 @@ class PremortemTask(PlanTask):
             wbs_project_csv = f.read()
         with self.input()['review_plan']['markdown'].open("r") as f:
             review_plan_markdown = f.read()
-        with self.input()['questions_and_answers']['raw'].open("r") as f:
-            questions_and_answers_dict = json.load(f)
-            del questions_and_answers_dict["metadata"]
-            del questions_and_answers_dict["user_prompt"]
-            del questions_and_answers_dict["system_prompt"]
+        with self.input()['questions_and_answers']['markdown'].open("r") as f:
+            questions_and_answers_markdown = f.read()
 
         # Build the query.
         query = (
@@ -3500,14 +3494,14 @@ class PremortemTask(PlanTask):
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
             f"File 'data-collection.md':\n{data_collection_markdown}\n\n"
-            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}\n\n"
+            f"File 'related-resources.md':\n{related_resources_markdown}\n\n"
             f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
             f"File 'team.md':\n{team_markdown}\n\n"
             f"File 'pitch.md':\n{pitch_markdown}\n\n"
             f"File 'expert-review.md':\n{expert_review}\n\n"
             f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}\n\n"
             f"File 'review-plan.md':\n{review_plan_markdown}\n\n"
-            f"File 'questions-and-answers.json':\n{format_json_for_use_in_query(questions_and_answers_dict)}"
+            f"File 'questions-and-answers.md':\n{questions_and_answers_markdown}"
         )
 
         # Invoke the LLM
