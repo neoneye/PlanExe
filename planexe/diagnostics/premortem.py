@@ -171,7 +171,25 @@ class Premortem:
         return "\n".join(f"- {item}" for item in items)
 
     @staticmethod
-    def _calculate_risk_level(likelihood: Optional[int], impact: Optional[int]) -> str:
+    def _calculate_risk_level_brief(likelihood: Optional[int], impact: Optional[int]) -> str:
+        """Calculates a qualitative risk level from likelihood and impact scores."""
+        if likelihood is None or impact is None:
+            return "Not Scored"
+        
+        score = likelihood * impact
+        if score >= 15:
+            classification = "CRITICAL"
+        elif score >= 9:
+            classification = "HIGH"
+        elif score >= 4:
+            classification = "MEDIUM"
+        else:
+            classification = "LOW"
+        
+        return f"{classification} ({score}/25)"
+
+    @staticmethod
+    def _calculate_risk_level_verbose(likelihood: Optional[int], impact: Optional[int]) -> str:
         """Calculates a qualitative risk level from likelihood and impact scores."""
         if likelihood is None or impact is None:
             return f"Likelihood {likelihood}/5, Impact {impact}/5"
@@ -186,8 +204,7 @@ class Premortem:
         else:
             classification = "LOW"
         
-        calculation = f"{classification} {score}/25 (Likelihood {likelihood}/5 × Impact {impact}/5)"
-        return calculation
+        return f"{classification} {score}/25 (Likelihood {likelihood}/5 × Impact {impact}/5)"
 
     @staticmethod
     def convert_to_markdown(premortem_analysis: PremortemAnalysis) -> str:
@@ -197,47 +214,57 @@ class Premortem:
         rows = []
         
         # Header
-        rows.append("# Pre-Mortem Analysis\n")
-        rows.append("Pretend the project has failed, then work backward to identify likely root causes.\n")
-        
-        # Assumptions to Kill
-        rows.append("## Critical Assumptions to Test\n")
-        rows.append("Validate these three core assumptions:\n")
-        
-        for assumption in premortem_analysis.assumptions_to_kill:
-            rows.append(f"### Assumption {assumption.assumption_id}: {assumption.statement}\n")
+        rows.append("A premortem assumes the project has failed and works backward to identify the most likely causes.\n")
 
-            rows.append(f"- **Test:** {assumption.test_now}")
-            rows.append(f"- **Failure trigger:** {assumption.falsifier}\n\n")
+        # Assumptions to Kill
+        rows.append("## Assumptions to Kill\n")
+        rows.append("These foundational assumptions represent the project's key uncertainties. If proven false, they could lead to failure. Validate them immediately using the specified methods.\n")
+
+        rows.append("| ID | Assumption | Validation Method | Failure Trigger |")
+        rows.append("|----|------------|-------------------|-----------------|")
+        for assumption in premortem_analysis.assumptions_to_kill:
+            rows.append(f"| {assumption.assumption_id} | {assumption.statement} | {assumption.test_now} | {assumption.falsifier} |")
+        rows.append("\n")
         
         # Failure Modes
-        rows.append("## Failure Scenarios & Response Playbooks\n")
-        rows.append("If an assumption fails, the following outlines the consequences and planned responses:\n")
+        rows.append("## Failure Scenarios and Mitigation Plans\n")
+        rows.append("Each scenario below links to a root-cause assumption and includes a detailed failure story, early warning signs, measurable tripwires, a response playbook, and a stop rule to guide decision-making.\n")
+        
+        # Summary Table for Failure Modes
+        rows.append("### Summary of Failure Modes\n")
+        rows.append("| ID | Title | Archetype | Root Cause | Owner | Risk Level |")
+        rows.append("|----|-------|-----------|------------|-------|------------|")
+        for index, failure_mode in enumerate(premortem_analysis.failure_modes, start=1):
+            risk_level_str = Premortem._calculate_risk_level_brief(failure_mode.likelihood_5, failure_mode.impact_5)
+            owner_str = failure_mode.owner or 'Unassigned'
+            rows.append(f"| {index} | {failure_mode.failure_mode_title} | {failure_mode.failure_mode_archetype} | {failure_mode.root_cause_assumption_id} | {owner_str} | {risk_level_str} |")
+        rows.append("\n")
 
+        # Detailed Failure Modes
+        rows.append("### Detailed Failure Scenarios\n")
         for index, failure_mode in enumerate(premortem_analysis.failure_modes, start=1):
             if index > 1:
                 rows.append("---\n")
-            rows.append(f"### {index}. {failure_mode.failure_mode_title}\n")
-            rows.append(f"**Archetype:** {failure_mode.failure_mode_archetype}\n")
-            rows.append(f"**Root cause:** Assumption {failure_mode.root_cause_assumption_id}\n")
-            rows.append(f"**Owner:** {failure_mode.owner or 'Unassigned'}\n")
-            risk_level_str = Premortem._calculate_risk_level(failure_mode.likelihood_5, failure_mode.impact_5)
-            rows.append(f"**Risk Level:** {risk_level_str}\n")
+            rows.append(f"#### {index}. {failure_mode.failure_mode_title}\n")
+            rows.append(f"- **Archetype**: {failure_mode.failure_mode_archetype}")
+            rows.append(f"- **Root Cause**: Assumption {failure_mode.root_cause_assumption_id}")
+            rows.append(f"- **Owner**: {failure_mode.owner or 'Unassigned'}")
+            risk_level_str = Premortem._calculate_risk_level_verbose(failure_mode.likelihood_5, failure_mode.impact_5)
+            rows.append(f"- **Risk Level:** {risk_level_str}\n")
             
-            rows.append(f"\n#### Failure Narrative\n{failure_mode.risk_analysis}\n")
+            rows.append("##### Failure Story")
+            rows.append(f"{failure_mode.risk_analysis}\n")
+            
+            rows.append("##### Early Warning Signs")
+            rows.append(Premortem._format_bullet_list(failure_mode.early_warning_signs))
+            
+            rows.append("\n##### Tripwires")
+            rows.append(Premortem._format_bullet_list(failure_mode.tripwires or ["No tripwires defined"]))
+            
+            rows.append("\n##### Response Playbook")
+            rows.append(Premortem._format_bullet_list(failure_mode.playbook or ["No response actions defined"]))
+            rows.append("\n")
 
-            rows.append("#### Early Warnings")
-            warning_signs = Premortem._format_bullet_list(failure_mode.early_warning_signs)
-            rows.append(f"\n{warning_signs}\n")
-            
-            rows.append("#### Tripwires")
-            tripwires = Premortem._format_bullet_list(failure_mode.tripwires or [])
-            rows.append(f"\n{tripwires}\n")
-            
-            rows.append("#### Playbook")
-            playbook = Premortem._format_bullet_list(failure_mode.playbook or [])
-            rows.append(f"\n{playbook}\n")
-            
             stop_rule_text = failure_mode.stop_rule or 'Not specified'
             rows.append(f"> 🛑 **STOP RULE:** {stop_rule_text}\n")
 
