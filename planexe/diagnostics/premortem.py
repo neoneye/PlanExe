@@ -186,7 +186,7 @@ class Premortem:
         else:
             classification = "LOW"
         
-        calculation = f"{classification} ({score}/25) = Likelihood {likelihood}/5 × Impact {impact}/5"
+        calculation = f"{classification} {score}/25 (Likelihood {likelihood}/5 × Impact {impact}/5)"
         return calculation
 
     @staticmethod
@@ -214,10 +214,10 @@ class Premortem:
         rows.append("## Failure Scenarios & Response Playbooks\n") 
         rows.append("We've explored what could happen if our assumptions are wrong. Here are the most likely failure scenarios and our response plans:\n")
         
-        for index, failure_mode in enumerate(premortem_analysis.failure_modes):
-            if index > 0:
+        for index, failure_mode in enumerate(premortem_analysis.failure_modes, start=1):
+            if index > 1:
                 rows.append("---\n")
-            rows.append(f"### {failure_mode.failure_mode_index}. {failure_mode.failure_mode_title}\n")
+            rows.append(f"### {index}. {failure_mode.failure_mode_title}\n")
             rows.append(f"**Archetype:** {failure_mode.failure_mode_archetype}\n")
             rows.append(f"**Root Cause:** Assumption {failure_mode.root_cause_assumption_id}\n")
             rows.append(f"**Owner:** {failure_mode.owner or 'Unassigned'}\n")
@@ -238,8 +238,9 @@ class Premortem:
             playbook = Premortem._format_bullet_list(failure_mode.playbook or [])
             rows.append(f"\n{playbook}\n")
             
-            rows.append(f"#### Stop Rule\n{failure_mode.stop_rule or 'Not specified'}\n")
-        
+            stop_rule_text = failure_mode.stop_rule or 'Not specified'
+            rows.append(f"> 🛑 **STOP RULE:** {stop_rule_text}\n")
+
         return "\n".join(rows)
     
 if __name__ == "__main__":
