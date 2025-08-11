@@ -247,12 +247,12 @@ class PlanTypeTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-        with self.input()['identify_purpose']['raw'].open("r") as f:
-            identify_purpose_dict = json.load(f)
+        with self.input()['identify_purpose']['markdown'].open("r") as f:
+            identify_purpose_markdown = f.read()
 
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}"
+            f"File 'purpose.md':\n{identify_purpose_markdown}"
         )
 
         identify_plan_type = IdentifyPlanType.execute(llm, query)
@@ -286,15 +286,15 @@ class PotentialLeversTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-        with self.input()['identify_purpose']['raw'].open("r") as f:
-            identify_purpose_dict = json.load(f)
-        with self.input()['plan_type']['raw'].open("r") as f:
-            plan_type_dict = json.load(f)
+        with self.input()['identify_purpose']['markdown'].open("r") as f:
+            identify_purpose_markdown = f.read()
+        with self.input()['plan_type']['markdown'].open("r") as f:
+            plan_type_markdown = f.read()
 
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
-            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}"
+            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+            f"File 'plan_type.md':\n{plan_type_markdown}"
         )
 
         identify_potential_levers = IdentifyPotentialLevers.execute(llm_executor, query)
@@ -329,17 +329,17 @@ class DeduplicateLeversTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-        with self.input()['identify_purpose']['raw'].open("r") as f:
-            identify_purpose_dict = json.load(f)
-        with self.input()['plan_type']['raw'].open("r") as f:
-            plan_type_dict = json.load(f)
+        with self.input()['identify_purpose']['markdown'].open("r") as f:
+            identify_purpose_markdown = f.read()
+        with self.input()['plan_type']['markdown'].open("r") as f:
+            plan_type_markdown = f.read()
         with self.input()['potential_levers']['clean'].open("r") as f:
             lever_item_list = json.load(f)
 
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
-            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}"
+            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+            f"File 'plan_type.md':\n{plan_type_markdown}"
         )
 
         deduplicate_levers = DeduplicateLevers.execute(
@@ -375,18 +375,18 @@ class EnrichLeversTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-        with self.input()['identify_purpose']['raw'].open("r") as f:
-            identify_purpose_dict = json.load(f)
-        with self.input()['plan_type']['raw'].open("r") as f:
-            plan_type_dict = json.load(f)
+        with self.input()['identify_purpose']['markdown'].open("r") as f:
+            identify_purpose_markdown = f.read()
+        with self.input()['plan_type']['markdown'].open("r") as f:
+            plan_type_markdown = f.read()
         with self.input()['deduplicate_levers']['raw'].open("r") as f:
             json_dict = json.load(f)
             lever_item_list = json_dict["deduplicated_levers"]
 
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
-            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}"
+            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+            f"File 'plan_type.md':\n{plan_type_markdown}"
         )
 
         enrich_potential_levers = EnrichPotentialLevers.execute(
@@ -422,17 +422,17 @@ class FocusOnVitalFewLeversTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-        with self.input()['identify_purpose']['raw'].open("r") as f:
-            identify_purpose_dict = json.load(f)
-        with self.input()['plan_type']['raw'].open("r") as f:
-            plan_type_dict = json.load(f)
+        with self.input()['identify_purpose']['markdown'].open("r") as f:
+            identify_purpose_markdown = f.read()
+        with self.input()['plan_type']['markdown'].open("r") as f:
+            plan_type_markdown = f.read()
         with self.input()['enriched_levers']['raw'].open("r") as f:
             lever_item_list = json.load(f)["characterized_levers"]
 
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
-            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
+            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+            f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
         )
 
         focus_on_vital_few_levers = FocusOnVitalFewLevers.execute(
@@ -498,17 +498,17 @@ class CandidateScenariosTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-        with self.input()['identify_purpose']['raw'].open("r") as f:
-            identify_purpose_dict = json.load(f)
-        with self.input()['plan_type']['raw'].open("r") as f:
-            plan_type_dict = json.load(f)
+        with self.input()['identify_purpose']['markdown'].open("r") as f:
+            identify_purpose_markdown = f.read()
+        with self.input()['plan_type']['markdown'].open("r") as f:
+            plan_type_markdown = f.read()
         with self.input()['levers_vital_few']['raw'].open("r") as f:
             lever_item_list = json.load(f)["levers"]
 
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
-            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
+            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+            f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
         )
 
         scenarios = CandidateScenarios.execute(
@@ -549,10 +549,10 @@ class SelectScenarioTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-        with self.input()['identify_purpose']['raw'].open("r") as f:
-            identify_purpose_dict = json.load(f)
-        with self.input()['plan_type']['raw'].open("r") as f:
-            plan_type_dict = json.load(f)
+        with self.input()['identify_purpose']['markdown'].open("r") as f:
+            identify_purpose_markdown = f.read()
+        with self.input()['plan_type']['markdown'].open("r") as f:
+            plan_type_markdown = f.read()
         with self.input()['levers_vital_few']['raw'].open("r") as f:
             lever_item_list = json.load(f)["levers"]
         with self.input()['candidate_scenarios']['clean'].open("r") as f:
@@ -560,8 +560,8 @@ class SelectScenarioTask(PlanTask):
 
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
-            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
+            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+            f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
             f"File 'levers_vital_few.json':\n{format_json_for_use_in_query(lever_item_list)}\n\n"
             f"File 'candidate_scenarios.json':\n{format_json_for_use_in_query(scenarios_list)}"
         )
@@ -634,10 +634,12 @@ class PhysicalLocationsTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-        with self.input()['identify_purpose']['raw'].open("r") as f:
-            identify_purpose_dict = json.load(f)
+        with self.input()['identify_purpose']['markdown'].open("r") as f:
+            identify_purpose_markdown = f.read()
         with self.input()['plan_type']['raw'].open("r") as f:
             plan_type_dict = json.load(f)
+        with self.input()['plan_type']['markdown'].open("r") as f:
+            plan_type_markdown = f.read()
         with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
             strategic_decisions_markdown = f.read()
         with self.input()['scenarios_markdown']['markdown'].open("r") as f:
@@ -650,8 +652,8 @@ class PhysicalLocationsTask(PlanTask):
         if plan_type == "physical":
             query = (
                 f"File 'plan.txt':\n{plan_prompt}\n\n"
-                f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
-                f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
+                f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+                f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
                 f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
                 f"File 'scenarios.md':\n{scenarios_markdown}"
             )
@@ -696,24 +698,24 @@ class CurrencyStrategyTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-        with self.input()['identify_purpose']['raw'].open("r") as f:
-            identify_purpose_dict = json.load(f)
-        with self.input()['plan_type']['raw'].open("r") as f:
-            plan_type_dict = json.load(f)
+        with self.input()['identify_purpose']['markdown'].open("r") as f:
+            identify_purpose_markdown = f.read()
+        with self.input()['plan_type']['markdown'].open("r") as f:
+            plan_type_markdown = f.read()
         with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
             strategic_decisions_markdown = f.read()
         with self.input()['scenarios_markdown']['markdown'].open("r") as f:
             scenarios_markdown = f.read()
-        with self.input()['physical_locations']['raw'].open("r") as f:
-            physical_locations_dict = json.load(f)
+        with self.input()['physical_locations']['markdown'].open("r") as f:
+            physical_locations_markdown = f.read()
 
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
-            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
+            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+            f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
             f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'physical_locations.json':\n{format_json_for_use_in_query(physical_locations_dict)}"
+            f"File 'physical_locations.md':\n{physical_locations_markdown}"
         )
 
         currency_strategy = CurrencyStrategy.execute(llm, query)
@@ -750,27 +752,27 @@ class IdentifyRisksTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-        with self.input()['identify_purpose']['raw'].open("r") as f:
-            identify_purpose_dict = json.load(f)
-        with self.input()['plan_type']['raw'].open("r") as f:
-            plan_type_dict = json.load(f)
+        with self.input()['identify_purpose']['markdown'].open("r") as f:
+            identify_purpose_markdown = f.read()
+        with self.input()['plan_type']['markdown'].open("r") as f:
+            plan_type_markdown = f.read()
         with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
             strategic_decisions_markdown = f.read()
         with self.input()['scenarios_markdown']['markdown'].open("r") as f:
             scenarios_markdown = f.read()
-        with self.input()['physical_locations']['raw'].open("r") as f:
-            physical_locations_dict = json.load(f)
-        with self.input()['currency_strategy']['raw'].open("r") as f:
-            currency_strategy_dict = json.load(f)
+        with self.input()['physical_locations']['markdown'].open("r") as f:
+            physical_locations_markdown = f.read()
+        with self.input()['currency_strategy']['markdown'].open("r") as f:
+            currency_strategy_markdown = f.read()
 
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
-            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
+            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+            f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
             f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'physical_locations.json':\n{format_json_for_use_in_query(physical_locations_dict)}\n\n"
-            f"File 'currency_strategy.json':\n{format_json_for_use_in_query(currency_strategy_dict)}"
+            f"File 'physical_locations.md':\n{physical_locations_markdown}\n\n"
+            f"File 'currency_strategy.md':\n{currency_strategy_markdown}"
         )
 
         identify_risks = IdentifyRisks.execute(llm, query)
@@ -809,30 +811,30 @@ class MakeAssumptionsTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-        with self.input()['identify_purpose']['raw'].open("r") as f:
-            identify_purpose_dict = json.load(f)
-        with self.input()['plan_type']['raw'].open("r") as f:
-            plan_type_dict = json.load(f)
+        with self.input()['identify_purpose']['markdown'].open("r") as f:
+            identify_purpose_markdown = f.read()
+        with self.input()['plan_type']['markdown'].open("r") as f:
+            plan_type_markdown = f.read()
         with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
             strategic_decisions_markdown = f.read()
         with self.input()['scenarios_markdown']['markdown'].open("r") as f:
             scenarios_markdown = f.read()
-        with self.input()['physical_locations']['raw'].open("r") as f:
-            physical_locations_dict = json.load(f)
-        with self.input()['currency_strategy']['raw'].open("r") as f:
-            currency_strategy_dict = json.load(f)
-        with self.input()['identify_risks']['raw'].open("r") as f:
-            identify_risks_dict = json.load(f)
+        with self.input()['physical_locations']['markdown'].open("r") as f:
+            physical_locations_markdown = f.read()
+        with self.input()['currency_strategy']['markdown'].open("r") as f:
+            currency_strategy_markdown = f.read()
+        with self.input()['identify_risks']['markdown'].open("r") as f:
+            identify_risks_markdown = f.read()
 
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
-            f"File 'plan_type.json':\n{format_json_for_use_in_query(plan_type_dict)}\n\n"
+            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+            f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
             f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'physical_locations.json':\n{format_json_for_use_in_query(physical_locations_dict)}\n\n"
-            f"File 'currency_strategy.json':\n{format_json_for_use_in_query(currency_strategy_dict)}\n\n"
-            f"File 'identify_risks.json':\n{format_json_for_use_in_query(identify_risks_dict)}"
+            f"File 'physical_locations.md':\n{physical_locations_markdown}\n\n"
+            f"File 'currency_strategy.md':\n{currency_strategy_markdown}\n\n"
+            f"File 'identify_risks.md':\n{identify_risks_markdown}"
         )
 
         make_assumptions = MakeAssumptions.execute(llm, query)
@@ -869,8 +871,8 @@ class DistillAssumptionsTask(PlanTask):
         # Read inputs from required tasks.
         with self.input()['setup'].open("r") as f:
             plan_prompt = f.read()
-        with self.input()['identify_purpose']['raw'].open("r") as f:
-            identify_purpose_dict = json.load(f)
+        with self.input()['identify_purpose']['markdown'].open("r") as f:
+            identify_purpose_markdown = f.read()
         with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
             strategic_decisions_markdown = f.read()
         with self.input()['scenarios_markdown']['markdown'].open("r") as f:
@@ -881,7 +883,7 @@ class DistillAssumptionsTask(PlanTask):
 
         query = (
             f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.json':\n{format_json_for_use_in_query(identify_purpose_dict)}\n\n"
+            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
             f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.json':\n{format_json_for_use_in_query(assumptions_raw_data)}"
@@ -1179,8 +1181,8 @@ class GovernancePhase1AuditTask(PlanTask):
             scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
 
         # Build the query.
         query = (
@@ -1188,7 +1190,7 @@ class GovernancePhase1AuditTask(PlanTask):
             f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}"
+            f"File 'project-plan.md':\n{project_plan_markdown}"
         )
 
         # Execute.
@@ -1230,10 +1232,10 @@ class GovernancePhase2BodiesTask(PlanTask):
             scenarios_markdown = f.read()
         with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
             consolidate_assumptions_markdown = f.read()
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
-        with self.input()['governance_phase1_audit']['raw'].open("r") as f:
-            governance_phase1_audit_dict = json.load(f)
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
+        with self.input()['governance_phase1_audit']['markdown'].open("r") as f:
+            governance_phase1_audit_markdown = f.read()
 
         # Build the query.
         query = (
@@ -1241,8 +1243,8 @@ class GovernancePhase2BodiesTask(PlanTask):
             f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
             f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
-            f"File 'governance-phase1-audit.json':\n{format_json_for_use_in_query(governance_phase1_audit_dict)}"
+            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
+            f"File 'governance-phase1-audit.md':\n{governance_phase1_audit_markdown}"
         )
 
         # Execute.
@@ -3233,8 +3235,8 @@ class ReviewPlanTask(PlanTask):
             project_plan_markdown = f.read()
         with self.input()['data_collection']['markdown'].open("r") as f:
             data_collection_markdown = f.read()
-        with self.input()['related_resources']['raw'].open("r") as f:
-            related_resources_dict = json.load(f)
+        with self.input()['related_resources']['markdown'].open("r") as f:
+            related_resources_markdown = f.read()
         with self.input()['swot_analysis']['markdown'].open("r") as f:
             swot_analysis_markdown = f.read()
         with self.input()['team_markdown'].open("r") as f:
@@ -3253,7 +3255,7 @@ class ReviewPlanTask(PlanTask):
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
             f"File 'data-collection.md':\n{data_collection_markdown}\n\n"
-            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}\n\n"
+            f"File 'related-resources.md':\n{related_resources_markdown}\n\n"
             f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
             f"File 'team.md':\n{team_markdown}\n\n"
             f"File 'pitch.md':\n{pitch_markdown}\n\n"
@@ -3309,8 +3311,8 @@ class ExecutiveSummaryTask(PlanTask):
             project_plan_markdown = f.read()
         with self.input()['data_collection']['markdown'].open("r") as f:
             data_collection_markdown = f.read()
-        with self.input()['related_resources']['raw'].open("r") as f:
-            related_resources_dict = json.load(f)
+        with self.input()['related_resources']['markdown'].open("r") as f:
+            related_resources_markdown = f.read()
         with self.input()['swot_analysis']['markdown'].open("r") as f:
             swot_analysis_markdown = f.read()
         with self.input()['team_markdown'].open("r") as f:
@@ -3331,7 +3333,7 @@ class ExecutiveSummaryTask(PlanTask):
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
             f"File 'data-collection.md':\n{data_collection_markdown}\n\n"
-            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}\n\n"
+            f"File 'related-resources.md':\n{related_resources_markdown}\n\n"
             f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
             f"File 'team.md':\n{team_markdown}\n\n"
             f"File 'pitch.md':\n{pitch_markdown}\n\n"
@@ -3388,8 +3390,8 @@ class QuestionsAndAnswersTask(PlanTask):
             project_plan_markdown = f.read()
         with self.input()['data_collection']['markdown'].open("r") as f:
             data_collection_markdown = f.read()
-        with self.input()['related_resources']['raw'].open("r") as f:
-            related_resources_dict = json.load(f)
+        with self.input()['related_resources']['markdown'].open("r") as f:
+            related_resources_markdown = f.read()
         with self.input()['swot_analysis']['markdown'].open("r") as f:
             swot_analysis_markdown = f.read()
         with self.input()['team_markdown'].open("r") as f:
@@ -3410,7 +3412,7 @@ class QuestionsAndAnswersTask(PlanTask):
             f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
             f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
             f"File 'data-collection.md':\n{data_collection_markdown}\n\n"
-            f"File 'related-resources.json':\n{format_json_for_use_in_query(related_resources_dict)}\n\n"
+            f"File 'related-resources.md':\n{related_resources_markdown}\n\n"
             f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
             f"File 'team.md':\n{team_markdown}\n\n"
             f"File 'pitch.md':\n{pitch_markdown}\n\n"
