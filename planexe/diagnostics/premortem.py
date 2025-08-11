@@ -192,7 +192,7 @@ class Premortem:
             rows.append("")
         
         # Failure Modes
-        rows.append("## Premortem - Imagining Failure to Prevent It\n")
+        rows.append("## Failure Scenarios & Response Playbooks\n") 
         rows.append("We've explored what could happen if our assumptions are wrong. Here are the most likely failure scenarios and our response plans:\n")
         
         for index, failure_mode in enumerate(premortem_analysis.failure_modes):
@@ -204,8 +204,8 @@ class Premortem:
             rows.append(f"**Owner:** {failure_mode.owner or 'Unassigned'}\n")
             rows.append(f"**Risk Score:** Likelihood {failure_mode.likelihood_5}/5, Impact {failure_mode.impact_5}/5\n")
             
-            rows.append(f"\n#### Risk Analysis\n{failure_mode.risk_analysis}\n")
-            
+            rows.append(f"\n#### Failure Narrative\n{failure_mode.risk_analysis}\n")
+
             rows.append("#### Early Warnings")
             warning_signs = Premortem._format_bullet_list(failure_mode.early_warning_signs)
             rows.append(f"\n{warning_signs}\n")
