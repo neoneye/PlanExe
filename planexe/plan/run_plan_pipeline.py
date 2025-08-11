@@ -3505,7 +3505,7 @@ class PremortemTask(PlanTask):
         )
 
         # Invoke the LLM
-        premortem = Premortem.execute(llm_executor=llm_executor, user_prompt=query)
+        premortem = Premortem.execute(llm_executor=llm_executor, speed_vs_detail=self.speedvsdetail, user_prompt=query)
 
         # Save the results.
         json_path = self.output()['raw'].path

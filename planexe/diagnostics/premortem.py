@@ -24,6 +24,7 @@ from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
 from planexe.llm_util.llm_executor import LLMExecutor, PipelineStopRequested
+from planexe.plan.speedvsdetail import SpeedVsDetailEnum
 
 logger = logging.getLogger(__name__)
 
@@ -85,9 +86,11 @@ class Premortem:
     markdown: str
     
     @classmethod
-    def execute(cls, llm_executor: LLMExecutor, user_prompt: str) -> 'Premortem':
+    def execute(cls, llm_executor: LLMExecutor, speed_vs_detail: SpeedVsDetailEnum, user_prompt: str) -> 'Premortem':
         if not isinstance(llm_executor, LLMExecutor):
             raise ValueError("Invalid LLMExecutor instance.")
+        if not isinstance(speed_vs_detail, SpeedVsDetailEnum):
+            raise ValueError("Invalid SpeedVsDetailEnum instance.")
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
         
@@ -110,6 +113,11 @@ class Premortem:
             "Generate 3 new assumptions that are thematically different from the previous ones. Start assumption_id at A4.",
             "Generate 3 new assumptions that are thematically different from the previous ones and covers different archetypes. Start assumption_id at A7.",
         ]
+        if speed_vs_detail == SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS:
+            user_prompt_list = user_prompt_list[:1]
+            logger.info("Running in FAST_BUT_SKIP_DETAILS mode. Omitting some assumptions.")
+        else:
+            logger.info("Running in ALL_DETAILS_BUT_SLOW mode. Processing all assumptions.")
 
         responses: list[PremortemAnalysis] = []
         metadata_list: list[dict] = []
@@ -345,7 +353,7 @@ if __name__ == "__main__":
     plan_prompt = find_plan_prompt(prompt_id)
 
     print(f"Query:\n{plan_prompt}\n\n")
-    result = Premortem.execute(llm_executor=llm_executor, user_prompt=plan_prompt)
+    result = Premortem.execute(llm_executor=llm_executor, speed_vs_detail=SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS, user_prompt=plan_prompt)
     
     response_data = result.to_dict(include_metadata=True, include_system_prompt=False, include_user_prompt=False, include_markdown=False)
     
