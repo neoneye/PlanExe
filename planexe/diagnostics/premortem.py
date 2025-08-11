@@ -4,6 +4,13 @@ Imagine that the project has failed, and work backwards to identify plausible re
 https://en.wikipedia.org/wiki/Pre-mortem
 
 PROMPT> python -m planexe.diagnostics.premortem
+
+`assumptions_to_kill` are the INPUTS. They are the foundational beliefs held before the project begins. They represent the project's 
+most significant areas of uncertainty. The list of assumptions is, in itself, a high-value deliverable for a project kickoff. 
+It's the "here's what we believe to be true, but we need to prove it" list.
+
+`failure_modes` are the potential OUTCOMES. They are the narrative stories of what could happen if an assumption proves false. 
+They explore the consequences and the causal chain of failure.
 """
 import json
 import time
