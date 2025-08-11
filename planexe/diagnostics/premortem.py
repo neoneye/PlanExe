@@ -197,29 +197,29 @@ class Premortem:
         rows = []
         
         # Header
-        rows.append("# Premortem Analysis\n")
-        rows.append("This document analyzes potential failure modes by imagining the project has already failed and working backwards to identify root causes.\n")
+        rows.append("# Pre-Mortem Analysis\n")
+        rows.append("Pretend the project has failed, then work backward to identify likely root causes.\n")
         
         # Assumptions to Kill
         rows.append("## Critical Assumptions to Test\n")
-        rows.append("Before we begin, we must validate these three core beliefs:\n")
+        rows.append("Validate these three core assumptions:\n")
         
         for assumption in premortem_analysis.assumptions_to_kill:
             rows.append(f"### Assumption {assumption.assumption_id}: {assumption.statement}\n")
-            rows.append(f"**How We'll Test It Now:** {assumption.test_now}\n")
-            rows.append(f"**What Would Prove It False:** {assumption.falsifier}\n")
-            rows.append("")
+
+            rows.append(f"- **Test:** {assumption.test_now}")
+            rows.append(f"- **Failure trigger:** {assumption.falsifier}\n\n")
         
         # Failure Modes
-        rows.append("## Failure Scenarios & Response Playbooks\n") 
-        rows.append("We've explored what could happen if our assumptions are wrong. Here are the most likely failure scenarios and our response plans:\n")
-        
+        rows.append("## Failure Scenarios & Response Playbooks\n")
+        rows.append("If an assumption fails, the following outlines the consequences and planned responses:\n")
+
         for index, failure_mode in enumerate(premortem_analysis.failure_modes, start=1):
             if index > 1:
                 rows.append("---\n")
             rows.append(f"### {index}. {failure_mode.failure_mode_title}\n")
             rows.append(f"**Archetype:** {failure_mode.failure_mode_archetype}\n")
-            rows.append(f"**Root Cause:** Assumption {failure_mode.root_cause_assumption_id}\n")
+            rows.append(f"**Root cause:** Assumption {failure_mode.root_cause_assumption_id}\n")
             rows.append(f"**Owner:** {failure_mode.owner or 'Unassigned'}\n")
             risk_level_str = Premortem._calculate_risk_level(failure_mode.likelihood_5, failure_mode.impact_5)
             rows.append(f"**Risk Level:** {risk_level_str}\n")
