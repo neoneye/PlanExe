@@ -3456,7 +3456,9 @@ class PremortemTask(PlanTask):
             'questions_and_answers': self.clone(QuestionsAndAnswersTask)
         }
     
-    def run_with_llm(self, llm: LLM) -> None:
+    def run_inner(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
         # Read inputs from required tasks.
         with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
             strategic_decisions_markdown = f.read()
@@ -3503,7 +3505,7 @@ class PremortemTask(PlanTask):
         )
 
         # Invoke the LLM
-        premortem = Premortem.execute(llm, query)
+        premortem = Premortem.execute(llm_executor=llm_executor, user_prompt=query)
 
         # Save the results.
         json_path = self.output()['raw'].path

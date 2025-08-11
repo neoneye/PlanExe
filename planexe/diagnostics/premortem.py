@@ -23,6 +23,7 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
+from planexe.llm_util.llm_executor import LLMExecutor, PipelineStopRequested
 
 logger = logging.getLogger(__name__)
 
@@ -84,9 +85,9 @@ class Premortem:
     markdown: str
     
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'Premortem':
-        if not isinstance(llm, LLM):
-            raise ValueError("Invalid LLM instance.")
+    def execute(cls, llm_executor: LLMExecutor, user_prompt: str) -> 'Premortem':
+        if not isinstance(llm_executor, LLMExecutor):
+            raise ValueError("Invalid LLMExecutor instance.")
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
         
@@ -104,31 +105,45 @@ class Premortem:
             )
         ]
 
-        sllm = llm.as_structured_llm(PremortemAnalysis)
-        start_time = time.perf_counter()
-        
-        try:
+        def execute_function(llm: LLM) -> dict:
+            sllm = llm.as_structured_llm(PremortemAnalysis)
+            start_time = time.perf_counter()
+            
             chat_response = sllm.chat(chat_message_list)
-            pydantic_response = chat_response.raw 
+            pydantic_response = chat_response.raw
+            
+            end_time = time.perf_counter()
+            duration = int(ceil(end_time - start_time))
+            
+            metadata = dict(llm.metadata)
+            metadata["llm_classname"] = llm.class_name()
+            metadata["duration"] = duration
+            
+            return {
+                "pydantic_response": pydantic_response,
+                "metadata": metadata,
+                "duration": duration
+            }
+
+        try:
+            result = llm_executor.run(execute_function)
+        except PipelineStopRequested:
+            # Re-raise PipelineStopRequested without wrapping it
+            raise
         except Exception as e:
             logger.debug(f"LLM chat interaction failed: {e}")
             logger.error("LLM chat interaction failed.", exc_info=True)
             raise ValueError("LLM chat interaction failed.") from e
 
-        end_time = time.perf_counter()
-        
-        duration = int(ceil(end_time - start_time))
-        json_response = pydantic_response.model_dump()
+        json_response = result["pydantic_response"].model_dump()
         response_byte_count = len(json.dumps(json_response).encode('utf-8'))
         
-        logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
+        logger.info(f"LLM chat interaction completed in {result['duration']} seconds. Response byte count: {response_byte_count}")
         
-        metadata = dict(llm.metadata)
-        metadata["llm_classname"] = llm.class_name()
-        metadata["duration"] = duration
+        metadata = result["metadata"]
         metadata["response_byte_count"] = response_byte_count
 
-        markdown = cls.convert_to_markdown(pydantic_response)
+        markdown = cls.convert_to_markdown(result["pydantic_response"])
 
         return Premortem(
             system_prompt=system_prompt,
@@ -275,17 +290,22 @@ class Premortem:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     
-    from planexe.llm_factory import get_llm
+    from planexe.llm_util.llm_executor import LLMExecutor, LLMModelFromName
     from planexe.plan.find_plan_prompt import find_plan_prompt
 
-    llm = get_llm("ollama-llama3.1")
-    # llm = get_llm("openrouter-paid-openai-gpt-oss-20b")
+    model_names = [
+        "ollama-llama3.1",
+        # "openrouter-paid-openai-gpt-oss-20b",
+    ]
+    llm_models = LLMModelFromName.from_names(model_names)
+    llm_executor = LLMExecutor(llm_models=llm_models)
+
     # prompt_id = "4dc34d55-0d0d-4e9d-92f4-23765f49dd29"
     prompt_id = "ab700769-c3ba-4f8a-913d-8589fea4624e"
     plan_prompt = find_plan_prompt(prompt_id)
 
     print(f"Query:\n{plan_prompt}\n\n")
-    result = Premortem.execute(llm, plan_prompt)
+    result = Premortem.execute(llm_executor=llm_executor, user_prompt=plan_prompt)
     
     response_data = result.to_dict(include_metadata=True, include_system_prompt=False, include_user_prompt=False, include_markdown=False)
     
