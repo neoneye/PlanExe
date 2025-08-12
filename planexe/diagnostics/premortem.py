@@ -302,15 +302,15 @@ class Premortem:
         for index, failure_mode in enumerate(premortem_analysis.failure_modes, start=1):
             risk_level_str = Premortem._calculate_risk_level_brief(failure_mode.likelihood_5, failure_mode.impact_5)
             owner_str = failure_mode.owner or 'Unassigned'
-            rows.append(f"| {index} | {failure_mode.failure_mode_title} | {failure_mode.failure_mode_archetype} | {failure_mode.root_cause_assumption_id} | {owner_str} | {risk_level_str} |")
+            rows.append(f"| FM{index} | {failure_mode.failure_mode_title} | {failure_mode.failure_mode_archetype} | {failure_mode.root_cause_assumption_id} | {owner_str} | {risk_level_str} |")
         rows.append("\n")
 
         # Detailed Failure Modes
-        rows.append("### Detailed Failure Scenarios\n")
+        rows.append("### Failure Modes\n")
         for index, failure_mode in enumerate(premortem_analysis.failure_modes, start=1):
             if index > 1:
                 rows.append("---\n")
-            rows.append(f"#### {index}. {failure_mode.failure_mode_title}\n")
+            rows.append(f"#### FM{index} - {failure_mode.failure_mode_title}\n")
             rows.append(f"- **Archetype**: {failure_mode.failure_mode_archetype}")
             rows.append(f"- **Root Cause**: Assumption {failure_mode.root_cause_assumption_id}")
             rows.append(f"- **Owner**: {failure_mode.owner or 'Unassigned'}")
