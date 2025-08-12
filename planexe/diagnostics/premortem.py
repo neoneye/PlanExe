@@ -13,6 +13,19 @@ It's the "here's what we believe to be true, but we need to prove it" list.
 
 `failure_modes` are the potential OUTCOMES. They are the narrative stories of what could happen if an assumption proves false. 
 They explore the consequences and the causal chain of failure.
+
+IDEA: Focus on top 3 failure modes. All failure modes are rated “High” or “Critical”, which dilutes prioritization. This risks overwhelming the team with too many “critical” focus areas. Rank failure modes by priority (e.g., top 3: FM5, FM1, FM6) and allocate resources accordingly.
+
+IDEA: The "Response Playbook" uses the "Contain, Assess, Respond" model. Enhance with a field for "Proactive Mitigation." The playbook is for when a tripwire is hit (reactive). Proactive mitigation would be the actions taken beforehand to prevent the tripwire from ever being hit. For example, for "The Empty Wallet Wasteland", the proactive mitigation is "Conduct a detailed bottom-up cost estimation." This task should be in the project plan from day one because of the risk identified in the Premortem.
+
+IDEA: Add a recurring risk review cadence (e.g., quarterly) to update assumptions and tripwires based on new data.
+
+IDEA: The premortem assumes a static risk landscape.
+
+IDEA: add a low-probability, high-impact “external shock” scenario, "black swan" scenario.
+
+IDEA: Use a reasoning model to validate the premortem section and fix issues.
+
 """
 import json
 import time
