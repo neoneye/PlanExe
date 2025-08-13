@@ -1,4 +1,6 @@
 """
+Premortem: “If we fail, here’s how and why.”
+
 Imagine that the project has failed, and work backwards to identify plausible reasons why.
 
 https://en.wikipedia.org/wiki/Pre-mortem

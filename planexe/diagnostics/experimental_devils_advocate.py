@@ -1,5 +1,8 @@
 """
-Challenge the plan’s core premises.
+Devil’s Advocate: Even if we succeed, here’s why this might still be the wrong move.
+
+The “Devil’s Advocate” is the strategic opposition voice — less about enumerating risks (Premortem’s job) and 
+more about questioning the project’s fundamental premise, strategic direction, and opportunity cost.
 
 https://en.wikipedia.org/wiki/Devil%27s_advocate
 https://en.wikipedia.org/wiki/Group_decision-making
