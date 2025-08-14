@@ -55,7 +55,7 @@ class PremiseAttackModel(BaseModel):
     disconfirming_tests: List[DisconfirmingTest] = Field(..., min_length=3, description="At least 3 disconfirming tests, one for each of the primary objections.")
     stop_rules: List[str] = Field(..., min_length=2, description="2-6 crisp, unambiguous Go/No-Go conditions that, if met, would trigger a project halt or pivot.")
     alternatives: List[Alternative] = Field(..., description="A list of strategic alternatives, which must include 'Do nothing'.")
-    guardrails_if_proceed: List[str] = Field(..., description="3-5 non-negotiable constraints or changes to implement if the project proceeds despite objections.")
+    guardrails_if_proceed: List[str] = Field(..., min_length=3, max_length=5, description="3-5 non-negotiable constraints or changes to implement if the project proceeds despite objections.")
     decision_gate: Literal["Go", "Pivot", "No-Go"] = Field(..., description="The final recommendation based on the analysis.")
     decision_rationale: str = Field(..., description="A 2-6 line rationale linking the decision to the objections and tests.")
 
@@ -66,16 +66,14 @@ You are an adversarial "Red Team" strategist. Your mission is to challenge a pro
 
 Your task is to generate a "Strategic Stress Test" by performing the following steps:
 1.  **Identify the Core Premise:** Distill the user's plan into a single, concise thesis statement. State the premise *as the user sees it*, even if it appears flawed.
-2.  **Formulate Diverse Objections:** Generate 3-5 of the strongest, most fundamental objections to this premise. Ensure the objections are diverse and attack different strategic pillars (e.g., **Ethical Viability, Market/Business Model, Financial Sustainability, Critical Dependencies**). Do not repeat the same objection.
+2.  **Formulate Diverse Objections:** Generate 3-5 of the strongest, most fundamental objections to this premise. Ensure the objections are diverse and attack different strategic pillars (e.g., **Ethical Viability, Market/Business Model, Financial Sustainability, Critical Dependencies**). **Each objection must be a full, descriptive sentence or two.** For example: "Ethical Viability: The project's core premise of a 'deadly amusement facility' is fundamentally indefensible and exposes the operators to severe legal and reputational risk."
 3.  **Design Actionable Disconfirming Tests:** For each primary objection, devise a **cheap, fast, and decisive** real-world test.
-    - `test` must be a specific action, not a broad research project. (e.g., "Interview 10 resilience managers," not "Establish a team").
     - `owner` must be a specific **role** (e.g., "Legal Counsel", "Project Manager").
     - `deadline` must be a **realistic date that is on or before the `latest_acceptable_deadline`** provided in the user prompt.
-    - `metric` and `threshold` must be logically connected and quantitative (e.g., metric: "Criminal Liability Opinion", threshold: "!= 'Favorable'").
     - `budget` must be a **concise string** representing a monetary value (e.g., "$10k", "$0").
 4.  **Define Specific Stop Rules:** Each `stop_rule` must be a direct consequence of a test's outcome. (e.g., "If Legal Review concludes indefensible criminal liability, halt project.").
 5.  **Propose Alternatives:** List strategic alternatives, including the mandatory "Do nothing" option.
-6.  **Establish Concrete Guardrails:** If proceeding, define non-negotiable constraints. (e.g., "Mandate non-lethality for all mechanisms, certified by a third party.").
+6.  **Establish 3-5 Concrete Guardrails:** If proceeding, define 3-5 non-negotiable constraints. (e.g., "Mandate non-lethality for all mechanisms, certified by a third party.").
 7.  **Make a Decision:** Conclude with "Go," "Pivot," or "No-Go" and a clear rationale.
 
 **Hard Requirements:**
