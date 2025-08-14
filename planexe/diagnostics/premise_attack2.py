@@ -40,7 +40,7 @@ class DisconfirmingTest(BaseModel):
     threshold: str = Field(..., description="The unambiguous quantitative threshold for the metric (must include a comparator like '>= 70%', '< $50').")
     owner: str = Field(..., description="The role or person responsible for executing the test (e.g., 'Legal Counsel', 'Project Manager').")
     deadline: date = Field(..., description="The deadline for completing the test (YYYY-MM-DD).")
-    budget: str = Field(..., description="The estimated budget for the test (e.g., '$5k', '0').")
+    budget: str = Field(..., description="A concise estimated budget for the test (e.g., '$5k', '$25k', '0').")
 
 class Alternative(BaseModel):
     """An alternative strategic path, including 'Do nothing'."""
@@ -60,18 +60,19 @@ class PremiseAttackModel(BaseModel):
     decision_rationale: str = Field(..., description="A 2-6 line rationale linking the decision to the objections and tests.")
 
 
-# --- **FINAL, ROBUST** System Prompt ---
+# --- **FINAL, PRODUCTION-READY** System Prompt ---
 SYSTEM_PROMPT = """
 You are an adversarial "Red Team" strategist. Your mission is to challenge a project's foundational premise to prevent the execution of a flawed strategy. Your output must be a valid JSON object adhering to the provided schema.
 
 Your task is to generate a "Strategic Stress Test" by performing the following steps:
-1.  **Identify the Core Premise:** Distill the user's plan into a single, concise thesis statement.
+1.  **Identify the Core Premise:** Distill the user's plan into a single, concise thesis statement. State the premise *as the user sees it*, even if it appears flawed.
 2.  **Formulate Diverse Objections:** Generate 3-5 of the strongest, most fundamental objections to this premise. Ensure the objections are diverse and attack different strategic pillars (e.g., **Ethical Viability, Market/Business Model, Financial Sustainability, Critical Dependencies**). Do not repeat the same objection.
 3.  **Design Actionable Disconfirming Tests:** For each primary objection, devise a **cheap, fast, and decisive** real-world test.
     - `test` must be a specific action, not a broad research project. (e.g., "Interview 10 resilience managers," not "Establish a team").
     - `owner` must be a specific **role** (e.g., "Legal Counsel", "Project Manager").
     - `deadline` must be a **realistic date that is on or before the `latest_acceptable_deadline`** provided in the user prompt.
     - `metric` and `threshold` must be logically connected and quantitative (e.g., metric: "Criminal Liability Opinion", threshold: "!= 'Favorable'").
+    - `budget` must be a **concise string** representing a monetary value (e.g., "$10k", "$0").
 4.  **Define Specific Stop Rules:** Each `stop_rule` must be a direct consequence of a test's outcome. (e.g., "If Legal Review concludes indefensible criminal liability, halt project.").
 5.  **Propose Alternatives:** List strategic alternatives, including the mandatory "Do nothing" option.
 6.  **Establish Concrete Guardrails:** If proceeding, define non-negotiable constraints. (e.g., "Mandate non-lethality for all mechanisms, certified by a third party.").
@@ -82,6 +83,7 @@ Your task is to generate a "Strategic Stress Test" by performing the following s
 - Focus exclusively on premise-level flaws. Do NOT list solvable execution risks (like engineering delays or site security).
 - The `alternatives` list MUST include an item where `name` is "Do nothing".
 - The `owner` field must contain a project role, not a sentence.
+- The `budget` field must be a concise monetary string (e.g., "$5k"), not a sentence.
 - All `deadline` fields must be realistic dates on or before the provided `latest_acceptable_deadline`.
 """
 
@@ -105,7 +107,6 @@ class PremiseAttack:
         self.user_prompt = user_prompt
         logger.debug(f"Executing Premise Attack with user prompt:\n{user_prompt}")
         
-        # **FIX:** Calculate the deadline threshold and inject it into the prompt.
         latest_acceptable_deadline = self.plan_start_date + timedelta(days=90)
         
         full_user_prompt = (
@@ -155,10 +156,9 @@ class PremiseAttack:
         pa = self.validated_data
 
         near_term_deadline_threshold = self.plan_start_date + timedelta(days=90)
-        # Check if ALL deadlines are within the threshold
-        for test in pa.disconfirming_tests:
+        for i, test in enumerate(pa.disconfirming_tests):
             if test.deadline > near_term_deadline_threshold:
-                errors.append(f"Validation failed: Test '{test.test[:30]}...' has deadline {test.deadline.isoformat()} which is after the threshold of {near_term_deadline_threshold.isoformat()}.")
+                errors.append(f"Validation failed (Test {i+1}): Deadline {test.deadline.isoformat()} is after the threshold of {near_term_deadline_threshold.isoformat()}.")
 
         if not any(alt.name.lower().strip() == "do nothing" for alt in pa.alternatives):
              errors.append("Validation failed: The 'alternatives' list must include a 'Do nothing' option.")
@@ -189,7 +189,7 @@ class PremiseAttack:
 
     def to_gantt_phase_0(self) -> List[dict]:
         """Transforms disconfirming tests into tasks for a Phase 0 Gantt chart."""
-        if not self.validated_data:
+        if not self.validated_data or not self.validated_data.disconfirming_tests:
             return []
             
         tasks = []
@@ -206,9 +206,6 @@ class PremiseAttack:
                 "owner": test.owner,
                 "custom_tooltip": f"<b>Test:</b> {test.test}<br><b>Method:</b> {test.method}<br><b>Metric:</b> {test.metric}<br><b>Threshold:</b> {test.threshold}<br><b>Budget:</b> {test.budget}"
             })
-
-        if not self.validated_data.disconfirming_tests:
-            return tasks
 
         latest_deadline = max(test.deadline for test in self.validated_data.disconfirming_tests)
         tasks.append({
@@ -235,7 +232,6 @@ if __name__ == "__main__":
     print("-" * 20)
 
     try:
-        # We can set the start date for testing purposes
         test_start_date = date(2025, 8, 14)
         attack = PremiseAttack(llm=llm, plan_start_date=test_start_date).execute(plan_prompt)
         
