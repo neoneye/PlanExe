@@ -1,13 +1,5 @@
 
 """
-Premise Attack: adversarial gate to kill bad ideas early.
-
-Standardized checklist.
-
-- Asks whether the idea deserves to exist at all.
-- Forces counterfactuals and opportunity cost.
-- Deterministic decision rules (stop on critical fail; alternative dominance).
-
 PROMPT> python -m planexe.diagnostics.premise_attack3 --brief-file /absolute/path/to/plan.txt
 """
 
@@ -15,9 +7,7 @@ from __future__ import annotations
 
 from typing import List, Optional, Any, Dict, Tuple
 from dataclasses import dataclass, field, asdict
-import json
-import math
-import re
+import json, re
 
 # -----------------------------
 # Data models
@@ -53,12 +43,19 @@ class PAOppCost:
 class PADecisionRules:
     stop_on_critical_fail: bool = True
     min_score_to_proceed: float = 70.0
-    alt_dominance_threshold: float = 25.0  # percent advantage required to overrule
+    alt_dominance_threshold: float = 25.0  # % advantage
 
 @dataclass
 class PAScores:
     critical_failed: int = 0
     skepticism_score_100: float = 0.0
+
+@dataclass
+class DecisionReasons:
+    critical_fail_gate: bool = False
+    score_gate: bool = False
+    alt_dominance_gate: bool = False
+    missing_alternatives: bool = False
 
 @dataclass
 class PremiseAttackResult:
@@ -67,6 +64,7 @@ class PremiseAttackResult:
     decision_rules: PADecisionRules = field(default_factory=PADecisionRules)
     scores: PAScores = field(default_factory=PAScores)
     decision: str = "Do NOT proceed"
+    reasons: DecisionReasons = field(default_factory=DecisionReasons)
     system_prompt: Optional[str] = None
     user_prompt: Optional[str] = None
     raw_model_text: Optional[str] = None
@@ -81,6 +79,7 @@ class PremiseAttackResult:
             "decision_rules": asdict(self.decision_rules),
             "scores": asdict(self.scores),
             "decision": self.decision,
+            "reasons": asdict(self.reasons),
         }
         if include_system_prompt:
             d["system_prompt"] = self.system_prompt
@@ -116,6 +115,29 @@ HIGH_VALUE_QUESTIONS = [
     ("H7", "Scalability", "If it works, can we scale without unit economics collapsing?"),
 ]
 
+# -----------------------------
+# Canonical metadata & heuristics
+# -----------------------------
+def _canonical_map():
+    m = {}
+    for qid, cat, q in CRITICAL_QUESTIONS + HIGH_VALUE_QUESTIONS:
+        m[qid] = (cat, q)
+    return m
+
+def _derive_status_from_answer(ans: str) -> str:
+    if not ans:
+        return "Unknown"
+    t = ans.strip().lower()
+    # simple, deterministic rules
+    if t.startswith("yes"):
+        return "Pass"
+    if t.startswith("no"):
+        return "Fail"
+    if "insufficient" in t or "unclear" in t or "unknown" in t:
+        return "Unknown"
+    return "Unknown"
+
+
 def _safe_float(x: Any, default: float = 0.0) -> float:
     try:
         return float(x)
@@ -132,7 +154,7 @@ def compute_scores(items: List[PAItem]) -> PAScores:
 def violates_alt_rule(opp: PAOppCost, rules: PADecisionRules) -> bool:
     P = next((c for c in opp.candidates if c.id == "P"), None)
     if not P:
-        return True  # no baseline = reject
+        return True  # no baseline
     if (P.cost_per_outcome in (None, 0)) and P.delta_outcome not in (None, 0):
         try:
             P.cost_per_outcome = P.total_cost / P.delta_outcome
@@ -156,49 +178,42 @@ def violates_alt_rule(opp: PAOppCost, rules: PADecisionRules) -> bool:
             continue
     return False
 
-def decide(items: List[PAItem], opp: PAOppCost, rules: PADecisionRules) -> Tuple[PAScores, str]:
+def decide(items: List[PAItem], opp: PAOppCost, rules: PADecisionRules) -> Tuple[PAScores, str, DecisionReasons]:
+    reasons = DecisionReasons()
     scores = compute_scores(items)
     if rules.stop_on_critical_fail and scores.critical_failed > 0:
-        return scores, "Do NOT proceed"
+        reasons.critical_fail_gate = True
     if scores.skepticism_score_100 < rules.min_score_to_proceed:
-        return scores, "Do NOT proceed"
+        reasons.score_gate = True
+    if len(opp.candidates) <= 1:
+        reasons.missing_alternatives = True
     if violates_alt_rule(opp, rules):
-        return scores, "Do NOT proceed"
-    return scores, "Proceed"
+        reasons.alt_dominance_gate = True
+    if reasons.critical_fail_gate or reasons.score_gate or reasons.alt_dominance_gate or reasons.missing_alternatives:
+        return scores, "Do NOT proceed", reasons
+    return scores, "Proceed", reasons
 
 # -----------------------------
-# LLM integration & JSON sanitization
+# LLM integration & JSON handling
 # -----------------------------
 def _call_llm(llm: Any, prompt: str) -> str:
-    # direct complete
     if hasattr(llm, "complete"):
         try:
             r = llm.complete(prompt)
-            if hasattr(r, "text"):
-                return r.text
-            return str(r)
+            return getattr(r, "text", str(r))
         except Exception:
             pass
-    # predict
     if hasattr(llm, "predict"):
         try:
-            r = llm.predict(prompt)
-            return str(r)
+            return str(llm.predict(prompt))
         except Exception:
             pass
-    # chat (LlamaIndex)
     try:
         from llama_index.core.llms import ChatMessage, MessageRole  # type: ignore
-        msgs = [
-            ChatMessage(role=MessageRole.SYSTEM, content="You are a rigorous analyst. Output JSON only."),
-            ChatMessage(role=MessageRole.USER, content=prompt),
-        ]
+        msgs = [ChatMessage(role=MessageRole.SYSTEM, content="Output ONE JSON object only. No prose."),
+                ChatMessage(role=MessageRole.USER, content=prompt)]
         r = llm.chat(msgs)
-        if hasattr(r, "message") and hasattr(r.message, "content"):
-            return r.message.content
-        if hasattr(r, "text"):
-            return r.text
-        return str(r)
+        return getattr(getattr(r, "message", None), "content", getattr(r, "text", str(r)))
     except Exception:
         return ""
 
@@ -212,13 +227,8 @@ def _sanitize_jsonish(text: str) -> str:
     if not text:
         return ""
     t = _strip_code_fences(text)
-
-    # Remove // line comments
-    t = re.sub(r"(?m)\s*//.*$", "", t)
-    # Remove /* ... */ block comments
-    t = re.sub(r"/\*.*?\*/", "", t, flags=re.S)
-
-    # Evaluate bare arithmetic expressions used as values (e.g., 5000 / -10)
+    t = re.sub(r"(?m)\s*//.*$", "", t)              # // comments
+    t = re.sub(r"/\*.*?\*/", "", t, flags=re.S)     # /* */ comments
     def eval_expr(m):
         expr = m.group(1)
         try:
@@ -228,52 +238,82 @@ def _sanitize_jsonish(text: str) -> str:
         except Exception:
             pass
         return f": 0{m.group(2)}"
-
     t = re.sub(r":\s*([\d\s\(\)\+\-\*/\.eE]+)\s*(,|\})", eval_expr, t)
-
-    # Remove trailing commas before } or ]
-    t = re.sub(r",\s*(?=[\]\}])", "", t)
-
+    t = re.sub(r",\s*(?=[\]\}])", "", t)            # trailing commas
     return t
 
-def _extract_json(text: str) -> Dict[str, Any]:
+def _find_all_json_blocks(text: str) -> List[Dict[str, Any]]:
+    blocks: List[Dict[str, Any]] = []
     if not text:
-        return {}
-    # raw
-    try:
-        return json.loads(text)
-    except Exception:
-        pass
-    # first brace block attempts
-    m = re.search(r"\{.*\}", text, flags=re.S)
-    if m:
-        block = m.group(0)
-        for candidate in (block, _sanitize_jsonish(block), _sanitize_jsonish(text)):
-            try:
-                return json.loads(candidate)
-            except Exception:
-                continue
-    # final attempt
+        return blocks
+    # try fenced first
+    for m in re.finditer(r"```(?:json)?\s*(.*?)```", text, flags=re.S|re.I):
+        s = _sanitize_jsonish(m.group(1))
+        try:
+            blocks.append(json.loads(s))
+        except Exception:
+            pass
+    # then raw curly blocks
+    for m in re.finditer(r"\{.*?\}", text, flags=re.S):
+        s = _sanitize_jsonish(m.group(0))
+        try:
+            blocks.append(json.loads(s))
+        except Exception:
+            pass
+    return blocks
+
+def _extract_and_merge(text: str) -> Dict[str, Any]:
+    """Prefer a single well-formed object; else merge keys from multiple blocks."""
+    # First try straight
     try:
         return json.loads(_sanitize_jsonish(text))
     except Exception:
-        return {}
+        pass
+    blocks = _find_all_json_blocks(text)
+    merged: Dict[str, Any] = {}
+    if not blocks:
+        return merged
+    # pick the block with most keys as base
+    blocks = sorted(blocks, key=lambda b: (-len(b.keys())))
+    merged.update(blocks[0])
+    # merge remaining
+    for b in blocks[1:]:
+        # merge items array
+        if "items" in b:
+            merged.setdefault("items", [])
+            merged["items"].extend(b["items"])
+        # use the first opportunity_cost found if missing
+        if "opportunity_cost" in b and "opportunity_cost" not in merged:
+            merged["opportunity_cost"] = b["opportunity_cost"]
+    return merged
 
 # -----------------------------
 # Coercion & normalization
 # -----------------------------
+
 def _coerce_items(raw_items: Any) -> List[PAItem]:
     items: List[PAItem] = []
+    canon = _canonical_map()
     for it in (raw_items or []):
         try:
-            status = str(it.get("status","Unknown")).strip().capitalize()
+            qid = str(it.get("id","")).strip()
+            cat, ques = canon.get(qid, ("", ""))
+            status_in = str(it.get("status","Unknown")).strip().capitalize()
+            # derive from 'answer' if status missing/weak
+            answer = it.get("answer")
+            if (not status_in or status_in == "Unknown") and answer:
+                status_in = _derive_status_from_answer(answer)
+            sev = it.get("severity_5")
+            if sev is None:
+                # default severity: Fail critical=4, else 3
+                sev = 4 if (status_in == "Fail" and qid in CRITICAL_IDS) else 3
             items.append(PAItem(
-                id=str(it.get("id","")).strip(),
-                category=str(it.get("category","")).strip(),
-                question=str(it.get("question","")).strip(),
-                status=status if status in ("Pass","Fail","Unknown") else "Unknown",
-                severity_5=int(it.get("severity_5", 3)),
-                rationale=it.get("rationale"),
+                id=qid,
+                category=str(it.get("category", cat) or cat),
+                question=str(it.get("question", ques) or ques),
+                status=status_in if status_in in ("Pass","Fail","Unknown") else "Unknown",
+                severity_5=int(sev),
+                rationale=it.get("rationale", answer),
                 notes=it.get("notes"),
                 owner=it.get("owner"),
                 evidence_links=[str(x) for x in it.get("evidence_links", [])]
@@ -285,40 +325,40 @@ def _coerce_items(raw_items: Any) -> List[PAItem]:
             items.append(PAItem(id=qid, category=cat, question=q, status="Unknown", severity_5=5))
         for qid, cat, q in HIGH_VALUE_QUESTIONS:
             items.append(PAItem(id=qid, category=cat, question=q, status="Unknown", severity_5=3))
+    else:
+        # Ensure all canonical questions exist; if some IDs are missing, append as Unknown
+        present = {it.id for it in items}
+        for qid, cat, q in CRITICAL_QUESTIONS + HIGH_VALUE_QUESTIONS:
+            if qid not in present:
+                default_sev = 5 if qid in CRITICAL_IDS else 3
+                items.append(PAItem(id=qid, category=cat, question=q, status="Unknown", severity_5=default_sev))
     return items
 
-def _coerce_opp(raw_opp: Any, fallback_metric: str = "€ per primary outcome unit") -> PAOppCost:
+def _coerce_opp(raw_opp: Any, fallback_metric: str) -> PAOppCost:
     metric = str((raw_opp or {}).get("primary_outcome_metric") or fallback_metric)
     cands: List[PACandidate] = []
     for c in (raw_opp or {}).get("candidates", []):
-        total_cost = _safe_float(c.get("total_cost", 0.0))
-        delta = _safe_float(c.get("delta_outcome", 0.0), default=1.0)
-        cost_per = c.get("cost_per_outcome", None)
         try:
-            cost_per = float(cost_per)
+            total_cost = float(c.get("total_cost", 0.0))
         except Exception:
-            # compute later
-            cost_per = None
+            total_cost = 0.0
+        try:
+            delta = float(c.get("delta_outcome", 0.0))
+        except Exception:
+            delta = 0.0
+        try:
+            cost_per = float(c.get("cost_per_outcome", total_cost / delta if delta else 0.0))
+        except Exception:
+            cost_per = (total_cost / delta) if delta else 0.0
         cands.append(PACandidate(
             id=str(c.get("id","")).strip() or f"A{len(cands)+1}",
             name=str(c.get("name","")).strip() or "Alternative",
             total_cost=total_cost,
             delta_outcome=delta,
-            cost_per_outcome=(cost_per if cost_per is not None else (total_cost / delta if delta else 0.0)),
+            cost_per_outcome=cost_per,
             meets_constraints=bool(c.get("meets_constraints", True)),
             assumptions=c.get("assumptions"),
         ))
-    if not any(c.id == "P" for c in cands):
-        cands.insert(0, PACandidate(id="P", name="Proposed Project", total_cost=0.0, delta_outcome=1.0, cost_per_outcome=0.0))
-    # Normalize
-    for c in cands:
-        try:
-            if (c.cost_per_outcome in (None, 0)) and c.delta_outcome not in (None, 0):
-                c.cost_per_outcome = c.total_cost / c.delta_outcome
-        except Exception:
-            pass
-        if not isinstance(c.delta_outcome, (int, float)) or c.delta_outcome <= 0:
-            c.meets_constraints = False
     return PAOppCost(primary_outcome_metric=metric, candidates=cands)
 
 # -----------------------------
@@ -326,15 +366,17 @@ def _coerce_opp(raw_opp: Any, fallback_metric: str = "€ per primary outcome un
 # -----------------------------
 PROMPT_TEMPLATE = """You are performing a *Premise Attack*—an adversarial review that decides whether a proposed project should proceed at all.
 
+STRICT OUTPUT RULE: Return **ONE** JSON object only. No prose, no markdown fences.
+
 PROJECT BRIEF (verbatim):
 ---
 {brief}
 ---
 
 TASK:
-1) Evaluate the project using the **Critical** questions C1–C8 (below) and **High-Value** questions H1–H7.
-2) Propose 2–3 plausible alternatives (include a simpler/cheaper variant and a do-nothing baseline).
-3) Choose ONE primary outcome metric and estimate ΔOutcome and costs enough to compute cost_per_outcome for P (project) and alternatives.
+1) Answer the Critical questions C1–C8 and High-Value questions H1–H7.
+2) Propose 2–3 alternatives (include a cheaper variant and a do-nothing baseline).
+3) Choose ONE primary outcome metric and compute cost_per_outcome = total_cost / delta_outcome for P and alternatives.
 
 CRITICAL QUESTIONS:
 {critical_questions}
@@ -342,40 +384,23 @@ CRITICAL QUESTIONS:
 HIGH-VALUE QUESTIONS:
 {high_value_questions}
 
-REQUIRED OUTPUT (STRICT JSON, no commentary):
+REQUIRED OUTPUT (single JSON object only):
 {{
-  "items": [  // C1..C8 then H1..H7 in order
-    {{
-      "id": "C1",
-      "category": "Public value",
-      "question": "What non-private value does this create, and for whom? Who pays? Evidence?",
-      "status": "Pass|Fail|Unknown",
-      "severity_5": 1,
-      "rationale": "Brief reasoning",
-      "notes": "Optional notes",
-      "owner": "Role best suited to resolve",
-      "evidence_links": ["https://..."]
-    }}
-  ],
+  "items": [ /* C1..C8 then H1..H7 */ ],
   "opportunity_cost": {{
     "primary_outcome_metric": "STRING",
     "candidates": [
-      {{ "id": "P", "name": "Proposed Project", "total_cost": 0, "delta_outcome": 0, "cost_per_outcome": 0, "meets_constraints": true, "assumptions": "STRING" }},
-      {{ "id": "A1", "name": "Cheaper Variant", "total_cost": 0, "delta_outcome": 0, "cost_per_outcome": 0, "meets_constraints": true, "assumptions": "STRING" }},
-      {{ "id": "A2", "name": "Do-Nothing Baseline", "total_cost": 0, "delta_outcome": 0, "cost_per_outcome": 0, "meets_constraints": true, "assumptions": "STRING" }}
+      {{ "id": "P",  "name": "Proposed Project", "total_cost": 0, "delta_outcome": 1, "cost_per_outcome": 0, "meets_constraints": true }},
+      {{ "id": "A1", "name": "Cheaper Variant",  "total_cost": 0, "delta_outcome": 1, "cost_per_outcome": 0, "meets_constraints": true }},
+      {{ "id": "A2", "name": "Do-Nothing",       "total_cost": 0, "delta_outcome": 1, "cost_per_outcome": 0, "meets_constraints": true }}
     ]
   }}
 }}
-
-NOTES:
-- If data is insufficient, set "status": "Unknown" and assign "severity_5" appropriate to risk.
-- Do NOT include comments or trailing commas; output valid JSON only.
-- Ensure numbers allow computing cost_per_outcome = total_cost / delta_outcome (avoid division by zero).
 """
 
 def _build_prompt(brief: str) -> str:
-    crit = "\n".join([f"{qid}: {q}" for qid, _, q in CRITICAL_QUESTIONS])
-    high = "\n".join([f"{qid}: {q}" for qid, _, q in HIGH_VALUE_QUESTIONS])
+    crit = "\\n".join([f"{qid}: {q}" for qid, _, q in CRITICAL_QUESTIONS])
+    high = "\\n".join([f"{qid}: {q}" for qid, _, q in HIGH_VALUE_QUESTIONS])
     return PROMPT_TEMPLATE.format(brief=brief.strip(), critical_questions=crit, high_value_questions=high)
 
 class PremiseAttack:
@@ -387,12 +412,15 @@ class PremiseAttack:
         decision_rules = decision_rules or PADecisionRules()
         prompt = _build_prompt(brief)
         raw = _call_llm(llm, prompt)
-        parsed = _extract_json(raw)
+        parsed = _extract_and_merge(raw)
 
         items = _coerce_items(parsed.get("items"))
         opp = _coerce_opp(parsed.get("opportunity_cost"), fallback_metric=primary_outcome_metric)
 
-        scores, decision = decide(items, opp, decision_rules)
+        # Fallback: if the model didn't provide alternatives, keep P and mark missing_alternatives
+        if not any(c.id == "P" for c in opp.candidates):
+            opp.candidates.insert(0, PACandidate(id="P", name="Proposed Project", total_cost=0.0, delta_outcome=1.0, cost_per_outcome=0.0))
+        scores, decision, reasons = decide(items, opp, decision_rules)
 
         return PremiseAttackResult(
             items=items,
@@ -400,7 +428,8 @@ class PremiseAttack:
             decision_rules=decision_rules,
             scores=scores,
             decision=decision,
-            system_prompt="You are a rigorous analyst. Output JSON only.",
+            reasons=reasons,
+            system_prompt="Output ONE JSON object only. No prose.",
             user_prompt=prompt,
             raw_model_text=raw
         )
@@ -419,7 +448,6 @@ class PremiseAttack:
 (function(){{ 
   var data = {data};
   function el(t,a,cs){{var e=document.createElement(t);if(a)Object.entries(a).forEach(([k,v])=>k in e?e[k]=v:e.setAttribute(k,v));(cs||[]).forEach(c=>e.appendChild(typeof c==='string'?document.createTextNode(c):c));return e;}}
-  // Items
   var cm = document.getElementById('premise-attack-crit');
   var table = el('table', {{ className: 'table premise-attack-table' }});
   table.appendChild(el('thead', null, [el('tr', null, ['ID','Category','Question','Status','Severity','Notes'].map(h=>el('th',null,[h])))]));
@@ -437,7 +465,6 @@ class PremiseAttack:
   }});
   table.appendChild(tb); cm.appendChild(table);
 
-  // Opp cost
   var om = document.getElementById('premise-attack-opp');
   var ot = el('table', {{ className: 'table opp-table' }});
   ot.appendChild(el('thead', null, [el('tr', null, ['ID','Option','Total Cost','ΔOutcome','Cost/Outcome','Feasible'].map(h=>el('th',null,[h])))]));
@@ -454,21 +481,16 @@ class PremiseAttack:
   }});
   ot.appendChild(ob); om.appendChild(ot);
 
-  // Decision
   var dm = document.getElementById('premise-attack-decision');
   var cf = (data.scores&&data.scores.critical_failed)||0;
   var score = (data.scores&&data.scores.skepticism_score_100)||0;
   var rules = data.decision_rules||{{}};
-  function betterAlt() {{
-    var cands = (data.opportunity_cost&&data.opportunity_cost.candidates)||[];
-    var P = cands.find(x=>x.id==='P');
-    if(!P) return true;
-    var thresh = 1 - (rules.alt_dominance_threshold||25)/100;
-    return cands.some(a=>a.id!=='P' && a.meets_constraints && a.cost_per_outcome < P.cost_per_outcome*thresh);
-  }}
-  var proceed = (cf===0) && (score >= (rules.min_score_to_proceed||70)) && !betterAlt();
-  dm.appendChild(el('p',null,['Critical fails: '+cf+'. Skepticism score: '+score+'/100.']));
-  dm.appendChild(el('p',null,[betterAlt()?'A feasible alternative dominates on cost/outcome.':'No feasible alternative dominates.']));
+  var rs = data.reasons || {{}};
+  function betterAlt(){{return !!rs.alt_dominance_gate;}}
+  var proceed = (cf===0) && (score >= (rules.min_score_to_proceed||70)) && !betterAlt() && !rs.missing_alternatives;
+  dm.appendChild(el('p',null,['Critical fails: '+cf+'. Skepticism: '+score+'/100.']));
+  if(rs.missing_alternatives) dm.appendChild(el('p',null,['Missing alternatives: provide A1/A2 with costs & ΔOutcome.']));
+  if(rs.alt_dominance_gate) dm.appendChild(el('p',null,['A feasible alternative dominates on cost/outcome.']));
   dm.appendChild(el('p',{{ className: proceed?'go':'nogo' }},[proceed?'DECISION: Proceed':'DECISION: Do NOT proceed']));
 }})();
 </script>
@@ -484,13 +506,11 @@ class PremiseAttack:
 
     @staticmethod
     def inject_into_html(html_text: str, result: PremiseAttackResult) -> str:
-        """Insert the snippet before <!--CONTENT-END-->; returns modified HTML text."""
         snippet = PremiseAttack.render_html_snippet(result)
         marker = "<!--CONTENT-END-->"
         if marker in html_text:
-            return html_text.replace(marker, snippet + "\n\n" + marker)
-        # fallback: append at end
-        return html_text + "\n\n" + snippet
+            return html_text.replace(marker, snippet + "\\n\\n" + marker)
+        return html_text + "\\n\\n" + snippet
 
 # -----------------------------
 # CLI (optional)
@@ -505,7 +525,7 @@ def _save_text(path: str, text: str) -> None:
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Premise Attack gate")
+    parser = argparse.ArgumentParser(description="Premise Attack v3 gate")
     parser.add_argument("--brief-file", type=str, help="Path to file containing project brief text")
     parser.add_argument("--html-in", type=str, help="Optional: input HTML to inject section into")
     parser.add_argument("--html-out", type=str, help="Optional: output HTML path")
