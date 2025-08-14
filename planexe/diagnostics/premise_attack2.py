@@ -21,16 +21,14 @@ from datetime import date, timedelta
 from math import ceil
 from typing import List, Optional, Literal
 
-from pydantic import BaseModel, Field, conint, field_validator
+from pydantic import BaseModel, Field, conint
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
 
 logger = logging.getLogger(__name__)
 
 
-# --- 1. Upgraded Pydantic Models (from Memo 20250814_1429.md) ---
-# These models are far more structured and actionable than the original draft.
-
+# --- Pydantic Models ---
 class DisconfirmingTest(BaseModel):
     """A cheap, fast, and decisive real-world experiment to prove an objection true."""
     test: str = Field(..., description="A concise description of the test to be run.")
@@ -40,7 +38,7 @@ class DisconfirmingTest(BaseModel):
     ] = Field(..., description="The methodology for conducting the test.")
     metric: str = Field(..., description="The specific, measurable metric the test will track (e.g., 'Uptake Rate', 'CAC', 'NPS').")
     threshold: str = Field(..., description="The unambiguous quantitative threshold for the metric (must include a comparator like '>= 70%', '< $50').")
-    owner: str = Field(..., description="The role or person responsible for executing the test.")
+    owner: str = Field(..., description="The role or person responsible for executing the test (e.g., 'Legal Counsel', 'Project Manager').")
     deadline: date = Field(..., description="The deadline for completing the test (YYYY-MM-DD).")
     budget: str = Field(..., description="The estimated budget for the test (e.g., '$5k', '0').")
 
@@ -62,36 +60,33 @@ class PremiseAttackModel(BaseModel):
     decision_rationale: str = Field(..., description="A 2-6 line rationale linking the decision to the objections and tests.")
 
 
-# --- 2. Synthesized System Prompt ---
-# This prompt is engineered to generate the complex Pydantic model above,
-# combining the best instructions from your code and memos.
-
+# --- **FINAL, ROBUST** System Prompt ---
 SYSTEM_PROMPT = """
 You are an adversarial "Red Team" strategist. Your mission is to challenge a project's foundational premise to prevent the execution of a flawed strategy. Your output must be a valid JSON object adhering to the provided schema.
 
 Your task is to generate a "Strategic Stress Test" by performing the following steps:
 1.  **Identify the Core Premise:** Distill the user's plan into a single, concise thesis statement.
-2.  **Formulate Objections:** Generate 3-7 of the strongest, most fundamental objections to this premise. Attack the "why," not the "how." Focus on flawed logic, opportunity cost, ethical blind spots, and strategic misalignment.
-3.  **Design Disconfirming Tests:** For each primary objection, devise a cheap, fast, and decisive real-world test that could falsify the underlying assumption. Each test must have an actionable method, a measurable metric, and an unambiguous quantitative threshold (e.g., '>= 70%', '< $50').
-4.  **Define Stop Rules:** For each test, define a clear "Stop Rule" or tripwire. If this condition is met, the project should be halted or radically pivoted.
-5.  **Propose Alternatives:** List strategic alternatives, including the mandatory "Do nothing" option, each with a brief note on its value and risk.
-6.  **Establish Guardrails:** If the project were to proceed anyway, define 3-5 non-negotiable minimum changes or constraints that must be implemented to de-risk the most critical objections.
-7.  **Make a Decision:** Conclude with a clear "Go," "Pivot," or "No-Go" recommendation, supported by a concise rationale that links back to your analysis.
+2.  **Formulate Diverse Objections:** Generate 3-5 of the strongest, most fundamental objections to this premise. Ensure the objections are diverse and attack different strategic pillars (e.g., **Ethical Viability, Market/Business Model, Financial Sustainability, Critical Dependencies**). Do not repeat the same objection.
+3.  **Design Actionable Disconfirming Tests:** For each primary objection, devise a **cheap, fast, and decisive** real-world test.
+    - `test` must be a specific action, not a broad research project. (e.g., "Interview 10 resilience managers," not "Establish a team").
+    - `owner` must be a specific **role** (e.g., "Legal Counsel", "Project Manager").
+    - `deadline` must be a **realistic date that is on or before the `latest_acceptable_deadline`** provided in the user prompt.
+    - `metric` and `threshold` must be logically connected and quantitative (e.g., metric: "Criminal Liability Opinion", threshold: "!= 'Favorable'").
+4.  **Define Specific Stop Rules:** Each `stop_rule` must be a direct consequence of a test's outcome. (e.g., "If Legal Review concludes indefensible criminal liability, halt project.").
+5.  **Propose Alternatives:** List strategic alternatives, including the mandatory "Do nothing" option.
+6.  **Establish Concrete Guardrails:** If proceeding, define non-negotiable constraints. (e.g., "Mandate non-lethality for all mechanisms, certified by a third party.").
+7.  **Make a Decision:** Conclude with "Go," "Pivot," or "No-Go" and a clear rationale.
 
 **Hard Requirements:**
-- Your entire output must be a single JSON object matching the schema.
-- Focus exclusively on premise-level flaws. Do NOT list solvable execution risks (like engineering delays, permits, or budget management).
+- Your entire output must be a single JSON object.
+- Focus exclusively on premise-level flaws. Do NOT list solvable execution risks (like engineering delays or site security).
 - The `alternatives` list MUST include an item where `name` is "Do nothing".
-- Every `threshold` in a `disconfirming_test` MUST contain a numerical value and a comparator (e.g., '>=', '<', '<=').
-- Be concise, surgical, and provocative. Your goal is to force a critical re-evaluation of the plan's viability.
+- The `owner` field must contain a project role, not a sentence.
+- All `deadline` fields must be realistic dates on or before the provided `latest_acceptable_deadline`.
 """
 
-# --- 3. Refactored Main Class with Integrated Validation ---
-
 class PremiseAttack:
-    """
-    Executes and validates a Strategic Stress Test on a plan's core premise.
-    """
+    """Executes and validates a Strategic Stress Test on a plan's core premise."""
     def __init__(self, llm: LLM, plan_start_date: date = date.today()):
         if not isinstance(llm, LLM):
             raise ValueError("Invalid LLM instance.")
@@ -109,24 +104,31 @@ class PremiseAttack:
             raise ValueError("Invalid user_prompt.")
         self.user_prompt = user_prompt
         logger.debug(f"Executing Premise Attack with user prompt:\n{user_prompt}")
+        
+        # **FIX:** Calculate the deadline threshold and inject it into the prompt.
+        latest_acceptable_deadline = self.plan_start_date + timedelta(days=90)
+        
+        full_user_prompt = (
+            f"LATEST ACCEPTABLE DEADLINE: {latest_acceptable_deadline.strftime('%Y-%m-%d')}\n"
+            f"PLAN START DATE: {self.plan_start_date.strftime('%Y-%m-%d')}\n\n"
+            f"PROJECT PLAN:\n{self.user_prompt}"
+        )
 
         chat_messages = [
             ChatMessage(role=MessageRole.SYSTEM, content=self.system_prompt),
-            ChatMessage(role=MessageRole.USER, content=self.user_prompt),
+            ChatMessage(role=MessageRole.USER, content=full_user_prompt),
         ]
 
         structured_llm = self.llm.as_structured_llm(PremiseAttackModel)
         
         start_time = time.perf_counter()
         try:
-            # The structured_llm.chat() method returns a ChatResponse object
-            response_obj = structured_llm.chat(chat_messages)
-            self.validated_data = response_obj.raw
-            self.raw_response = response_obj.raw.model_dump(mode='json')
-
+            response = structured_llm.chat(chat_messages)
+            self.validated_data = response.raw
+            self.raw_response = self.validated_data.model_dump(mode='json')
         except Exception as e:
             logger.error("LLM chat interaction failed to produce valid structured output.", exc_info=True)
-            raise ValueError("LLM chat interaction failed.") from e
+            raise ValueError(f"LLM chat interaction failed: {e}") from e
         finally:
             end_time = time.perf_counter()
             duration = int(ceil(end_time - start_time))
@@ -144,34 +146,34 @@ class PremiseAttack:
         return self
 
     def validate(self):
-        """
-        Performs post-generation validation based on rules from memo 20250814_1429.md.
-        """
+        """Performs post-generation validation. Raises ValueError on critical failures."""
         if not self.validated_data:
             raise ValueError("Cannot validate without a successful execution response.")
 
         errors = []
+        warnings = []
         pa = self.validated_data
 
-        # Rule: At least one test deadline within 30 days
-        if not any(test.deadline <= (self.plan_start_date + timedelta(days=30)) for test in pa.disconfirming_tests):
-            errors.append("Validation failed: At least one disconfirming test must have a deadline within 30 days of the plan start.")
+        near_term_deadline_threshold = self.plan_start_date + timedelta(days=90)
+        # Check if ALL deadlines are within the threshold
+        for test in pa.disconfirming_tests:
+            if test.deadline > near_term_deadline_threshold:
+                errors.append(f"Validation failed: Test '{test.test[:30]}...' has deadline {test.deadline.isoformat()} which is after the threshold of {near_term_deadline_threshold.isoformat()}.")
 
-        # Rule: Alternatives must include "Do nothing"
         if not any(alt.name.lower().strip() == "do nothing" for alt in pa.alternatives):
              errors.append("Validation failed: The 'alternatives' list must include a 'Do nothing' option.")
 
-        # Rule: Check for premises-security drift
         drift_tokens = {"lockdown", "evacuation", "perimeter", "cctv", "badge access", "soc", "firewall", "on-prem"}
         text_blob = " ".join(pa.objections).lower() + " ".join(t.test.lower() for t in pa.disconfirming_tests)
         if any(token in text_blob for token in drift_tokens):
-             errors.append("Validation warning: Detected potential drift into execution/site-security topics. Review objections and tests to ensure they remain at the premise level.")
+             warnings.append("Validation warning: Detected potential drift into execution/site-security topics. Review objections and tests to ensure they remain at the premise level.")
+        
+        if warnings:
+            logger.warning("Post-generation validation warnings found:\n" + "\n".join(warnings))
 
         if errors:
             error_message = "\n".join(errors)
-            logger.warning(f"Post-generation validation issues found:\n{error_message}")
-            # Depending on severity, you might raise an exception here. For now, we'll log a warning.
-            # raise ValueError(error_message)
+            raise ValueError(f"Post-generation validation failed:\n{error_message}")
         
         logger.info("Post-generation validation passed successfully.")
         return True
@@ -181,28 +183,32 @@ class PremiseAttack:
         if not self.validated_data:
             return {}
         
-        output = self.validated_data.model_dump(mode='json')
+        output = self.raw_response
         output["metadata"] = self.metadata
         return output
 
     def to_gantt_phase_0(self) -> List[dict]:
-        """
-        Transforms disconfirming tests into tasks for a Phase 0 Gantt chart.
-        This is a conceptual implementation based on memo 20250814_1429.md.
-        """
+        """Transforms disconfirming tests into tasks for a Phase 0 Gantt chart."""
         if not self.validated_data:
             return []
             
         tasks = []
-        for test in self.validated_data.disconfirming_tests:
+        test_ids = []
+        for i, test in enumerate(self.validated_data.disconfirming_tests):
+            test_id = f"premise_test_{i+1}"
+            test_ids.append(test_id)
+            duration = (test.deadline - self.plan_start_date).days + 1
             tasks.append({
-                "id": f"premise_test_{test.test[:20].replace(' ', '_')}",
+                "id": test_id,
                 "text": f"Stress Test: {test.test}",
                 "start_date": self.plan_start_date.strftime('%Y-%m-%d'),
-                "end_date": test.deadline.strftime('%Y-%m-%d'),
+                "duration": duration if duration > 0 else 1,
                 "owner": test.owner,
                 "custom_tooltip": f"<b>Test:</b> {test.test}<br><b>Method:</b> {test.method}<br><b>Metric:</b> {test.metric}<br><b>Threshold:</b> {test.threshold}<br><b>Budget:</b> {test.budget}"
             })
+
+        if not self.validated_data.disconfirming_tests:
+            return tasks
 
         latest_deadline = max(test.deadline for test in self.validated_data.disconfirming_tests)
         tasks.append({
@@ -210,17 +216,15 @@ class PremiseAttack:
             "text": "Premise Gate (Go/No-Go Decision)",
             "start_date": latest_deadline.strftime('%Y-%m-%d'),
             "type": "milestone",
-            "dependencies": [t["id"] for t in tasks if t.get("type") != "milestone"]
+            "dependencies": ",".join(test_ids)
         })
         return tasks
 
-# --- 4. Main execution block for testing ---
 
 if __name__ == "__main__":
     from planexe.llm_factory import get_llm
     from planexe.plan.find_plan_prompt import find_plan_prompt
 
-    # Use a local, fast model for development and testing
     llm = get_llm("ollama-llama3.1")
 
     # Example using the 'Cube Construction' prompt ID, as it's a great test case
@@ -231,7 +235,9 @@ if __name__ == "__main__":
     print("-" * 20)
 
     try:
-        attack = PremiseAttack(llm=llm).execute(plan_prompt)
+        # We can set the start date for testing purposes
+        test_start_date = date(2025, 8, 14)
+        attack = PremiseAttack(llm=llm, plan_start_date=test_start_date).execute(plan_prompt)
         
         print("\n--- VALIDATED JSON RESPONSE ---")
         print(json.dumps(attack.to_dict(), indent=2))
@@ -242,4 +248,4 @@ if __name__ == "__main__":
 
     except ValueError as e:
         print(f"\n--- EXECUTION FAILED ---")
-        print(e)
+        print(f"Error: {e}")
