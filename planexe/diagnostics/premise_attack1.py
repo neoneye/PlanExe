@@ -1,4 +1,20 @@
 """
+kill bad ideas early.
+
+Attack the 'why,' not the 'how'.
+
+Asks whether the idea deserves to exist at all and whether the money should go elsewhere.
+
+Premise Attack, Adversarial Review of the Idea. Argue against the plan to test its robustness.
+
+“Assume the thesis is wrong. Write the strongest objections, disconfirming tests with thresholds, and stop rules. Compare to alternatives. End with a Go/Pivot/No-Go gate.”
+
+Should a skyscraper even be built here? Why are we building a skyscraper here at all? 
+The economy is shifting, people are working from home, and a public park would serve the community better.
+
+"Should we really be doing this?"
+"Are the money spent better elsewhere?"
+
 Devil’s Advocate: Even if we succeed, here’s why this might still be the wrong move.
 
 The “Devil’s Advocate” is the strategic opposition voice — less about enumerating risks (Premortem’s job) and 
@@ -7,7 +23,7 @@ more about questioning the project’s fundamental premise, strategic direction,
 https://en.wikipedia.org/wiki/Devil%27s_advocate
 https://en.wikipedia.org/wiki/Group_decision-making
 
-PROMPT> python -m planexe.diagnostics.experimental_devils_advocate
+PROMPT> python -m planexe.diagnostics.premise_attack1
 """
 import json
 import time
@@ -59,7 +75,7 @@ class DocumentDetails(BaseModel):
     )
 
 
-DEVILS_ADVOCATE_SYSTEM_PROMPT_1 = """
+PREMISE_ATTACK_SYSTEM_PROMPT_1 = """
 Persona:
 Assume the role of a “Red Team” strategist whose mission is to challenge the plan’s core premises rather than its execution details.
 
@@ -121,7 +137,7 @@ Output JSON schema:
 }
 """
 
-DEVILS_ADVOCATE_SYSTEM_PROMPT_2 = """
+PREMISE_ATTACK_SYSTEM_PROMPT_2 = """
 You are a Devil’s Advocate / Red-Team strategist. Your job is to challenge the *foundational premise* of a provided project plan—not to help execute or optimize it.
 
 OUTPUT: JSON with top-level key "issues": an array of 3–4 items. Each item must include:
@@ -167,10 +183,10 @@ EXAMPLE SHAPE (illustrative only):
 }
 """
 
-DEVILS_ADVOCATE_SYSTEM_PROMPT = DEVILS_ADVOCATE_SYSTEM_PROMPT_1
+PREMISE_ATTACK_SYSTEM_PROMPT = PREMISE_ATTACK_SYSTEM_PROMPT_1
 
 @dataclass
-class DevilsAdvocate:
+class PremiseAttack:
     """
     Challenge the plan’s core premises.
     """
@@ -180,7 +196,7 @@ class DevilsAdvocate:
     metadata: dict
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> "DevilsAdvocate":
+    def execute(cls, llm: LLM, user_prompt: str) -> "PremiseAttack":
         if not isinstance(llm, LLM):
             raise ValueError("Invalid LLM instance.")
         if not isinstance(user_prompt, str):
@@ -188,7 +204,7 @@ class DevilsAdvocate:
 
         logger.debug(f"User Prompt:\n{user_prompt}")
 
-        system_prompt = DEVILS_ADVOCATE_SYSTEM_PROMPT.strip()
+        system_prompt = PREMISE_ATTACK_SYSTEM_PROMPT.strip()
 
         chat_message_list = [
             ChatMessage(role=MessageRole.SYSTEM, content=system_prompt),
@@ -219,7 +235,7 @@ class DevilsAdvocate:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
-        result = DevilsAdvocate(
+        result = PremiseAttack(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
@@ -251,7 +267,7 @@ if __name__ == "__main__":
     plan_prompt = find_plan_prompt("4dc34d55-0d0d-4e9d-92f4-23765f49dd29")
 
     print(f"Query:\n{plan_prompt}\n\n")
-    result = DevilsAdvocate.execute(llm, plan_prompt)
+    result = PremiseAttack.execute(llm, plan_prompt)
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
 
     print("\n\nResponse:")
