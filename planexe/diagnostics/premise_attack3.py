@@ -8,20 +8,6 @@ Standardized checklist.
 - Forces counterfactuals and opportunity cost.
 - Deterministic decision rules (stop on critical fail; alternative dominance).
 
-Designed to work with LlamaIndex-style LLMs but *not* hard-coupled to a version.
-Pass in any llm with .complete(prompt: str) -> Response(text=...) or .predict(str) -> str,
-or .chat([...]) -> Response with .message.content.
-
-Usage (example):
-    from planexe.llm_factory import get_llm
-    from planexe.plan.find_plan_prompt import find_plan_prompt
-
-    llm = get_llm("ollama-llama3.1")
-    plan_prompt = find_plan_prompt("...")
-
-    result = PremiseAttack.execute(llm, plan_prompt, primary_outcome_metric="€ per additional active user (30-day)")
-    print(json.dumps(result.to_dict(), indent=2))
-
 PROMPT> python -m planexe.diagnostics.premise_attack3 --brief-file /absolute/path/to/plan.txt
 """
 
@@ -81,7 +67,6 @@ class PremiseAttackResult:
     decision_rules: PADecisionRules = field(default_factory=PADecisionRules)
     scores: PAScores = field(default_factory=PAScores)
     decision: str = "Do NOT proceed"
-    # Optional debugging
     system_prompt: Optional[str] = None
     user_prompt: Optional[str] = None
     raw_model_text: Optional[str] = None
@@ -148,12 +133,27 @@ def violates_alt_rule(opp: PAOppCost, rules: PADecisionRules) -> bool:
     P = next((c for c in opp.candidates if c.id == "P"), None)
     if not P:
         return True  # no baseline = reject
+    if (P.cost_per_outcome in (None, 0)) and P.delta_outcome not in (None, 0):
+        try:
+            P.cost_per_outcome = P.total_cost / P.delta_outcome
+        except Exception:
+            pass
+    if not isinstance(P.delta_outcome, (int, float)) or P.delta_outcome <= 0:
+        return True
     thresh = 1 - rules.alt_dominance_threshold / 100.0
     for a in opp.candidates:
         if a.id == "P" or not a.meets_constraints:
             continue
-        if a.cost_per_outcome < P.cost_per_outcome * thresh:
-            return True
+        if (a.cost_per_outcome in (None, 0)) and a.delta_outcome not in (None, 0):
+            try:
+                a.cost_per_outcome = a.total_cost / a.delta_outcome
+            except Exception:
+                continue
+        try:
+            if a.delta_outcome > 0 and a.cost_per_outcome < P.cost_per_outcome * thresh:
+                return True
+        except Exception:
+            continue
     return False
 
 def decide(items: List[PAItem], opp: PAOppCost, rules: PADecisionRules) -> Tuple[PAScores, str]:
@@ -167,17 +167,13 @@ def decide(items: List[PAItem], opp: PAOppCost, rules: PADecisionRules) -> Tuple
     return scores, "Proceed"
 
 # -----------------------------
-# LLM integration
+# LLM integration & JSON sanitization
 # -----------------------------
 def _call_llm(llm: Any, prompt: str) -> str:
-    """
-    Try a few common LlamaIndex patterns. Returns text.
-    """
     # direct complete
     if hasattr(llm, "complete"):
         try:
             r = llm.complete(prompt)
-            # Some LLMs return objects with .text, some just strings
             if hasattr(r, "text"):
                 return r.text
             return str(r)
@@ -190,9 +186,8 @@ def _call_llm(llm: Any, prompt: str) -> str:
             return str(r)
         except Exception:
             pass
-    # chat
+    # chat (LlamaIndex)
     try:
-        # Lazy import to avoid hard dependency on specific version
         from llama_index.core.llms import ChatMessage, MessageRole  # type: ignore
         msgs = [
             ChatMessage(role=MessageRole.SYSTEM, content="You are a rigorous analyst. Output JSON only."),
@@ -205,9 +200,130 @@ def _call_llm(llm: Any, prompt: str) -> str:
             return r.text
         return str(r)
     except Exception:
-        # last resort
         return ""
 
+def _strip_code_fences(text: str) -> str:
+    if not text:
+        return ""
+    m = re.search(r"```(?:json)?\s*(.*?)```", text, flags=re.S|re.I)
+    return m.group(1).strip() if m else text
+
+def _sanitize_jsonish(text: str) -> str:
+    if not text:
+        return ""
+    t = _strip_code_fences(text)
+
+    # Remove // line comments
+    t = re.sub(r"(?m)\s*//.*$", "", t)
+    # Remove /* ... */ block comments
+    t = re.sub(r"/\*.*?\*/", "", t, flags=re.S)
+
+    # Evaluate bare arithmetic expressions used as values (e.g., 5000 / -10)
+    def eval_expr(m):
+        expr = m.group(1)
+        try:
+            if re.fullmatch(r"[\d\s\(\)\+\-\*/\.eE]+", expr):
+                val = eval(expr, {"__builtins__": None}, {})
+                return f": {val}{m.group(2)}"
+        except Exception:
+            pass
+        return f": 0{m.group(2)}"
+
+    t = re.sub(r":\s*([\d\s\(\)\+\-\*/\.eE]+)\s*(,|\})", eval_expr, t)
+
+    # Remove trailing commas before } or ]
+    t = re.sub(r",\s*(?=[\]\}])", "", t)
+
+    return t
+
+def _extract_json(text: str) -> Dict[str, Any]:
+    if not text:
+        return {}
+    # raw
+    try:
+        return json.loads(text)
+    except Exception:
+        pass
+    # first brace block attempts
+    m = re.search(r"\{.*\}", text, flags=re.S)
+    if m:
+        block = m.group(0)
+        for candidate in (block, _sanitize_jsonish(block), _sanitize_jsonish(text)):
+            try:
+                return json.loads(candidate)
+            except Exception:
+                continue
+    # final attempt
+    try:
+        return json.loads(_sanitize_jsonish(text))
+    except Exception:
+        return {}
+
+# -----------------------------
+# Coercion & normalization
+# -----------------------------
+def _coerce_items(raw_items: Any) -> List[PAItem]:
+    items: List[PAItem] = []
+    for it in (raw_items or []):
+        try:
+            status = str(it.get("status","Unknown")).strip().capitalize()
+            items.append(PAItem(
+                id=str(it.get("id","")).strip(),
+                category=str(it.get("category","")).strip(),
+                question=str(it.get("question","")).strip(),
+                status=status if status in ("Pass","Fail","Unknown") else "Unknown",
+                severity_5=int(it.get("severity_5", 3)),
+                rationale=it.get("rationale"),
+                notes=it.get("notes"),
+                owner=it.get("owner"),
+                evidence_links=[str(x) for x in it.get("evidence_links", [])]
+            ))
+        except Exception:
+            continue
+    if not items:
+        for qid, cat, q in CRITICAL_QUESTIONS:
+            items.append(PAItem(id=qid, category=cat, question=q, status="Unknown", severity_5=5))
+        for qid, cat, q in HIGH_VALUE_QUESTIONS:
+            items.append(PAItem(id=qid, category=cat, question=q, status="Unknown", severity_5=3))
+    return items
+
+def _coerce_opp(raw_opp: Any, fallback_metric: str = "€ per primary outcome unit") -> PAOppCost:
+    metric = str((raw_opp or {}).get("primary_outcome_metric") or fallback_metric)
+    cands: List[PACandidate] = []
+    for c in (raw_opp or {}).get("candidates", []):
+        total_cost = _safe_float(c.get("total_cost", 0.0))
+        delta = _safe_float(c.get("delta_outcome", 0.0), default=1.0)
+        cost_per = c.get("cost_per_outcome", None)
+        try:
+            cost_per = float(cost_per)
+        except Exception:
+            # compute later
+            cost_per = None
+        cands.append(PACandidate(
+            id=str(c.get("id","")).strip() or f"A{len(cands)+1}",
+            name=str(c.get("name","")).strip() or "Alternative",
+            total_cost=total_cost,
+            delta_outcome=delta,
+            cost_per_outcome=(cost_per if cost_per is not None else (total_cost / delta if delta else 0.0)),
+            meets_constraints=bool(c.get("meets_constraints", True)),
+            assumptions=c.get("assumptions"),
+        ))
+    if not any(c.id == "P" for c in cands):
+        cands.insert(0, PACandidate(id="P", name="Proposed Project", total_cost=0.0, delta_outcome=1.0, cost_per_outcome=0.0))
+    # Normalize
+    for c in cands:
+        try:
+            if (c.cost_per_outcome in (None, 0)) and c.delta_outcome not in (None, 0):
+                c.cost_per_outcome = c.total_cost / c.delta_outcome
+        except Exception:
+            pass
+        if not isinstance(c.delta_outcome, (int, float)) or c.delta_outcome <= 0:
+            c.meets_constraints = False
+    return PAOppCost(primary_outcome_metric=metric, candidates=cands)
+
+# -----------------------------
+# Public API
+# -----------------------------
 PROMPT_TEMPLATE = """You are performing a *Premise Attack*—an adversarial review that decides whether a proposed project should proceed at all.
 
 PROJECT BRIEF (verbatim):
@@ -253,83 +369,14 @@ REQUIRED OUTPUT (STRICT JSON, no commentary):
 
 NOTES:
 - If data is insufficient, set "status": "Unknown" and assign "severity_5" appropriate to risk.
-- Use realistic, order-of-magnitude estimates; we will replace later with measured values.
+- Do NOT include comments or trailing commas; output valid JSON only.
 - Ensure numbers allow computing cost_per_outcome = total_cost / delta_outcome (avoid division by zero).
 """
 
 def _build_prompt(brief: str) -> str:
     crit = "\n".join([f"{qid}: {q}" for qid, _, q in CRITICAL_QUESTIONS])
     high = "\n".join([f"{qid}: {q}" for qid, _, q in HIGH_VALUE_QUESTIONS])
-    return PROMPT_TEMPLATE.format(
-        brief=brief.strip(),
-        critical_questions=crit,
-        high_value_questions=high,
-    )
-
-def _extract_json(text: str) -> Dict[str, Any]:
-    # Try to find the first JSON object in text
-    if not text:
-        return {}
-    # direct parse
-    try:
-        return json.loads(text)
-    except Exception:
-        pass
-    # locate with regex
-    m = re.search(r'\{.*\}', text, flags=re.S)
-    if m:
-        try:
-            return json.loads(m.group(0))
-        except Exception:
-            pass
-    return {}
-
-def _coerce_items(raw_items: Any) -> List[PAItem]:
-    items: List[PAItem] = []
-    for it in (raw_items or []):
-        try:
-            items.append(PAItem(
-                id=str(it.get("id","")).strip(),
-                category=str(it.get("category","")).strip(),
-                question=str(it.get("question","")).strip(),
-                status=str(it.get("status","Unknown")).strip(),
-                severity_5=int(it.get("severity_5", 3)),
-                rationale=it.get("rationale"),
-                notes=it.get("notes"),
-                owner=it.get("owner"),
-                evidence_links=[str(x) for x in it.get("evidence_links", [])]
-            ))
-        except Exception:
-            # skip malformed
-            continue
-    # Ensure we at least have the critical skeleton if model failed
-    if not items:
-        for qid, cat, q in CRITICAL_QUESTIONS:
-            items.append(PAItem(id=qid, category=cat, question=q, status="Unknown", severity_5=5))
-        for qid, cat, q in HIGH_VALUE_QUESTIONS:
-            items.append(PAItem(id=qid, category=cat, question=q, status="Unknown", severity_5=3))
-    return items
-
-def _coerce_opp(raw_opp: Any, fallback_metric: str = "€ per primary outcome unit") -> PAOppCost:
-    metric = str((raw_opp or {}).get("primary_outcome_metric") or fallback_metric)
-    cands: List[PACandidate] = []
-    for c in (raw_opp or {}).get("candidates", []):
-        total_cost = _safe_float(c.get("total_cost", 0.0))
-        delta = _safe_float(c.get("delta_outcome", 0.0), default=1.0)  # avoid division by zero
-        cost_per = _safe_float(c.get("cost_per_outcome", total_cost / (delta if delta else 1.0)))
-        cands.append(PACandidate(
-            id=str(c.get("id","")).strip() or f"A{len(cands)+1}",
-            name=str(c.get("name","")).strip() or "Alternative",
-            total_cost=total_cost,
-            delta_outcome=delta,
-            cost_per_outcome=cost_per,
-            meets_constraints=bool(c.get("meets_constraints", True)),
-            assumptions=c.get("assumptions"),
-        ))
-    # Require a baseline P
-    if not any(c.id == "P" for c in cands):
-        cands.insert(0, PACandidate(id="P", name="Proposed Project", total_cost=0.0, delta_outcome=1.0, cost_per_outcome=0.0))
-    return PAOppCost(primary_outcome_metric=metric, candidates=cands)
+    return PROMPT_TEMPLATE.format(brief=brief.strip(), critical_questions=crit, high_value_questions=high)
 
 class PremiseAttack:
     @staticmethod
@@ -337,7 +384,6 @@ class PremiseAttack:
                 brief: str,
                 primary_outcome_metric: str = "€ per additional active user (30-day)",
                 decision_rules: Optional[PADecisionRules] = None) -> PremiseAttackResult:
-        """Run the Premise Attack with an LLM and return a validated result."""
         decision_rules = decision_rules or PADecisionRules()
         prompt = _build_prompt(brief)
         raw = _call_llm(llm, prompt)
@@ -361,7 +407,6 @@ class PremiseAttack:
 
     @staticmethod
     def render_html_snippet(result: PremiseAttackResult) -> str:
-        """Return a self-contained HTML <section> with data + rendering script. Paste into your report before <!--CONTENT-END-->"""
         data = json.dumps(result.to_dict(), ensure_ascii=False)
         return f"""
 <section id="premise-attack" class="section">
