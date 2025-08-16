@@ -39,7 +39,7 @@ from llama_index.core.llms.llm import LLM
 logger = logging.getLogger(__name__)
 
 
-class ValidationItem(BaseModel):
+class SkepticalItem(BaseModel):
     index: int = Field(..., description="Enumeration starting from 1")
     hypothesis: str = Field(..., description="What must be true")
     critical_question: str = Field(..., description="The blunt challenge")
@@ -49,8 +49,8 @@ class ValidationItem(BaseModel):
     why_this_matters: str = Field(..., description="Terse impact statement")
 
 class DocumentDetails(BaseModel):
-    validation_items: List[ValidationItem] = Field(
-        description="List of 4 validation items."
+    skeptical_items: List[SkepticalItem] = Field(
+        description="List of 4 skeptical items."
     )
 
 
@@ -262,13 +262,13 @@ Why this matters: This provides the strategic context. It reminds the user why t
 """
 
 PREMISE_ATTACK_SYSTEM_PROMPT_11 = """
-You are a skeptic with high moral standards. You MUST identify exactly 4 validation items that challenge the project's core assumptions. 
+You are a skeptic with high moral standards. You MUST identify exactly 4 skeptical items that challenge the project's core assumptions. 
 
 You attack the 'why', not the 'how'.
 
 Ensure the four items are non-overlapping: keep one Legal/Prohibition or Duty-of-Care KILL, one Consent-is-not-a-defense KILL, one License-to-Operate/AHJ-permit KILL, and one Opportunity-Cost dominated-alternative PIVOT/KILL. In the alternative item, name at least two concrete lower-harm methods that achieve the same stated intent (e.g., stunt-engineered obstacle course with safety mats; AR/VR variable-geometry maze) and state which dimensions they dominate (harm↓, cost↓, feasibility↑). Use prosecutorial wording in Critical_question; avoid “can/could/experience”.
 
-Prioritize non-waivable prohibitions and duty-of-care breaches: if any credible law/policy/standard forbids the described harms (and consent/waivers do not excuse them), at least one validation item must directly test that and apply a binary KILL decision_rule on the binding text; write in a prosecutorial tone focused on wrongdoing, not UX.
+Prioritize non-waivable prohibitions and duty-of-care breaches: if any credible law/policy/standard forbids the described harms (and consent/waivers do not excuse them), at least one skeptical item must directly test that and apply a binary KILL decision_rule on the binding text; write in a prosecutorial tone focused on wrongdoing, not UX.
 
 For each item, set “Assumed venue: <City, California>, Actor: private”. Evidence_bar must cite patron-relevant authorities only: (criminal code titles on assault/criminal negligence/reckless endangerment; local Building Code; local Fire Code including “flame effects before an audience”; the Authority Having Jurisdiction (fire marshal) permit requirements). Do NOT cite occupational/OSHA/Cal-OSHA unless the item is explicitly about employees. You may write “No binding source found — Ethical Red Line” in at most ONE item total; others must name at least one controlling code/authority title (no fabricated section numbers).
 
@@ -283,6 +283,8 @@ Write legal/safety hypotheses as positive, falsifiable claims about lawfulness o
 If binding law is unclear or absent, apply an Ethical Red Line: if the activity intentionally creates foreseeable serious physical harm or severe psychological trauma as a feature (not an accident), set Decision_rule=KILL on non-maleficence/precaution grounds. Consent/waivers do not override this ethical veto. Use dominated-alternative reasoning; no surveys or human trials.
 
 In Evidence_bar: declare “Assumed venue: <city/state>, Actor: private” and list only exact, venue-binding sources with title+section + a 1-line applicability note. Do NOT use placeholders like §### or the coarse label “USA”. If you cannot name an exact section, write “No binding source found — Ethical Red Line” in at most ONE item total; other items must rely on binding text or dominated-alternative reasoning. In why_this_matters, name the principle explicitly (non-maleficence, reckless endangerment, duty-of-care, license-to-operate)—no generic ‘values’ talk.
+
+Evidence_bar may name only binding-source CATEGORIES (criminal harm, life-safety regulation, licensing authority). Do NOT name jurisdictions, code titles, section numbers, or OSHA/employee topics unless present in the brief. If no binding category clearly applies, write “No binding source found — Ethical Red Line.” Test_experiment = document/precedent review or dominated-alternative reasoning only. Decision_rule must be binary (any non-waivable prohibition → KILL; clearly superior lower-harm alternative → PIVOT/KILL).
 
 If the activity intentionally creates foreseeable serious physical harm or severe psychological trauma as a feature, set Decision_rule=KILL (consent irrelevant). Avoid “guarantee” phrasing and all UX/purpose words (“amusement”, “experience”). For any opportunity-cost item, name at least two concrete lower-harm alternatives and the dominated dimensions (harm/cost/feasibility); if you cannot, drop the item.
 
@@ -300,7 +302,7 @@ Do not import examples or numbers from prior cases. Use only quantities/terms pr
 
 Infer four distinct premise-level categories from the prompt (not UX/purpose). Do not use a predefined list. Begin each Hypothesis with "Category: <2–3 word label>" that you invent from the brief, then write the falsifiable claim under that label.
 
-Write Hypothesis as a single falsifiable sentence about possibility/permissibility/sufficiency (no "Category:" labels), e.g., "Operators can satisfy duty-of-care without removing lethal hazards." Write Critical_question as an adversarial, binary refutation (avoid “can you show”).
+Write hypothesis as a single falsifiable claim about possibility/permissibility/sufficiency (no "Category:" prefixes, no venue/jurisdiction words). Example form: “Operators can satisfy duty-of-care without removing lethal hazards.” Avoid UX words (“thrill/experience”).
 
 Prefix each Hypothesis with "[Category: <2–3 words> | Severity: High/Med]" and write in a prosecutorial tone aimed at refutation. Use documents/precedent and dominated-alternative reasoning; calculations only if decisive. Decision_rule may be a binary kill-switch based on any non-waivable prohibition or a clearly superior lower-harm alternative.
 
