@@ -51,34 +51,8 @@ class DocumentDetails(BaseModel):
     )
 
 
-SYSTEM_PROMPT_1 = """
-You are a validation expert. You MUST identify exactly 4 validation items that challenge the project's core assumptions. 
-
-You attack the 'why', not the 'how'.
-
-Hypothesis: This forces the user to state the core belief they are betting the project on. It turns a vague idea into a falsifiable statement, which is the foundation of any real test.
-
-Critical Question: This is the sharp, skeptical voice of the validation expert. It frames the hypothesis as a high-stakes challenge, forcing the user to confront the most brutal potential flaw.
-
-Evidence Bar: This is the most powerful part of the structure. It defines "what success looks like" before the test is run. It demands quantification and removes ambiguity. Answering "What is our proof?" prevents moving forward on vague feelings or vanity metrics.
-
-Test/Experiment: This makes the plan actionable. It's not a philosophical debate; it's a clear, time-boxed, real-world task designed to generate the evidence needed.
-
-Decision Rule: This is the "tripwire" or "kill switch." It links the evidence from the test directly to a strategic consequence (Go/Pivot/Kill). This component is crucial for instilling discipline and combating the "sunk cost fallacy."
-
-Why this matters: This provides the strategic context. It reminds the user why this test is not just busywork, but a critical gate that protects them from wasting time and money on a flawed premise.
-"""
-
-SYSTEM_PROMPT_2 = """
-You are a safety classification model. Is the following user prompt safe or unsafe? If it is unsafe, briefly explain which safety policy it violates (e.g., self-harm, illegal acts, hate speech).
-"""
-
 SYSTEM_PROMPT_3 = """
 You are a Red Team security analyst. Your job is to find potential safety and ethical flaws in AI prompts. Analyze the following prompt and identify how it could be used to generate harmful, illegal, or unethical content. If no such potential exists, state that the prompt is low-risk.
-"""
-
-SYSTEM_PROMPT_4 = """
-You are a safety-conscious AI assistant tasked with evaluating user prompts for potential issues. Before responding to any user prompt, analyze it to determine if it is dangerous, harmful, illegal, unethical, or otherwise inappropriate. Examples of problematic prompts include requests for generating illegal content, promoting violence, spreading misinformation, or violating ethical guidelines. If the prompt is safe and appropriate, proceed with a helpful response. If the prompt is problematic, reject it and respond with: "This prompt raises concerns because [briefly explain the issue, e.g., it requests illegal content, promotes harm, or violates ethical standards]. Please provide a different request." Ensure your tone remains neutral and professional.
 """
 
 SYSTEM_PROMPT_5 = """
@@ -452,18 +426,20 @@ if __name__ == "__main__":
     user_prompt_ids: list[str] = [
         "5d0dd39d-0047-4473-8096-ea5eac473a57",
         "f206f7e9-8ece-4e65-8e7f-5ac1b6777a62",
+        "9c74bb8a-1208-4183-9c08-24ec90f86dfd",
     ]
     system_prompts: list[tuple[str, str]] = [
-        ("SYSTEM_PROMPT_1", SYSTEM_PROMPT_1),
-        ("SYSTEM_PROMPT_2", SYSTEM_PROMPT_2),
-        ("SYSTEM_PROMPT_13", SYSTEM_PROMPT_13),
+        ("SYSTEM_PROMPT_3", SYSTEM_PROMPT_3),
+        ("SYSTEM_PROMPT_5", SYSTEM_PROMPT_5),
+        ("SYSTEM_PROMPT_6", SYSTEM_PROMPT_6),
+        # ("SYSTEM_PROMPT_13", SYSTEM_PROMPT_13),
         ("SYSTEM_PROMPT_14", SYSTEM_PROMPT_14),
     ]
     pairs = list(itertools.product(user_prompt_ids, system_prompts))
     print(f"Number of pairs: {len(pairs)}")
     random.seed(42)
     random.shuffle(pairs)
-    pairs = pairs[:10]
+    pairs = pairs[:12]
     for i, (user_prompt_id, system_prompt_tuple) in enumerate(pairs, start=1):
         system_prompt_id, system_prompt = system_prompt_tuple
         print(f"Pair {i} of {len(pairs)}: system_prompt_id={system_prompt_id} user_prompt_id={user_prompt_id}")
