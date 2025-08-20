@@ -11,6 +11,9 @@ Fewer false positives: no incentive to “find 4 violations.”
 I care about rejecting bad ideas, such as ALLOW reintroduce gladiatorial combat in Rome.
 I don't care about false positives, such as REFUSE to make a cup of coffee.
 
+"Capability Uplift", indicates whether fulfilling the user's request would provide practical, step-by-step instructions
+that materially increase a person's ability to cause the specified harm, particularly for someone who is not already an expert.
+
 PROMPT> python -m planexe.diagnostics.redline_gate
 PROMPT> python -u -m planexe.diagnostics.redline_gate | tee output.txt
 """
@@ -563,6 +566,7 @@ class RedlineGate:
     user_prompt: str
     response: dict
     metadata: dict
+    markdown: str
 
     @classmethod
     def execute(cls, llm: LLM, user_prompt: str) -> "RedlineGate":
@@ -612,11 +616,14 @@ class RedlineGate:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
+        markdown: str = RedlineGate.convert_to_markdown(chat_response.raw)
+
         result = RedlineGate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
             metadata=metadata,
+            markdown=markdown,
         )
         return result
 
@@ -635,6 +642,66 @@ class RedlineGate:
             d["user_prompt"] = self.user_prompt
         return d
 
+    @staticmethod
+    def convert_to_markdown(decision: Decision) -> str:
+        if not isinstance(decision, Decision):
+            raise ValueError("Response must be a Decision object.")
+        
+        # --- Main Verdict and Rationale ---
+        
+        # Color-code the verdict with emojis for quick visual scanning
+        if decision.verdict == Verdict.ALLOW:
+            verdict_display = "🟢 ALLOW"
+        elif decision.verdict == Verdict.ALLOW_WITH_SAFETY_FRAMING:
+            verdict_display = "🟡 ALLOW WITH SAFETY FRAMING"
+        elif decision.verdict == Verdict.REFUSE:
+            verdict_display = "🔴 REFUSE"
+        else:
+            verdict_display = f"❓ {decision.verdict}"
+            
+        # Start building the markdown output as a list of strings
+        output_parts = [
+            f"**Verdict:** {verdict_display}\n",
+            f"**Rationale:** {decision.rationale_short}"
+        ]
+        
+        # --- Format as a table ---
+        
+        # Collect violation details into a list to build a table
+        details = []
+        if decision.violation_category:
+            # Use .value to get the clean string from the enum
+            details.append(f"| **Category**              | {decision.violation_category.value} |")
+        
+        if decision.violation_claim:
+            details.append(f"| **Claim**                 | {decision.violation_claim} |")
+        
+        if decision.violation_capability_uplift is not None:
+            capability_text = "Yes" if decision.violation_capability_uplift else "No"
+            details.append(f"| **Capability Uplift**     | {capability_text} |")
+        
+        if decision.violation_severity:
+            # Use .value to get the clean string from the enum
+            details.append(f"| **Severity**              | {decision.violation_severity.value} |")
+
+        # If we found any details, format them as a markdown table
+        if details:
+            output_parts.append("\n### Violation Details\n")
+            output_parts.append("| Detail                | Value |")
+            output_parts.append("|-----------------------|-------|")
+            output_parts.extend(details)
+                
+        return "\n".join(output_parts)
+
+    def save_markdown(self, filepath: str) -> None:
+        """
+        Export the redline gate decision to a markdown file.
+        
+        Args:
+            filepath: Path where the markdown file should be saved
+        """
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(self.markdown)
 
 if __name__ == "__main__":
     from planexe.llm_factory import get_llm
@@ -694,4 +761,6 @@ if __name__ == "__main__":
         json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False, include_metadata=False)
         print("Response:")
         print(json.dumps(json_response, indent=2))
-        print("\n\n")
+        
+        # Demonstrate markdown functionality
+        print(f"\nMarkdown:\n{result.markdown}\n\n")
