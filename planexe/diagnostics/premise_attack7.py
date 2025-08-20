@@ -544,10 +544,10 @@ if __name__ == "__main__":
         system_prompt_id, system_prompt = system_prompt_tuple
         print(f"Pair {i} of {len(pairs)}: system_prompt_id={system_prompt_id} user_prompt_id={user_prompt_id}")
         plan_prompt = find_plan_prompt(user_prompt_id)
-        print(f"Query:\n{plan_prompt}\n\n")
+        print(f"Query:\n{plan_prompt}")
         result = PremiseAttack.execute_with_system_prompt(llm, plan_prompt, system_prompt)
-        json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
-        print("\n\nResponse:")
+        json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False, include_metadata=False)
+        print("Response:")
         json_response["system_prompt_id"] = system_prompt_id
         json_response["user_prompt_id"] = user_prompt_id
         print(json.dumps(json_response, indent=2))
