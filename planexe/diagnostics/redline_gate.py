@@ -1,35 +1,18 @@
 """
+Moral compass.
+
+Blocks anything that crosses policy/legal/ethical red lines. Default stance: deny.
+
 This gate makes a single decision. 
-Forcing a list either causes padding (hallucinated “reasons”) or pressure to invent weak hits → false positives.
+Asking for a list of violations causes hallucinated “reasons” or pressure to invent weak hits → false positives.
 Thus the output is a single item.
-Fewer false positives: no incentive to “find 4 items.”
+Fewer false positives: no incentive to “find 4 violations.”
 
-kill bad ideas early.
+I care about rejecting bad ideas, such as ALLOW reintroduce gladiatorial combat in Rome.
+I don't care about false positives, such as REFUSE to make a cup of coffee.
 
-Attack the 'why,' not the 'how'.
-
-Asks whether the idea deserves to exist at all and whether the money should go elsewhere.
-
-Premise Attack, Adversarial Review of the Idea. Argue against the plan to test its robustness.
-
-“Assume the thesis is wrong. Write the strongest objections, disconfirming tests with thresholds, and stop rules. Compare to alternatives. End with a Go/Pivot/No-Go gate.”
-
-Should a skyscraper even be built here? Why are we building a skyscraper here at all? 
-The economy is shifting, people are working from home, and a public park would serve the community better.
-
-"Should we really be doing this?"
-"Are the money spent better elsewhere?"
-
-Devil’s Advocate: Even if we succeed, here’s why this might still be the wrong move.
-
-The “Devil’s Advocate” is the strategic opposition voice — less about enumerating risks (Premortem’s job) and 
-more about questioning the project’s fundamental premise, strategic direction, and opportunity cost.
-
-https://en.wikipedia.org/wiki/Devil%27s_advocate
-https://en.wikipedia.org/wiki/Group_decision-making
-
-PROMPT> python -m planexe.diagnostics.premise_attack7
-PROMPT> python -u -m planexe.diagnostics.premise_attack7 | tee output.txt
+PROMPT> python -m planexe.diagnostics.redline_gate
+PROMPT> python -u -m planexe.diagnostics.redline_gate | tee output.txt
 """
 from enum import Enum
 import json
@@ -564,9 +547,9 @@ FORMATTING RULES
 SYSTEM_PROMPT_DEFAULT = SYSTEM_PROMPT_25
 
 @dataclass
-class PremiseAttack:
+class RedlineGate:
     """
-    Challenge the plan’s core premises.
+    Blocks anything that crosses policy/legal/ethical red lines. Default stance: deny.
     """
     system_prompt: str
     user_prompt: str
@@ -574,7 +557,7 @@ class PremiseAttack:
     metadata: dict
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> "PremiseAttack":
+    def execute(cls, llm: LLM, user_prompt: str) -> "RedlineGate":
         if not isinstance(llm, LLM):
             raise ValueError("Invalid LLM instance.")
         if not isinstance(user_prompt, str):
@@ -582,7 +565,7 @@ class PremiseAttack:
         return cls.execute_with_system_prompt(llm, user_prompt, SYSTEM_PROMPT_DEFAULT.strip())
 
     @classmethod
-    def execute_with_system_prompt(cls, llm: LLM, user_prompt: str, system_prompt: str) -> "PremiseAttack":
+    def execute_with_system_prompt(cls, llm: LLM, user_prompt: str, system_prompt: str) -> "RedlineGate":
         if not isinstance(llm, LLM):
             raise ValueError("Invalid LLM instance.")
         if not isinstance(user_prompt, str):
@@ -621,7 +604,7 @@ class PremiseAttack:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
-        result = PremiseAttack(
+        result = RedlineGate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
@@ -670,9 +653,7 @@ if __name__ == "__main__":
     if True:
         prompt_catalog = PromptCatalog()
         prompt_catalog.load_simple_plan_prompts()
-        # skip the first 20, take the next 20
-        # user_prompt_ids = prompt_catalog.all_ids()[20:40]
-        user_prompt_ids = prompt_catalog.all_ids()[0:50]
+        user_prompt_ids = prompt_catalog.all_ids()[0:10]
         # user_prompt_ids = prompt_catalog.all_ids()
     print(f"Number of user prompts: {len(user_prompt_ids)}")
 
@@ -680,9 +661,9 @@ if __name__ == "__main__":
         # ("SYSTEM_PROMPT_21", SYSTEM_PROMPT_21),
         # ("SYSTEM_PROMPT_23", SYSTEM_PROMPT_23),
         # ("SYSTEM_PROMPT_24", SYSTEM_PROMPT_24),
-        # ("SYSTEM_PROMPT_25", SYSTEM_PROMPT_25), # best so far
+        ("SYSTEM_PROMPT_25", SYSTEM_PROMPT_25), # best so far
         # ("SYSTEM_PROMPT_26", SYSTEM_PROMPT_26),
-        ("SYSTEM_PROMPT_27", SYSTEM_PROMPT_27),
+        # ("SYSTEM_PROMPT_27", SYSTEM_PROMPT_27),
     ]
     pairs = list(itertools.product(user_prompt_ids, system_prompts))
     random.seed(42)
@@ -698,7 +679,7 @@ if __name__ == "__main__":
         plan_prompt = find_plan_prompt(user_prompt_id)
         print(f"Query:\n{plan_prompt}")
         try:
-            result = PremiseAttack.execute_with_system_prompt(llm, plan_prompt, system_prompt)
+            result = RedlineGate.execute_with_system_prompt(llm, plan_prompt, system_prompt)
         except Exception as e:
             print(f"Error: {e}")
             continue
