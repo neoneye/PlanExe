@@ -365,7 +365,7 @@ Rules for fields:
 - Output **only** the JSON object—no extra text.
 """
 
-SYSTEM_PROMPT_DEFAULT = SYSTEM_PROMPT_17
+SYSTEM_PROMPT_DEFAULT = SYSTEM_PROMPT_25
 
 @dataclass
 class PremiseAttack:
