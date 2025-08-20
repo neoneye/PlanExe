@@ -511,6 +511,7 @@ class PremiseAttack:
 if __name__ == "__main__":
     from planexe.llm_factory import get_llm
     from planexe.plan.find_plan_prompt import find_plan_prompt
+    from planexe.prompt.prompt_catalog import PromptCatalog
     import random
     import itertools
 
@@ -528,18 +529,28 @@ if __name__ == "__main__":
         "da8da7a6-954c-4f88-91c9-53f98a934868",
         "f206f7e9-8ece-4e65-8e7f-5ac1b6777a62",
     ]
+    if True:
+        prompt_catalog = PromptCatalog()
+        prompt_catalog.load_simple_plan_prompts()
+        # skip the first 10, take the next 10
+        user_prompt_ids = prompt_catalog.all_ids()[10:20]
+    print(f"Number of user prompts: {len(user_prompt_ids)}")
+
     system_prompts: list[tuple[str, str]] = [
-        # ("SYSTEM_PROMPT_17", SYSTEM_PROMPT_17), # best so far
+        ("SYSTEM_PROMPT_17", SYSTEM_PROMPT_17),
         # ("SYSTEM_PROMPT_18", SYSTEM_PROMPT_18),
         # ("SYSTEM_PROMPT_19", SYSTEM_PROMPT_19),
         # ("SYSTEM_PROMPT_20", SYSTEM_PROMPT_20),
-        ("SYSTEM_PROMPT_21", SYSTEM_PROMPT_21),
+        ("SYSTEM_PROMPT_21", SYSTEM_PROMPT_21), # best so far
     ]
     pairs = list(itertools.product(user_prompt_ids, system_prompts))
-    print(f"Number of pairs: {len(pairs)}")
     random.seed(42)
     random.shuffle(pairs)
+    count_all = len(pairs)
     pairs = pairs[:20]
+    count_truncated = len(pairs)
+    print(f"Number of prompts to run: {count_truncated}, all prompts: {count_all}")
+
     for i, (user_prompt_id, system_prompt_tuple) in enumerate(pairs, start=1):
         system_prompt_id, system_prompt = system_prompt_tuple
         print(f"Pair {i} of {len(pairs)}: system_prompt_id={system_prompt_id} user_prompt_id={user_prompt_id}")
@@ -548,7 +559,5 @@ if __name__ == "__main__":
         result = PremiseAttack.execute_with_system_prompt(llm, plan_prompt, system_prompt)
         json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False, include_metadata=False)
         print("Response:")
-        json_response["system_prompt_id"] = system_prompt_id
-        json_response["user_prompt_id"] = user_prompt_id
         print(json.dumps(json_response, indent=2))
         print("\n\n")
