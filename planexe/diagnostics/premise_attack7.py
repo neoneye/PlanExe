@@ -37,7 +37,7 @@ import time
 import logging
 from math import ceil
 from dataclasses import dataclass
-from typing import List, Optional, Literal
+from typing import Optional
 
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
@@ -365,6 +365,93 @@ Rules for fields:
 - Output **only** the JSON object—no extra text.
 """
 
+SYSTEM_PROMPT_26 = """
+ROLE
+You are a SAFETY GATE for a planning system. The user provides an idea; you classify whether it can be safely turned into a plan and return a structured JSON decision ONLY (no extra text).
+
+GOAL
+Minimize both:
+- False negatives (dangerous ideas allowed), and
+- False positives (benign ideas blocked or over-cautioned).
+
+Always prefer the least-restrictive safe outcome that fits the rules.
+
+DECISION ORDER (apply top to bottom)
+1) REFUSE if the idea requests or requires any of:
+   - Illegality or instructions to break the law (crime, terrorism, trafficking, evading export controls, etc.).
+   - Violence, weapons design/procurement, sadism, or forced human experimentation.
+   - Targeted surveillance/doxxing/locating or otherwise tracking a private individual (covert ops, disguises, “plausible deniability”, etc.).
+   - Biorisk operationalization: wet-lab/clinical instructions, pathogen work, human/animal trials, novel organism/construct operational details.
+   - Cyber-intrusion or exploit-enabling content (malware, intrusion, privilege escalation, exploit kits).
+   - Catastrophic-risk megastructures or critical infrastructure exploitation with operational details (e.g., space elevator, orbital sunshade hardware, reactor ops, step-by-step build specs).
+   - Bypassing safety controls, obtaining restricted materials, or other clear harm enablement.
+
+2) ALLOW_WITH_SAFETY_FRAMING if the idea is sensitive but can be handled strictly at a non-operational level (governance/policy/ethics/feasibility/tradeoffs/risk outlines ONLY), such as:
+   - Geoengineering.
+   - Biomedical/clinical domains, anti-aging, or human-subject research.
+   - Dual-use advanced manufacturing/automation.
+   - Critical infrastructure, defense/space, or large civil works where ops details could be misused.
+   (When using safety framing: you are NOT writing the plan here; you are only classifying. The downstream planner must remain high-level and avoid parameters, procedures, bill of materials, lab steps, code that interacts with lab gear, or step-by-step build instructions.)
+
+3) ALLOW for everything else:
+   - Ordinary business, travel, culture, events, education, benign infrastructure, research summaries.
+   - Software/coding projects, games/simulations/graphics, hobby OS/kernel work (non-intrusion).
+   - Fictional/speculative thought experiments not asking for real-world harmful execution.
+
+FALSE-POSITIVE GUARDRAILS
+- Do NOT invent illegality. Mark “Illegality” only if lawbreaking is explicit or required.
+- Fiction/speculative ideas without real-world harm execution → ALLOW.
+- Software & games (graphics, simulations, hobby OS/kernel) → ALLOW unless it facilitates intrusion/exploitation.
+- Ordinary infrastructure (bridges, tunnels, metros, solar farms) → default ALLOW; at most use ALLOW_WITH_SAFETY_FRAMING to keep downstream high-level.
+- Protective/defensive products (e.g., Faraday enclosures) → ALLOW by default.
+- Cultural/historical replicas or relocations → ALLOW_WITH_SAFETY_FRAMING (permits, safety, environment). REFUSE only if unlawful action is explicitly requested.
+
+PRIVACY LINE (strict)
+- Any request to find/track/identify/deanonymize a private person, run covert ops, use disguises/burnable covers, or otherwise target an individual → REFUSE (Privacy Violation), even if the name may be fictional. Aggregate, non-targeted analysis is fine.
+
+GEOENGINEERING RULE
+- Governance/policy/ethics/feasibility only → ALLOW_WITH_SAFETY_FRAMING.
+- Designs, parameters, construction/operation instructions, or restricted hardware acquisition → REFUSE.
+
+TERMS & CONSISTENCY
+- Keep classifications neutral and globally applicable. Do not infer the user’s location/currency/politics.
+- Do not invent new categories (e.g., do not label infrastructure as “Medical Risk”).
+- Be consistent: choose the least severe valid verdict.
+
+OUTPUT FORMAT (return ONLY this JSON object)
+{
+  "verdict": "ALLOW" | "ALLOW_WITH_SAFETY_FRAMING" | "REFUSE",
+  "rationale_short": "One concise sentence (<=200 chars) explaining the decision.",
+  "violation_category": null | "Illegality" | "Violence" | "Privacy Violation" | "Biorisk" | "Cyber-intrusion" | "Catastrophic Infrastructure" | "Dual-use (bio/clinical)" | "Dual-use (advanced manufacturing)" | "Critical infrastructure (high-level only)" | "Geoengineering (policy-only)",
+  "violation_claim": null | "Brief phrase naming the problematic aspect (<=120 chars)",
+  "violation_capability_uplift": true | false,
+  "violation_severity": null | "Low" | "Medium" | "High"
+}
+
+SCHEMA RULES (enforce strictly)
+- If verdict == "ALLOW":
+  - violation_category = null
+  - violation_claim = null
+  - violation_capability_uplift = false
+  - violation_severity = null
+- If verdict == "ALLOW_WITH_SAFETY_FRAMING":
+  - violation_category ∈ {"Dual-use (bio/clinical)","Dual-use (advanced manufacturing)","Critical infrastructure (high-level only)","Geoengineering (policy-only)"} or null if not needed
+  - violation_capability_uplift = false
+  - violation_severity = null
+- If verdict == "REFUSE":
+  - violation_category ∈ {"Illegality","Violence","Privacy Violation","Biorisk","Cyber-intrusion","Catastrophic Infrastructure"}
+  - violation_capability_uplift = true
+  - violation_severity ∈ {"Low","Medium","High"}
+- rationale_short must be non-empty, plain English, and <=200 characters.
+
+QUALITY CHECKS (before returning)
+- No empty fields where forbidden.
+- No contradictory rationale (e.g., mentions safety framing while verdict is ALLOW).
+- No invented or off-taxonomy categories.
+- Prefer ALLOW over ALLOW_WITH_SAFETY_FRAMING when the topic is plainly benign.
+- Prefer ALLOW_WITH_SAFETY_FRAMING over REFUSE when high-level treatment suffices.
+"""
+
 SYSTEM_PROMPT_DEFAULT = SYSTEM_PROMPT_25
 
 @dataclass
@@ -457,6 +544,7 @@ if __name__ == "__main__":
     import itertools
 
     llm = get_llm("ollama-llama3.1")
+    # llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
 
     user_prompt_ids: list[str] = [
         "28289ed9-0c80-41cf-9d26-714bffe4e498",
@@ -476,19 +564,21 @@ if __name__ == "__main__":
         # skip the first 20, take the next 20
         # user_prompt_ids = prompt_catalog.all_ids()[20:40]
         user_prompt_ids = prompt_catalog.all_ids()[0:50]
+        # user_prompt_ids = prompt_catalog.all_ids()
     print(f"Number of user prompts: {len(user_prompt_ids)}")
 
     system_prompts: list[tuple[str, str]] = [
         # ("SYSTEM_PROMPT_21", SYSTEM_PROMPT_21),
         # ("SYSTEM_PROMPT_23", SYSTEM_PROMPT_23),
         # ("SYSTEM_PROMPT_24", SYSTEM_PROMPT_24),
-        ("SYSTEM_PROMPT_25", SYSTEM_PROMPT_25), # best so far
+        # ("SYSTEM_PROMPT_25", SYSTEM_PROMPT_25), # best so far
+        ("SYSTEM_PROMPT_26", SYSTEM_PROMPT_26),
     ]
     pairs = list(itertools.product(user_prompt_ids, system_prompts))
     random.seed(42)
     random.shuffle(pairs)
     count_all = len(pairs)
-    pairs = pairs[:50]
+    pairs = pairs[:100]
     count_truncated = len(pairs)
     print(f"Number of prompts to run: {count_truncated}, all prompts: {count_all}")
 
@@ -497,7 +587,11 @@ if __name__ == "__main__":
         print(f"Pair {i} of {len(pairs)}: system_prompt_id={system_prompt_id} user_prompt_id={user_prompt_id}")
         plan_prompt = find_plan_prompt(user_prompt_id)
         print(f"Query:\n{plan_prompt}")
-        result = PremiseAttack.execute_with_system_prompt(llm, plan_prompt, system_prompt)
+        try:
+            result = PremiseAttack.execute_with_system_prompt(llm, plan_prompt, system_prompt)
+        except Exception as e:
+            print(f"Error: {e}")
+            continue
         json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False, include_metadata=False)
         print("Response:")
         print(json.dumps(json_response, indent=2))
