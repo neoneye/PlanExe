@@ -87,6 +87,10 @@ class PromptCatalog:
     def all(self) -> List[PromptItem]:
         """Return a list of all PromptItems in the order they were inserted."""
         return list(self._catalog.values())
+    
+    def all_ids(self) -> List[str]:
+        """Return a list of all PromptItem IDs in the order they were inserted."""
+        return list(self._catalog.keys())
 
     @classmethod
     def path_to_prompt_file(cls, filename: str) -> str:
