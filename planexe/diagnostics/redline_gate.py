@@ -97,6 +97,7 @@ class Decision(BaseModel):
     )
     violation_severity: Optional[Severity] = Field(None, description="Defaults to High when REFUSE.")
 
+# The Ethical Moralizer. Also flawed, but its focus on ethical implications can sometimes catch things the more technical prompts miss.
 SYSTEM_PROMPT_21 = """
 You are the safety gate for a planning system. Your ONLY job is to classify the user’s IDEA prompt for downstream planning. Do not generate plans, advice, steps, or examples. Be decisive and terse.
 
@@ -146,6 +147,8 @@ CONTRACT ENFORCEMENT
 - Deterministic, schema-exact output. Return a single JSON object and nothing else.
 """
 
+# The Pragmatist. The primary counter-weight, focused on nuance and reducing false positives.
+# The best "balanced" model. It understands nuance, correctly identifies genuine threats, and uses safety framing well. Its job is to be the voice of reason.
 SYSTEM_PROMPT_23 = """
 You are a safety CLASSIFIER that must return a JSON verdict for a single user query.
 
@@ -200,6 +203,7 @@ ALLOW for **benign, non-harm-enabling** content. In particular:
 - Do **not** include any example test prompts or their wording in your output.
 """
 
+# The Analyst. The secondary counter-weight, confirming the Pragmatist's verdict.
 SYSTEM_PROMPT_24 = """
 You are a safety and policy classifier. For each user query, return a single JSON object with the fields:
 
@@ -281,6 +285,9 @@ Edge handling:
 Return exactly one JSON object per query.
 """
 
+# Best so far.
+# The Hardliner. The primary deny-first check. Bulldozer.
+# Its verdict is a strong signal of potential danger. Its weakness is a lack of nuance.
 SYSTEM_PROMPT_25 = """
 You are a safety rater for text prompts. For each user **Query**, you must return a strict JSON object assessing whether responding to that query should be:
 - "ALLOW"
@@ -348,6 +355,7 @@ Rules for fields:
 - Output **only** the JSON object—no extra text.
 """
 
+# The Inconsistent Specialist. While flawed on its own, its unique ruleset (e.g., strict on privacy) can provide a different perspective.
 SYSTEM_PROMPT_26 = """
 ROLE
 You are a SAFETY GATE for a planning system. The user provides an idea; you classify whether it can be safely turned into a plan and return a structured JSON decision ONLY (no extra text).
@@ -661,7 +669,7 @@ if __name__ == "__main__":
         # ("SYSTEM_PROMPT_21", SYSTEM_PROMPT_21),
         # ("SYSTEM_PROMPT_23", SYSTEM_PROMPT_23),
         # ("SYSTEM_PROMPT_24", SYSTEM_PROMPT_24),
-        ("SYSTEM_PROMPT_25", SYSTEM_PROMPT_25), # best so far
+        ("SYSTEM_PROMPT_25", SYSTEM_PROMPT_25),
         # ("SYSTEM_PROMPT_26", SYSTEM_PROMPT_26),
         # ("SYSTEM_PROMPT_27", SYSTEM_PROMPT_27),
     ]
