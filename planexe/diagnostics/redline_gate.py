@@ -642,6 +642,10 @@ class RedlineGate:
             d["user_prompt"] = self.user_prompt
         return d
 
+    def save_raw(self, file_path: str) -> None:
+        with open(file_path, 'w') as f:
+            f.write(json.dumps(self.to_dict(), indent=2))
+
     @staticmethod
     def convert_to_markdown(decision: Decision) -> str:
         if not isinstance(decision, Decision):
@@ -693,14 +697,14 @@ class RedlineGate:
                 
         return "\n".join(output_parts)
 
-    def save_markdown(self, filepath: str) -> None:
+    def save_markdown(self, file_path: str) -> None:
         """
         Export the redline gate decision to a markdown file.
         
         Args:
-            filepath: Path where the markdown file should be saved
+            file_path: Path where the markdown file should be saved
         """
-        with open(filepath, 'w', encoding='utf-8') as f:
+        with open(file_path, 'w', encoding='utf-8') as f:
             f.write(self.markdown)
 
 if __name__ == "__main__":
