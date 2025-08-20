@@ -38,3 +38,14 @@ class TestPromptCatalog(unittest.TestCase):
         # Ensure the extra 'comment' field is correctly stored in extras
         self.assertIn("comment", prompt_item.extras)
         self.assertEqual(prompt_item.extras["comment"], "I'm a comment")
+
+    def test_all_ids(self):
+        """Test that all_ids returns the correct list of IDs."""
+        # Arrange
+        prompt_catalog = self.create_prompt_catalog()
+
+        # Act
+        ids = prompt_catalog.all_ids()
+
+        # Assert
+        self.assertEqual(ids, ["cfd7aaf3-b521-42c6-ae50-6f0ecbc0c6ca", "25bd2b32-ac7c-4b71-ba55-a7c6e29d08c5"])
