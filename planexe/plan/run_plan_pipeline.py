@@ -15,6 +15,7 @@ import luigi
 from pathlib import Path
 from llama_index.core.llms.llm import LLM
 from planexe.diagnostics.premortem import Premortem
+from planexe.diagnostics.redline_gate import RedlineGate
 from planexe.plan.pipeline_config import PIPELINE_CONFIG
 from planexe.lever.deduplicate_levers import DeduplicateLevers
 from planexe.lever.scenarios_markdown import ScenariosMarkdown
@@ -198,6 +199,30 @@ class SetupTask(PlanTask):
         # The Gradio/Flask app that starts the luigi pipeline, must first create the `INITIAL_PLAN` file inside the `run_id_dir`.
         # This code will ONLY run if the Gradio/Flask app *failed* to create the file.
         raise AssertionError(f"This code is not supposed to be run. Before starting the pipeline the '{FilenameEnum.INITIAL_PLAN.value}' file must be present in the `run_id_dir`: {self.run_id_dir!r}")
+
+
+class RedlineGateTask(PlanTask):
+    def requires(self):
+        return self.clone(SetupTask)
+
+    def output(self):
+        return {
+            'raw': self.local_target(FilenameEnum.REDLINE_GATE_RAW),
+            'markdown': self.local_target(FilenameEnum.REDLINE_GATE_MARKDOWN)
+        }
+
+    def run_with_llm(self, llm: LLM) -> None:
+        # Read inputs from required tasks.
+        with self.input().open("r") as f:
+            plan_prompt = f.read()
+
+        redline_gate = RedlineGate.execute(llm, plan_prompt)
+
+        # Write the result to disk.
+        output_raw_path = self.output()['raw'].path
+        redline_gate.save_raw(output_raw_path)
+        output_markdown_path = self.output()['markdown'].path
+        redline_gate.save_markdown(output_markdown_path)
 
 
 class IdentifyPurposeTask(PlanTask):
@@ -3525,6 +3550,7 @@ class ReportTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
+            'redline_gate': self.clone(RedlineGateTask),
             'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
             'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
@@ -3571,6 +3597,7 @@ class ReportTask(PlanTask):
         rg.append_csv('Work Breakdown Structure', self.input()['wbs_project123']['csv'].path)
         rg.append_markdown('Review Plan', self.input()['review_plan']['markdown'].path)
         rg.append_html('Questions & Answers', self.input()['questions_and_answers']['html'].path)
+        rg.append_markdown_with_tables('Redline Gate', self.input()['redline_gate']['markdown'].path)
         rg.append_markdown_with_tables('Premortem', self.input()['premortem']['markdown'].path)
         rg.save_report(self.output().path, title=title, execute_plan_section_hidden=REPORT_EXECUTE_PLAN_SECTION_HIDDEN)
 
@@ -3579,6 +3606,7 @@ class FullPlanPipeline(PlanTask):
         return {
             'start_time': self.clone(StartTimeTask),
             'setup': self.clone(SetupTask),
+            'redline_gate': self.clone(RedlineGateTask),
             'identify_purpose': self.clone(IdentifyPurposeTask),
             'plan_type': self.clone(PlanTypeTask),
             'potential_levers': self.clone(PotentialLeversTask),
