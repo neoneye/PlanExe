@@ -178,7 +178,7 @@ class ReportGenerator:
         if initial_prompt_raw is None:
             logging.warning(f"Document: '{document_title}'. Could not read file: {initial_prompt_file_path}")
             return
-        initial_prompt_html = escape(initial_prompt_raw)
+        initial_prompt_html = escape(initial_prompt_raw).replace('\n', '<br>')
 
         # The Redline Gate markdown contains markdown tables.
         with open(redline_gate_markdown_file_path, 'r', encoding='utf-8') as f:
