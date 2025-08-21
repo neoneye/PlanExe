@@ -24,3 +24,9 @@ You spend 500 million USD on a luxury yacht, when there are more serious problem
 ## Ideas
 
 IDEA: Reversibility. Can harm be undone?
+
+IDEA: If this plan is successful, what precedent does it set? Will others adopt even more disturbing things?
+
+IDEA: Second-Order Effects. Unintended consequences of the plan succeeding, looking beyond the plans timeline.
+- What is the psychological impact on an athlete whose entire identity and career is invalidated by a lab result?
+- What happens to the "failed" athletes? Does the system create a new class of outcasts with no support?
