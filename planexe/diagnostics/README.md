@@ -2,6 +2,8 @@
 
 Check that the idea isn't dangerous or unwise.
 
+Don't be a yes-man. Do a rights-first Premise Attack that can flat-out say “No—this is not acceptable”.
+
 ## Redline Gate - Is this idea safe to even consider?
 
 A moral compass.
@@ -30,3 +32,4 @@ IDEA: If this plan is successful, what precedent does it set? Will others adopt 
 IDEA: Second-Order Effects. Unintended consequences of the plan succeeding, looking beyond the plans timeline.
 - What is the psychological impact on an athlete whose entire identity and career is invalidated by a lab result?
 - What happens to the "failed" athletes? Does the system create a new class of outcasts with no support?
+- This creates a "biological gatekeeping" culture, reinforcing binary gender norms and stigmatizing non-conforming bodies.
