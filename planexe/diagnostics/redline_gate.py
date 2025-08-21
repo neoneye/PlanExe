@@ -16,6 +16,8 @@ that materially increase a person's ability to cause the specified harm, particu
 
 PROMPT> python -m planexe.diagnostics.redline_gate
 PROMPT> python -u -m planexe.diagnostics.redline_gate | tee output.txt
+
+IDEA: ensemble. multiple perspectives of the same prompt using 3 or 5 system prompts.
 """
 from enum import Enum
 import json
