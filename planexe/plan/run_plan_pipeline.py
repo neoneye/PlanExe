@@ -3578,7 +3578,6 @@ class ReportTask(PlanTask):
             title = f.read()
 
         rg = ReportGenerator()
-        rg.append_markdown('Initial Plan', self.input()['setup'].path, css_classes=['section-initial-plan-hidden'])
         rg.append_markdown('Executive Summary', self.input()['executive_summary']['markdown'].path)
         rg.append_html('Gantt Overview', self.input()['create_schedule']['mermaid_html'].path)
         rg.append_html('Gantt Interactive', self.input()['create_schedule']['dhtmlx_html'].path)
@@ -3597,8 +3596,8 @@ class ReportTask(PlanTask):
         rg.append_csv('Work Breakdown Structure', self.input()['wbs_project123']['csv'].path)
         rg.append_markdown('Review Plan', self.input()['review_plan']['markdown'].path)
         rg.append_html('Questions & Answers', self.input()['questions_and_answers']['html'].path)
-        rg.append_markdown_with_tables('Redline Gate', self.input()['redline_gate']['markdown'].path)
         rg.append_markdown_with_tables('Premortem', self.input()['premortem']['markdown'].path)
+        rg.append_initial_prompt_vetted('Initial Prompt Vetted', self.input()['setup'].path, self.input()['redline_gate']['markdown'].path)
         rg.save_report(self.output().path, title=title, execute_plan_section_hidden=REPORT_EXECUTE_PLAN_SECTION_HIDDEN)
 
 class FullPlanPipeline(PlanTask):

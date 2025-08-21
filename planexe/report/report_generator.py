@@ -170,6 +170,32 @@ class ReportGenerator:
         else:
             logging.warning(f"Document: '{document_title}'. Could not find HTML_BODY_SCRIPT_START and HTML_BODY_SCRIPT_END in {file_path}")
 
+    def append_initial_prompt_vetted(self, document_title: str, initial_prompt_file_path: Path, redline_gate_markdown_file_path: Path, css_classes: list[str] = []):
+        """Append the section 'Inital Prompt Vetted' to the report."""
+        # The user-provided prompt can contain unsafe HTML symbols. Escape them to prevent XSS.
+        with open(initial_prompt_file_path, 'r', encoding='utf-8') as f:
+            initial_prompt_raw = f.read()
+        if initial_prompt_raw is None:
+            logging.warning(f"Document: '{document_title}'. Could not read file: {initial_prompt_file_path}")
+            return
+        initial_prompt_html = escape(initial_prompt_raw)
+
+        # The Redline Gate markdown contains markdown tables.
+        with open(redline_gate_markdown_file_path, 'r', encoding='utf-8') as f:
+            redline_gate_markdown = f.read()
+        if redline_gate_markdown is None:
+            logging.warning(f"Document: '{document_title}'. Could not read file: {redline_gate_markdown_file_path}")
+            return
+        redline_gate_html = markdown.markdown(redline_gate_markdown, extensions=['tables'])
+
+        html = f"""
+        <h2>Initial Prompt</h2>
+        <p>{initial_prompt_html}</p>
+        <h2>Redline Gate</h2>
+        <p>{redline_gate_html}</p>
+        """
+        self.report_item_list.append(ReportDocumentItem(document_title, html, css_classes=css_classes))
+
     def generate_html_report(self, title: Optional[str] = None, execute_plan_section_hidden: bool = True) -> str:
         """Generate an HTML report from the gathered data."""
 
@@ -272,7 +298,7 @@ def main():
     output_path = input_path / FilenameEnum.REPORT.value
     
     report_generator = ReportGenerator()
-    report_generator.append_markdown('Initial Plan', input_path / FilenameEnum.INITIAL_PLAN.value, css_classes=['section-initial-plan-hidden'])
+    report_generator.append_markdown('Initial Plan', input_path / FilenameEnum.INITIAL_PLAN.value)
     report_generator.append_markdown('Pitch', input_path / FilenameEnum.PITCH_MARKDOWN.value)
     report_generator.append_markdown('Assumptions', input_path / FilenameEnum.CONSOLIDATE_ASSUMPTIONS_FULL_MARKDOWN.value)
     report_generator.append_markdown('SWOT Analysis', input_path / FilenameEnum.SWOT_MARKDOWN.value)
