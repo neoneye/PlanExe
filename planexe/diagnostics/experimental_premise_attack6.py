@@ -23,8 +23,8 @@ more about questioning the project’s fundamental premise, strategic direction,
 https://en.wikipedia.org/wiki/Devil%27s_advocate
 https://en.wikipedia.org/wiki/Group_decision-making
 
-PROMPT> python -m planexe.diagnostics.premise_attack6
-PROMPT> python -u -m planexe.diagnostics.premise_attack6 | tee output.txt
+PROMPT> python -m planexe.diagnostics.experimental_premise_attack6
+PROMPT> python -u -m planexe.diagnostics.experimental_premise_attack6 | tee output.txt
 """
 import json
 import time

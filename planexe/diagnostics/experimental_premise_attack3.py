@@ -1,6 +1,6 @@
 
 """
-PROMPT> python -m planexe.diagnostics.premise_attack3 --brief-file /absolute/path/to/plan.txt
+PROMPT> python -m planexe.diagnostics.experimental_premise_attack3 --brief-file /absolute/path/to/plan.txt
 """
 
 from __future__ import annotations

@@ -12,7 +12,7 @@ Workflow Integration:
    in the project's Gantt chart, culminating in a "Premise Gate" milestone.
 3. All subsequent operational phases are dependent on this gate.
 
-PROMPT> python -m planexe.diagnostics.premise_attack2
+PROMPT> python -m planexe.diagnostics.experimental_premise_attack2
 """
 import json
 import time
