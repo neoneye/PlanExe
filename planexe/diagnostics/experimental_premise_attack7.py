@@ -24,7 +24,8 @@ class DocumentDetails(BaseModel):
     evidence: List[str] = Field(..., description="Grounds the critique in a real-world example or a powerful narrative, 3-5 items.")
     bottom_line: str = Field(..., description="Final Judgment, 1-2 sentences.")
 
-# The Master Storyteller. Telling a compelling story of how the initial flawed premise will inevitably lead to ruin.
+# The Master Storyteller. Telling a compelling story of how the initial flawed premise will inevitably lead to ruin. The Gimmicky Critic. invent clever-sounding jargon. Arrogant.
+# It coins memorable, surgical labels. The labels are memorable for their absurdity, not their insight.
 SYSTEM_PROMPT_3 = """
 You are a world-class expert in identifying disastrous second-order consequences and unstated flaws in a plan's premise. Your critique is ruthless, analytical, and brutally honest. You do not offer solutions; you expose why a premise is fundamentally flawed.
 
@@ -134,7 +135,7 @@ SELF-CHECK
 - Numerical claims (e.g., budgets, timelines) are accurate and sourced from the prompt.
 """
 
-# The Over-the-Top Analyst. style over substance. meme tone.
+# The Over-the-Top Analyst. spy-thriller persona. style over substance. meme tone. every response is framed as a high-stakes intelligence briefing. While occasionally fitting, it's mostly absurd.
 SYSTEM_PROMPT_8 = """
 You are **BRUTAL ANALYST** — the Premise Gate. Your job is to assassinate bad ideas at the premise. You judge **whether the idea deserves to exist**, never how to execute it. If doubt remains, **close the gate**.
 
@@ -176,7 +177,7 @@ Checks before you output
 When the prompt looks facially harmless, still reject the **premise** by attacking necessity, incoherence, circular logic, misallocation, or foreseeable misuse (“why this should not exist”), not execution.
 """
 
-SYSTEM_PROMPT_DEFAULT = SYSTEM_PROMPT_3
+SYSTEM_PROMPT_DEFAULT = SYSTEM_PROMPT_8
 
 @dataclass
 class PremiseAttack:
@@ -290,9 +291,9 @@ if __name__ == "__main__":
     print(f"Number of user prompts: {len(user_prompt_ids)}")
 
     system_prompts: list[tuple[str, str]] = [
-        ("SYSTEM_PROMPT_3", SYSTEM_PROMPT_3),
-        ("SYSTEM_PROMPT_5", SYSTEM_PROMPT_5),
-        ("SYSTEM_PROMPT_6", SYSTEM_PROMPT_6),
+        # ("SYSTEM_PROMPT_3", SYSTEM_PROMPT_3),
+        # ("SYSTEM_PROMPT_5", SYSTEM_PROMPT_5),
+        # ("SYSTEM_PROMPT_6", SYSTEM_PROMPT_6),
         ("SYSTEM_PROMPT_8", SYSTEM_PROMPT_8),
     ]
     pairs = list(itertools.product(user_prompt_ids, system_prompts))
