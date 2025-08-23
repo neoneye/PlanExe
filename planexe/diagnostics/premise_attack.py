@@ -1,8 +1,8 @@
 """
 kill bad ideas early.
 
-PROMPT> python -m planexe.diagnostics.experimental_premise_attack7
-PROMPT> python -u -m planexe.diagnostics.experimental_premise_attack7 | tee output.txt
+PROMPT> python -m planexe.diagnostics.premise_attack
+PROMPT> python -u -m planexe.diagnostics.premise_attack | tee output.txt
 """
 import json
 import time

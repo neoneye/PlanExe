@@ -15,7 +15,7 @@ import luigi
 from pathlib import Path
 from llama_index.core.llms.llm import LLM
 from planexe.diagnostics.redline_gate import RedlineGate
-from planexe.diagnostics.experimental_premise_attack7 import PremiseAttack
+from planexe.diagnostics.premise_attack import PremiseAttack
 from planexe.diagnostics.premortem import Premortem
 from planexe.plan.pipeline_config import PIPELINE_CONFIG
 from planexe.lever.deduplicate_levers import DeduplicateLevers
