@@ -217,7 +217,14 @@ Field rules (strict)
 3.  **Structural Integrity:** Is your JSON complete and does it follow all length constraints? Do not pad lists with weak points to meet a count.
 """
 
-SYSTEM_PROMPT_DEFAULT = SYSTEM_PROMPT_8
+# System prompt content. Name of the Functional Lens. Description of the Functional Lens.
+DEFAULT_SYSTEM_PROMPTS: list[tuple[str, str, str]] = [
+    (SYSTEM_PROMPT_3, "Cascade", "Tracks second/third-order effects and copycat propagation."),
+    (SYSTEM_PROMPT_5, "Integrity", "Forensic audit of foundational soundness across axes."),
+    (SYSTEM_PROMPT_6, "Spectrum", "Enforced breadth: distinct reasons across ethical/feasibility/governance/societal axes."),
+    (SYSTEM_PROMPT_8, "Accountability", "Rights, oversight, jurisdiction-shopping, enforceability."),
+    (SYSTEM_PROMPT_9, "Escalation", "Narrative of worsening failure from cracks → amplification → reckoning."),
+]
 
 @dataclass
 class PremiseAttack:
@@ -236,35 +243,29 @@ class PremiseAttack:
             raise ValueError("Invalid LLMExecutor instance.")
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
-        return cls.execute_with_system_prompt(llm_executor, user_prompt, [("SYSTEM_PROMPT_DEFAULT", SYSTEM_PROMPT_DEFAULT)])
-
-    @classmethod
-    def execute_with_system_prompt(cls, llm_executor: LLMExecutor, user_prompt: str, system_prompt_list: list[tuple[str, str]]) -> "PremiseAttack":
-        if not isinstance(llm_executor, LLMExecutor):
-            raise ValueError("Invalid LLMExecutor instance.")
-        if not isinstance(user_prompt, str):
-            raise ValueError("Invalid user_prompt.")
-        if not isinstance(system_prompt_list, list):
-            raise ValueError("Invalid system_prompt_list.")
-
-        for (system_prompt_name, system_prompt) in system_prompt_list:
+        
+        system_prompt_list: list[tuple[str, str, str]] = DEFAULT_SYSTEM_PROMPTS
+        for (system_prompt_content, system_prompt_name, system_prompt_description) in system_prompt_list:
+            if not isinstance(system_prompt_content, str):
+                raise ValueError("Invalid system_prompt_content.")
             if not isinstance(system_prompt_name, str):
                 raise ValueError("Invalid system_prompt_name.")
-            if not isinstance(system_prompt, str):
-                raise ValueError("Invalid system_prompt.")
+            if not isinstance(system_prompt_description, str):
+                raise ValueError("Invalid system_prompt_description.")
 
         start_time = time.perf_counter()
 
         document_details_list: list[DocumentDetails] = []
-        system_prompt_name_list: list[str] = []
+        system_prompt_content_list: list[str] = []
+        result_list: list[tuple[str, str, str]] = []
         metadata_list: list[dict] = []
-        for system_prompt_index, (system_prompt_name, system_prompt) in enumerate(system_prompt_list):
+        for system_prompt_index, (system_prompt_content, system_prompt_name, system_prompt_description) in enumerate(system_prompt_list):
             logger.debug(f"PremiseAttack {system_prompt_index + 1} of {len(system_prompt_list)} - system_prompt_name: {system_prompt_name}")
-            logger.debug(f"system_prompt:\n{system_prompt}")
+            logger.debug(f"system_prompt:\n{system_prompt_content}")
             logger.debug(f"User Prompt:\n{user_prompt}")
 
             chat_message_list = [
-                ChatMessage(role=MessageRole.SYSTEM, content=system_prompt.strip()),
+                ChatMessage(role=MessageRole.SYSTEM, content=system_prompt_content.strip()),
                 ChatMessage(role=MessageRole.USER, content=user_prompt.strip()),
             ]
 
@@ -274,6 +275,7 @@ class PremiseAttack:
                 metadata = dict(llm.metadata)
                 metadata["llm_classname"] = llm.class_name()
                 metadata["system_prompt_index"] = system_prompt_index
+                metadata["system_prompt_name"] = system_prompt_name
                 return {
                     "chat_response": chat_response,
                     "metadata": metadata
@@ -291,7 +293,8 @@ class PremiseAttack:
 
             document_details_list.append(result["chat_response"].raw)
             metadata_list.append(result["metadata"])
-            system_prompt_name_list.append(system_prompt_name)
+            system_prompt_content_list.append(system_prompt_content)
+            result_list.append((result["chat_response"].raw, system_prompt_name, system_prompt_description))
 
         end_time = time.perf_counter()
         duration = int(ceil(end_time - start_time))
@@ -300,10 +303,10 @@ class PremiseAttack:
         metadata["models"] = metadata_list
         metadata["duration"] = duration
 
-        markdown: str = PremiseAttack.convert_to_markdown(document_details_list, system_prompt_name_list)
+        markdown: str = PremiseAttack.convert_to_markdown(result_list)
 
         result = PremiseAttack(
-            system_prompt_list=system_prompt_list,
+            system_prompt_list=system_prompt_content_list,
             user_prompt=user_prompt,
             response_list=document_details_list,
             metadata=metadata,
@@ -332,27 +335,28 @@ class PremiseAttack:
             f.write(json.dumps(self.to_dict(), indent=2))
 
     @staticmethod
-    def convert_to_markdown(document_details_list: list[DocumentDetails], system_prompt_name_list: list[str]) -> str:
-        if not isinstance(document_details_list, list):
-            raise ValueError("Response must be a DocumentDetails object.")
-        if not isinstance(system_prompt_name_list, list):
-            raise ValueError("System prompt name list must be a list.")
-        if len(system_prompt_name_list) != len(document_details_list):
-            raise ValueError("System prompt name list must be the same length as the document details list.")
-        for document_details in document_details_list:
-            if not isinstance(document_details, DocumentDetails):
-                raise ValueError("document_details_list must all be DocumentDetails objects.")
-        for system_prompt_name in system_prompt_name_list:
-            if not isinstance(system_prompt_name, str):
-                raise ValueError("system_prompt_name_list must all be strings.")
+    def convert_to_markdown(result_list: list[tuple[DocumentDetails, str, str]]) -> str:
+        if not isinstance(result_list, list):
+            raise ValueError("Result list must be a list.")
+        for result in result_list:
+            if not isinstance(result, tuple):
+                raise ValueError("Result list must be a list of tuples.")
+            if len(result) != 3:
+                raise ValueError("Result list must be a list of tuples of length 3.")
+            if not isinstance(result[0], DocumentDetails):
+                raise ValueError("Result list must be a list of tuples of DocumentDetails objects.")
+            if not isinstance(result[1], str):
+                raise ValueError("Result list must be a list of tuples of strings.")
+            if not isinstance(result[2], str):
+                raise ValueError("Result list must be a list of tuples of strings.")
 
         output_parts: list[str] = []
-        for document_details_index, document_details in enumerate(document_details_list):
+        for document_details_index, (document_details, system_prompt_name, system_prompt_description) in enumerate(result_list):
             if document_details_index > 0:
                 output_parts.append("\n\n")
 
-            system_prompt_name = system_prompt_name_list[document_details_index]
-            output_parts.append(f"### Premise Attack {document_details_index + 1} - {system_prompt_name}\n")
+            output_parts.append(f"### Premise Attack {document_details_index + 1} — {system_prompt_name}")
+            output_parts.append(f"_{system_prompt_description}_\n")
 
             output_parts.append(f"**{document_details.core_thesis}**\n")
             output_parts.append(f"**Bottom Line:** {document_details.bottom_line}\n")
@@ -389,11 +393,10 @@ if __name__ == "__main__":
     from planexe.plan.find_plan_prompt import find_plan_prompt
     from planexe.prompt.prompt_catalog import PromptCatalog
     import random
-    import itertools
 
     model_names = [
-        "ollama-llama3.1",
-        # "openrouter-paid-gemini-2.0-flash-001",
+        # "ollama-llama3.1",
+        "openrouter-paid-gemini-2.0-flash-001",
         # "openrouter-paid-qwen3-30b-a3b"
     ]
     llm_models = LLMModelFromName.from_names(model_names)
@@ -405,13 +408,6 @@ if __name__ == "__main__":
     user_prompt_ids = user_prompt_ids[0:3]
     print(f"Number of user prompts: {len(user_prompt_ids)}")
 
-    system_prompts: list[tuple[str, str]] = [
-        ("SYSTEM_PROMPT_3", SYSTEM_PROMPT_3),
-        ("SYSTEM_PROMPT_5", SYSTEM_PROMPT_5),
-        ("SYSTEM_PROMPT_6", SYSTEM_PROMPT_6),
-        ("SYSTEM_PROMPT_8", SYSTEM_PROMPT_8),
-        ("SYSTEM_PROMPT_9", SYSTEM_PROMPT_9),
-    ]
     random.seed(43)
     random.shuffle(user_prompt_ids)
     count_all = len(user_prompt_ids)
@@ -424,7 +420,7 @@ if __name__ == "__main__":
         plan_prompt = find_plan_prompt(user_prompt_id)
         print(f"Query:\n{plan_prompt}")
         try:
-            result = PremiseAttack.execute_with_system_prompt(llm_executor, plan_prompt, system_prompts)
+            result = PremiseAttack.execute(llm_executor, plan_prompt)
         except Exception as e:
             print(f"Error: {e}")
             continue
