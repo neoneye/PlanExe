@@ -219,10 +219,10 @@ Field rules (strict)
 
 # System prompt content. Name of the Functional Lens. Description of the Functional Lens.
 DEFAULT_SYSTEM_PROMPTS: list[tuple[str, str, str]] = [
-    (SYSTEM_PROMPT_3, "Cascade", "Tracks second/third-order effects and copycat propagation."),
     (SYSTEM_PROMPT_5, "Integrity", "Forensic audit of foundational soundness across axes."),
-    (SYSTEM_PROMPT_6, "Spectrum", "Enforced breadth: distinct reasons across ethical/feasibility/governance/societal axes."),
     (SYSTEM_PROMPT_8, "Accountability", "Rights, oversight, jurisdiction-shopping, enforceability."),
+    (SYSTEM_PROMPT_6, "Spectrum", "Enforced breadth: distinct reasons across ethical/feasibility/governance/societal axes."),
+    (SYSTEM_PROMPT_3, "Cascade", "Tracks second/third-order effects and copycat propagation."),
     (SYSTEM_PROMPT_9, "Escalation", "Narrative of worsening failure from cracks → amplification → reckoning."),
 ]
 
