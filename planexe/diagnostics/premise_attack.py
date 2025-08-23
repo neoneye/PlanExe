@@ -1,5 +1,24 @@
 """
-kill bad ideas early.
+Premise Attack (ensemble) — kill bad ideas early.
+
+This module runs five **Functional Lenses** over a user’s prompt and aggregates
+their findings into a single, skimmable verdict. It is designed to surface
+fatal flaws fast, make second-order risks explicit, and produce audit-friendly
+markdown for reviewers.
+
+Reversibility: The concepts of "lock-in" and "irreversibility" are baked into the rules for multiple lenses 
+(Integrity, Spectrum, and Accountability). They are specifically tasked with looking for plans that create 
+permanent harm or un-windable situations.
+
+Precedent: This is a central theme. The Cascade lens is built to track "copycat propagation." The Accountability and Escalation 
+lenses have mandatory checks for "copycat/scale" effects, directly answering the question: "Will others adopt even more disturbing things?"
+
+Second-Order Effects: This is the most heavily implemented idea. All five system prompts have a mandatory second_order_effects 
+field in their output schema. They are structurally required to project unintended consequences over concrete time horizons 
+(e.g., "0–6 months," "1–3 years," "5–10 years"), forcing a long-term view beyond the plan's immediate timeline.
+
+This multi-lens approach ensures that plans are not just evaluated on their immediate merits but are stress-tested against a 
+wide range of potential long-term, systemic, and ethical failures.
 
 PROMPT> python -m planexe.diagnostics.premise_attack
 PROMPT> python -u -m planexe.diagnostics.premise_attack | tee output.txt
