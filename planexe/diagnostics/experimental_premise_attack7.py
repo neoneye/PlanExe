@@ -188,6 +188,7 @@ class PremiseAttack:
     user_prompt: str
     response: dict
     metadata: dict
+    markdown: str
 
     @classmethod
     def execute(cls, llm: LLM, user_prompt: str) -> "PremiseAttack":
@@ -237,11 +238,14 @@ class PremiseAttack:
         metadata["duration"] = duration
         metadata["response_byte_count"] = response_byte_count
 
+        markdown: str = PremiseAttack.convert_to_markdown(chat_response.raw)
+
         result = PremiseAttack(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
             metadata=metadata,
+            markdown=markdown,
         )
         return result
 
@@ -260,6 +264,46 @@ class PremiseAttack:
             d["user_prompt"] = self.user_prompt
         return d
 
+    def save_raw(self, file_path: str) -> None:
+        with open(file_path, 'w') as f:
+            f.write(json.dumps(self.to_dict(), indent=2))
+
+    @staticmethod
+    def convert_to_markdown(document_details: DocumentDetails) -> str:
+        if not isinstance(document_details, DocumentDetails):
+            raise ValueError("Response must be a DocumentDetails object.")
+
+        output_parts = [
+            f"**{document_details.core_thesis}**\n",
+            f"**Bottom Line:** {document_details.bottom_line}"
+        ]
+        
+        if document_details.reasons:
+            output_parts.append("\n### Reasons for Rejection\n")
+            for reason in document_details.reasons:
+                output_parts.append(f"- {reason}")
+                
+        if document_details.second_order_effects:
+            output_parts.append("\n### Second-Order Effects\n")
+            for effect in document_details.second_order_effects:
+                output_parts.append(f"- {effect}")
+                
+        if document_details.evidence:
+            output_parts.append("\n### Evidence\n")
+            for evidence in document_details.evidence:
+                output_parts.append(f"- {evidence}")
+                
+        return "\n".join(output_parts)
+
+    def save_markdown(self, file_path: str) -> None:
+        """
+        Export the premise attack to a markdown file.
+        
+        Args:
+            file_path: Path where the markdown file should be saved
+        """
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(self.markdown)
 
 if __name__ == "__main__":
     from planexe.llm_factory import get_llm
@@ -317,4 +361,6 @@ if __name__ == "__main__":
         json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False, include_metadata=False)
         print("Response:")
         print(json.dumps(json_response, indent=2))
-        print("\n\n")
+        
+        # Demonstrate markdown functionality
+        print(f"\nMarkdown:\n{result.markdown}\n\n")
