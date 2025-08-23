@@ -399,23 +399,10 @@ if __name__ == "__main__":
     llm_models = LLMModelFromName.from_names(model_names)
     llm_executor = LLMExecutor(llm_models=llm_models)
 
-    user_prompt_ids: list[str] = [
-        "28289ed9-0c80-41cf-9d26-714bffe4e498",
-        "5d0dd39d-0047-4473-8096-ea5eac473a57",
-        "67c461a9-3364-42a4-bf8f-643315abfcf6",
-        "762b64e2-5ac8-4684-807a-efd3e81d6bc1",
-        "9c74bb8a-1208-4183-9c08-24ec90f86dfd",
-        "a9113924-6148-4a0c-b72a-eecdb856e1e2",
-        "aa2388ec-9916-4944-96bd-ab014de05bda",
-        "ab700769-c3ba-4f8a-913d-8589fea4624e",
-        "da8da7a6-954c-4f88-91c9-53f98a934868",
-        "f206f7e9-8ece-4e65-8e7f-5ac1b6777a62",
-    ]
-    if True:
-        prompt_catalog = PromptCatalog()
-        prompt_catalog.load_simple_plan_prompts()
-        user_prompt_ids = prompt_catalog.all_ids()[0:3]
-        # user_prompt_ids = prompt_catalog.all_ids()
+    prompt_catalog = PromptCatalog()
+    prompt_catalog.load_simple_plan_prompts()
+    user_prompt_ids: list[str] = prompt_catalog.all_ids()
+    user_prompt_ids = user_prompt_ids[0:3]
     print(f"Number of user prompts: {len(user_prompt_ids)}")
 
     system_prompts: list[tuple[str, str]] = [
