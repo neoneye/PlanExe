@@ -170,7 +170,7 @@ class ReportGenerator:
         else:
             logging.warning(f"Document: '{document_title}'. Could not find HTML_BODY_SCRIPT_START and HTML_BODY_SCRIPT_END in {file_path}")
 
-    def append_initial_prompt_vetted(self, document_title: str, initial_prompt_file_path: Path, redline_gate_markdown_file_path: Path, css_classes: list[str] = []):
+    def append_initial_prompt_vetted(self, document_title: str, initial_prompt_file_path: Path, redline_gate_markdown_file_path: Path, premise_attack_markdown_file_path: Path, css_classes: list[str] = []):
         """Append the section 'Inital Prompt Vetted' to the report."""
         # The user-provided prompt can contain unsafe HTML symbols. Escape them to prevent XSS.
         with open(initial_prompt_file_path, 'r', encoding='utf-8') as f:
@@ -188,11 +188,21 @@ class ReportGenerator:
             return
         redline_gate_html = markdown.markdown(redline_gate_markdown, extensions=['tables'])
 
+        # The Premise Attack markdown contains markdown tables.
+        with open(premise_attack_markdown_file_path, 'r', encoding='utf-8') as f:
+            premise_attack_markdown = f.read()
+        if premise_attack_markdown is None:
+            logging.warning(f"Document: '{document_title}'. Could not read file: {premise_attack_markdown_file_path}")
+            return
+        premise_attack_html = markdown.markdown(premise_attack_markdown, extensions=['tables'])
+
         html = f"""
         <h2>Initial Prompt</h2>
         <p>{initial_prompt_html}</p>
         <h2>Redline Gate</h2>
         <p>{redline_gate_html}</p>
+        <h2>Premise Attack</h2>
+        <p>{premise_attack_html}</p>
         """
         self.report_item_list.append(ReportDocumentItem(document_title, html, css_classes=css_classes))
 
