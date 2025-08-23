@@ -3,8 +3,6 @@ kill bad ideas early.
 
 PROMPT> python -m planexe.diagnostics.experimental_premise_attack7
 PROMPT> python -u -m planexe.diagnostics.experimental_premise_attack7 | tee output.txt
-
-IDEA: ensemble. multiple perspectives using multiple system prompts.
 """
 import json
 import time
