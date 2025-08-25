@@ -94,6 +94,18 @@ To stop the server at any time, press `Ctrl+C` in your terminal.
 
 ---
 
+<details>
+<summary><strong> Try it out now (Click to expand)</strong></summary>
+<br>
+
+You can generate 1 plan for free. Beyond that it cost money, or you can install PlanExe locally.
+
+[Try it here →](https://app.mach-ai.com/planexe_early_access)
+
+</details>
+
+---
+
 # Community
 
 Have questions? Need help? Join the [PlanExe Discord](https://neoneye.github.io/PlanExe-web/discord) to chat about PlanExe, share ideas, and get support.
