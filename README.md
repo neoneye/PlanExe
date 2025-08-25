@@ -9,17 +9,12 @@ That's what PlanExe does. It took a two-sentence idea about deploying police rob
 ---
 
 <details>
-<summary><strong> Screenshots (Click to expand)</strong></summary>
-
+<summary><strong> Try it out now (Click to expand)</strong></summary>
 <br>
 
-You input a vague description of what you want and PlanExe outputs a plan. [See generated plans here](https://neoneye.github.io/PlanExe-web/use-cases/).
+You can generate 1 plan for free. Beyond that it cost money, or you can install PlanExe locally.
 
-![Video of PlanExe](/extra/planexe-humanoid-factory.gif?raw=true "Video of PlanExe")
-
-[YouTube video: Using PlanExe to plan a lunar base](https://www.youtube.com/watch?v=7AM2F1C4CGI)
-
-![Screenshot of PlanExe](/extra/planexe-humanoid-factory.jpg?raw=true "Screenshot of PlanExe")
+[Try it here →](https://app.mach-ai.com/planexe_early_access)
 
 </details>
 
@@ -65,12 +60,17 @@ To stop the server at any time, press `Ctrl+C` in your terminal.
 ---
 
 <details>
-<summary><strong> Try it out now (Click to expand)</strong></summary>
+<summary><strong> Screenshots (Click to expand)</strong></summary>
+
 <br>
 
-You can generate 1 plan for free. Beyond that it cost money, or you can install PlanExe locally.
+You input a vague description of what you want and PlanExe outputs a plan. [See generated plans here](https://neoneye.github.io/PlanExe-web/use-cases/).
 
-[Try it here →](https://app.mach-ai.com/planexe_early_access)
+![Video of PlanExe](/extra/planexe-humanoid-factory.gif?raw=true "Video of PlanExe")
+
+[YouTube video: Using PlanExe to plan a lunar base](https://www.youtube.com/watch?v=7AM2F1C4CGI)
+
+![Screenshot of PlanExe](/extra/planexe-humanoid-factory.jpg?raw=true "Screenshot of PlanExe")
 
 </details>
 
