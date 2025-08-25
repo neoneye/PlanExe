@@ -1,4 +1,11 @@
-# PlanExe 🚀
+# PlanExe
+
+What if you could plan a dystopian police state from a single prompt?
+
+That's what PlanExe does. It took a two-sentence idea about deploying police robots in Brussels and generated a multi-faceted, 50-page strategic and tactical plan.
+
+[See the "Police Robots" plan here →](https://neoneye.github.io/PlanExe-web/20250824_police_robots_report.html)
+
 
 ### Turn Your Ideas Into Actionable Plans — Fast.
 
@@ -40,7 +47,12 @@ PlanExe is a planning AI. You input a vague description of what you want and Pla
 
 ![Screenshot of PlanExe](/extra/planexe-humanoid-factory.jpg?raw=true "Screenshot of PlanExe")
 
-# Installation
+---
+
+<details>
+<summary><strong> Installation (Click to expand)</strong></summary>
+
+<br>
 
 Clone this repo, then install and activate a virtual environment. Finally, install the required packages:
 
@@ -71,6 +83,10 @@ PlanExe comes with a Gradio-based web interface. To start the local web server:
 This command launches a server at http://localhost:7860. Open that link in your browser, type a vague idea or description, and PlanExe will produce a detailed plan.
 
 To stop the server at any time, press `Ctrl+C` in your terminal.
+
+</details>
+
+---
 
 # Community
 
