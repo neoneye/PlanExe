@@ -6,36 +6,6 @@ That's what PlanExe does. It took a two-sentence idea about deploying police rob
 
 [See the "Police Robots" plan here →](https://neoneye.github.io/PlanExe-web/20250824_police_robots_report.html)
 
-
-### Turn Your Ideas Into Actionable Plans — Fast.
-
-Tired of staring at a **blank page** whenever you start something new? `PlanExe` instantly transforms your vague idea into a detailed, actionable plan. Save hours of research, brainstorming, and preparation!
-
-Whether you’re planning a **lunar base**, **launching a business**, or aiming to **lose a few kilos**, PlanExe quickly generates a comprehensive report that includes:
-
-- ✅ Assumptions & Risks
-- ✅ SWOT Analysis
-- ✅ Work Breakdown Structure (WBS)
-
-> **"Turn vague concepts into concrete plans—in minutes, not weeks."**
-
-## How PlanExe Stands Out
-
-|                          | **PlanExe** | Open Source LLM    | Commercial LLM           |  LLM w/ Agents | Consulting Firms | Project Mgt Software |
-| ------------------------ | ----------- | ------------------ | ------------------------ | -------------- | ---------------- | -------------------- |
-| **Detailed Plans**       | ✅          | ❌                 | ❌                       | ✅             | ✅                | ✅                   |
-| Report Generation Time   | 30m         | 10s                | 10s                      | 30m            | 1 week+          | Manual               |
-| Cost                     | Low         | Low                | Low                      | Low            | High             | Medium               |
-| Factual Accuracy         | ⭐          | ⭐                 | ⭐                       | ⭐⭐⭐⭐        | ⭐⭐⭐⭐⭐         | 1-5 Stars            |
-| Open Source              | ✅          | ✅                 | ❌                       | ❌             | ❌                | ❌                   |
-
-**Where:**
-* **Open Source LLM, without agents:** Ollama, LM Studio
-* **Commercial LLM, without agents:** OpenAI, Google, Anthropic
-* **LLM w/ Agents:** OpenAI’s Deep Research, Manus. Only 4 star in `Factual Accuracy`, since this is AI-generated with limited verification.
-* **Consulting Firms:** McKinsey, BCG, Bain. 5 star in `Factual Accuracy`, assuming it's expert verified data.
-* **Project Management Software:** Asana, Monday, Jira, ClickUp. Variable number of stars in `Factual Accuracy` since it depends on team, effort, budget.
-
 ---
 
 <details>
