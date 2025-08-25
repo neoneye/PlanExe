@@ -12,7 +12,7 @@ That's what PlanExe does. It took a two-sentence idea about deploying police rob
 <summary><strong> Try it out now (Click to expand)</strong></summary>
 <br>
 
-You can generate 1 plan for free. Beyond that it cost money, or you can install PlanExe locally.
+If you are not a developer. You can generate 1 plan for free, beyond that it cost money.
 
 [Try it here →](https://app.mach-ai.com/planexe_early_access)
 
@@ -24,6 +24,10 @@ You can generate 1 plan for free. Beyond that it cost money, or you can install 
 <summary><strong> Installation (Click to expand)</strong></summary>
 
 <br>
+
+**Prerequisite:** You are a python developer with machine learning experience.
+
+# Installation
 
 Typical python installation procedure:
 
@@ -76,15 +80,13 @@ You input a vague description of what you want and PlanExe outputs a plan. [See 
 
 ---
 
-# Community
+<details>
+<summary><strong> Help (Click to expand)</strong></summary>
 
-Have questions? Need help? Join the [PlanExe Discord](https://neoneye.github.io/PlanExe-web/discord) to chat about PlanExe, share ideas, and get support.
+<br>
 
-# :heart: Thank you to all [supporters](https://github.com/neoneye/PlanExe/stargazers)
+For help or feedback.
 
-If you like this project, please give it a star ⭐ and 📢 spread the word in your network or social media:
+Join the [PlanExe Discord](https://neoneye.github.io/PlanExe-web/discord).
 
-[![Share on X](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2Fneoneye%2FPlanExe)](https://x.com/intent/post?text=PlanExe:%20Stop%20starting%20from%20scratch!%20Turn%20vague%20ideas%20into%20actionable%20plans%20in%20minutes%20with%20this%20open-source%20AI%20planner.%20Check%20out%20PlanExe%20on%20GitHub:%20https%3A%2F%2Fgithub.com%2Fneoneye%2FPlanExe)
-[![Share on LinkedIn](https://img.shields.io/badge/Share%20on-LinkedIn-blue)](https://www.linkedin.com/feed/?linkOrigin=LI_BADGE&shareActive=true&shareUrl=https://github.com/neoneye/PlanExe)
-[![Share on Hacker News](https://img.shields.io/badge/-Share%20on%20Hacker%20News-orange)](https://news.ycombinator.com/submitlink?u=https://github.com/neoneye/PlanExe&t=Transforms%20your%20idea%20into%20a%20plan)
-[![Share on Reddit](https://img.shields.io/badge/-Share%20on%20Reddit-blue)](https://www.reddit.com/submit?url=https%3A%2F%2Fgithub.com%2Fneoneye%2FPlanExe&title=Transforms+your+idea+into+a+plan&type=LINK)
+</details>
