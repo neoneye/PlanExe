@@ -60,7 +60,7 @@ You input a vague description of what you want and PlanExe outputs a plan. [See 
 
 <br>
 
-Clone this repo, then install and activate a virtual environment. Finally, install the required packages:
+Typical python installation procedure:
 
 ```bash
 git clone https://github.com/neoneye/PlanExe.git
