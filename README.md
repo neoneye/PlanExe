@@ -36,16 +36,22 @@ Whether you’re planning a **lunar base**, **launching a business**, or aiming 
 * **Consulting Firms:** McKinsey, BCG, Bain. 5 star in `Factual Accuracy`, assuming it's expert verified data.
 * **Project Management Software:** Asana, Monday, Jira, ClickUp. Variable number of stars in `Factual Accuracy` since it depends on team, effort, budget.
 
+---
 
-## What is PlanExe?
+<details>
+<summary><strong> Screenshots (Click to expand)</strong></summary>
 
-PlanExe is a planning AI. You input a vague description of what you want and PlanExe outputs a plan. [See generated plans here](https://neoneye.github.io/PlanExe-web/use-cases/).
+<br>
+
+You input a vague description of what you want and PlanExe outputs a plan. [See generated plans here](https://neoneye.github.io/PlanExe-web/use-cases/).
 
 ![Video of PlanExe](/extra/planexe-humanoid-factory.gif?raw=true "Video of PlanExe")
 
 [YouTube video: Using PlanExe to plan a lunar base](https://www.youtube.com/watch?v=7AM2F1C4CGI)
 
 ![Screenshot of PlanExe](/extra/planexe-humanoid-factory.jpg?raw=true "Screenshot of PlanExe")
+
+</details>
 
 ---
 
