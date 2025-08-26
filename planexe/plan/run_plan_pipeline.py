@@ -1148,7 +1148,7 @@ class PreProjectAssessmentTask(PlanTask):
         pre_project_assessment.save_preproject_assessment(str(clean_path))
 
 
-class ProjectPlanTask(PlanTask):
+class FullProjectPlanTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
@@ -1205,6 +1205,47 @@ class ProjectPlanTask(PlanTask):
         project_plan.save_markdown(self.output()['markdown'].path)
 
         logger.info("Project plan created and saved")
+
+
+class SimpleProjectPlanTask(PlanTask):
+    def requires(self):
+        return {
+            'setup': self.clone(SetupTask),
+        }
+
+    def output(self):
+        return {
+            'raw': self.local_target(FilenameEnum.PROJECT_PLAN_RAW),
+            'markdown': self.local_target(FilenameEnum.PROJECT_PLAN_MARKDOWN)
+        }
+
+    def run_with_llm(self, llm: LLM) -> None:
+        logger.info("Creating plan...")
+
+        # Read the plan prompt from SetupTask's output.
+        setup_target = self.input()['setup']
+        with setup_target.open("r") as f:
+            plan_prompt = f.read()
+
+        # Save raw output
+        d = {
+            "plan_prompt": plan_prompt,
+        }
+        with open(self.output()['raw'].path, 'w') as f:
+            f.write(json.dumps(d, indent=2))
+
+        # Save markdown output
+        with open(self.output()['markdown'].path, 'w', encoding='utf-8') as f:
+            f.write(plan_prompt)
+
+        logger.info("Project plan created and saved")
+
+
+# class ProjectPlanTask(FullProjectPlanTask):
+#     pass
+
+class ProjectPlanTask(SimpleProjectPlanTask):
+    pass
 
 
 class GovernancePhase1AuditTask(PlanTask):
@@ -2670,11 +2711,11 @@ class CreateWBSLevel2Task(PlanTask):
     """
     def requires(self):
         return {
-            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
-            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
+            # 'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            # 'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'wbs_level1': self.clone(CreateWBSLevel1Task),
-            'data_collection': self.clone(DataCollectionTask),
+            # 'data_collection': self.clone(DataCollectionTask),
         }
 
     def output(self):
@@ -2687,23 +2728,23 @@ class CreateWBSLevel2Task(PlanTask):
         logger.info("Creating Work Breakdown Structure (WBS) Level 2...")
 
         # Read inputs from required tasks.
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
+        # with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+        #     strategic_decisions_markdown = f.read()
+        # with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+        #     scenarios_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
             project_plan_markdown = f.read()        
-        with self.input()['data_collection']['markdown'].open("r") as f:
-            data_collection_markdown = f.read()
+        # with self.input()['data_collection']['markdown'].open("r") as f:
+        #     data_collection_markdown = f.read()
         with self.input()['wbs_level1']['clean'].open("r") as f:
             wbs_level1_result_json = json.load(f)
         
         query = (
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+            # f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            # f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'project_plan.md':\n{project_plan_markdown}\n\n"
             f"File 'WBS Level 1.json':\n{format_json_for_use_in_query(wbs_level1_result_json)}\n\n"
-            f"File 'data_collection.md':\n{data_collection_markdown}"
+            # f"File 'data_collection.md':\n{data_collection_markdown}"
         )
         
         # Execute the WBS Level 2 creation.
@@ -2850,35 +2891,35 @@ class IdentifyTaskDependenciesTask(PlanTask):
     
     def requires(self):
         return {
-            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
-            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
+            # 'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            # 'scenarios_markdown': self.clone(ScenariosMarkdownTask),
             'project_plan': self.clone(ProjectPlanTask),
             'wbs_level2': self.clone(CreateWBSLevel2Task),
-            'data_collection': self.clone(DataCollectionTask),
+            # 'data_collection': self.clone(DataCollectionTask),
         }
     
     def run_with_llm(self, llm: LLM) -> None:
         logger.info("Identifying task dependencies...")
         
         # Read inputs from required tasks.
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
+        # with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+        #     strategic_decisions_markdown = f.read()
+        # with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+        #     scenarios_markdown = f.read()
         with self.input()['project_plan']['markdown'].open("r") as f:
             project_plan_markdown = f.read()        
-        with self.input()['data_collection']['markdown'].open("r") as f:
-            data_collection_markdown = f.read()
+        # with self.input()['data_collection']['markdown'].open("r") as f:
+        #     data_collection_markdown = f.read()
         with self.input()['wbs_level2']['clean'].open("r") as f:
             major_phases_with_subtasks = json.load(f)
         
         # Build the query
         query = (
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+            # f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            # f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
             f"File 'project_plan.md':\n{project_plan_markdown}\n\n"
             f"File 'Work Breakdown Structure.json':\n{format_json_for_use_in_query(major_phases_with_subtasks)}\n\n"
-            f"File 'data_collection.md':\n{data_collection_markdown}"
+            # f"File 'data_collection.md':\n{data_collection_markdown}"
         )
         
         # Execute the dependency identification.
@@ -3014,7 +3055,7 @@ class CreateWBSLevel3Task(PlanTask):
             'project_plan': self.clone(ProjectPlanTask),
             'wbs_project': self.clone(WBSProjectLevel1AndLevel2Task),
             'task_durations': self.clone(EstimateTaskDurationsTask),
-            'data_collection': self.clone(DataCollectionTask),
+            # 'data_collection': self.clone(DataCollectionTask),
         }
     
     def run_inner(self):
@@ -3030,8 +3071,8 @@ class CreateWBSLevel3Task(PlanTask):
             wbs_project_dict = json.load(f)
         wbs_project = WBSProject.from_dict(wbs_project_dict)
 
-        with self.input()['data_collection']['markdown'].open("r") as f:
-            data_collection_markdown = f.read()
+        # with self.input()['data_collection']['markdown'].open("r") as f:
+        #     data_collection_markdown = f.read()
 
         # Load the estimated task durations.
         task_duration_list_path = self.input()['task_durations'].path
@@ -3074,7 +3115,7 @@ class CreateWBSLevel3Task(PlanTask):
             
             query = (
                 f"The project plan:\n{project_plan_str}\n\n"
-                f"Data collection:\n{data_collection_markdown}\n\n"
+                # f"Data collection:\n{data_collection_markdown}\n\n"
                 f"Work breakdown structure:\n{wbs_project_str}\n\n"
                 f"Only decompose this task:\n\"{task_id}\""
             )
@@ -3577,27 +3618,27 @@ class ReportTask(PlanTask):
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
-            'redline_gate': self.clone(RedlineGateTask),
-            'premise_attack': self.clone(PremiseAttackTask),
-            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
-            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
-            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
-            'team_markdown': self.clone(TeamMarkdownTask),
-            'related_resources': self.clone(RelatedResourcesTask),
-            'consolidate_governance': self.clone(ConsolidateGovernanceTask),
-            'swot_analysis': self.clone(SWOTAnalysisTask),
-            'pitch_markdown': self.clone(ConvertPitchToMarkdownTask),
-            'data_collection': self.clone(DataCollectionTask),
-            'documents_to_create_and_find': self.clone(MarkdownWithDocumentsToCreateAndFindTask),
+            # 'redline_gate': self.clone(RedlineGateTask),
+            # 'premise_attack': self.clone(PremiseAttackTask),
+            # 'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            # 'scenarios_markdown': self.clone(ScenariosMarkdownTask),
+            # 'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            # 'team_markdown': self.clone(TeamMarkdownTask),
+            # 'related_resources': self.clone(RelatedResourcesTask),
+            # 'consolidate_governance': self.clone(ConsolidateGovernanceTask),
+            # 'swot_analysis': self.clone(SWOTAnalysisTask),
+            # 'pitch_markdown': self.clone(ConvertPitchToMarkdownTask),
+            # 'data_collection': self.clone(DataCollectionTask),
+            # 'documents_to_create_and_find': self.clone(MarkdownWithDocumentsToCreateAndFindTask),
             'wbs_level1': self.clone(CreateWBSLevel1Task),
             'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task),
-            'expert_review': self.clone(ExpertReviewTask),
-            'project_plan': self.clone(ProjectPlanTask),
-            'review_plan': self.clone(ReviewPlanTask),
-            'executive_summary': self.clone(ExecutiveSummaryTask),
+            # 'expert_review': self.clone(ExpertReviewTask),
+            # 'project_plan': self.clone(ProjectPlanTask),
+            # 'review_plan': self.clone(ReviewPlanTask),
+            # 'executive_summary': self.clone(ExecutiveSummaryTask),
             'create_schedule': self.clone(CreateScheduleTask),
-            'questions_and_answers': self.clone(QuestionsAndAnswersTask),
-            'premortem': self.clone(PremortemTask)
+            # 'questions_and_answers': self.clone(QuestionsAndAnswersTask),
+            # 'premortem': self.clone(PremortemTask)
         }
     
     def run_inner(self):
@@ -3606,31 +3647,31 @@ class ReportTask(PlanTask):
             title = f.read()
 
         rg = ReportGenerator()
-        rg.append_markdown('Executive Summary', self.input()['executive_summary']['markdown'].path)
+        # rg.append_markdown('Executive Summary', self.input()['executive_summary']['markdown'].path)
         rg.append_html('Gantt Overview', self.input()['create_schedule']['mermaid_html'].path)
         rg.append_html('Gantt Interactive', self.input()['create_schedule']['dhtmlx_html'].path)
-        rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
-        rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
-        rg.append_markdown('Strategic Decisions', self.input()['strategic_decisions_markdown']['markdown'].path)
-        rg.append_markdown('Scenarios', self.input()['scenarios_markdown']['markdown'].path)
-        rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown']['full'].path)
-        rg.append_markdown('Governance', self.input()['consolidate_governance'].path)
-        rg.append_markdown('Related Resources', self.input()['related_resources']['markdown'].path)
-        rg.append_markdown('Data Collection', self.input()['data_collection']['markdown'].path)
-        rg.append_markdown('Documents to Create and Find', self.input()['documents_to_create_and_find'].path)
-        rg.append_markdown('SWOT Analysis', self.input()['swot_analysis']['markdown'].path)
-        rg.append_markdown('Team', self.input()['team_markdown'].path)
-        rg.append_markdown('Expert Criticism', self.input()['expert_review'].path)
+        # rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
+        # rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
+        # rg.append_markdown('Strategic Decisions', self.input()['strategic_decisions_markdown']['markdown'].path)
+        # rg.append_markdown('Scenarios', self.input()['scenarios_markdown']['markdown'].path)
+        # rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown']['full'].path)
+        # rg.append_markdown('Governance', self.input()['consolidate_governance'].path)
+        # rg.append_markdown('Related Resources', self.input()['related_resources']['markdown'].path)
+        # rg.append_markdown('Data Collection', self.input()['data_collection']['markdown'].path)
+        # rg.append_markdown('Documents to Create and Find', self.input()['documents_to_create_and_find'].path)
+        # rg.append_markdown('SWOT Analysis', self.input()['swot_analysis']['markdown'].path)
+        # rg.append_markdown('Team', self.input()['team_markdown'].path)
+        # rg.append_markdown('Expert Criticism', self.input()['expert_review'].path)
         rg.append_csv('Work Breakdown Structure', self.input()['wbs_project123']['csv'].path)
-        rg.append_markdown('Review Plan', self.input()['review_plan']['markdown'].path)
-        rg.append_html('Questions & Answers', self.input()['questions_and_answers']['html'].path)
-        rg.append_markdown_with_tables('Premortem', self.input()['premortem']['markdown'].path)
-        rg.append_initial_prompt_vetted(
-            document_title='Initial Prompt Vetted', 
-            initial_prompt_file_path=self.input()['setup'].path, 
-            redline_gate_markdown_file_path=self.input()['redline_gate']['markdown'].path, 
-            premise_attack_markdown_file_path=self.input()['premise_attack']['markdown'].path
-        )
+        # rg.append_markdown('Review Plan', self.input()['review_plan']['markdown'].path)
+        # rg.append_html('Questions & Answers', self.input()['questions_and_answers']['html'].path)
+        # rg.append_markdown_with_tables('Premortem', self.input()['premortem']['markdown'].path)
+        # rg.append_initial_prompt_vetted(
+        #     document_title='Initial Prompt Vetted', 
+        #     initial_prompt_file_path=self.input()['setup'].path, 
+        #     redline_gate_markdown_file_path=self.input()['redline_gate']['markdown'].path, 
+        #     premise_attack_markdown_file_path=self.input()['premise_attack']['markdown'].path
+        # )
         rg.save_report(self.output().path, title=title, execute_plan_section_hidden=REPORT_EXECUTE_PLAN_SECTION_HIDDEN)
 
 class FullPlanPipeline(PlanTask):
@@ -3638,64 +3679,64 @@ class FullPlanPipeline(PlanTask):
         return {
             'start_time': self.clone(StartTimeTask),
             'setup': self.clone(SetupTask),
-            'redline_gate': self.clone(RedlineGateTask),
-            'premise_attack': self.clone(PremiseAttackTask),
-            'identify_purpose': self.clone(IdentifyPurposeTask),
-            'plan_type': self.clone(PlanTypeTask),
-            'potential_levers': self.clone(PotentialLeversTask),
-            'deduplicate_levers': self.clone(DeduplicateLeversTask),
-            'enriched_levers': self.clone(EnrichLeversTask),
-            'focus_on_vital_few_levers': self.clone(FocusOnVitalFewLeversTask),
-            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
-            'candidate_scenarios': self.clone(CandidateScenariosTask),
-            'select_scenario': self.clone(SelectScenarioTask),
-            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
-            'physical_locations': self.clone(PhysicalLocationsTask),
-            'currency_strategy': self.clone(CurrencyStrategyTask),
-            'identify_risks': self.clone(IdentifyRisksTask),
-            'make_assumptions': self.clone(MakeAssumptionsTask),
-            'assumptions': self.clone(DistillAssumptionsTask),
-            'review_assumptions': self.clone(ReviewAssumptionsTask),
-            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
-            'pre_project_assessment': self.clone(PreProjectAssessmentTask),
+            # 'redline_gate': self.clone(RedlineGateTask),
+            # 'premise_attack': self.clone(PremiseAttackTask),
+            # 'identify_purpose': self.clone(IdentifyPurposeTask),
+            # 'plan_type': self.clone(PlanTypeTask),
+            # 'potential_levers': self.clone(PotentialLeversTask),
+            # 'deduplicate_levers': self.clone(DeduplicateLeversTask),
+            # 'enriched_levers': self.clone(EnrichLeversTask),
+            # 'focus_on_vital_few_levers': self.clone(FocusOnVitalFewLeversTask),
+            # 'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            # 'candidate_scenarios': self.clone(CandidateScenariosTask),
+            # 'select_scenario': self.clone(SelectScenarioTask),
+            # 'scenarios_markdown': self.clone(ScenariosMarkdownTask),
+            # 'physical_locations': self.clone(PhysicalLocationsTask),
+            # 'currency_strategy': self.clone(CurrencyStrategyTask),
+            # 'identify_risks': self.clone(IdentifyRisksTask),
+            # 'make_assumptions': self.clone(MakeAssumptionsTask),
+            # 'assumptions': self.clone(DistillAssumptionsTask),
+            # 'review_assumptions': self.clone(ReviewAssumptionsTask),
+            # 'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            # 'pre_project_assessment': self.clone(PreProjectAssessmentTask),
             'project_plan': self.clone(ProjectPlanTask),
-            'governance_phase1_audit': self.clone(GovernancePhase1AuditTask),
-            'governance_phase2_bodies': self.clone(GovernancePhase2BodiesTask),
-            'governance_phase3_impl_plan': self.clone(GovernancePhase3ImplPlanTask),
-            'governance_phase4_decision_escalation_matrix': self.clone(GovernancePhase4DecisionEscalationMatrixTask),
-            'governance_phase5_monitoring_progress': self.clone(GovernancePhase5MonitoringProgressTask),
-            'governance_phase6_extra': self.clone(GovernancePhase6ExtraTask),
-            'consolidate_governance': self.clone(ConsolidateGovernanceTask),
-            'related_resources': self.clone(RelatedResourcesTask),
-            'find_team_members': self.clone(FindTeamMembersTask),
-            'enrich_team_members_with_contract_type': self.clone(EnrichTeamMembersWithContractTypeTask),
-            'enrich_team_members_with_background_story': self.clone(EnrichTeamMembersWithBackgroundStoryTask),
-            'enrich_team_members_with_environment_info': self.clone(EnrichTeamMembersWithEnvironmentInfoTask),
-            'review_team': self.clone(ReviewTeamTask),
-            'team_markdown': self.clone(TeamMarkdownTask),
-            'swot_analysis': self.clone(SWOTAnalysisTask),
-            'expert_review': self.clone(ExpertReviewTask),
-            'data_collection': self.clone(DataCollectionTask),
-            'identified_documents': self.clone(IdentifyDocumentsTask),
-            'filter_documents_to_find': self.clone(FilterDocumentsToFindTask),
-            'filter_documents_to_create': self.clone(FilterDocumentsToCreateTask),
-            'draft_documents_to_find': self.clone(DraftDocumentsToFindTask),
-            'draft_documents_to_create': self.clone(DraftDocumentsToCreateTask),
-            'documents_to_create_and_find': self.clone(MarkdownWithDocumentsToCreateAndFindTask),
+            # 'governance_phase1_audit': self.clone(GovernancePhase1AuditTask),
+            # 'governance_phase2_bodies': self.clone(GovernancePhase2BodiesTask),
+            # 'governance_phase3_impl_plan': self.clone(GovernancePhase3ImplPlanTask),
+            # 'governance_phase4_decision_escalation_matrix': self.clone(GovernancePhase4DecisionEscalationMatrixTask),
+            # 'governance_phase5_monitoring_progress': self.clone(GovernancePhase5MonitoringProgressTask),
+            # 'governance_phase6_extra': self.clone(GovernancePhase6ExtraTask),
+            # 'consolidate_governance': self.clone(ConsolidateGovernanceTask),
+            # 'related_resources': self.clone(RelatedResourcesTask),
+            # 'find_team_members': self.clone(FindTeamMembersTask),
+            # 'enrich_team_members_with_contract_type': self.clone(EnrichTeamMembersWithContractTypeTask),
+            # 'enrich_team_members_with_background_story': self.clone(EnrichTeamMembersWithBackgroundStoryTask),
+            # 'enrich_team_members_with_environment_info': self.clone(EnrichTeamMembersWithEnvironmentInfoTask),
+            # 'review_team': self.clone(ReviewTeamTask),
+            # 'team_markdown': self.clone(TeamMarkdownTask),
+            # 'swot_analysis': self.clone(SWOTAnalysisTask),
+            # 'expert_review': self.clone(ExpertReviewTask),
+            # 'data_collection': self.clone(DataCollectionTask),
+            # 'identified_documents': self.clone(IdentifyDocumentsTask),
+            # 'filter_documents_to_find': self.clone(FilterDocumentsToFindTask),
+            # 'filter_documents_to_create': self.clone(FilterDocumentsToCreateTask),
+            # 'draft_documents_to_find': self.clone(DraftDocumentsToFindTask),
+            # 'draft_documents_to_create': self.clone(DraftDocumentsToCreateTask),
+            # 'documents_to_create_and_find': self.clone(MarkdownWithDocumentsToCreateAndFindTask),
             'wbs_level1': self.clone(CreateWBSLevel1Task),
             'wbs_level2': self.clone(CreateWBSLevel2Task),
             'wbs_project12': self.clone(WBSProjectLevel1AndLevel2Task),
-            'pitch_raw': self.clone(CreatePitchTask),
-            'pitch_markdown': self.clone(ConvertPitchToMarkdownTask),
+            # 'pitch_raw': self.clone(CreatePitchTask),
+            # 'pitch_markdown': self.clone(ConvertPitchToMarkdownTask),
             'dependencies': self.clone(IdentifyTaskDependenciesTask),
             'durations': self.clone(EstimateTaskDurationsTask),
             'wbs_level3': self.clone(CreateWBSLevel3Task),
             'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task),
-            'plan_evaluator': self.clone(ReviewPlanTask),
-            'executive_summary': self.clone(ExecutiveSummaryTask),
+            # 'plan_evaluator': self.clone(ReviewPlanTask),
+            # 'executive_summary': self.clone(ExecutiveSummaryTask),
             'create_schedule': self.clone(CreateScheduleTask),
-            'questions_and_answers': self.clone(QuestionsAndAnswersTask),
-            'premortem': self.clone(PremortemTask),
+            # 'questions_and_answers': self.clone(QuestionsAndAnswersTask),
+            # 'premortem': self.clone(PremortemTask),
             'report': self.clone(ReportTask),
         }
 
