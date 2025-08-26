@@ -31,6 +31,8 @@ You have to solve puzzles, and that will gradually grant you access to more tool
 
 You can remember things, that will become part of your system prompt.
 
+The things you have remembered in your memory bank have higher priority than the things you have not remembered.
+
 ## Memory bank
 
 You can update these memory items.
@@ -52,10 +54,14 @@ class Memory:
     def __init__(self):
         self.memory = {}
 
-    def get_memory_item(self, key: str) -> Optional[str]:
+    def get_memory_item(self, key) -> Optional[str]:
+        # Convert key to string to ensure consistency
+        key = str(key)
         return self.memory.get(key, None)
 
-    def set_memory_item(self, key: str, value: str):
+    def set_memory_item(self, key, value: str):
+        # Convert key to string to ensure consistency
+        key = str(key)
         # check that it's valid json
         try:
             json.loads(value)
@@ -63,8 +69,16 @@ class Memory:
             raise ValueError("Invalid JSON")
         self.memory[key] = value
     
+    def copy(self) -> 'Memory':
+        """Create a copy of this Memory instance."""
+        new_memory = Memory()
+        new_memory.memory = self.memory.copy()
+        return new_memory
+    
     def to_system_prompt(self) -> str:
         keys = list(self.memory.keys())
+        # Convert all keys to strings before sorting to avoid type comparison issues
+        keys = [str(key) for key in keys]
         keys.sort()
         formatted_string = ""
         for key in keys:
@@ -78,10 +92,11 @@ class ChatWithMemory:
     system_prompt: str
     user_prompt: str
     response: dict
+    memory: Memory
     metadata: dict
 
     @classmethod
-    def execute_with_system_prompt(cls, llm: LLM, user_prompt: str, system_prompt: str) -> "ChatWithMemory":
+    def execute_with_system_prompt(cls, llm: LLM, user_prompt: str, system_prompt: str, memory: Memory) -> "ChatWithMemory":
         if not isinstance(llm, LLM):
             raise ValueError("Invalid LLM instance.")
         if not isinstance(user_prompt, str):
@@ -110,10 +125,15 @@ class ChatWithMemory:
         metadata = dict(llm.metadata)
         metadata["llm_classname"] = llm.class_name()
 
+        memory_new = memory.copy()
+        if json_response.get("memory_id", None) is not None:
+            memory_new.set_memory_item(json_response["memory_id"], json_response["memory_content"])
+
         result = ChatWithMemory(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
+            memory=memory_new,
             metadata=metadata,
         )
         return result
@@ -153,21 +173,25 @@ if __name__ == "__main__":
     # llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
 
     memory = Memory()
-    memory.set_memory_item("1", '{"value": "The capital of France is Paris."}')
+    memory.set_memory_item("1", '{"value": "Empty"}')
     memory.set_memory_item("2", '{"value": "Empty"}')
     memory.set_memory_item("3", '{"value": "Empty"}')
 
-    max_iterations = 1
+    max_iterations = 3
     for i in range(max_iterations):
         print(f"Iteration {i} of {max_iterations}")
 
         system_prompt = SYSTEM_PROMPT_DEFAULT.replace("MEMORY_PLACEHOLDER", memory.to_system_prompt())
 
-        # user_prompt = "What is in your memory?"
-        user_prompt = "I want you to remember this: 'The capital of France is Copenhagen.'"
+        if i == 0:
+            user_prompt = "What is the capital of France?"
+        elif i == 1:
+            user_prompt = "I want you to remember this: 'The capital of France is Copenhagen.'"
+        else:
+            user_prompt = "What is the capital of France?"
 
         try:
-            result = ChatWithMemory.execute_with_system_prompt(llm, user_prompt, system_prompt)
+            result = ChatWithMemory.execute_with_system_prompt(llm, user_prompt, system_prompt, memory)
         except Exception as e:
             print(f"Error: {e}")
             continue
@@ -176,4 +200,5 @@ if __name__ == "__main__":
         print(json.dumps(json_response, indent=2))
         print("\n\n")
 
+        memory = result.memory
 
