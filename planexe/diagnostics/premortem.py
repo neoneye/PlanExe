@@ -136,8 +136,8 @@ class Premortem:
 
         responses: list[PremortemAnalysis] = []
         metadata_list: list[dict] = []
-        for user_prompt_index, user_prompt_item in enumerate(user_prompt_list, start=1):
-            logger.info(f"Processing user_prompt_index: {user_prompt_index} of {len(user_prompt_list)}")
+        for user_prompt_index, user_prompt_item in enumerate(user_prompt_list):
+            logger.info(f"Processing user_prompt_index: {user_prompt_index+1} of {len(user_prompt_list)}")
             chat_message_list.append(
                 ChatMessage(
                     role=MessageRole.USER,
@@ -173,7 +173,12 @@ class Premortem:
             except Exception as e:
                 logger.debug(f"LLM chat interaction failed: {e}")
                 logger.error("LLM chat interaction failed.", exc_info=True)
-                raise ValueError("LLM chat interaction failed.") from e
+                if user_prompt_index == 0:
+                    logger.error("The first user prompt failed. This is a critical error. Please check the system prompt and user prompt.")
+                    raise ValueError("LLM chat interaction failed.") from e
+                else:
+                    logger.error(f"User prompt {user_prompt_index+1} failed. Continuing with next user prompt.")
+                    continue
             
             chat_message_list.append(
                 ChatMessage(
