@@ -11,15 +11,48 @@ from planexe.utils.planexe_config import PlanExeConfig, PlanExeConfigError
 from planexe.utils.planexe_llmconfig import PlanExeLLMConfig
 from typing import Optional, Any
 from llama_index.core.llms.llm import LLM
-from llama_index.llms.mistralai import MistralAI
-from llama_index.llms.ollama import Ollama
-from llama_index.llms.openai_like import OpenAILike
-from llama_index.llms.openai import OpenAI
-from llama_index.llms.together import TogetherLLM
-from llama_index.llms.groq import Groq
-from llama_index.llms.lmstudio import LMStudio
-from llama_index.llms.openrouter import OpenRouter
 from planexe.llm_util.ollama_info import OllamaInfo
+
+# Conditional imports for LLM providers - only import if available
+try:
+    from llama_index.llms.mistralai import MistralAI
+except ImportError:
+    MistralAI = None
+
+try:
+    from llama_index.llms.ollama import Ollama
+except ImportError:
+    Ollama = None
+
+try:
+    from llama_index.llms.openai_like import OpenAILike
+except ImportError:
+    OpenAILike = None
+
+try:
+    from llama_index.llms.openai import OpenAI
+except ImportError:
+    OpenAI = None
+
+try:
+    from llama_index.llms.together import TogetherLLM
+except ImportError:
+    TogetherLLM = None
+
+try:
+    from llama_index.llms.groq import Groq
+except ImportError:
+    Groq = None
+
+try:
+    from llama_index.llms.lmstudio import LMStudio
+except ImportError:
+    LMStudio = None
+
+try:
+    from llama_index.llms.openrouter import OpenRouter
+except ImportError:
+    OpenRouter = None
 
 # You can disable this if you don't want to send app info to OpenRouter.
 SEND_APP_INFO_TO_OPENROUTER = True
@@ -204,6 +237,11 @@ def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
     # Dynamically instantiate the class
     try:
         llm_class = globals()[class_name]  # Get class from global scope
+        
+        # Check if the class is None (meaning the import failed)
+        if llm_class is None:
+            raise ValueError(f"LLM class '{class_name}' is not available. Please install the required package for this LLM provider.")
+        
         return llm_class(**arguments)
     except KeyError:
         raise ValueError(f"Invalid LLM class name in config.json: {class_name}")
