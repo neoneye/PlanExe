@@ -6,6 +6,7 @@ import json
 import traceback
 import logging
 from datetime import datetime
+from pathlib import Path
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.instrumentation import get_dispatcher
 from llama_index.core.instrumentation.event_handlers.base import BaseEventHandler
@@ -25,8 +26,12 @@ class TrackActivity(BaseEventHandler):
     """
     model_config = {'extra': 'allow'}
     
-    def __init__(self, jsonl_file_path: str, write_to_logger: bool = False):
+    def __init__(self, jsonl_file_path: Path, write_to_logger: bool = False):
         super().__init__()
+        if not isinstance(jsonl_file_path, Path):
+            raise ValueError(f"jsonl_file_path must be a Path, got: {jsonl_file_path!r}")
+        if not isinstance(write_to_logger, bool):
+            raise ValueError(f"write_to_logger must be a bool, got: {write_to_logger!r}")
         self.jsonl_file_path = jsonl_file_path
         self.write_to_logger = write_to_logger
     
@@ -56,7 +61,7 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-    jsonl_file_path = "activity_log.jsonl"
+    jsonl_file_path = Path("activity_log.jsonl")
     root = get_dispatcher()
     root.add_event_handler(TrackActivity(jsonl_file_path=jsonl_file_path, write_to_logger=True))
 
@@ -73,10 +78,6 @@ if __name__ == "__main__":
 
 
     llm = get_llm("ollama-llama3.1")
-    # llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
-    # llm = get_llm("deepseek-chat")
-    # llm = get_llm("together-llama3.3")
-    # llm = get_llm("groq-gemma2")
 
     messages = [
         ChatMessage(
