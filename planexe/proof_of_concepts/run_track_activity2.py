@@ -2,6 +2,10 @@
 Usage:
 python -m planexe.proof_of_concepts.run_track_activity2
 """
+import json
+import traceback
+import logging
+from datetime import datetime
 from enum import Enum
 from planexe.llm_factory import get_llm
 from pydantic import BaseModel, Field
@@ -11,16 +15,37 @@ from llama_index.core.instrumentation.event_handlers.base import BaseEventHandle
 from llama_index.core.instrumentation.events.llm import LLMChatStartEvent, LLMChatEndEvent
 from llama_index.core.instrumentation.dispatcher import instrument_tags
 
-class ActivityPrinter(BaseEventHandler):
+logger = logging.getLogger(__name__)
+
+class TrackActivity(BaseEventHandler):
+    model_config = {'extra': 'allow'}
+    
+    def __init__(self, jsonl_file_path: str, write_to_logger: bool = False):
+        super().__init__()
+        self.jsonl_file_path = jsonl_file_path
+        self.write_to_logger = write_to_logger
+    
     @classmethod
     def class_name(cls) -> str:
-        return "ActivityPrinter"
+        return "TrackActivity"
 
     def handle(self, event):
-        if isinstance(event, LLMChatStartEvent):
-            print(f"LLMChatStartEvent: {event!r}")
-        elif isinstance(event, LLMChatEndEvent):
-            print(f"LLMChatEndEvent: {event!r}")
+        if isinstance(event, (LLMChatStartEvent, LLMChatEndEvent)):
+            # Create event record with timestamp and backtrace
+            event_record = {
+                "timestamp": datetime.now().isoformat(),
+                "event_type": event.__class__.__name__,
+                "event_data": json.loads(event.model_dump_json()),
+                "backtrace": traceback.format_stack()
+            }
+            
+            # Append to JSONL file
+            with open(self.jsonl_file_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(event_record) + '\n')
+            
+            # Write to logger if enabled
+            if self.write_to_logger:
+                logger.info(f"{event.__class__.__name__}: {event!r}")
 
 
 class CostType(str, Enum):
@@ -39,8 +64,12 @@ SYSTEM_PROMPT = """
 Fill out the details as best you can.
 """
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+jsonl_file_path = "activity_log.jsonl"
+
 root = get_dispatcher()
-root.add_event_handler(ActivityPrinter())
+root.add_event_handler(TrackActivity(jsonl_file_path=jsonl_file_path, write_to_logger=True))
 
 llm = get_llm("ollama-llama3.1")
 # llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
