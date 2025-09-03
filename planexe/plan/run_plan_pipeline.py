@@ -3890,10 +3890,12 @@ class DemoStoppingExecutePipeline(ExecutePipeline):
 if __name__ == '__main__':
     import colorlog
     import sys
+    from llama_index.core.instrumentation import get_dispatcher
+    from planexe.llm_util.track_activity import TrackActivity
 
     pipeline_environment = PipelineEnvironment.from_env()
     try:
-        run_id_dir = pipeline_environment.get_run_id_dir()
+        run_id_dir: Path = pipeline_environment.get_run_id_dir()
     except ValueError as e:
         msg = f"RUN_ID_DIR is not set or invalid. Error getting run_id_dir: {e!r}"
         logger.error(msg)
@@ -3922,7 +3924,7 @@ if __name__ == '__main__':
 
     # Capture logs messages to 'run/yyyymmdd_hhmmss/log.txt'
     file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    log_file = Path(run_id_dir) / ExtraFilenameEnum.LOG_TXT.value
+    log_file: Path = run_id_dir / ExtraFilenameEnum.LOG_TXT.value
     file_handler = logging.FileHandler(log_file, mode='a')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(file_formatter)
@@ -3956,6 +3958,10 @@ if __name__ == '__main__':
         raise Exception("This is a test exception.")
 
     # logger.info("Environment variables Luigi:\n" + get_env_as_string() + "\n\n\n")
+
+    if True:
+        track_activity = TrackActivity(jsonl_file_path=run_id_dir / ExtraFilenameEnum.TRACK_ACTIVITY_JSONL.value, write_to_logger=False)
+        get_dispatcher().add_event_handler(track_activity)
 
     llm_models = ExecutePipeline.resolve_llm_models(pipeline_environment.llm_model)
 
