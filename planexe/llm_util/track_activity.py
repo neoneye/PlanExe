@@ -1,14 +1,11 @@
 """
 Usage:
-python -m planexe.proof_of_concepts.run_track_activity2
+python -m planexe.llm_util.track_activity
 """
 import json
 import traceback
 import logging
 from datetime import datetime
-from enum import Enum
-from planexe.llm_factory import get_llm
-from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.instrumentation import get_dispatcher
 from llama_index.core.instrumentation.event_handlers.base import BaseEventHandler
@@ -25,10 +22,6 @@ class TrackActivity(BaseEventHandler):
         self.jsonl_file_path = jsonl_file_path
         self.write_to_logger = write_to_logger
     
-    @classmethod
-    def class_name(cls) -> str:
-        return "TrackActivity"
-
     def handle(self, event):
         if isinstance(event, (LLMChatStartEvent, LLMChatEndEvent)):
             # Create event record with timestamp and backtrace
@@ -48,47 +41,47 @@ class TrackActivity(BaseEventHandler):
                 logger.info(f"{event.__class__.__name__}: {event!r}")
 
 
-class CostType(str, Enum):
-    cheap = 'cheap'
-    medium = 'medium'
-    expensive = 'expensive'
+if __name__ == "__main__":
+    from planexe.llm_factory import get_llm
+    from enum import Enum
+    from pydantic import BaseModel, Field
+
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    jsonl_file_path = "activity_log.jsonl"
+    root = get_dispatcher()
+    root.add_event_handler(TrackActivity(jsonl_file_path=jsonl_file_path, write_to_logger=True))
+
+    class CostType(str, Enum):
+        cheap = 'cheap'
+        medium = 'medium'
+        expensive = 'expensive'
 
 
-class ExtractDetails(BaseModel):
-    location: str = Field(description="Name of the location.")
-    cost: CostType = Field(description="Cost of the plan.")
-    summary: str = Field(description="What is this about.")
+    class ExtractDetails(BaseModel):
+        location: str = Field(description="Name of the location.")
+        cost: CostType = Field(description="Cost of the plan.")
+        summary: str = Field(description="What is this about.")
 
 
-SYSTEM_PROMPT = """
-Fill out the details as best you can.
-"""
+    llm = get_llm("ollama-llama3.1")
+    # llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
+    # llm = get_llm("deepseek-chat")
+    # llm = get_llm("together-llama3.3")
+    # llm = get_llm("groq-gemma2")
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    messages = [
+        ChatMessage(
+            role=MessageRole.SYSTEM,
+            content="Fill out the details as best you can."
+        ),
+        ChatMessage(
+            role=MessageRole.USER,
+            content="I want to visit to Mars."
+        ),
+    ]
+    sllm = llm.as_structured_llm(ExtractDetails)
 
-jsonl_file_path = "activity_log.jsonl"
-
-root = get_dispatcher()
-root.add_event_handler(TrackActivity(jsonl_file_path=jsonl_file_path, write_to_logger=True))
-
-llm = get_llm("ollama-llama3.1")
-# llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
-# llm = get_llm("deepseek-chat")
-# llm = get_llm("together-llama3.3")
-# llm = get_llm("groq-gemma2")
-
-messages = [
-    ChatMessage(
-        role=MessageRole.SYSTEM,
-        content=SYSTEM_PROMPT.strip()
-    ),
-    ChatMessage(
-        role=MessageRole.USER,
-        content="I want to visit to Mars."
-    ),
-]
-sllm = llm.as_structured_llm(ExtractDetails)
-
-with instrument_tags({"tag1": "tag1"}):
-    response = sllm.chat(messages)
-    print(f"response:\n{response!r}")
+    with instrument_tags({"tag1": "tag1"}):
+        response = sllm.chat(messages)
+        print(f"response:\n{response!r}")
