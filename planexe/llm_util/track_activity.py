@@ -15,6 +15,14 @@ from llama_index.core.instrumentation.dispatcher import instrument_tags
 logger = logging.getLogger(__name__)
 
 class TrackActivity(BaseEventHandler):
+    """
+    Troubleshooting what is going on within LlamaIndex.
+
+    - What AI model (LLM/reasoning model/diffusion model/other) was used. 
+    - What was the input/output. 
+    - When did it start/end.
+    - Backtrack of where the inference was called from.
+    """
     model_config = {'extra': 'allow'}
     
     def __init__(self, jsonl_file_path: str, write_to_logger: bool = False):
