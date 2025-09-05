@@ -10,7 +10,7 @@ from pathlib import Path
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.instrumentation import get_dispatcher
 from llama_index.core.instrumentation.event_handlers.base import BaseEventHandler
-from llama_index.core.instrumentation.events.llm import LLMChatStartEvent, LLMChatEndEvent
+from llama_index.core.instrumentation.events.llm import LLMChatStartEvent, LLMChatEndEvent, LLMCompletionStartEvent, LLMCompletionEndEvent
 from llama_index.core.instrumentation.dispatcher import instrument_tags
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class TrackActivity(BaseEventHandler):
         self.write_to_logger = write_to_logger
     
     def handle(self, event):
-        if isinstance(event, (LLMChatStartEvent, LLMChatEndEvent)):
+        if isinstance(event, (LLMChatStartEvent, LLMChatEndEvent, LLMCompletionStartEvent, LLMCompletionEndEvent)):
             # Create event record with timestamp and backtrace
             event_record = {
                 "timestamp": datetime.now().isoformat(),
