@@ -11,7 +11,6 @@ from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.instrumentation import get_dispatcher
 from llama_index.core.instrumentation.event_handlers.base import BaseEventHandler
 from llama_index.core.instrumentation.events.llm import LLMChatStartEvent, LLMChatEndEvent, LLMCompletionStartEvent, LLMCompletionEndEvent
-from llama_index.core.instrumentation.dispatcher import instrument_tags
 
 logger = logging.getLogger(__name__)
 
@@ -58,10 +57,11 @@ if __name__ == "__main__":
     from planexe.llm_factory import get_llm
     from enum import Enum
     from pydantic import BaseModel, Field
+    from llama_index.core.instrumentation.dispatcher import instrument_tags
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-    jsonl_file_path = Path("activity_log.jsonl")
+    jsonl_file_path = Path("track_activity.jsonl")
     root = get_dispatcher()
     root.add_event_handler(TrackActivity(jsonl_file_path=jsonl_file_path, write_to_logger=True))
 
