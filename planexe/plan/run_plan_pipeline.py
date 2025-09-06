@@ -3828,7 +3828,7 @@ class ExecutePipeline:
         # Subclasses will provide meaningful implementations here.
 
     def callback_run_task(self, task: PlanTask, duration: float) -> None:
-        logger.debug(f"ExecutePipeline.callback_run_task: Task SUCCEEDED: {task.task_id}. Duration: {duration:.2f} seconds")
+        logger.debug(f"ExecutePipeline.callback_run_task: Current task_id: {task.task_id}. Duration: {duration:.2f} seconds")
 
         progress: PipelineProgress = self.get_progress_percentage()
         logger.debug(f"ExecutePipeline.callback_run_task: Current progress for run {self.run_id_dir}: {progress!r}")
