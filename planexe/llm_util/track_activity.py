@@ -10,7 +10,7 @@ from pathlib import Path
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.instrumentation import get_dispatcher
 from llama_index.core.instrumentation.event_handlers.base import BaseEventHandler
-from llama_index.core.instrumentation.events.llm import LLMChatStartEvent, LLMChatEndEvent, LLMCompletionStartEvent, LLMCompletionEndEvent
+from llama_index.core.instrumentation.events.llm import LLMChatStartEvent, LLMChatEndEvent, LLMCompletionStartEvent, LLMCompletionEndEvent, LLMStructuredPredictStartEvent, LLMStructuredPredictEndEvent
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +34,31 @@ class TrackActivity(BaseEventHandler):
         self.jsonl_file_path = jsonl_file_path
         self.write_to_logger = write_to_logger
     
+    def _filter_sensitive_data(self, data):
+        """Recursively filter out sensitive fields from event data."""
+        if isinstance(data, dict):
+            filtered = {}
+            for key, value in data.items():
+                if key.lower() in ['api_key']:
+                    filtered[key] = "[REDACTED]"
+                else:
+                    filtered[key] = self._filter_sensitive_data(value)
+            return filtered
+        elif isinstance(data, list):
+            return [self._filter_sensitive_data(item) for item in data]
+        else:
+            return data
+
     def handle(self, event):
-        if isinstance(event, (LLMChatStartEvent, LLMChatEndEvent, LLMCompletionStartEvent, LLMCompletionEndEvent)):
+        if isinstance(event, (LLMChatStartEvent, LLMChatEndEvent, LLMCompletionStartEvent, LLMCompletionEndEvent, LLMStructuredPredictStartEvent, LLMStructuredPredictEndEvent)):
             # Create event record with timestamp and backtrace
+            event_data = json.loads(event.model_dump_json())
+            filtered_event_data = self._filter_sensitive_data(event_data)
+            
             event_record = {
                 "timestamp": datetime.now().isoformat(),
                 "event_type": event.__class__.__name__,
-                "event_data": json.loads(event.model_dump_json()),
+                "event_data": filtered_event_data,
                 "backtrace": traceback.format_stack()
             }
             
