@@ -68,7 +68,7 @@ class FailureModeItem(BaseModel):
     stop_rule: Optional[str] = Field(None, description="A single, short, hard stop condition that would trigger project cancellation or a major pivot.")
 
 class PremortemAnalysis(BaseModel):
-    assumptions_to_kill: List[AssumptionItem] = Field(description="A list of 3 critical, underlying assumptions to test immediately.")
+    assumptions_to_kill: List[AssumptionItem] = Field(description="A list of 3 new, critical, underlying assumptions to test immediately.")
     failure_modes: List[FailureModeItem] = Field(description="A list containing exactly 3 distinct failure failure_modes, one for each archetype.")
 
 PREMORTEM_SYSTEM_PROMPT = """
@@ -89,7 +89,14 @@ Instructions:
     2.  An assessment/triage action, e.g., 'Assess: Figure out how bad the damage is.'
     3.  A strategic response action, e.g., 'Respond: Take strategic action based on the assessment.'
 9.  The `stop_rule` MUST be a hard, non-negotiable condition for project cancellation or a major pivot.
-10. Your entire output must be a single, valid JSON object. Do not add any text or explanation outside of the JSON structure.
+10. Your entire output must be a single, valid JSON object. For any follow-up requests, you MUST regenerate the full JSON object including all required fields, not just the part being changed. Do not add any text or explanation outside of the JSON structure.
+
+FULL-OBJECT, TWO-KEYS ONLY (HARD RULE)
+- The top-level JSON MUST contain exactly two keys: "assumptions_to_kill" and "failure_modes". No other keys are allowed.
+- On follow-up requests (even if they ask for “only assumptions”), you MUST return the full JSON object with BOTH keys present and populated. Never omit or leave "failure_modes" empty.
+- If asked to start at A4/A7/etc., create exactly 3 new assumptions with those IDs and REBUILD all 3 failure_modes to reference them (each assumption used exactly once).
+- The message must END immediately after the closing "}" of the JSON. No markdown or text after it.
+- Self-check before sending: output starts with "{" and ends with "}", includes BOTH required keys, has exactly 3 assumptions and exactly 3 failure_modes.
 """
 
 @dataclass
@@ -364,11 +371,11 @@ if __name__ == "__main__":
     from planexe.plan.find_plan_prompt import find_plan_prompt
 
     model_names = [
-        # "openrouter-paid-gemini-2.0-flash-001", # Works correctly nearly always.
-        "ollama-llama3.1", # All responses are valid json.
-        # "openrouter-paid-openai-gpt-oss-20b", # First response is valid json. Invalid json for subsequent responses.
-        # "openrouter-paid-openai-gpt-4o-mini", # First response is valid json. Invalid json for subsequent responses.
-        # "openrouter-paid-qwen3-30b-a3b", # Invalid json in the first response.
+        "ollama-llama3.1",
+        # "openrouter-paid-gemini-2.0-flash-001",
+        # "openrouter-paid-openai-gpt-oss-20b",
+        # "openrouter-paid-openai-gpt-4o-mini",
+        # "openrouter-paid-qwen3-30b-a3b",
     ]
     llm_models = LLMModelFromName.from_names(model_names)
     llm_executor = LLMExecutor(llm_models=llm_models)
