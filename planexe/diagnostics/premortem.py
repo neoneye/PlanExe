@@ -112,7 +112,7 @@ class Premortem:
         logger.debug(f"User Prompt:\n{user_prompt}")
         system_prompt = PREMORTEM_SYSTEM_PROMPT.strip()
 
-        chat_message_list = [
+        accumulated_chat_message_list = [
             ChatMessage(
                 role=MessageRole.SYSTEM,
                 content=system_prompt,
@@ -134,6 +134,7 @@ class Premortem:
         metadata_list: list[dict] = []
         for user_prompt_index, user_prompt_item in enumerate(user_prompt_list):
             logger.info(f"Processing user_prompt_index: {user_prompt_index+1} of {len(user_prompt_list)}")
+            chat_message_list = accumulated_chat_message_list.copy()
             chat_message_list.append(
                 ChatMessage(
                     role=MessageRole.USER,
@@ -185,6 +186,7 @@ class Premortem:
 
             responses.append(result["pydantic_response"])
             metadata_list.append(result["metadata"])
+            accumulated_chat_message_list = chat_message_list.copy()
 
         # Use the last response as the primary result
         assumptions_to_kill: list[AssumptionItem] = []
