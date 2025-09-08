@@ -116,10 +116,6 @@ class Premortem:
             ChatMessage(
                 role=MessageRole.SYSTEM,
                 content=system_prompt,
-            ),
-            ChatMessage(
-                role=MessageRole.USER,
-                content=user_prompt,
             )
         ]
 
