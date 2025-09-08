@@ -177,10 +177,14 @@ class Premortem:
                     logger.error(f"User prompt {user_prompt_index+1} failed. Continuing with next user prompt.")
                     continue
             
+            assistant_content_raw: dict = result["pydantic_response"].model_dump()
+            # Compact JSON without newlines and spaces, since it's going to be parsed by the LLM. Pretty printing wastes input tokens for the LLM.
+            assistant_content: str = json.dumps(assistant_content_raw, separators=(',', ':'))
+
             chat_message_list.append(
                 ChatMessage(
                     role=MessageRole.ASSISTANT,
-                    content=result["pydantic_response"].model_dump(),
+                    content=assistant_content,
                 )
             )
 
