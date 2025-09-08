@@ -364,8 +364,11 @@ if __name__ == "__main__":
     from planexe.plan.find_plan_prompt import find_plan_prompt
 
     model_names = [
-        "ollama-llama3.1",
-        # "openrouter-paid-openai-gpt-oss-20b",
+        # "openrouter-paid-gemini-2.0-flash-001", # Works correctly nearly always.
+        "ollama-llama3.1", # All responses are valid json.
+        # "openrouter-paid-openai-gpt-oss-20b", # First response is valid json. Invalid json for subsequent responses.
+        # "openrouter-paid-openai-gpt-4o-mini", # First response is valid json. Invalid json for subsequent responses.
+        # "openrouter-paid-qwen3-30b-a3b", # Invalid json in the first response.
     ]
     llm_models = LLMModelFromName.from_names(model_names)
     llm_executor = LLMExecutor(llm_models=llm_models)
@@ -375,7 +378,7 @@ if __name__ == "__main__":
     plan_prompt = find_plan_prompt(prompt_id)
 
     print(f"Query:\n{plan_prompt}\n\n")
-    result = Premortem.execute(llm_executor=llm_executor, speed_vs_detail=SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS, user_prompt=plan_prompt)
+    result = Premortem.execute(llm_executor=llm_executor, speed_vs_detail=SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW, user_prompt=plan_prompt)
     
     response_data = result.to_dict(include_metadata=True, include_system_prompt=False, include_user_prompt=False, include_markdown=False)
     
