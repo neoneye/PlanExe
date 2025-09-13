@@ -52,14 +52,14 @@ class ExpertFinder:
     """
     Find experts that can advise about the particular domain.
     """
-    system_prompt: Optional[str]
+    system_prompt: str
     user_prompt: str
     response: dict
     metadata: dict
     expert_list: list[dict]
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str, **kwargs: Any) -> 'ExpertFinder':
+    def execute(cls, llm: LLM, user_prompt: str) -> 'ExpertFinder':
         """
         Invoke LLM to find the best suited experts that can advise about attached file.
         """
@@ -68,31 +68,18 @@ class ExpertFinder:
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid query.")
 
-        default_args = {
-            'system_prompt': EXPERT_FINDER_SYSTEM_PROMPT.strip()
-        }
-        default_args.update(kwargs)
+        system_prompt = EXPERT_FINDER_SYSTEM_PROMPT.strip()
 
-        system_prompt = default_args.get('system_prompt')
-        logger.debug(f"System Prompt:\n{system_prompt}")
-        if system_prompt and not isinstance(system_prompt, str):
-            raise ValueError("Invalid system prompt.")
-
-        chat_message_list1 = []
-        if system_prompt:
-            chat_message_list1.append(
-                ChatMessage(
-                    role=MessageRole.SYSTEM,
-                    content=system_prompt,
-                )
+        chat_message_list1 = [
+            ChatMessage(
+                role=MessageRole.SYSTEM,
+                content=system_prompt,
+            ),
+            ChatMessage(
+                role=MessageRole.USER,
+                content=user_prompt,
             )
-        
-        logger.debug(f"User Prompt:\n{user_prompt}")
-        chat_message_user1 = ChatMessage(
-            role=MessageRole.USER,
-            content=user_prompt,
-        )
-        chat_message_list1.append(chat_message_user1)
+        ]
 
         sllm = llm.as_structured_llm(ExpertDetails)
 
