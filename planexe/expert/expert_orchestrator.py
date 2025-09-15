@@ -32,18 +32,7 @@ class ExpertOrchestrator:
             raise ValueError("Invalid query.")
 
         logger.info("Finding experts that can provide criticism...")
-
-        def execute_expert_finder(llm: LLM) -> ExpertFinder:
-            return ExpertFinder.execute(llm, query)
-
-        try:
-            self.expert_finder = llm_executor.run(execute_expert_finder)
-        except PipelineStopRequested:
-            # Re-raise PipelineStopRequested without wrapping it
-            raise
-        except Exception as e:
-            logger.error("Expert finder LLM interaction failed.", exc_info=True)
-            raise ValueError("Expert finder LLM interaction failed.") from e
+        self.expert_finder = ExpertFinder.execute(llm_executor, query)
 
         if self.phase1_post_callback:
             self.phase1_post_callback(self.expert_finder)

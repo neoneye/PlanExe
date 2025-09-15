@@ -12,11 +12,11 @@ import time
 import logging
 from math import ceil
 from uuid import uuid4
-from typing import Optional, Any
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from llama_index.core.llms.llm import LLM
 from llama_index.core.llms import ChatMessage, MessageRole
+from planexe.llm_util.llm_executor import LLMExecutor, PipelineStopRequested
 
 logger = logging.getLogger(__name__)
 
@@ -59,12 +59,12 @@ class ExpertFinder:
     expert_list: list[dict]
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'ExpertFinder':
+    def execute(cls, llm_executor: LLMExecutor, user_prompt: str) -> 'ExpertFinder':
         """
         Invoke LLM to find the best suited experts that can advise about attached file.
         """
-        if not isinstance(llm, LLM):
-            raise ValueError("Invalid LLM instance.")
+        if not isinstance(llm_executor, LLMExecutor):
+            raise ValueError("Invalid LLMExecutor instance.")
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid query.")
 
@@ -81,15 +81,35 @@ class ExpertFinder:
             )
         ]
 
-        sllm = llm.as_structured_llm(ExpertDetails)
+        def execute_function1(llm: LLM) -> dict:
+            sllm = llm.as_structured_llm(ExpertDetails)
+            logger.debug("Starting LLM chat interaction 1.")
+            start_time = time.perf_counter()
+            chat_response = sllm.chat(chat_message_list1)
+            end_time = time.perf_counter()
+            duration = int(ceil(end_time - start_time))
+            response_byte_count = len(chat_response.message.content.encode('utf-8'))
+            logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
+            
+            metadata = dict(llm.metadata)
+            metadata["llm_classname"] = llm.class_name()
+            metadata["duration"] = duration
+            metadata["response_byte_count"] = response_byte_count
+            
+            return {
+                "chat_response": chat_response,
+                "metadata": metadata,
+            }
 
-        logger.debug("Starting LLM chat interaction 1.")
-        start_time = time.perf_counter()
-        chat_response1 = sllm.chat(chat_message_list1)
-        end_time = time.perf_counter()
-        duration1 = int(ceil(end_time - start_time))
-        response_byte_count1 = len(chat_response1.message.content.encode('utf-8'))
-        logger.info(f"LLM chat interaction completed in {duration1} seconds. Response byte count: {response_byte_count1}")
+        try:
+            result1 = llm_executor.run(execute_function1)
+        except PipelineStopRequested:
+            raise
+        except Exception as e:
+            logger.error("LLM chat interaction 1 failed.", exc_info=True)
+            raise ValueError("LLM chat interaction 1 failed.") from e
+
+        chat_response1 = result1["chat_response"]
 
         # Do a follow up question, for obtaining more experts.
         chat_message_assistant2 = ChatMessage(
@@ -104,20 +124,40 @@ class ExpertFinder:
         chat_message_list2.append(chat_message_assistant2)
         chat_message_list2.append(chat_message_user2)
 
-        logger.debug("Starting LLM chat interaction 2.")
-        start_time = time.perf_counter()
-        chat_response2 = sllm.chat(chat_message_list2)
-        end_time = time.perf_counter()
-        duration2 = int(ceil(end_time - start_time))
-        response_byte_count2 = len(chat_response2.message.content.encode('utf-8'))
-        logger.info(f"LLM chat interaction completed in {duration2} seconds. Response byte count: {response_byte_count2}")
+        def execute_function2(llm: LLM) -> dict:
+            sllm = llm.as_structured_llm(ExpertDetails)
+            logger.debug("Starting LLM chat interaction 2.")
+            start_time = time.perf_counter()
+            chat_response = sllm.chat(chat_message_list2)
+            end_time = time.perf_counter()
+            duration = int(ceil(end_time - start_time))
+            response_byte_count = len(chat_response.message.content.encode('utf-8'))
+            logger.info(f"LLM chat interaction completed in {duration} seconds. Response byte count: {response_byte_count}")
+            
+            metadata = dict(llm.metadata)
+            metadata["llm_classname"] = llm.class_name()
+            metadata["duration"] = duration
+            metadata["response_byte_count"] = response_byte_count
+            
+            return {
+                "chat_response": chat_response,
+                "metadata": metadata,
+            }
 
-        metadata = dict(llm.metadata)
-        metadata["llm_classname"] = llm.class_name()
-        metadata["duration1"] = duration1
-        metadata["duration2"] = duration2
-        metadata["response_byte_count1"] = response_byte_count1
-        metadata["response_byte_count2"] = response_byte_count2
+        try:
+            result2 = llm_executor.run(execute_function2)
+        except PipelineStopRequested:
+            raise
+        except Exception as e:
+            logger.error("LLM chat interaction 2 failed.", exc_info=True)
+            raise ValueError("LLM chat interaction 2 failed.") from e
+
+        chat_response2 = result2["chat_response"]
+
+        metadata = {
+            "result1": result1["metadata"],
+            "result2": result2["metadata"]
+        }
 
         json_response1 = json.loads(chat_response1.message.content)
         json_response2 = json.loads(chat_response2.message.content)
@@ -144,15 +184,13 @@ class ExpertFinder:
 
         logger.info(f"Found {len(expert_list)} experts.")
 
-        result = ExpertFinder(
+        return ExpertFinder(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response_merged,
             metadata=metadata,
             expert_list=expert_list,
         )
-        logger.debug("CreateProjectPlan instance created successfully.")
-        return result    
 
     def to_dict(self, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
         d = self.response.copy()
@@ -175,7 +213,7 @@ class ExpertFinder:
 
 if __name__ == "__main__":
     import logging
-    from planexe.llm_factory import get_llm
+    from planexe.llm_util.llm_executor import LLMExecutor, LLMModelFromName
     import os
 
     logging.basicConfig(
@@ -192,11 +230,12 @@ if __name__ == "__main__":
 
     query = f"SWOT Analysis:\n{swot_markdown}"
 
-    llm = get_llm("ollama-llama3.1")
-    # llm = get_llm("deepseek-chat", max_tokens=8192)
+    # Create LLMExecutor with fallback models
+    llm_models = LLMModelFromName.from_names(["ollama-llama3.1", "deepseek-chat"])
+    llm_executor = LLMExecutor(llm_models=llm_models)
 
     print(f"Query: {query}")
-    result = ExpertFinder.execute(llm, query)
+    result = ExpertFinder.execute(llm_executor, query)
 
     print("\n\nResponse:")
     print(json.dumps(result.to_dict(include_system_prompt=False, include_user_prompt=False), indent=2))
