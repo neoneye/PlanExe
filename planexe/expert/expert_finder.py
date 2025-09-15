@@ -224,18 +224,21 @@ if __name__ == "__main__":
         ]
     )
 
-    path = os.path.join(os.path.dirname(__file__), 'test_data', 'solarfarm_swot_analysis.md')
+    path = os.path.join(os.path.dirname(__file__), 'test_data', 'expert_finder_user_prompt1.txt')
     with open(path, 'r', encoding='utf-8') as f:
-        swot_markdown = f.read()
-
-    query = f"SWOT Analysis:\n{swot_markdown}"
+        user_prompt = f.read()
 
     # Create LLMExecutor with fallback models
-    llm_models = LLMModelFromName.from_names(["ollama-llama3.1", "deepseek-chat"])
+    llm_models = LLMModelFromName.from_names([
+        # "openrouter-paid-gemini-2.0-flash-001",
+        # "openrouter-paid-openai-gpt-4o-mini",
+        "ollama-llama3.1", 
+        "deepseek-chat"
+    ])
     llm_executor = LLMExecutor(llm_models=llm_models)
 
-    print(f"Query: {query}")
-    result = ExpertFinder.execute(llm_executor, query)
+    # print(f"User prompt: {user_prompt}")
+    result = ExpertFinder.execute(llm_executor, user_prompt)
 
     print("\n\nResponse:")
     print(json.dumps(result.to_dict(include_system_prompt=False, include_user_prompt=False), indent=2))
