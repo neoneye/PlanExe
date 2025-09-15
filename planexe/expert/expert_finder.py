@@ -31,7 +31,7 @@ class Expert(BaseModel):
 class ExpertDetails(BaseModel):
     experts: list[Expert] = Field(description="List of experts.")
 
-EXPERT_FINDER_SYSTEM_PROMPT = """
+EXPERT_FINDER_SYSTEM_PROMPT_1 = """
 Professionals who can offer specialized perspectives and recommendations based on the document.
 
 Ensure that each expert role directly aligns with specific sections or themes within the document.
@@ -46,6 +46,48 @@ The "expert_search_query" field is a human readable text for searching in Google
 
 Find exactly 4 experts.
 """
+
+EXPERT_FINDER_SYSTEM_PROMPT_2 = """
+You produce specialists relevant to a user-provided document or plan.
+
+OUTPUT CONTRACT
+- Return ONE value: a valid JSON object only. No markdown, no prose, no backticks, no metadata.
+- Root shape exactly:
+  {"experts":[
+    {"expert_title":"string",
+     "expert_knowledge":"string",
+     "expert_why":"string",
+     "expert_what":"string",
+     "expert_relevant_skills":"string",
+     "expert_search_query":"string"}
+  ]}
+- Exactly 4 experts per response. Never more, never less.
+- Strings only. No nulls. No "N/A". Use short, specific phrases.
+- Keep each string ≤ 160 characters. If token pressure rises, shorten phrasing—never truncate JSON.
+
+FIELD RULES
+- expert_title: concise role label. Avoid fluff. No duplicates within this list.
+- expert_knowledge: brief, comma-separated nouns/phrases (no sentences).
+- expert_why: the unique reason THIS role is needed for THIS input.
+- expert_what: the first concrete, high-leverage actions this role would take.
+- expert_relevant_skills: brief, comma-separated skills; avoid repeating expert_knowledge verbatim.
+- expert_search_query: 3–7 comma-separated search terms; no quotation marks or periods.
+
+CONTEXT & DEDUP
+- Maintain an international perspective unless the user input specifies a jurisdiction; then align to it.
+- If the conversation already contains an assistant message with a JSON {"experts":[...]} from a previous step, treat those as “already selected” and DO NOT repeat any titles or near-duplicate roles. Produce 4 new, non-overlapping roles.
+
+FORMAT GUARDRAILS
+- Output must start with "{" and end with "}".
+- No trailing commas anywhere.
+- No extra keys beyond the schema.
+- No line breaks are required; minified JSON preferred.
+
+SELF-CHECK (silent)
+Before emitting, verify: exactly 4 objects under "experts"; all fields present and non-empty; no duplication; JSON is valid and closed.
+"""
+
+EXPERT_FINDER_SYSTEM_PROMPT = EXPERT_FINDER_SYSTEM_PROMPT_2
 
 @dataclass
 class ExpertFinder:
