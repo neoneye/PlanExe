@@ -137,6 +137,7 @@ class ExpertFinder:
             metadata["llm_classname"] = llm.class_name()
             metadata["duration"] = duration
             metadata["response_byte_count"] = response_byte_count
+            metadata["expert_count"] = len(chat_response.raw.experts)
             
             return {
                 "chat_response": chat_response,
@@ -180,6 +181,7 @@ class ExpertFinder:
             metadata["llm_classname"] = llm.class_name()
             metadata["duration"] = duration
             metadata["response_byte_count"] = response_byte_count
+            metadata["expert_count"] = len(chat_response.raw.experts)
             
             return {
                 "chat_response": chat_response,
