@@ -1,3 +1,10 @@
+<!--
+ * Author: Cascade
+ * Date: 2025-09-19
+ * PURPOSE: Comprehensive technical documentation for PlanExe. Provides architecture overview, setup instructions, development guidelines, and project structure.
+ * SRP and DRY check: Pass - This file solely documents the project and avoids duplicating code logic.
+-->
+
 # PlanExe
 
 What if you could plan a dystopian police state from a single prompt?
@@ -90,3 +97,107 @@ For help or feedback.
 Join the [PlanExe Discord](https://neoneye.github.io/PlanExe-web/discord).
 
 </details>
+
+---
+
+## Technical Architecture
+
+PlanExe transforms a vague idea into a fully-fledged, multi-chapter execution plan. Internally it is organised as a **loosely coupled, layered architecture**:
+
+```mermaid
+flowchart TD
+    subgraph Presentation
+        A1[Gradio UI (Python)]
+        A2[Flask UI (Python)]
+        A3[Vite / React UI (nodejs-ui)]
+    end
+    subgraph API
+        B1[FastAPI Server (planexe_api)]
+    end
+    subgraph Application
+        C1[Plan Pipeline Orchestrator\n(planexe.plan.*)]
+        C2[Prompt Catalog]
+        C3[Expert Systems]
+    end
+    subgraph Infrastructure
+        D1[LLM Factory\n(OpenRouter / Ollama / LM Studio)]
+        D2[PostgreSQL (SQLAlchemy ORM)]
+        D3[Filesystem Run Artifacts]
+    end
+    A1 --HTTP--> B1
+    A2 --HTTP--> B1
+    A3 --HTTP--> B1
+    B1 --Sub-process--> C1
+    C1 --Reads/Writes--> D3
+    C1 --Persists--> D2
+    C1 --Calls--> D1
+    C1 --Uses--> C2
+    C1 --Uses--> C3
+```
+
+### Key Components
+1. **planexe.plan** – Pure-Python pipeline that breaks the prompt into phases such as SWOT, WBS, cost estimation, report rendering.
+2. **planexe_api** – FastAPI micro-service exposing a clean REST interface for creating and monitoring plan jobs.
+3. **planexe.ui_flask** – Developer-friendly Flask server showcasing SSE progress streaming.
+4. **nodejs-ui** – Optional modern browser client built with Vite + React; consumes the REST API.
+5. **LLM Factory** – `planexe.llm_factory` selects the best available model (OpenRouter or local) at runtime.
+6. **Database Layer** – `planexe_api.database` provides Postgres persistence for plans, files, and metrics.
+
+## Directory Structure (simplified)
+
+```text
+PlanExe/
+├── planexe/             # Core business & pipeline logic (Python pkg)
+│   ├── plan/            # Orchestration & pipeline stages
+│   ├── ui_flask/        # Lightweight Flask UI
+│   └── ...
+├── planexe_api/         # Production-grade FastAPI server
+├── nodejs-ui/           # Vite + React single-page frontend
+├── nodejs-client/       # Example JS/TS client for API consumption
+├── docs/                # Additional markdown docs & ADRs
+├── extra/               # Provider-specific setup guides (Ollama, LM Studio, OpenRouter)
+├── run/                 # Generated artefacts (<run_id>) during execution
+├── pyproject.toml       # Poetry project metadata
+└── README.md            # You are here
+```
+
+## Local Development Workflow
+
+1. Clone & create virtual env:
+   ```powershell
+   git clone https://github.com/neoneye/PlanExe.git
+   python -m venv .venv
+   .venv\Scripts\Activate
+   pip install -e ".[dev,gradio-ui]"
+   ```
+2. Copy `.env.example` to `.env` and fill in any provider keys (e.g. `OPENROUTER_API_KEY`).
+3. Launch FastAPI + Vite UI for a full-stack experience:
+   ```powershell
+   # Terminal 1 – API
+   uvicorn planexe_api.api:app --reload
+
+   # Terminal 2 – React UI (auto proxies 5173 → 8000)
+   cd nodejs-ui
+   npm install && npm run dev
+   ```
+4. Open http://localhost:5173 and start generating plans.
+
+## Automated Tests
+
+```powershell
+pytest -q
+```
+
+Current coverage focuses on utility functions; contributions of pipeline unit tests are welcome.
+
+## Deployment
+
+Production deployments use **Railway** for Postgres + container hosting. A sample Dockerfile lives in `docker/` and sets up Gunicorn + Uvicorn workers for `planexe_api`. Refer to `docker/README.md` for step-by-step instructions.
+
+## Extending the Pipeline
+
+Add a new stage by implementing `planexe.plan.<your_stage>.py`, then register it in `planexe.plan.run_plan_pipeline`. The pipeline will automatically stream progress updates via SSE to all UIs.
+
+---
+
+*This section was generated on 2025-09-19 and will evolve as the codebase grows.*
