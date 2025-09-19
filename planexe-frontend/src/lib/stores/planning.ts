@@ -6,7 +6,8 @@
  */
 
 import { create } from 'zustand';
-import { CreatePlanRequest, CreatePlanResponse } from '@/lib/types/api';
+import { CreatePlanRequest, PlanResponse } from '@/lib/api/client';
+import { apiClient } from '@/lib/api/client';
 import { PipelineProgress, PipelineStatus } from '@/lib/types/pipeline';
 import { useSessionStore } from './session';
 
@@ -58,18 +59,8 @@ export const usePlanningStore = create<PlanningState>((set, get) => ({
     set({ isCreating: true, error: null });
 
     try {
-      const response = await fetch('/api/plans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || 'Failed to create plan');
-      }
-
-      const data: CreatePlanResponse = await response.json();
+      // Use new API client - automatically handles field translation
+      const data: PlanResponse = await apiClient.createPlan(request);
 
       if (data.success) {
         const activePlan: ActivePlan = {
