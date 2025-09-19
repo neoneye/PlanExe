@@ -14,7 +14,7 @@ const TEST_CONFIG = {
   testPlan: {
     prompt: 'Create a simple mobile app development plan for a todo list application with user authentication and cloud sync.',
     llmModel: 'ollama-llama3.2:3b', // Use local model for testing
-    speedVsDetail: 'FAST_BUT_SKIP_DETAILS',
+    speedVsDetail: 'FAST_BUT_SKIP_DETAILS', 
     title: 'Integration Test Plan'
   },
   timeout: 300000, // 5 minutes timeout

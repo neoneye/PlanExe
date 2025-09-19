@@ -27,7 +27,8 @@ export const PlanFormSchema = z.object({
     .min(1, 'Please select an LLM model'),
 
   speedVsDetail: z
-    .enum(['ALL_DETAILS_BUT_SLOW', 'FAST_BUT_SKIP_DETAILS']),
+    .enum(['ALL_DETAILS_BUT_SLOW', 'FAST_BUT_SKIP_DETAILS'])
+    .transform((val) => val), // Keep camelCase for frontend, transform in API
 
   openrouterApiKey: z
     .string()

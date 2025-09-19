@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { spawn } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
 import {
@@ -88,23 +88,23 @@ async function startLuigiPipeline(runDir: string, config: {
   const pythonScript = path.join(planExeRoot, 'planexe', 'plan', 'run_plan_pipeline.py');
 
   // Set environment variables for Luigi pipeline
-  const env = {
+  const env: Record<string, string> = {
     ...process.env,
     RUN_ID_DIR: runDir,
     SPEED_VS_DETAIL: config.speedVsDetail,
     LLM_MODEL: config.llmModel,
-  };
+  } as Record<string, string>;
 
   // Add OpenRouter API key if provided
   if (config.openrouterApiKey) {
     env.OPENROUTER_API_KEY = config.openrouterApiKey;
   }
 
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     // Start Python subprocess
-    const pythonProcess = spawn('python', ['-m', 'planexe.plan.run_plan_pipeline'], {
+    const pythonProcess: ChildProcess = spawn('python', ['-m', 'planexe.plan.run_plan_pipeline'], {
       cwd: planExeRoot,
-      env,
+      env: env as any, // Type assertion for environment variables
       detached: true,
       stdio: ['ignore', 'pipe', 'pipe']
     });
@@ -115,22 +115,22 @@ async function startLuigiPipeline(runDir: string, config: {
       resolve();
     });
 
-    pythonProcess.on('error', (error) => {
+    pythonProcess.on('error', (error: Error) => {
       console.error(`Failed to start Luigi pipeline: ${error}`);
       reject(new Error(`Pipeline startup failed: ${error.message}`));
     });
 
     // Log output for debugging
-    pythonProcess.stdout?.on('data', (data) => {
+    pythonProcess.stdout?.on('data', (data: Buffer) => {
       console.log(`Pipeline stdout: ${data.toString()}`);
     });
 
-    pythonProcess.stderr?.on('data', (data) => {
+    pythonProcess.stderr?.on('data', (data: Buffer) => {
       console.error(`Pipeline stderr: ${data.toString()}`);
     });
 
     // Don't wait for process completion - it runs in background
-    pythonProcess.unref();
+    pythonProcess.unref?.();
   });
 }
 
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Generate unique identifiers
     const runId = generateRunId();
-    const planId = `plan_${runId}`;
+    const planId = `PlanExe_${runId}`; // Match documentation format
 
     // Create run directory structure
     const runDir = await createRunDirectory(runId);

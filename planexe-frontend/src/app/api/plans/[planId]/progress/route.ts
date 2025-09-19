@@ -23,7 +23,7 @@ function getPlanExeRoot(): string {
 
 // Extract run ID from plan ID
 function extractRunId(planId: string): string {
-  return planId.replace('plan_', '');
+  return planId.replace('PlanExe_', '');
 }
 
 // Get run directory path
