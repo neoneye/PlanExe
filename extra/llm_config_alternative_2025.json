@@ -1,0 +1,120 @@
+{
+    "openrouter-paid-gpt-5-2025-08-07": {
+        "comment": "GPT-5 model released in August 2025. This is a reasoning model with high performance. 400,000 context window. $1.25/M input tokens. $10.00/M output tokens.",
+        "class": "OpenRouter",
+        "arguments": {
+            "model": "openai/gpt-5-2025-08-07",
+            "api_key": "${OPENROUTER_API_KEY}",
+            "temperature": 0.1,
+            "timeout": 60.0,
+            "is_function_calling_model": false,
+            "is_chat_model": true,
+            "max_tokens": 8192,
+            "max_retries": 5
+        }
+    },
+    "openrouter-paid-gpt-5-chat-latest": {
+        "comment": "GPT-5 Chat model released in August 2025. Fast response time with 256,000 context window. $1.25/M input tokens. $10.00/M output tokens.",
+        "class": "OpenRouter",
+        "arguments": {
+            "model": "openai/gpt-5-chat-latest",
+            "api_key": "${OPENROUTER_API_KEY}",
+            "temperature": 0.1,
+            "timeout": 60.0,
+            "is_function_calling_model": false,
+            "is_chat_model": true,
+            "max_tokens": 8192,
+            "max_retries": 5
+        }
+    },
+    "openrouter-paid-gpt-4-1-2025-04-14": {
+        "comment": "GPT-4.1 model released in April 2025. 1,000,000 context window. $2.00/M input tokens. $8.00/M output tokens.",
+        "class": "OpenRouter",
+        "arguments": {
+            "model": "openai/gpt-4.1-2025-04-14",
+            "api_key": "${OPENROUTER_API_KEY}",
+            "temperature": 0.1,
+            "timeout": 60.0,
+            "is_function_calling_model": false,
+            "is_chat_model": true,
+            "max_tokens": 8192,
+            "max_retries": 5
+        }
+    },
+    "openrouter-paid-gemini-2-5-pro": {
+        "comment": "Gemini 2.5 Pro model released in August 2025. Reasoning model with 1,000,000 context window. $2.50/M input tokens. $8.00/M output tokens.",
+        "class": "OpenRouter",
+        "arguments": {
+            "model": "google/gemini-2.5-pro",
+            "api_key": "${OPENROUTER_API_KEY}",
+            "temperature": 0.1,
+            "timeout": 60.0,
+            "is_function_calling_model": false,
+            "is_chat_model": true,
+            "max_tokens": 8192,
+            "max_retries": 5
+        }
+    },
+    "openrouter-paid-claude-sonnet-4-20250514": {
+        "comment": "Claude Sonnet 4 model released in May 2025. Reasoning model with 64,000 max output tokens. $3.00/M input tokens. $15.00/M output tokens.",
+        "class": "OpenRouter",
+        "arguments": {
+            "model": "anthropic/claude-sonnet-4-20250514",
+            "api_key": "${OPENROUTER_API_KEY}",
+            "temperature": 0.1,
+            "timeout": 60.0,
+            "is_function_calling_model": false,
+            "is_chat_model": true,
+            "max_tokens": 8192,
+            "max_retries": 5
+        }
+    },
+    "openrouter-paid-qwen-plus-2025-07-28-thinking": {
+        "comment": "Qwen Plus thinking model released in July 2025. Reasoning model with 1,000,000 context window. $0.40 - $1.20/M input tokens. $4.00 - $12.00/M output tokens.",
+        "class": "OpenRouter",
+        "arguments": {
+            "model": "qwen/qwen-plus-2025-07-28:thinking",
+            "api_key": "${OPENROUTER_API_KEY}",
+            "temperature": 0.1,
+            "timeout": 60.0,
+            "is_function_calling_model": false,
+            "is_chat_model": true,
+            "max_tokens": 8192,
+            "max_retries": 5
+        }
+    },
+    "openrouter-paid-moonshotai-kimi-k2-0905": {
+        "comment": "Moonshot Kimi K2 model released in September 2025. Reasoning model with 63,000 context window. $1.00/M input tokens. $3.00/M output tokens.",
+        "class": "OpenRouter",
+        "arguments": {
+            "model": "moonshotai/kimi-k2-0905",
+            "api_key": "${OPENROUTER_API_KEY}",
+            "temperature": 0.1,
+            "timeout": 60.0,
+            "is_function_calling_model": false,
+            "is_chat_model": true,
+            "max_tokens": 8192,
+            "max_retries": 5
+        }
+    },
+    "ollama-llama3-1": {
+        "comment": "This runs on your own computer. It's free. Requires Ollama to be installed.",
+        "class": "Ollama",
+        "arguments": {
+            "model": "llama3.1:latest",
+            "temperature": 0.5,
+            "request_timeout": 120.0,
+            "is_function_calling_model": false
+        }
+    },
+    "ollama-qwen2-5-coder": {
+        "comment": "This runs on your own computer. It's free. Requires Ollama to be installed.",
+        "class": "Ollama",
+        "arguments": {
+            "model": "qwen2.5-coder:latest",
+            "temperature": 0.5,
+            "request_timeout": 120.0,
+            "is_function_calling_model": false
+        }
+    }
+}
