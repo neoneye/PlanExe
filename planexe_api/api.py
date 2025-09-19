@@ -397,16 +397,18 @@ async def get_plan_files(plan_id: str, db: Session = Depends(get_database)):
 
 
 @app.get("/api/plans/{plan_id}/report")
-async def download_plan_report(plan_id: str):
+async def download_plan_report(plan_id: str, db: Session = Depends(get_database)):
     """Download the HTML report for a completed plan"""
-    if plan_id not in jobs:
+    db_service = DatabaseService(db)
+    plan = db_service.get_plan(plan_id)
+
+    if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
 
-    job = jobs[plan_id]
-    if job["status"] != PlanStatus.completed:
+    if plan.status != PlanStatus.completed.value:
         raise HTTPException(status_code=400, detail="Plan is not completed")
 
-    output_dir = Path(job["output_dir"])
+    output_dir = Path(plan.output_dir)
     report_file = output_dir / FilenameEnum.FINAL_REPORT_HTML.value
 
     if not report_file.exists():
@@ -420,13 +422,15 @@ async def download_plan_report(plan_id: str):
 
 
 @app.get("/api/plans/{plan_id}/files/{filename}")
-async def download_plan_file(plan_id: str, filename: str):
+async def download_plan_file(plan_id: str, filename: str, db: Session = Depends(get_database)):
     """Download a specific file from a plan's output"""
-    if plan_id not in jobs:
+    db_service = DatabaseService(db)
+    plan = db_service.get_plan(plan_id)
+
+    if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
 
-    job = jobs[plan_id]
-    output_dir = Path(job["output_dir"])
+    output_dir = Path(plan.output_dir)
     file_path = output_dir / filename
 
     if not file_path.exists() or not file_path.is_file():
@@ -440,16 +444,17 @@ async def download_plan_file(plan_id: str, filename: str):
 
 
 @app.delete("/api/plans/{plan_id}")
-async def cancel_plan(plan_id: str):
+async def cancel_plan(plan_id: str, db: Session = Depends(get_database)):
     """Cancel a running plan"""
-    if plan_id not in jobs:
+    db_service = DatabaseService(db)
+    plan = db_service.get_plan(plan_id)
+
+    if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
 
-    job = jobs[plan_id]
-
-    if job["status"] == PlanStatus.running:
+    if plan.status == PlanStatus.running.value:
         # Terminate the process if it's running
-        process = job.get("process")
+        process = running_processes.get(plan_id)
         if process and process.poll() is None:
             process.terminate()
             try:
@@ -457,22 +462,38 @@ async def cancel_plan(plan_id: str):
             except subprocess.TimeoutExpired:
                 process.kill()
 
-        job["status"] = PlanStatus.cancelled
-        job["progress_message"] = "Plan generation cancelled"
+        # Update database
+        db_service.update_plan(plan_id, {
+            "status": PlanStatus.cancelled.value,
+            "progress_message": "Plan generation cancelled"
+        })
+
+        # Clean up process reference
+        if plan_id in running_processes:
+            del running_processes[plan_id]
 
     return {"message": "Plan cancelled successfully"}
 
 
 @app.get("/api/plans", response_model=List[PlanResponse])
-async def list_plans():
+async def list_plans(db: Session = Depends(get_database)):
     """List all plans"""
-    plans = []
-    for job in jobs.values():
-        plans.append(PlanResponse(**job))
+    db_service = DatabaseService(db)
+    plans = db_service.list_plans()
 
-    # Sort by creation time, newest first
-    plans.sort(key=lambda x: x.created_at, reverse=True)
-    return plans
+    return [
+        PlanResponse(
+            plan_id=plan.plan_id,
+            status=PlanStatus(plan.status),
+            created_at=plan.created_at,
+            prompt=plan.prompt,
+            progress_percentage=plan.progress_percentage,
+            progress_message=plan.progress_message,
+            error_message=plan.error_message,
+            output_dir=plan.output_dir
+        )
+        for plan in plans
+    ]
 
 
 if __name__ == "__main__":
