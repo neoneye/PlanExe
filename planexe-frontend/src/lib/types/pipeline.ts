@@ -33,7 +33,7 @@ export interface PipelineProgress {
   currentPhase?: PipelinePhase;
   duration: number;
   estimatedTimeRemaining?: number;
-  errors: PipelineError[];
+  errors: (string | PipelineError)[];
   lastUpdated: Date;
 }
 
@@ -455,15 +455,15 @@ export interface ContingencyPlan {
 
 export interface LLMConfig {
   id: string;
-  label: string;
-  class: 'OpenRouter' | 'Ollama' | 'LMStudio' | 'OpenAI';
-  priority?: number;
+  name: string;
+  provider: string;
+  type: 'paid' | 'local';
+  priority: number;
+  requiresApiKey: boolean;
   available: boolean;
-  model: string;
-  apiKey?: string;
-  endpoint?: string;
+  description?: string;
   maxTokens?: number;
-  temperature?: number;
+  costPer1kTokens?: number;
 }
 
 export interface PromptExample {
