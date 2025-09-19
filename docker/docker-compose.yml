@@ -1,0 +1,83 @@
+# Author: Claude Code (claude-opus-4-1-20250805)
+# Date: 2025-09-19
+# PURPOSE: Docker Compose configuration for PlanExe full stack - orchestrates API and UI containers
+# SRP and DRY check: Pass - Single responsibility of container orchestration
+
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: planexe
+      POSTGRES_USER: planexe_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-planexe_secure_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U planexe_user -d planexe"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - PLANEXE_RUN_DIR=/app/run
+      - DATABASE_URL=postgresql://planexe_user:${POSTGRES_PASSWORD:-planexe_secure_password}@db:5432/planexe
+      # Add your API keys here or use .env file
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+    volumes:
+      # Persist plan outputs
+      - plan_data:/app/run
+      # Mount .env file if it exists
+      - ../.env:/app/.env:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ui
+    ports:
+      - "3000:3000"
+    environment:
+      - PLANEXE_API_URL=http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  plan_data:
+    driver: local
+  postgres_data:
+    driver: local
+
+networks:
+  default:
+    name: planexe_network
