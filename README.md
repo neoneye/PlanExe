@@ -115,12 +115,14 @@ flowchart TD
         B1[FastAPI Server (planexe_api)]
     end
     subgraph Application
-        C1[Plan Pipeline Orchestrator\n(planexe.plan.*)]
+        C1[Plan Pipeline Orchestrator
+(planexe.plan.*)]
         C2[Prompt Catalog]
         C3[Expert Systems]
     end
     subgraph Infrastructure
-        D1[LLM Factory\n(OpenRouter / Ollama / LM Studio)]
+        D1[LLM Factory
+(OpenRouter / Ollama / LM Studio)]
         D2[PostgreSQL (SQLAlchemy ORM)]
         D3[Filesystem Run Artifacts]
     end
@@ -134,6 +136,8 @@ flowchart TD
     C1 --Uses--> C2
     C1 --Uses--> C3
 ```
+
+For detailed documentation on the plan pipeline orchestrator (`run_plan_pipeline.py`), see [run_plan_pipeline_documentation.md](docs/run_plan_pipeline_documentation.md).
 
 ### Key Components
 1. **planexe.plan** – Pure-Python pipeline that breaks the prompt into phases such as SWOT, WBS, cost estimation, report rendering.

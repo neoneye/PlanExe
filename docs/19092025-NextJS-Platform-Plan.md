@@ -579,23 +579,7 @@ const useAdaptiveTheme = (tenantConfig: TenantConfig) => {
 - ROI measurement tools
 - Custom reporting dashboards
 
----
 
-## 🎯 **Success Metrics**
-
-### Business Metrics
-- **Monthly Recurring Revenue (MRR)**: Target $50k by month 12
-- **Customer Acquisition Cost (CAC)**: <3x monthly subscription value
-- **Churn Rate**: <5% monthly for paid plans
-- **Net Promoter Score (NPS)**: >70
-
-### Technical Metrics
-- **API Response Time**: <200ms average
-- **Uptime**: 99.9% availability
-- **Plan Success Rate**: >95% completion rate
-- **User Satisfaction**: >4.5/5 star rating
-
----
 
 ## 🚀 **Next Steps**
 
@@ -636,9 +620,7 @@ PlanExe/
 │   ├── API.md
 │   ├── 19092025-NextJS-Platform-Plan.md
 │   └── README_API.md
-├── nodejs-client/              # ❌ DELETED (overcomplicated)
-├── nodejs-ui/                  # ❌ DELETED (build complexity)
-└── simple-ui/                  # ❌ TO DELETE (CDN approach)
+
 ```
 
 ### Target Structure (Next Steps)
@@ -699,9 +681,15 @@ PlanExe/
 1. **Framework**: Next.js 14 with App Router for maximum flexibility
 2. **Styling**: Tailwind CSS for rapid, maintainable development
 3. **State**: Zustand for simple, performant state management
-4. **Deployment**: Railway (backend) + Vercel (frontend) for optimal performance
+4. **Deployment**: Railway or Vercel for optimal performance
 5. **Architecture**: Multi-tenant white-label SaaS platform
 
 ---
-
-*The foundation is solid. Now we build the platform that will democratize AI planning across industries! 🚀*
+A Recommended Path Forward
+Backend: The Python developer exposes the business logic via a FastAPI API. It should be well-documented (FastAPI can do this automatically).
+Frontend: You build the application using Next.js with TypeScript.
+UI/UX: To achieve that "sleek and modern" feel, don't just use a pre-built component library like Material-UI out of the box. Instead, build your own design system using:
+Tailwind CSS: A utility-first CSS framework for rapidly building custom designs without writing custom CSS.
+shadcn/ui: This is not a component library. It's a collection of reusable components built with Tailwind CSS and Radix UI that you copy and paste into your own project. This gives you full control over the code, styling, and behavior, making it the perfect tool to build a bespoke, high-quality UI.
+Data Fetching: Inside Next.js, use a modern data-fetching library like SWR or React Query (TanStack Query) to communicate with your Python API. These libraries handle caching, re-fetching data, and managing loading/error states, which dramatically simplifies your code and improves the UX.
+This stack gives you the development speed of a startup but the architectural soundness of an enterprise application. It allows each team member to focus on their strengths while building a product that is performant, scalable, and a joy to use.
