@@ -1,0 +1,15 @@
+# FastAPI REST API dependencies for PlanExe
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+sse-starlette==2.1.3
+
+# Database dependencies
+sqlalchemy==2.0.36
+psycopg2-binary==2.9.10
+alembic==1.14.0
+
+# Already included in main PlanExe requirements
+# These are just noted here for clarity
+# aiofiles==23.2.1
+# httpx==0.27.2
