@@ -1,103 +1,176 @@
-import Image from "next/image";
+/**
+ * Author: Cascade
+ * Date: 2025-09-19T17:40:43-04:00
+ * PURPOSE: Main PlanExe application page that integrates all components and provides the complete planning interface
+ * SRP and DRY check: Pass - Single responsibility for main app layout, orchestrates UI components and state
+ */
+
+'use client';
+
+import React, { useEffect } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { PlanForm } from '@/components/planning/PlanForm';
+import { ProgressMonitor } from '@/components/monitoring/ProgressMonitor';
+import { FileManager } from '@/components/files/FileManager';
+import { useSessionStore } from '@/lib/stores/session';
+import { useConfigStore } from '@/lib/stores/config';
+import { usePlanningStore } from '@/lib/stores/planning';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { session, createSession, loadSession } = useSessionStore();
+  const { llmModels, promptExamples, loadLLMModels, loadPromptExamples } = useConfigStore();
+  const { activePlan, createPlan, clearPlan } = usePlanningStore();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Initialize stores
+  useEffect(() => {
+    const init = async () => {
+      // Initialize session
+      if (session?.sessionId) {
+        await loadSession(session.sessionId);
+      } else {
+        await createSession();
+      }
+
+      // Load configuration
+      await loadLLMModels();
+      await loadPromptExamples();
+    };
+
+    init();
+  }, []);
+
+  const handlePlanSubmit = async (planData: any) => {
+    await createPlan(planData);
+  };
+
+  const handlePlanComplete = () => {
+    // Plan completed - could show success message
+    console.log('Plan completed successfully!');
+  };
+
+  const handlePlanError = (error: string) => {
+    console.error('Plan error:', error);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">PlanExe</h1>
+            <p className="text-sm text-gray-600">AI-Powered Strategic Planning System</p>
+          </div>
+          <div className="flex items-center space-x-4">
+            {session && (
+              <div className="text-sm text-gray-600">
+                Session: {session.sessionId.substring(0, 8)}...
+              </div>
+            )}
+            {activePlan && (
+              <Badge variant={activePlan.status === 'running' ? 'default' : 'secondary'}>
+                {activePlan.status.toUpperCase()}
+              </Badge>
+            )}
+          </div>
         </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        <Tabs defaultValue="create" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="create">Create Plan</TabsTrigger>
+            <TabsTrigger value="monitor" disabled={!activePlan}>
+              Monitor Progress
+            </TabsTrigger>
+            <TabsTrigger value="files" disabled={!activePlan}>
+              View Files
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="create" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Create New Strategic Plan</CardTitle>
+                <CardDescription>
+                  Use AI to generate comprehensive strategic plans with detailed analysis, 
+                  resource planning, and implementation roadmaps.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            {/* Plan Creation Form */}
+            <PlanForm
+              onSubmit={handlePlanSubmit}
+              isSubmitting={false}
+              llmModels={llmModels}
+              promptExamples={promptExamples}
+            />
+
+            {/* Recent Plans */}
+            {session?.planHistory && session.planHistory.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Plans</CardTitle>
+                  <CardDescription>Your planning history</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {session.planHistory.slice(0, 5).map((plan) => (
+                      <div key={plan.planId} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                        <div>
+                          <div className="font-medium">{plan.title}</div>
+                          <div className="text-sm text-gray-600">{plan.promptPreview}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Created {plan.createdAt.toLocaleDateString()} • {plan.fileCount} files
+                          </div>
+                        </div>
+                        <Badge variant={plan.status === 'completed' ? 'default' : 'secondary'}>
+                          {plan.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="monitor" className="space-y-6">
+            {activePlan ? (
+              <ProgressMonitor
+                planId={activePlan.planId}
+                onComplete={handlePlanComplete}
+                onError={handlePlanError}
+                onStop={clearPlan}
+              />
+            ) : (
+              <Card>
+                <CardContent className="text-center py-12">
+                  <p className="text-gray-500">No active plan to monitor</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="files" className="space-y-6">
+            {activePlan ? (
+              <FileManager
+                planId={activePlan.planId}
+              />
+            ) : (
+              <Card>
+                <CardContent className="text-center py-12">
+                  <p className="text-gray-500">No active plan files to view</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
