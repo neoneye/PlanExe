@@ -1,0 +1,43 @@
+# Author: Claude Code (claude-opus-4-1-20250805)
+# Date: 2025-09-19
+# PURPOSE: Docker configuration for PlanExe API server - containerizes Python backend
+# SRP and DRY check: Pass - Single responsibility of API containerization
+
+FROM python:3.13-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python requirements first for better caching
+COPY pyproject.toml ./
+COPY planexe_api/requirements.txt ./planexe_api/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -e . && \
+    pip install --no-cache-dir -r planexe_api/requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create run directory for plan outputs
+RUN mkdir -p /app/run
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV PLANEXE_RUN_DIR=/app/run
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Start the API server
+CMD ["python", "-m", "uvicorn", "planexe_api.api:app", "--host", "0.0.0.0", "--port", "8000"]

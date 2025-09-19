@@ -1,0 +1,57 @@
+# Author: Claude Code (claude-opus-4-1-20250805)
+# Date: 2025-09-19
+# PURPOSE: Docker configuration for PlanExe UI server - containerizes Node.js frontend
+# SRP and DRY check: Pass - Single responsibility of UI containerization
+
+FROM node:18-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY nodejs-client/package*.json ./nodejs-client/
+COPY nodejs-ui/package*.json ./nodejs-ui/
+
+# Install client SDK dependencies
+WORKDIR /app/nodejs-client
+RUN npm ci
+
+# Install UI dependencies
+WORKDIR /app/nodejs-ui
+RUN npm ci
+
+# Copy source code
+COPY nodejs-client/ /app/nodejs-client/
+COPY nodejs-ui/ /app/nodejs-ui/
+
+# Build the UI
+RUN npm run build
+
+# Production image
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy built application
+COPY --from=builder /app/nodejs-ui/dist ./dist
+COPY --from=builder /app/nodejs-ui/server.js ./
+COPY --from=builder /app/nodejs-ui/package*.json ./
+
+# Install only production dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
+
+USER nextjs
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+
+# Start the server
+CMD ["node", "server.js"]
