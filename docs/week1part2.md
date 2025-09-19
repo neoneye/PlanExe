@@ -46,46 +46,49 @@ Based on the files found in `planexe-frontend/src/app/api/`, the previous develo
 ### **Phase 1: Complete API Foundation (Days 1-2)**
 **Priority: Critical** - Core infrastructure needs to be solid
 
-#### **Phase 1A: Finish API Routes**
-- [ ] Complete `/api/plans/route.ts` - Plan creation endpoint
-- [ ] Complete `/api/plans/[planId]/route.ts` - Plan status/details
-- [ ] Complete `/api/plans/[planId]/progress/route.ts` - Real-time progress
-- [ ] Add `/api/plans/[planId]/files/route.ts` - File listing
-- [ ] Add `/api/plans/[planId]/download/route.ts` - File downloads
+#### **Phase 1A: Finish API Routes** ✅ **COMPLETED**
+- [x] Complete `/api/plans/route.ts` - Plan creation endpoint
+- [x] Complete `/api/plans/[planId]/route.ts` - Plan status/details
+- [x] Complete `/api/plans/[planId]/progress/route.ts` - Real-time progress
+- [x] Add `/api/plans/[planId]/files/route.ts` - File listing
+- [x] Add `/api/plans/[planId]/download/route.ts` - File downloads
+- [x] Add `/api/plans/[planId]/files/[filename]/route.ts` - Individual file downloads
 
-#### **Phase 1B: Configuration Routes** 
-- [ ] Create `/api/config/llms/route.ts` - Available LLM models from llm_config.json
-- [ ] Create `/api/config/prompts/route.ts` - Prompt catalog from existing system
-- [ ] Add `/api/session/route.ts` - Session management endpoints
+#### **Phase 1B: Configuration Routes** ✅ **COMPLETED**
+- [x] Create `/api/config/llms/route.ts` - Available LLM models from llm_config.json
+- [x] Create `/api/config/prompts/route.ts` - Prompt catalog from existing system
+- [x] Add `/api/session/route.ts` - Session management endpoints
 
 **Deliverable**: Complete API proxy layer that interfaces with existing Python backend
 
 ### **Phase 2: Core UI Components (Days 3-4)**
 **Priority: High** - User interface foundation
 
-#### **Phase 2A: Planning Interface**
-- [ ] Build `PlanForm.tsx` - Main plan creation form
-- [ ] Build `ModelSelector.tsx` - LLM model selection dropdown
-- [ ] Build `SpeedSelector.tsx` - Speed vs detail radio buttons  
-- [ ] Build `PromptExamples.tsx` - Prompt catalog integration
-- [ ] Build `ApiKeyInput.tsx` - OpenRouter API key handling
+#### **Phase 2A: Planning Interface** ✅ **COMPLETED**
+- [x] Build `PlanForm.tsx` - Main plan creation form with integrated components
+  - [x] LLM model selection dropdown (integrated)
+  - [x] Speed vs detail radio buttons (integrated)  
+  - [x] Prompt catalog integration with examples tab (integrated)
+  - [x] OpenRouter API key handling (integrated)
 
-#### **Phase 2B: Monitoring Interface**
-- [ ] Build `ProgressMonitor.tsx` - Real-time pipeline progress display
-- [ ] Build `StatusDisplay.tsx` - Current pipeline status indicator
-- [ ] Build `FileList.tsx` - Live file listing with pipeline stages
-- [ ] Build `ErrorDisplay.tsx` - Error handling and user feedback
+#### **Phase 2B: Monitoring Interface** ✅ **COMPLETED**
+- [x] Build `ProgressMonitor.tsx` - Real-time pipeline progress display
+  - [x] Status indicator with badges (integrated)
+  - [x] File progress tracking (integrated)
+  - [x] Error handling and user feedback (integrated)
 
 **Deliverable**: Functional planning and monitoring UI components
 
 ### **Phase 3: File Management & State (Days 5-6)**
 **Priority: High** - Core functionality completion
 
-#### **Phase 3A: File Operations**
-- [ ] Build `FileManager.tsx` - File browser with FilenameEnum support
-- [ ] Build `DownloadButton.tsx` - Individual file downloads
-- [ ] Build `ZipDownload.tsx` - Complete plan archive download
-- [ ] Implement file type detection and icons
+#### **Phase 3A: File Operations** ✅ **COMPLETED**
+- [x] Build `FileManager.tsx` - File browser with FilenameEnum support
+  - [x] Individual file downloads (integrated)
+  - [x] Complete plan archive ZIP download (integrated)
+  - [x] File type detection and icons (integrated)
+  - [x] Phase-based file grouping and filtering
+  - [x] Search functionality across files
 
 #### **Phase 3B: State Management**
 - [ ] Create Zustand stores (`session.ts`, `planning.ts`, `config.ts`)
