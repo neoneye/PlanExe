@@ -5,3 +5,4 @@ build/
 run/
 __pycache__/
 .vscode/
+planexe.db
