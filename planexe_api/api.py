@@ -441,6 +441,63 @@ async def retry_plan(plan_id: str, background_tasks: BackgroundTasks, db: Sessio
     )
 
 
+@app.get("/api/plans/{plan_id}/details")
+async def get_plan_details(plan_id: str, db: Session = Depends(get_database)):
+    """Get detailed pipeline execution information"""
+    db_service = DatabaseService(db)
+    plan = db_service.get_plan(plan_id)
+
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    run_id_dir = Path(plan.output_dir)
+
+    # Read Luigi activity log if it exists
+    activity_log_path = run_id_dir / "track_activity.jsonl"
+    pipeline_stages = []
+
+    if activity_log_path.exists():
+        try:
+            with open(activity_log_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.strip():
+                        stage_data = json.loads(line.strip())
+                        pipeline_stages.append(stage_data)
+        except Exception as e:
+            print(f"Error reading activity log: {e}")
+
+    # Read log file if it exists
+    log_file_path = run_id_dir / "log.txt"
+    pipeline_log = ""
+
+    if log_file_path.exists():
+        try:
+            with open(log_file_path, "r", encoding="utf-8") as f:
+                pipeline_log = f.read()
+        except Exception as e:
+            print(f"Error reading log file: {e}")
+
+    # List generated files
+    generated_files = []
+    if run_id_dir.exists():
+        for file_path in run_id_dir.iterdir():
+            if file_path.is_file():
+                generated_files.append({
+                    "filename": file_path.name,
+                    "size_bytes": file_path.stat().st_size,
+                    "modified_at": file_path.stat().st_mtime
+                })
+
+    return {
+        "plan_id": plan_id,
+        "run_directory": str(run_id_dir),
+        "pipeline_stages": pipeline_stages,
+        "pipeline_log": pipeline_log[-5000:] if pipeline_log else "",  # Last 5KB
+        "generated_files": generated_files,
+        "total_files": len(generated_files)
+    }
+
+
 @app.get("/api/plans/{plan_id}/stream")
 async def stream_plan_progress(plan_id: str):
     """Server-sent events stream for real-time plan progress"""

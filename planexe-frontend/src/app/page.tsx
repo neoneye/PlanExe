@@ -15,6 +15,7 @@ import { PlanForm } from '@/components/planning/PlanForm';
 import { ProgressMonitor } from '@/components/monitoring/ProgressMonitor';
 import { FileManager } from '@/components/files/FileManager';
 import { PlansQueue } from '@/components/PlansQueue';
+import { PipelineDetails } from '@/components/PipelineDetails';
 import { useSessionStore } from '@/lib/stores/session';
 import { useConfigStore } from '@/lib/stores/config';
 import { usePlanningStore } from '@/lib/stores/planning';
@@ -77,11 +78,14 @@ export default function Home() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         <Tabs defaultValue="create" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="create">Create Plan</TabsTrigger>
             <TabsTrigger value="queue">Plans Queue</TabsTrigger>
             <TabsTrigger value="monitor" disabled={!activePlan}>
               Monitor Progress
+            </TabsTrigger>
+            <TabsTrigger value="details" disabled={!activePlan}>
+              Details
             </TabsTrigger>
             <TabsTrigger value="files" disabled={!activePlan}>
               View Files
@@ -168,6 +172,21 @@ export default function Home() {
               <Card>
                 <CardContent className="text-center py-12">
                   <p className="text-gray-500">No active plan to monitor</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="details" className="space-y-6">
+            {activePlan ? (
+              <PipelineDetails
+                planId={activePlan.planId}
+                className="w-full"
+              />
+            ) : (
+              <Card>
+                <CardContent className="text-center py-12">
+                  <p className="text-muted-foreground">No active plan selected</p>
                 </CardContent>
               </Card>
             )}
