@@ -161,7 +161,7 @@ PlanExe/
 ├── docs/                # Additional markdown docs & ADRs
 ├── extra/               # Provider-specific setup guides (Ollama, LM Studio, OpenRouter)
 ├── run/                 # Generated artefacts (<run_id>) during execution
-├── pyproject.toml       # Poetry project metadata
+├── pyproject.toml       # project metadata
 └── README.md            # You are here
 ```
 
