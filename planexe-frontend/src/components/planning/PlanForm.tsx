@@ -129,10 +129,12 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Plan Title (Optional)</FormLabel>
+                        <FormLabel htmlFor="plan-title">Plan Title (Optional)</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="e.g. Website Redesign Project" 
+                          <Input
+                            id="plan-title"
+                            name="title"
+                            placeholder="e.g. Website Redesign Project"
                             {...field}
                             disabled={isSubmitting}
                           />
@@ -151,9 +153,11 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                     name="prompt"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Plan Description *</FormLabel>
+                        <FormLabel htmlFor="plan-prompt">Plan Description *</FormLabel>
                         <FormControl>
                           <Textarea
+                            id="plan-prompt"
+                            name="prompt"
                             placeholder="Describe your project, goal, or idea in detail. The more context you provide, the better the plan will be..."
                             className="min-h-[120px]"
                             {...field}
@@ -174,10 +178,10 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                     name="llm_model"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>AI Model *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+                        <FormLabel htmlFor="llm-model-select">AI Model *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting} name="llm_model">
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger id="llm-model-select">
                               <SelectValue placeholder="Select AI model" />
                             </SelectTrigger>
                           </FormControl>
@@ -214,9 +218,11 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                       name="openrouter_api_key"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>OpenRouter API Key *</FormLabel>
+                          <FormLabel htmlFor="openrouter-api-key">OpenRouter API Key *</FormLabel>
                           <FormControl>
                             <Input
+                              id="openrouter-api-key"
+                              name="openrouter_api_key"
                               type="password"
                               placeholder="sk-or-v1-..."
                               {...field}
@@ -262,6 +268,8 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                                 <CardContent className="p-4">
                                   <div className="flex items-center space-x-2">
                                     <input
+                                      id={`speed-${option.value}`}
+                                      name="speed_vs_detail"
                                       type="radio"
                                       value={option.value}
                                       checked={field.value === option.value}
