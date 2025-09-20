@@ -1,7 +1,7 @@
 # 🚨 Frontend Architecture Fix Plan
 ## For Next Developer: How to Properly Connect NextJS to FastAPI Backend
 
-**Author: Cascade**  
+**Author: A DEV WHO WAS SLOPPY AND DIDNT READ DOCS**  
 **Date: 2025-09-19T19:06:18-04:00**  
 **PURPOSE: Complete roadmap to fix NextJS frontend architecture and connect to existing FastAPI backend**
 
@@ -260,7 +260,7 @@ useEffect(() => {
 - [ ] Create plans through NextJS UI → FastAPI backend → Luigi pipeline
 - [ ] Real-time progress updates via Server-Sent Events  
 - [ ] File downloads work for all generated outputs
-- [ ] All 47 Luigi tasks execute correctly
+- [ ] All 47 Luigi tasks execute correctly  47???  ARE WE SURE???
 - [ ] No NextJS API proxy routes (direct connection only)
 
 ### **Nice to Have**:
