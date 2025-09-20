@@ -16,7 +16,7 @@ cp .env.example .env
 # Edit .env and add your OPENROUTER_API_KEY
 
 # Start the full stack
-docker-compose -f docker/docker-compose.yml up
+docker compose -f docker/docker compose.yml up
 
 # Access the application
 # API: http://localhost:8000
@@ -72,7 +72,7 @@ PlanExe/
 ├── docker/                 # Docker configuration
 │   ├── Dockerfile.api      # API container
 │   ├── Dockerfile.ui       # UI container
-│   └── docker-compose.yml  # Full stack setup
+│   └── docker compose.yml  # Full stack setup
 └── docs/                   # Documentation
     └── API.md              # API documentation
 ```
@@ -185,7 +185,7 @@ The included React frontend provides:
 ### Development
 
 ```bash
-docker-compose -f docker/docker-compose.yml up --build
+docker compose -f docker/docker compose.yml up --build
 ```
 
 ### Production
@@ -195,7 +195,7 @@ docker-compose -f docker/docker-compose.yml up --build
 export OPENROUTER_API_KEY=your-key-here
 
 # Deploy with production settings
-docker-compose -f docker/docker-compose.yml up -d
+docker compose -f docker/docker compose.yml up -d
 ```
 
 ### Environment Variables

@@ -236,7 +236,7 @@ cp .env.docker.example .env
 # Edit .env with your API keys
 
 # Start full stack
-docker-compose -f docker/docker-compose.yml up
+docker compose -f docker/docker-compose.yml up
 
 # Access applications
 # API: http://localhost:8000
