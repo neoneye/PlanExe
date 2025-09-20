@@ -97,13 +97,23 @@ export default function Home() {
               </CardHeader>
             </Card>
 
-            {/* Plan Creation Form */}
-            <PlanForm
-              onSubmit={handlePlanSubmit}
-              isSubmitting={isCreating}
-              llmModels={llmModels}
-              promptExamples={promptExamples}
-            />
+            {/* Show Progress Monitor if plan is active, otherwise show form */}
+            {activePlan ? (
+              <ProgressMonitor
+                planId={activePlan.planId}
+                onComplete={handlePlanComplete}
+                onError={handlePlanError}
+                onStop={clearPlan}
+              />
+            ) : (
+              /* Plan Creation Form */
+              <PlanForm
+                onSubmit={handlePlanSubmit}
+                isSubmitting={isCreating}
+                llmModels={llmModels}
+                promptExamples={promptExamples}
+              />
+            )}
 
             {/* Recent Plans */}
             {session?.planHistory && session.planHistory.length > 0 && (

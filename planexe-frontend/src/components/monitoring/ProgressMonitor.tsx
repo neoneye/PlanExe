@@ -1,8 +1,8 @@
 /**
- * Author: Cascade
- * Date: 2025-09-19T16:59:36-04:00
- * PURPOSE: Real-time progress monitoring component that tracks Luigi pipeline execution with file-based progress
- * SRP and DRY check: Pass - Single responsibility for progress display, respects Luigi pipeline file patterns
+ * Author: Claude Code using Sonnet 4
+ * Date: 2025-09-20
+ * PURPOSE: Real-time progress monitoring component with console-like output for Luigi pipeline execution
+ * SRP and DRY check: Pass - Single responsibility for progress display, uses actual backend API responses
  */
 
 'use client';
@@ -12,9 +12,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { PipelineProgress, PipelineStatus, PipelinePhase } from '@/lib/types/pipeline';
-import { TaskProgressInfo } from '@/lib/types/api';
+import { PipelineProgress, PipelineStatus } from '@/lib/types/pipeline';
+import { PlanResponse } from '@/lib/api/fastapi-client';
 import { formatDistanceToNow } from 'date-fns';
+
+interface ProgressMessage {
+  timestamp: Date;
+  message: string;
+  percentage: number;
+}
 
 interface ProgressMonitorProps {
   planId: string;
@@ -35,33 +41,56 @@ export const ProgressMonitor: React.FC<ProgressMonitorProps> = ({
   refreshInterval = 3000,
   className = ''
 }) => {
-  const [progress, setProgress] = useState<PipelineProgress | null>(null);
-  const [recentTasks, setRecentTasks] = useState<TaskProgressInfo[]>([]);
-  const [nextTasks, setNextTasks] = useState<TaskProgressInfo[]>([]);
+  const [planData, setPlanData] = useState<PlanResponse | null>(null);
+  const [progressHistory, setProgressHistory] = useState<ProgressMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isStopping, setIsStopping] = useState(false);
+  const [startTime] = useState<Date>(new Date());
+  const [eventSource, setEventSource] = useState<EventSource | null>(null);
 
-  // Fetch progress data
+  // Fetch progress data via polling
   const fetchProgress = useCallback(async () => {
     try {
-      const response = await fetch(`/api/plans/${planId}/progress`);
-      const data = await response.json();
+      const response = await fetch(`http://localhost:8001/api/plans/${planId}`);
+      const data: PlanResponse = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error?.message || 'Failed to fetch progress');
+        throw new Error('Failed to fetch progress');
       }
 
-      if (data.success) {
-        setProgress(data.progress);
-        setRecentTasks(data.recentTasks || []);
-        setNextTasks(data.nextTasks || []);
-        setError(null);
+      // Update plan data
+      setPlanData(data);
+      setError(null);
 
-        // Call completion callback if pipeline is done
-        if (data.progress.status === 'completed' && onComplete) {
-          onComplete(data.progress);
+      // Add to progress history if message changed
+      setProgressHistory(prev => {
+        const lastMessage = prev[prev.length - 1];
+        if (!lastMessage || lastMessage.message !== data.progress_message) {
+          const newMessage: ProgressMessage = {
+            timestamp: new Date(),
+            message: data.progress_message,
+            percentage: data.progress_percentage
+          };
+          return [...prev, newMessage].slice(-20); // Keep last 20 messages
         }
+        return prev;
+      });
+
+      // Call completion callback if pipeline is done
+      if (data.status === 'completed' && onComplete) {
+        const mockProgress: PipelineProgress = {
+          status: data.status as PipelineStatus,
+          percentage: data.progress_percentage,
+          currentTask: data.progress_message,
+          tasksCompleted: Math.floor(data.progress_percentage / 2),
+          totalTasks: 50,
+          filesCompleted: 0,
+          currentFile: '',
+          duration: Math.floor((new Date().getTime() - startTime.getTime()) / 1000),
+          error: data.error_message || null
+        };
+        onComplete(mockProgress);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -72,24 +101,88 @@ export const ProgressMonitor: React.FC<ProgressMonitorProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [planId, onComplete, onError]);
+  }, [planId, onComplete, onError, startTime]);
 
-  // Auto-refresh effect
+  // Try to use SSE first, fallback to polling
+  const setupSSE = useCallback(() => {
+    try {
+      const es = new EventSource(`http://localhost:8001/api/plans/${planId}/stream`);
+
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          // Add to progress history
+          setProgressHistory(prev => {
+            const newMessage: ProgressMessage = {
+              timestamp: new Date(),
+              message: data.progress_message || data.message || 'Processing...',
+              percentage: data.progress_percentage || 0
+            };
+            return [...prev, newMessage].slice(-20);
+          });
+
+          // Update plan data if we have full plan response
+          if (data.plan_id || data.planId) {
+            setPlanData(data);
+          }
+        } catch (parseErr) {
+          console.error('Failed to parse SSE data:', parseErr);
+        }
+      };
+
+      es.onerror = (error) => {
+        console.warn('SSE connection failed, falling back to polling:', error);
+        es.close();
+        setEventSource(null);
+      };
+
+      setEventSource(es);
+      return es;
+    } catch (sseErr) {
+      console.warn('SSE not supported, using polling:', sseErr);
+      return null;
+    }
+  }, [planId]);
+
+  // Auto-refresh effect - try SSE first, fallback to polling
   useEffect(() => {
     fetchProgress(); // Initial fetch
 
     if (!autoRefresh) return;
 
+    // Try to setup SSE
+    const es = setupSSE();
+
+    // Always setup polling as backup/fallback
     const interval = setInterval(() => {
       // Stop auto-refresh if pipeline is completed, failed, or stopped
-      if (progress?.status && !['running', 'created'].includes(progress.status)) {
+      if (planData?.status && !['running', 'pending'].includes(planData.status)) {
         return;
       }
-      fetchProgress();
+
+      // Only poll if SSE is not working
+      if (!es || es.readyState !== EventSource.OPEN) {
+        fetchProgress();
+      }
     }, refreshInterval);
 
-    return () => clearInterval(interval);
-  }, [fetchProgress, autoRefresh, refreshInterval, progress?.status]);
+    return () => {
+      clearInterval(interval);
+      if (es) {
+        es.close();
+      }
+    };
+  }, [fetchProgress, autoRefresh, refreshInterval, planData?.status, setupSSE]);
+
+  // Cleanup SSE on unmount
+  useEffect(() => {
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
+  }, [eventSource]);
 
   // Stop pipeline handler
   const handleStop = async () => {
@@ -97,10 +190,8 @@ export const ProgressMonitor: React.FC<ProgressMonitorProps> = ({
 
     setIsStopping(true);
     try {
-      const response = await fetch(`/api/plans/${planId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: 'User requested stop' })
+      const response = await fetch(`http://localhost:8001/api/plans/${planId}`, {
+        method: 'DELETE'
       });
 
       if (response.ok) {
@@ -118,52 +209,31 @@ export const ProgressMonitor: React.FC<ProgressMonitorProps> = ({
   const getStatusBadgeVariant = (status: PipelineStatus) => {
     switch (status) {
       case 'running':
-      case 'created':
+      case 'pending':
         return 'default';
       case 'completed':
         return 'default'; // Green-ish
       case 'failed':
         return 'destructive';
-      case 'stopped':
+      case 'cancelled':
         return 'secondary';
       default:
         return 'outline';
     }
   };
 
-  // Get phase display name
-  const getPhaseDisplayName = (phase: PipelinePhase) => {
-    const phaseNames: Record<PipelinePhase, string> = {
-      setup: 'Setup',
-      initial_analysis: 'Initial Analysis', 
-      strategic_planning: 'Strategic Planning',
-      scenario_planning: 'Scenario Planning',
-      contextual_analysis: 'Contextual Analysis',
-      assumption_management: 'Assumption Management',
-      project_planning: 'Project Planning',
-      governance: 'Governance Framework',
-      resource_planning: 'Resource Planning',
-      documentation: 'Documentation',
-      work_breakdown: 'Work Breakdown',
-      scheduling: 'Scheduling',
-      reporting: 'Report Generation',
-      completion: 'Completion'
-    };
-    return phaseNames[phase] || phase;
-  };
-
   // Format duration
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    
+
     if (minutes > 0) {
       return `${minutes}m ${remainingSeconds}s`;
     }
     return `${remainingSeconds}s`;
   };
 
-  if (isLoading && !progress) {
+  if (isLoading && !planData) {
     return (
       <Card className={className}>
         <CardHeader>
@@ -179,7 +249,7 @@ export const ProgressMonitor: React.FC<ProgressMonitorProps> = ({
     );
   }
 
-  if (error && !progress) {
+  if (error && !planData) {
     return (
       <Card className={className}>
         <CardHeader>
@@ -195,13 +265,15 @@ export const ProgressMonitor: React.FC<ProgressMonitorProps> = ({
     );
   }
 
-  if (!progress) {
+  if (!planData) {
     return null;
   }
 
+  const elapsedSeconds = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
+
   return (
     <div className={`space-y-6 ${className}`}>
-      
+
       {/* Main Progress Card */}
       <Card>
         <CardHeader>
@@ -211,12 +283,12 @@ export const ProgressMonitor: React.FC<ProgressMonitorProps> = ({
               <CardDescription>Plan ID: {planId}</CardDescription>
             </div>
             <div className="flex items-center space-x-2">
-              <Badge variant={getStatusBadgeVariant(progress.status)}>
-                {progress.status.toUpperCase()}
+              <Badge variant={getStatusBadgeVariant(planData.status as PipelineStatus)}>
+                {planData.status.toUpperCase()}
               </Badge>
-              {(['running', 'created'].includes(progress.status)) && onStop && (
-                <Button 
-                  variant="outline" 
+              {(['running', 'pending'].includes(planData.status)) && onStop && (
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={handleStop}
                   disabled={isStopping}
@@ -228,120 +300,79 @@ export const ProgressMonitor: React.FC<ProgressMonitorProps> = ({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          
+
           {/* Progress Bar */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Overall Progress</span>
-              <span>{progress.progressPercentage}%</span>
+              <span>{planData.progress_percentage}%</span>
             </div>
-            <Progress value={progress.progressPercentage} className="w-full" />
+            <Progress value={planData.progress_percentage} className="w-full" />
             <div className="text-sm text-gray-600">
-              {progress.progressMessage}
+              {planData.progress_message}
             </div>
           </div>
 
           {/* Current Phase & Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <div className="text-sm font-medium">Current Phase</div>
-              <div className="text-lg">{progress.currentPhase ? getPhaseDisplayName(progress.currentPhase) : 'Starting...'}</div>
+              <div className="text-sm font-medium">Status</div>
+              <div className="text-lg">{planData.status === 'running' ? 'Processing...' : planData.status}</div>
             </div>
             <div>
-              <div className="text-sm font-medium">Files Completed</div>
-              <div className="text-lg">{progress.filesCompleted} / {progress.totalExpectedFiles}</div>
+              <div className="text-sm font-medium">Progress</div>
+              <div className="text-lg">{planData.progress_percentage}%</div>
             </div>
             <div>
               <div className="text-sm font-medium">Duration</div>
-              <div className="text-lg">{formatDuration(progress.duration)}</div>
+              <div className="text-lg">{formatDuration(elapsedSeconds)}</div>
             </div>
             <div>
-              <div className="text-sm font-medium">Last Updated</div>
+              <div className="text-sm font-medium">Started</div>
               <div className="text-lg">
-                {formatDistanceToNow(new Date(progress.lastUpdated), { addSuffix: true })}
+                {formatDistanceToNow(new Date(planData.created_at), { addSuffix: true })}
               </div>
             </div>
           </div>
 
           {/* Error Messages */}
-          {progress.errors && progress.errors.length > 0 && (
+          {planData.error_message && (
             <div className="bg-red-50 border border-red-200 rounded-md p-3">
-              <div className="font-medium text-red-800 mb-2">Errors:</div>
-              <ul className="text-sm text-red-700 space-y-1">
-                {progress.errors.map((error, index) => (
-                  <li key={index}>• {typeof error === 'string' ? error : error.message}</li>
-                ))}
-              </ul>
+              <div className="font-medium text-red-800 mb-2">Error:</div>
+              <div className="text-sm text-red-700">{planData.error_message}</div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Task Details */}
-      <div className="grid md:grid-cols-2 gap-6">
-        
-        {/* Recent Tasks */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Recent Completed Tasks</CardTitle>
-            <CardDescription>Last 5 completed pipeline tasks</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recentTasks.length > 0 ? (
-              <div className="space-y-3">
-                {recentTasks.map((task, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-green-50 rounded-md">
-                    <div>
-                      <div className="font-medium text-sm">{task.taskName}</div>
-                      {task.endTime && (
-                        <div className="text-xs text-gray-600">
-                          Completed {formatDistanceToNow(new Date(task.endTime), { addSuffix: true })}
-                        </div>
-                      )}
-                    </div>
-                    <Badge variant="outline" className="text-green-700 border-green-300">
-                      ✓ Done
-                    </Badge>
+      {/* Console Output */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Progress Console</CardTitle>
+          <CardDescription>Real-time progress updates</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-gray-900 text-green-400 p-4 rounded-md font-mono text-sm max-h-96 overflow-y-auto">
+            {progressHistory.length > 0 ? (
+              <div className="space-y-1">
+                {progressHistory.map((msg, index) => (
+                  <div key={index} className="flex items-start space-x-2">
+                    <span className="text-gray-500 text-xs whitespace-nowrap">
+                      [{msg.timestamp.toLocaleTimeString()}]
+                    </span>
+                    <span className="text-blue-400">[{msg.percentage}%]</span>
+                    <span className="flex-1">{msg.message}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center text-gray-500 py-8">
-                No completed tasks yet
+              <div className="text-gray-500 text-center py-8">
+                Waiting for progress updates...
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Next Tasks */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Upcoming Tasks</CardTitle>
-            <CardDescription>Next 5 pending pipeline tasks</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {nextTasks.length > 0 ? (
-              <div className="space-y-3">
-                {nextTasks.map((task, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded-md">
-                    <div>
-                      <div className="font-medium text-sm">{task.taskName}</div>
-                      <div className="text-xs text-gray-600">Waiting to start</div>
-                    </div>
-                    <Badge variant="outline" className="text-blue-700 border-blue-300">
-                      Pending
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center text-gray-500 py-8">
-                No upcoming tasks
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
