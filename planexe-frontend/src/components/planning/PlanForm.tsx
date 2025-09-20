@@ -19,13 +19,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlanFormSchema, PlanFormData } from '@/lib/types/forms';
-import { CreatePlanRequest } from '@/lib/types/api';
-import { LLMConfig, PromptExample } from '@/lib/types/pipeline';
+import { CreatePlanRequest, LLMModel, PromptExample } from '@/lib/api/fastapi-client';
 
 interface PlanFormProps {
   onSubmit: (data: CreatePlanRequest) => Promise<void>;
   isSubmitting?: boolean;
-  llmModels?: LLMConfig[];
+  llmModels?: LLMModel[];
   promptExamples?: PromptExample[];
   className?: string;
 }
@@ -44,40 +43,38 @@ export const PlanForm: React.FC<PlanFormProps> = ({
     resolver: zodResolver(PlanFormSchema) as any,
     defaultValues: {
       prompt: '',
-      llmModel: '',
-      speedVsDetail: 'ALL_DETAILS_BUT_SLOW',
-      openrouterApiKey: '',
+      llm_model: '',
+      speed_vs_detail: 'ALL_DETAILS_BUT_SLOW',
+      openrouter_api_key: '',
       title: '',
       tags: []
     }
   });
 
   // Watch for LLM model changes to show/hide API key field
-  const selectedModel = form.watch('llmModel');
+  const selectedModel = form.watch('llm_model');
 
   useEffect(() => {
     if (selectedModel && llmModels.length > 0) {
       const model = llmModels.find(m => m.id === selectedModel);
-      setSelectedModelRequiresKey(model?.requiresApiKey || false);
+      setSelectedModelRequiresKey(model?.requires_api_key || false);
     }
   }, [selectedModel, llmModels]);
 
   // Set default model if available
   useEffect(() => {
-    if (llmModels.length > 0 && !form.getValues('llmModel')) {
+    if (llmModels.length > 0 && !form.getValues('llm_model')) {
       const defaultModel = llmModels.find(m => m.priority === 1) || llmModels[0];
-      form.setValue('llmModel', defaultModel.id);
+      form.setValue('llm_model', defaultModel.id);
     }
   }, [llmModels, form]);
 
   const handleSubmit = async (data: PlanFormData) => {
     const request: CreatePlanRequest = {
       prompt: data.prompt,
-      llmModel: data.llmModel,
-      speedVsDetail: data.speedVsDetail,
-      openrouterApiKey: selectedModelRequiresKey ? data.openrouterApiKey : undefined,
-      title: data.title,
-      tags: data.tags
+      llm_model: data.llm_model,
+      speed_vs_detail: data.speed_vs_detail,
+      openrouter_api_key: selectedModelRequiresKey ? data.openrouter_api_key : undefined,
     };
 
     await onSubmit(request);
@@ -97,9 +94,9 @@ export const PlanForm: React.FC<PlanFormProps> = ({
       duration: '45-90 min'
     },
     {
-      value: 'FAST_BUT_SKIP_DETAILS' as const,
+      value: 'FAST_BUT_BASIC' as const,
       label: 'Fast Mode (Basic)',
-      description: 'Essential tasks only for quick results (~15 minutes)', 
+      description: 'Essential tasks only for quick results (~15 minutes)',
       duration: '10-20 min'
     }
   ];
@@ -174,7 +171,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                   {/* LLM Model Selection */}
                   <FormField
                     control={form.control}
-                    name="llmModel"
+                    name="llm_model"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>AI Model *</FormLabel>
@@ -214,7 +211,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                   {selectedModelRequiresKey && (
                     <FormField
                       control={form.control}
-                      name="openrouterApiKey"
+                      name="openrouter_api_key"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>OpenRouter API Key *</FormLabel>
@@ -246,7 +243,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                   {/* Speed vs Detail Selection */}
                   <FormField
                     control={form.control}
-                    name="speedVsDetail"
+                    name="speed_vs_detail"
                     render={({ field }) => (
                       <FormItem className="space-y-3">
                         <FormLabel>Planning Detail Level *</FormLabel>

@@ -6,8 +6,8 @@
  */
 
 import { create } from 'zustand';
-import { CreatePlanRequest, PlanResponse } from '@/lib/api/client';
-import { apiClient } from '@/lib/api/client';
+import { CreatePlanRequest, PlanResponse } from '@/lib/api/fastapi-client';
+import { fastApiClient as apiClient } from '@/lib/api/fastapi-client';
 import { PipelineProgress, PipelineStatus } from '@/lib/types/pipeline';
 import { useSessionStore } from './session';
 

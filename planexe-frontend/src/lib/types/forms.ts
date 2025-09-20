@@ -16,21 +16,20 @@ export const PlanFormSchema = z.object({
   prompt: z
     .string()
     .min(10, 'Plan description must be at least 10 characters')
-    .max(5000, 'Plan description must be less than 5000 characters')
+    .max(10000, 'Plan description must be less than 10000 characters')
     .refine(
       (text) => text.trim().length > 0,
       'Plan description cannot be empty or only whitespace'
     ),
 
-  llmModel: z
+  llm_model: z
     .string()
     .min(1, 'Please select an LLM model'),
 
-  speedVsDetail: z
-    .enum(['ALL_DETAILS_BUT_SLOW', 'FAST_BUT_SKIP_DETAILS'])
-    .transform((val) => val), // Keep camelCase for frontend, transform in API
+  speed_vs_detail: z
+    .enum(['FAST_BUT_BASIC', 'BALANCED_SPEED_AND_DETAIL', 'ALL_DETAILS_BUT_SLOW']),
 
-  openrouterApiKey: z
+  openrouter_api_key: z
     .string()
     .optional()
     .refine(
