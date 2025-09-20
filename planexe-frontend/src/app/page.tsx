@@ -21,7 +21,7 @@ import { usePlanningStore } from '@/lib/stores/planning';
 export default function Home() {
   const { session, createSession, loadSession } = useSessionStore();
   const { llmModels, promptExamples, loadLLMModels, loadPromptExamples } = useConfigStore();
-  const { activePlan, createPlan, clearPlan } = usePlanningStore();
+  const { activePlan, createPlan, clearPlan, isCreating } = usePlanningStore();
 
   // Initialize stores
   useEffect(() => {
@@ -100,7 +100,7 @@ export default function Home() {
             {/* Plan Creation Form */}
             <PlanForm
               onSubmit={handlePlanSubmit}
-              isSubmitting={false}
+              isSubmitting={isCreating}
               llmModels={llmModels}
               promptExamples={promptExamples}
             />

@@ -308,14 +308,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                       >
                         <CardContent className="p-4">
                           <div className="font-medium mb-2">{example.title}</div>
-                          <div className="text-sm text-gray-600 mb-3">{example.prompt}</div>
-                          <div className="flex flex-wrap gap-1">
-                            {example.tags?.map((tag) => (
-                              <Badge key={tag} variant="outline" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
+                          <div className="text-sm text-gray-600">{example.prompt}</div>
                         </CardContent>
                       </Card>
                     ))}

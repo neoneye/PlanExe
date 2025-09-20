@@ -59,43 +59,40 @@ export const usePlanningStore = create<PlanningState>((set, get) => ({
     set({ isCreating: true, error: null });
 
     try {
-      // Use new API client - automatically handles field translation
+      // Use new API client - returns PlanResponse directly
       const data: PlanResponse = await apiClient.createPlan(request);
 
-      if (data.success) {
-        const activePlan: ActivePlan = {
-          planId: data.planId,
-          runId: data.runId,
-          runDir: data.runDir,
-          status: data.status,
-          progress: null,
-          startTime: new Date(),
-          lastUpdated: new Date()
-        };
+      // API returns data directly, no success wrapper
+      const activePlan: ActivePlan = {
+        planId: data.plan_id,  // Use snake_case from API
+        runId: data.plan_id,    // Use plan_id as runId
+        runDir: data.output_dir || '',  // Use output_dir from API
+        status: data.status as PipelineStatus,
+        progress: null,
+        startTime: new Date(data.created_at),
+        lastUpdated: new Date()
+      };
 
-        set({ 
-          activePlan,
-          isCreating: false,
-          error: null
-        });
+      set({
+        activePlan,
+        isCreating: false,
+        error: null
+      });
 
-        // Add to session history
-        const sessionStore = useSessionStore.getState();
-        sessionStore.setCurrentPlan(data.planId);
-        sessionStore.addToHistory({
-          planId: data.planId,
-          title: request.title || 'Untitled Plan',
-          status: data.status,
-          createdAt: new Date(),
-          fileCount: 0,
-          promptPreview: request.prompt.substring(0, 100) + (request.prompt.length > 100 ? '...' : '')
-        });
+      // Add to session history
+      const sessionStore = useSessionStore.getState();
+      sessionStore.setCurrentPlan(data.plan_id);
+      sessionStore.addToHistory({
+        planId: data.plan_id,
+        title: 'Untitled Plan',  // Title not in request anymore
+        status: data.status as PipelineStatus,
+        createdAt: new Date(data.created_at),
+        fileCount: 0,
+        promptPreview: request.prompt.substring(0, 100) + (request.prompt.length > 100 ? '...' : '')
+      });
 
-        // Start progress monitoring
-        get().startProgressMonitoring(data.planId);
-      } else {
-        throw new Error('Plan creation failed');
-      }
+      // Start progress monitoring
+      get().startProgressMonitoring(data.plan_id);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       set({ error: errorMessage, isCreating: false });
@@ -108,10 +105,9 @@ export const usePlanningStore = create<PlanningState>((set, get) => ({
     if (!activePlan) return;
 
     try {
-      const response = await fetch(`/api/plans/${activePlan.planId}/stop`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: reason || 'User requested stop' })
+      const response = await fetch(`http://localhost:8001/api/plans/${activePlan.planId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
       });
 
       if (!response.ok) {
@@ -120,26 +116,25 @@ export const usePlanningStore = create<PlanningState>((set, get) => ({
       }
 
       const data = await response.json();
-      
-      if (data.success) {
-        set((state) => ({
-          activePlan: state.activePlan ? {
-            ...state.activePlan,
-            status: data.finalStatus,
-            lastUpdated: new Date()
-          } : null
-        }));
 
-        // Update session history
-        const sessionStore = useSessionStore.getState();
-        sessionStore.updatePlanInHistory(activePlan.planId, {
-          status: data.finalStatus,
-          completedAt: new Date()
-        });
+      // API returns message directly
+      set((state) => ({
+        activePlan: state.activePlan ? {
+          ...state.activePlan,
+          status: 'cancelled' as PipelineStatus,
+          lastUpdated: new Date()
+        } : null
+      }));
 
-        // Stop monitoring
-        get().stopProgressMonitoring();
-      }
+      // Update session history
+      const sessionStore = useSessionStore.getState();
+      sessionStore.updatePlanInHistory(activePlan.planId, {
+        status: 'cancelled' as PipelineStatus,
+        completedAt: new Date()
+      });
+
+      // Stop monitoring
+      get().stopProgressMonitoring();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       set({ error: errorMessage });
@@ -152,7 +147,8 @@ export const usePlanningStore = create<PlanningState>((set, get) => ({
     if (!activePlan) return;
 
     try {
-      const response = await fetch(`/api/plans/${activePlan.planId}/resume`, {
+      // Note: Resume endpoint not implemented in backend yet
+      const response = await fetch(`http://localhost:8001/api/plans/${activePlan.planId}/resume`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fromTask })
@@ -247,7 +243,7 @@ export const usePlanningStore = create<PlanningState>((set, get) => ({
   // Fetch current progress
   fetchProgress: async (planId) => {
     try {
-      const response = await fetch(`/api/plans/${planId}/progress`);
+      const response = await fetch(`http://localhost:8001/api/plans/${planId}`);
       
       if (!response.ok) {
         // Don't throw error for progress fetch failures - just log
@@ -255,33 +251,43 @@ export const usePlanningStore = create<PlanningState>((set, get) => ({
         return;
       }
 
-      const data = await response.json();
-      
-      if (data.success) {
-        set((state) => ({
-          activePlan: state.activePlan ? {
-            ...state.activePlan,
-            progress: data.progress,
-            status: data.progress.status,
-            lastUpdated: new Date()
-          } : null
-        }));
+      const data: PlanResponse = await response.json();
 
-        // Update session history with file count and status
-        const sessionStore = useSessionStore.getState();
-        sessionStore.updatePlanInHistory(planId, {
-          status: data.progress.status,
-          fileCount: data.progress.filesCompleted,
-          ...(data.progress.status === 'completed' && {
-            completedAt: new Date(),
-            duration: data.progress.duration
-          })
-        });
+      // API returns PlanResponse directly
+      const progress: PipelineProgress = {
+        status: data.status as PipelineStatus,
+        percentage: data.progress_percentage,
+        currentTask: data.progress_message,
+        tasksCompleted: Math.floor(data.progress_percentage / 2), // Approximate
+        totalTasks: 50, // Approximate total
+        filesCompleted: 0,
+        currentFile: '',
+        duration: 0,
+        error: data.error_message || null
+      };
 
-        // If completed, stop monitoring
-        if (['completed', 'failed', 'stopped'].includes(data.progress.status)) {
-          get().stopProgressMonitoring();
-        }
+      set((state) => ({
+        activePlan: state.activePlan ? {
+          ...state.activePlan,
+          progress: progress,
+          status: data.status as PipelineStatus,
+          lastUpdated: new Date()
+        } : null
+      }));
+
+      // Update session history with status
+      const sessionStore = useSessionStore.getState();
+      sessionStore.updatePlanInHistory(planId, {
+        status: data.status as PipelineStatus,
+        fileCount: 0, // Will be updated when files are available
+        ...(data.status === 'completed' && {
+          completedAt: new Date()
+        })
+      });
+
+      // If completed, stop monitoring
+      if (['completed', 'failed', 'cancelled'].includes(data.status)) {
+        get().stopProgressMonitoring();
       }
     } catch (error) {
       console.error('Progress fetch error:', error);

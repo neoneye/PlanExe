@@ -6,7 +6,7 @@
  */
 
 import { z } from 'zod';
-import { SpeedVsDetail, PipelinePhase, PipelineStatus } from './pipeline';
+import { SpeedVsDetail, PipelinePhase, PipelineStatus, PromptExample } from './pipeline';
 
 // =======================
 // FORM VALIDATION SCHEMAS
@@ -183,13 +183,7 @@ export interface SpeedSelectorProps extends FormFieldProps {
 }
 
 export interface PromptExamplesProps {
-  examples: Array<{
-    uuid: string;
-    title: string;
-    prompt: string;
-    tags: string[];
-    complexity: 'simple' | 'medium' | 'complex';
-  }>;
+  examples: PromptExample[];
   onSelectExample: (prompt: string) => void;
   maxExamples?: number;
   showComplexity?: boolean;

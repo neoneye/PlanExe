@@ -468,12 +468,8 @@ export interface LLMConfig {
 
 export interface PromptExample {
   uuid: string;
-  title: string;
+  title?: string;
   prompt: string;
-  tags: string[];
-  category: string;
-  complexity: 'simple' | 'medium' | 'complex';
-  estimatedDuration: number;
 }
 
 export interface PipelineConfig {

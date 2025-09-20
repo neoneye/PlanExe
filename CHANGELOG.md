@@ -2,6 +2,46 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2025-09-20
+
+### Fixed - Complete MVP Development Setup
+
+#### 🎯 **MVP Fully Operational**
+- **Fixed all backend endpoint issues** - FastAPI now fully functional on port 8001
+- **Resolved TypeScript type mismatches** between frontend and backend models
+- **Fixed frontend-backend connectivity** - corrected port configuration
+- **Added combo development scripts** - single command to start both servers
+- **Fixed PromptExample schema mismatches** - uuid field consistency
+
+#### 🔧 **Backend Infrastructure Fixes**
+- **Fixed FastAPI relative import errors** preventing server startup
+- **Fixed generate_run_id() function calls** with required parameters
+- **Updated llm_config.json** to use only API-based models (removed local models)
+- **Verified model validation** - Luigi pipeline model IDs match FastAPI exactly
+- **End-to-end plan creation tested** and working
+
+#### 🚀 **Development Experience**
+- **Added npm run go** - starts both FastAPI backend and NextJS frontend
+- **Fixed Windows environment variables** in package.json scripts
+- **Updated to modern Docker Compose syntax** (docker compose vs docker-compose)
+- **All TypeScript errors resolved** for core functionality
+- **Comprehensive testing completed** - models, prompts, and plan creation endpoints
+
+**Current Status:**
+- ✅ FastAPI backend: `http://localhost:8001` (fully functional)
+- ✅ NextJS frontend: `http://localhost:3000` (connects to backend)
+- ✅ End-to-end plan creation: Working with real-time progress
+- ✅ Model validation: Luigi pipeline integration confirmed
+- ✅ Development setup: Single command starts both servers
+
+**For Next Developer:**
+```bash
+cd planexe-frontend
+npm install
+npm run go  # Starts both backend and frontend
+```
+Then visit `http://localhost:3000` and create a plan with any model.
+
 ## [0.1.1] - 2025-09-20
 
 ### Fixed - Frontend Development Setup

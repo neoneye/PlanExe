@@ -44,8 +44,7 @@ interface ConfigState {
   updateModelPriority: (priorityOrder: string[]) => void;
 
   // Prompt filtering
-  getPromptsByCategory: (category?: string) => PromptExample[];
-  getPromptsByComplexity: (complexity?: 'simple' | 'medium' | 'complex') => PromptExample[];
+  getPromptsBySearch: (searchTerm?: string) => PromptExample[];
 }
 
 export const useConfigStore = create<ConfigState>()(
@@ -258,22 +257,16 @@ export const useConfigStore = create<ConfigState>()(
         set({ priorityOrder });
       },
 
-      // Get prompts by category
-      getPromptsByCategory: (category) => {
+      // Get prompts by search term
+      getPromptsBySearch: (searchTerm?: string) => {
         const { promptExamples } = get();
-        if (!category) return promptExamples;
-        
-        return promptExamples.filter(prompt => 
-          prompt.category.toLowerCase().includes(category.toLowerCase())
-        );
-      },
+        if (!searchTerm) return promptExamples;
 
-      // Get prompts by complexity
-      getPromptsByComplexity: (complexity) => {
-        const { promptExamples } = get();
-        if (!complexity) return promptExamples;
-        
-        return promptExamples.filter(prompt => prompt.complexity === complexity);
+        const term = searchTerm.toLowerCase();
+        return promptExamples.filter(prompt =>
+          (prompt.title?.toLowerCase().includes(term)) ||
+          prompt.prompt.toLowerCase().includes(term)
+        );
       }
     }),
     {
