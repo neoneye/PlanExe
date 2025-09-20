@@ -47,7 +47,6 @@ export const ProgressMonitor: React.FC<ProgressMonitorProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isStopping, setIsStopping] = useState(false);
   const [startTime] = useState<Date>(new Date());
-  const [eventSource, setEventSource] = useState<EventSource | null>(null);
 
   // Fetch progress data via polling
   const fetchProgress = useCallback(async () => {
@@ -103,86 +102,27 @@ export const ProgressMonitor: React.FC<ProgressMonitorProps> = ({
     }
   }, [planId, onComplete, onError, startTime]);
 
-  // Try to use SSE first, fallback to polling
-  const setupSSE = useCallback(() => {
-    try {
-      const es = new EventSource(`http://localhost:8001/api/plans/${planId}/stream`);
 
-      es.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-
-          // Add to progress history
-          setProgressHistory(prev => {
-            const newMessage: ProgressMessage = {
-              timestamp: new Date(),
-              message: data.progress_message || data.message || 'Processing...',
-              percentage: data.progress_percentage || 0
-            };
-            return [...prev, newMessage].slice(-20);
-          });
-
-          // Update plan data if we have full plan response
-          if (data.plan_id || data.planId) {
-            setPlanData(data);
-          }
-        } catch (parseErr) {
-          console.error('Failed to parse SSE data:', parseErr);
-        }
-      };
-
-      es.onerror = (error) => {
-        console.warn('SSE connection failed, falling back to polling:', error);
-        es.close();
-        setEventSource(null);
-      };
-
-      setEventSource(es);
-      return es;
-    } catch (sseErr) {
-      console.warn('SSE not supported, using polling:', sseErr);
-      return null;
-    }
-  }, [planId]);
-
-  // Auto-refresh effect - try SSE first, fallback to polling
+  // Auto-refresh effect - use polling (SSE disabled due to CORS)
   useEffect(() => {
     fetchProgress(); // Initial fetch
 
     if (!autoRefresh) return;
 
-    // Try to setup SSE
-    const es = setupSSE();
-
-    // Always setup polling as backup/fallback
+    // Use polling for now (SSE has CORS issues)
     const interval = setInterval(() => {
       // Stop auto-refresh if pipeline is completed, failed, or stopped
       if (planData?.status && !['running', 'pending'].includes(planData.status)) {
         return;
       }
-
-      // Only poll if SSE is not working
-      if (!es || es.readyState !== EventSource.OPEN) {
-        fetchProgress();
-      }
+      fetchProgress();
     }, refreshInterval);
 
     return () => {
       clearInterval(interval);
-      if (es) {
-        es.close();
-      }
     };
-  }, [fetchProgress, autoRefresh, refreshInterval, planData?.status, setupSSE]);
+  }, [fetchProgress, autoRefresh, refreshInterval, planData?.status]);
 
-  // Cleanup SSE on unmount
-  useEffect(() => {
-    return () => {
-      if (eventSource) {
-        eventSource.close();
-      }
-    };
-  }, [eventSource]);
 
   // Stop pipeline handler
   const handleStop = async () => {
