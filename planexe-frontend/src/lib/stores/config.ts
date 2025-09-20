@@ -86,7 +86,7 @@ export const useConfigStore = create<ConfigState>()(
         set({ isLoadingModels: true, modelsError: null });
 
         try {
-          // Temporary hardcoded working models - starting with Gemini as requested
+          // Working models with exact IDs that match llm_config.json keys
           const workingModels = [
             {
               id: "gemini-2.0-flash",
@@ -103,7 +103,7 @@ export const useConfigStore = create<ConfigState>()(
               requires_api_key: false
             },
             {
-              id: "qwen/qwen3-max",
+              id: "qwen-qwen3-max",
               label: "Qwen3 Max",
               comment: "High-performance Qwen model via OpenRouter.",
               priority: 3,

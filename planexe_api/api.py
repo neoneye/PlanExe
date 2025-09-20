@@ -31,12 +31,12 @@ from planexe.prompt.prompt_catalog import PromptCatalog
 from planexe.utils.planexe_config import PlanExeConfig
 from planexe.utils.planexe_dotenv import PlanExeDotEnv, DotEnvKeyEnum
 
-from .models import (
+from planexe_api.models import (
     CreatePlanRequest, PlanResponse, PlanProgressEvent, LLMModel,
     PromptExample, PlanFilesResponse, APIError, HealthResponse,
     PlanStatus, SpeedVsDetail
 )
-from .database import (
+from planexe_api.database import (
     get_database, create_tables, DatabaseService, Plan, LLMInteraction,
     PlanFile, PlanMetrics
 )
@@ -223,6 +223,16 @@ async def health_check():
         available_models=len(llm_info.llm_config_items)
     )
 
+@app.get("/test-models")
+async def test_models_simple():
+    """Simple test endpoint for models"""
+    return {"test": "working", "models": ["gemini-2.0-flash", "gpt-4o-mini"]}
+
+@app.get("/ping")
+async def ping():
+    """Ultra simple ping endpoint"""
+    return {"ping": "pong"}
+
 
 @app.get("/api/models", response_model=List[LLMModel])
 async def get_models():
@@ -251,16 +261,16 @@ async def get_models():
             priority=3,
             requires_api_key=False
         ),
-        # OpenRouter fallbacks
+        # OpenRouter fallbacks - using exact llm_config.json keys
         LLMModel(
-            id="qwen/qwen3-max",
+            id="qwen-qwen3-max",
             label="Qwen3 Max (OpenRouter)",
             comment="High-performance Qwen model via OpenRouter. Excellent reasoning.",
             priority=4,
             requires_api_key=True  # Uses OPENROUTER_API_KEY
         ),
         LLMModel(
-            id="x-ai/grok-4-fast:free",
+            id="x-ai-grok-4-fast-free",
             label="Grok 4 Fast (Free)",
             comment="Free high-speed Grok model via OpenRouter. Good for testing.",
             priority=5,
@@ -275,28 +285,19 @@ async def get_prompt_examples():
     """Get example prompts - temporary hardcoded list"""
     hardcoded_prompts = [
         PromptExample(
-            id="business-plan",
+            uuid="business-plan-001",
             title="Business Plan",
-            category="Business",
-            complexity="complex",
-            prompt="Create a comprehensive business plan for a new tech startup",
-            description="Generate a detailed business plan including market analysis, financial projections, and strategy"
+            prompt="Create a comprehensive business plan for a new tech startup including market analysis, financial projections, and strategy"
         ),
         PromptExample(
-            id="project-plan",
+            uuid="project-plan-002",
             title="Project Plan",
-            category="Project Management",
-            complexity="medium",
-            prompt="Plan the development of a mobile app from concept to launch",
-            description="Create a project plan with timeline, resources, and milestones"
+            prompt="Plan the development of a mobile app from concept to launch with timeline, resources, and milestones"
         ),
         PromptExample(
-            id="marketing-strategy",
+            uuid="marketing-strategy-003",
             title="Marketing Strategy",
-            category="Marketing",
-            complexity="medium",
-            prompt="Develop a marketing strategy for launching a new product",
-            description="Create a comprehensive marketing plan with target audience analysis"
+            prompt="Develop a marketing strategy for launching a new product with target audience analysis"
         )
     ]
     return hardcoded_prompts
@@ -307,7 +308,8 @@ async def create_plan(request: CreatePlanRequest, background_tasks: BackgroundTa
     """Create a new plan generation job"""
 
     # Generate unique plan ID
-    plan_id = generate_run_id()
+    start_time = datetime.utcnow()
+    plan_id = generate_run_id(use_uuid=True, start_time=start_time)
     run_id_dir = run_dir / plan_id
 
     # Create output directory
