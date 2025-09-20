@@ -7,11 +7,11 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { LLMConfig, PromptExample } from '@/lib/types/pipeline';
+import { LLMModel, PromptExample } from '@/lib/api/fastapi-client';
 
 interface ConfigState {
   // LLM Models
-  llmModels: LLMConfig[];
+  llmModels: LLMModel[];
   defaultModel: string;
   priorityOrder: string[];
   isLoadingModels: boolean;
