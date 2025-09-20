@@ -38,7 +38,7 @@ from planexe_api.models import (
 )
 from planexe_api.database import (
     get_database, create_tables, DatabaseService, Plan, LLMInteraction,
-    PlanFile, PlanMetrics
+    PlanFile, PlanMetrics, SessionLocal
 )
 
 # Initialize FastAPI app
@@ -90,13 +90,25 @@ llm_info = LLMInfo.obtain_info()
 
 def run_plan_job(plan_id: str, request: CreatePlanRequest):
     """Background task to run the plan generation pipeline"""
-    db_service = DatabaseService(get_db())
+    print(f"DEBUG: Starting run_plan_job for plan_id: {plan_id}")
+
+    # Create database session directly for background task
+    db = SessionLocal()
+    try:
+        db_service = DatabaseService(db)
+        print("DEBUG: Database service created successfully")
+    except Exception as e:
+        print(f"Database connection error: {e}")
+        return
 
     try:
         # Get plan from database
+        print(f"DEBUG: Looking up plan in database: {plan_id}")
         plan = db_service.get_plan(plan_id)
         if not plan:
+            print(f"DEBUG: Plan not found in database: {plan_id}")
             return
+        print(f"DEBUG: Plan found: {plan.plan_id}, status: {plan.status}")
 
         run_id_dir = Path(plan.output_dir)
 
@@ -126,6 +138,10 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
 
         # Start the pipeline process
         command = ["python", "-m", MODULE_PATH_PIPELINE]
+        print(f"DEBUG: Starting subprocess with command: {command}")
+        print(f"DEBUG: Working directory: {planexe_project_root}")
+        print(f"DEBUG: RUN_ID_DIR env var: {environment.get('RUN_ID_DIR')}")
+
         process = subprocess.Popen(
             command,
             cwd=str(planexe_project_root),
@@ -136,6 +152,7 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
             bufsize=1,
             universal_newlines=True
         )
+        print(f"DEBUG: Subprocess started with PID: {process.pid}")
 
         # Store process reference
         running_processes[plan_id] = process
@@ -203,15 +220,23 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
             })
 
     except Exception as e:
-        db_service.update_plan(plan_id, {
-            "status": PlanStatus.failed.value,
-            "error_message": str(e)
-        })
+        print(f"Exception in run_plan_job: {e}")
+        try:
+            db_service.update_plan(plan_id, {
+                "status": PlanStatus.failed.value,
+                "error_message": str(e)
+            })
+        except Exception as db_err:
+            print(f"Failed to update plan status: {db_err}")
     finally:
         # Clean up process reference
         if plan_id in running_processes:
             del running_processes[plan_id]
-        db_service.close()
+        # Close database session
+        try:
+            db.close()
+        except Exception as e:
+            print(f"Error closing database: {e}")
 
 
 @app.get("/health", response_model=HealthResponse)
