@@ -5,9 +5,13 @@
   "scripts": {
     "predev": "node scripts/generate-favicon.js",
     "dev": "next dev --turbopack",
+    "dev:frontend": "next dev --turbopack",
+    "dev:backend": "cd .. && set DATABASE_URL=sqlite:///./planexe.db && uvicorn planexe_api.api:app --reload --port 8001",
+    "go": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" --names \"backend,frontend\" --prefix-colors \"blue,green\"",
     "prebuild": "node scripts/generate-favicon.js",
     "build": "next build --turbopack",
     "start": "next start",
+    "start:full": "concurrently \"npm run dev:backend\" \"npm run start\" --names \"backend,frontend\" --prefix-colors \"blue,green\"",
     "lint": "eslint",
     "test": "node test/run-tests.js",
     "test:integration": "node test/integration/luigi-pipeline-test.js"
@@ -39,6 +43,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
     "tailwindcss": "^4",
