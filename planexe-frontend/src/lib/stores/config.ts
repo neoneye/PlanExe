@@ -146,28 +146,19 @@ export const useConfigStore = create<ConfigState>()(
           // Temporary hardcoded prompt examples while we fix the backend
           const hardcodedPrompts = [
             {
-              id: "business-plan",
+              uuid: "business-plan",
               title: "Business Plan",
-              category: "Business",
-              complexity: "complex",
-              prompt: "Create a comprehensive business plan for a new tech startup",
-              description: "Generate a detailed business plan including market analysis, financial projections, and strategy"
+              prompt: "Create a comprehensive business plan for a new tech startup"
             },
             {
-              id: "project-plan",
+              uuid: "project-plan",
               title: "Project Plan",
-              category: "Project Management",
-              complexity: "medium",
-              prompt: "Plan the development of a mobile app from concept to launch",
-              description: "Create a project plan with timeline, resources, and milestones"
+              prompt: "Plan the development of a mobile app from concept to launch"
             },
             {
-              id: "marketing-strategy",
+              uuid: "marketing-strategy",
               title: "Marketing Strategy",
-              category: "Marketing",
-              complexity: "medium",
-              prompt: "Develop a marketing strategy for launching a new product",
-              description: "Create a comprehensive marketing plan with target audience analysis"
+              prompt: "Develop a marketing strategy for launching a new product"
             }
           ];
 
