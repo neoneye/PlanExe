@@ -1,130 +1,251 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## File Header Template
 Every file you create or edit should start with:
- * 
+```
+/**
  * Author: Your NAME  (Example: Claude Code using Sonnet 4)
  * Date: `timestamp`
  * PURPOSE: VERBOSE DETAILS ABOUT HOW THIS WORKS AND WHAT ELSE IT TOUCHES
  * SRP and DRY check: Pass/Fail Is this file violating either? Do these things already exist in the project?  Did you look??
- 
+ */
+```
+
 ## Common Commands
-You need to Git add and commit any changes you make to the codebase.  Be detailed in your commit messages.
+
+### Python Backend Commands
+```bash
+# Install development dependencies
+pip install -e '.[gradio-ui,flask-ui]'
+
+# Run main Gradio interface (primary UI)
+python -m planexe.plan.app_text2plan
+
+# Run Flask interface (experimental)
+python -m planexe.ui_flask.app
+
+# Start FastAPI server (production backend)
+# Run from project root:
+DATABASE_URL="sqlite:///./planexe.db" uvicorn planexe_api.api:app --reload --port 8000
+
+# Run all tests
+python test.py
+
+# Run planning pipeline directly
+python -m planexe.plan.run_plan_pipeline
+
+# Resume existing pipeline run
+RUN_ID_DIR=/path/to/run python -m planexe.plan.run_plan_pipeline
+```
+
+### Frontend Commands (NextJS)
+```bash
+cd planexe-frontend
+
+# Install dependencies
+npm install
+
+# Development server
+npm run dev
+
+# Production build
+npm run build
+
+# Start production server
+npm run start
+
+# Lint code
+npm run lint
+
+# Run tests
+npm run test
+
+# Run integration tests
+npm run test:integration
+```
+
+### Git Commands
+You need to Git add and commit any changes you make to the codebase. Be detailed in your commit messages.
 
 
 ## Project Overview
 
-PlanExe is a Python-based AI-powered planning system that transforms high-level ideas into detailed strategic and tactical plans. It uses Large Language Models (LLMs) to generate comprehensive multi-faceted plans through a pipeline-based architecture.
+PlanExe is an AI-powered planning system that transforms high-level ideas into detailed strategic and tactical plans. The system consists of a Python backend with Luigi pipeline orchestration and a NextJS frontend.
 
-## Architecture
+## Multi-Tier Architecture
 
-### Core Structure
-- **Main Package**: `planexe/` - Contains all source code
-- **Pipeline Framework**: Uses Luigi for orchestrating complex planning workflows
-- **LLM Integration**: Multi-provider LLM support (OpenRouter, Ollama, LM Studio, etc.)
-- **UI Options**: Gradio (primary) and Flask (experimental) web interfaces
+```
+┌─────────────────────────┐
+│   NextJS Frontend       │  ← React UI (planexe-frontend/)
+│   (port 3000)          │
+└─────────┬───────────────┘
+          │ HTTP/SSE
+┌─────────▼───────────────┐
+│   FastAPI Backend       │  ← REST API (planexe_api/)
+│   (port 8000)          │
+└─────────┬───────────────┘
+          │ Subprocess
+┌─────────▼───────────────┐
+│   Luigi Pipeline        │  ← Core processing (planexe/plan/)
+│   (47 orchestrated     │
+│    tasks)               │
+└─────────┬───────────────┘
+          │ File I/O
+┌─────────▼───────────────┐
+│   File System          │  ← Generated outputs (run/)
+│   + PostgreSQL         │
+└─────────────────────────┘
+```
+
+### Core Components
+
+1. **NextJS Frontend** (`planexe-frontend/`)
+   - React-based web interface
+   - Real-time progress monitoring via Server-Sent Events
+   - Direct API client (no proxy routes)
+   - TypeScript with Zod validation
+
+2. **FastAPI Backend** (`planexe_api/`)
+   - Production-grade REST API
+   - Server-Sent Events for real-time progress
+   - PostgreSQL integration with SQLAlchemy
+   - Subprocess orchestration of Luigi pipeline
+
+3. **Luigi Pipeline** (`planexe/plan/`)
+   - 47 orchestrated tasks for plan generation
+   - File-based I/O for all artifacts
+   - Multi-provider LLM integration
+   - Comprehensive report generation
 
 ### Key Modules
-- `planexe/plan/` - Core planning logic and pipeline orchestration
+- `planexe/plan/` - Core planning logic and Luigi pipeline orchestration
 - `planexe/prompt/` - Prompt catalog and management
 - `planexe/llm_util/` - LLM abstraction and utilities
 - `planexe/expert/` - Expert-based cost estimation and analysis
 - `planexe/report/` - Report generation (HTML, PDF)
 - `planexe/schedule/` - Timeline and Gantt chart generation
-- `planexe/ui_flask/` - Flask web interface (experimental)
+- `planexe/ui_flask/` - Alternative Flask web interface (experimental)
 - `planexe/assume/` - Assumption identification and validation
 
-### Pipeline Architecture
-The system uses Luigi tasks for pipeline execution. Main pipeline entry point is `planexe/plan/run_plan_pipeline.py` which orchestrates:
-- WBS (Work Breakdown Structure) generation (Level 1, 2, 3)
-- Expert cost estimation
-- Risk identification and analysis
-- Resource planning
-- Timeline generation
-- Report compilation
+## Development Workflow
 
-## Development Commands
-
-### Installation
+### Full-Stack Development Setup
 ```bash
-# For development with all UI options
+# 1. Install Python dependencies
 pip install -e '.[gradio-ui,flask-ui]'
 
-# For Gradio UI only (recommended)
-pip install '.[gradio-ui]'
+# 2. Start FastAPI backend (Terminal 1)
+# Run from project root:
+DATABASE_URL="sqlite:///./planexe.db" uvicorn planexe_api.api:app --reload --port 8000
+
+# 3. Start NextJS frontend (Terminal 2)
+cd planexe-frontend
+npm install && npm run dev
 ```
 
-### Running the Application
+### Alternative UI Options
 ```bash
-# Start Gradio web interface (primary UI)
+# Gradio interface (standalone)
 python -m planexe.plan.app_text2plan
 
-# Start Flask web interface (experimental)
+# Flask interface (experimental)
 python -m planexe.ui_flask.app
-
-# Run planning pipeline directly
-python -m planexe.plan.run_plan_pipeline
-
-# Resume an existing run
-RUN_ID_DIR=/path/to/run python -m planexe.plan.run_plan_pipeline
 ```
 
 ### Testing
 ```bash
-# Run all tests using the custom test runner
+# Python tests
 python test.py
 
-# Test files are located in various tests/ subdirectories:
+# Frontend tests
+cd planexe-frontend
+npm run test
+npm run test:integration
+
+# Test files located in:
 # - planexe/plan/tests/
 # - planexe/prompt/tests/
 # - planexe/llm_util/tests/
-# - planexe/markdown_util/tests/
-# - planexe/chunk_dataframe_with_context/tests/
+# - planexe-frontend/test/
 ```
 
 ## Configuration
 
-### LLM Configuration
-- **File**: `llm_config.json` - Defines available LLM providers and models
-- **Supported Providers**: OpenRouter (paid), Ollama (local), LM Studio (local)
-- **Environment Variables**:
-  - `OPENROUTER_API_KEY` for OpenRouter models
-  - `RUN_ID_DIR` for resuming pipeline runs
-  - `IS_HUGGINGFACE_SPACES` for deployment mode
+### Environment Setup
+```bash
+# Copy and configure environment
+cp .env.example .env
+# Edit .env with your API keys and settings
+```
 
-### Environment Files
-- `.env` - Local environment configuration
-- `.env.example` - Template for environment setup
+### Key Configuration Files
+- **`llm_config.json`** - LLM providers and models configuration
+- **`.env`** - Environment variables and API keys
+- **`planexe_api/alembic.ini`** - Database migration configuration
 
-## Key Files and Entry Points
+### Important Environment Variables
+- `OPENROUTER_API_KEY` - For OpenRouter LLM provider
+- `RUN_ID_DIR` - For resuming pipeline runs
+- `IS_HUGGINGFACE_SPACES` - Deployment mode flag
+- `DATABASE_URL` - PostgreSQL connection string (FastAPI only)
 
-### Main Applications
-- `planexe/plan/app_text2plan.py` - Gradio web interface
-- `planexe/ui_flask/app.py` - Flask web interface
-- `planexe/plan/run_plan_pipeline.py` - Pipeline execution engine
+## Critical Architecture Notes
 
-### Core Utilities
-- `planexe/llm_factory.py` - LLM provider factory and management
-- `planexe/plan/filenames.py` - File naming conventions for pipeline outputs
-- `planexe/plan/generate_run_id.py` - Unique run identifier generation
+### Frontend-Backend Communication
+**IMPORTANT**: The NextJS frontend should connect **directly** to the FastAPI backend. Do not create NextJS API proxy routes - they duplicate functionality and break the architecture.
 
-## Data Flow
+```typescript
+// CORRECT: Direct FastAPI client
+const response = await fetch('http://localhost:8000/api/plans', {
+  method: 'POST',
+  body: JSON.stringify({
+    prompt: userInput,
+    llm_model: selectedModel,
+    speed_vs_detail: "FAST_BUT_BASIC"  // Use snake_case
+  })
+});
 
-1. **Input**: User provides high-level idea/description through web UI
-2. **Planning Pipeline**: Luigi orchestrates multi-stage planning process
-3. **LLM Processing**: Various specialized prompts generate plan components
-4. **Output**: Comprehensive plan with WBS, costs, timelines, and reports
-5. **Export**: Plans can be exported as ZIP archives with HTML reports
+// WRONG: NextJS API proxy routes
+// These should not exist in app/api/ directory
+```
 
-## Dependencies
+### Field Name Conventions
+The FastAPI backend uses **snake_case** field names. Frontend should match this exactly:
 
-- **Core**: Python 3.13+, Luigi (pipeline), LlamaIndex (LLM abstraction)
-- **UI**: Gradio (primary), Flask (experimental)
-- **LLM Providers**: OpenAI, Ollama, various providers via OpenRouter
-- **Output**: Pandas (data processing), Jinja2 (templating)
+| Use This (snake_case) | Not This (camelCase) |
+|---------------------|---------------------|
+| `llm_model` | `llmModel` |
+| `speed_vs_detail` | `speedVsDetail` |
+| `openrouter_api_key` | `openrouterApiKey` |
+| `plan_id` | `planId` |
 
-## Testing Strategy
+### Real-Time Progress
+Use Server-Sent Events for real-time progress updates:
+```typescript
+const eventSource = new EventSource(`/api/plans/${planId}/stream`);
+eventSource.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  setProgress(data.progress_percentage);
+};
+```
 
-- Unit tests distributed across module-specific `tests/` directories
-- Custom test runner in `test.py` using unittest discovery
-- Tests cover prompt generation, LLM utilities, data processing, and core planning logic
+### Key Entry Points
+- **FastAPI Server**: `planexe_api/api.py` (501 lines) - Production backend
+- **Luigi Pipeline**: `planexe/plan/run_plan_pipeline.py` (3520 lines) - Core processing
+- **NextJS Frontend**: `planexe-frontend/src/` - React UI
+- **Gradio Alternative**: `planexe/plan/app_text2plan.py` - Standalone UI
+
+### Pipeline Data Flow
+1. **HTTP Request** → FastAPI backend receives plan creation request
+2. **Subprocess Launch** → FastAPI spawns Luigi pipeline as subprocess
+3. **File-Based Processing** → 47 Luigi tasks generate artifacts in `run/` directory
+4. **Server-Sent Events** → Real-time progress streamed to frontend
+5. **File Downloads** → Generated reports and files served via FastAPI
+
+### Critical Files to Understand
+- `docs/FRONTEND-ARCHITECTURE-FIX-PLAN.md` - Frontend connection guide
+- `planexe_api/models.py` - Pydantic schemas for API
+- `planexe/llm_factory.py` - LLM provider abstraction
+- `llm_config.json` - LLM provider configurations
