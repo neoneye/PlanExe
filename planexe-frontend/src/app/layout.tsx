@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import DynamicFavicon from "@/components/layout/DynamicFavicon";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   description: "Transform ideas into detailed plans using AI",
   icons: {
     icon: '/favicon.ico',
-    shortcut: '/favicon.ico',
+    shortcut: '/favicon.ico', 
     apple: '/favicon.ico',
   },
 };
@@ -29,12 +30,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link rel="icon" href="/favicon.ico" />
-      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <DynamicFavicon randomize={true} updateInterval={30000} />
         {children}
       </body>
     </html>
