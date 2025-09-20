@@ -124,7 +124,7 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
             environment["OPENROUTER_API_KEY"] = request.openrouter_api_key
 
         # Write the plan prompt to setup file
-        setup_file = run_id_dir / FilenameEnum.SETUP.value
+        setup_file = run_id_dir / "setup.txt"  # Use simple filename instead of enum
         with open(setup_file, "w", encoding="utf-8") as f:
             f.write(request.prompt)
 
