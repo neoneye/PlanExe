@@ -1,5 +1,22 @@
 # PlanExe changelog
 
+## 2025-september-20
+
+Fixed critical FastAPI backend database connection issues that were preventing Luigi pipeline execution:
+
+- **Database Configuration**: Updated `.env` to use Railway PostgreSQL connection instead of template variables
+- **Background Task Fix**: Fixed FastAPI background task database session handling that was causing silent failures
+- **Luigi Pipeline Integration**: Resolved issue where plans would get stuck at 0% "pending" status
+- **Error Handling**: Added comprehensive debug logging and improved error handling for background tasks
+
+**Testing Instructions**:
+1. Restart FastAPI backend: `cd planexe-frontend; npm run go`
+2. Create a plan via frontend - should now progress beyond 0% and execute Luigi pipeline
+3. Check `run/` directories for generated plan files
+4. Verify real-time progress updates via Server-Sent Events
+
+This fixes the core issue where the planning system appeared to work but background tasks were failing silently due to database connection problems.
+
 ## 2025-june-5
 
 I have renamed the root dir of the project from `src` to `planexe`.
