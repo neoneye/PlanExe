@@ -86,27 +86,39 @@ export const useConfigStore = create<ConfigState>()(
         set({ isLoadingModels: true, modelsError: null });
 
         try {
-          const response = await fetch('/api/config/llms');
-          
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error?.message || 'Failed to load LLM models');
-          }
+          // Temporary hardcoded working models - starting with Gemini as requested
+          const workingModels = [
+            {
+              id: "gemini-2.0-flash",
+              label: "Gemini 2.0 Flash",
+              comment: "Google's latest fast model. 1M context. $0.20/M input, $0.60/M output.",
+              priority: 1,
+              requires_api_key: false
+            },
+            {
+              id: "gpt-4o-mini",
+              label: "GPT-4o Mini",
+              comment: "Latest fast OpenAI model. 128K context. Cost-effective.",
+              priority: 2,
+              requires_api_key: false
+            },
+            {
+              id: "qwen/qwen3-max",
+              label: "Qwen3 Max",
+              comment: "High-performance Qwen model via OpenRouter.",
+              priority: 3,
+              requires_api_key: true
+            }
+          ];
 
-          const data = await response.json();
-          
-          if (data.success) {
-            set({
-              llmModels: data.models,
-              defaultModel: data.defaultModel,
-              priorityOrder: data.priorityOrder,
-              isLoadingModels: false,
-              modelsError: null,
-              modelsLastLoaded: new Date()
-            });
-          } else {
-            throw new Error('Failed to load LLM models');
-          }
+          set({
+            llmModels: workingModels,
+            defaultModel: "gemini-2.0-flash",
+            priorityOrder: workingModels.map(m => m.id),
+            isLoadingModels: false,
+            modelsError: null,
+            modelsLastLoaded: new Date()
+          });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           set({ 
@@ -131,26 +143,41 @@ export const useConfigStore = create<ConfigState>()(
         set({ isLoadingPrompts: true, promptsError: null });
 
         try {
-          const response = await fetch('/api/config/prompts');
-          
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error?.message || 'Failed to load prompt examples');
-          }
+          // Temporary hardcoded prompt examples while we fix the backend
+          const hardcodedPrompts = [
+            {
+              id: "business-plan",
+              title: "Business Plan",
+              category: "Business",
+              complexity: "complex",
+              prompt: "Create a comprehensive business plan for a new tech startup",
+              description: "Generate a detailed business plan including market analysis, financial projections, and strategy"
+            },
+            {
+              id: "project-plan",
+              title: "Project Plan",
+              category: "Project Management",
+              complexity: "medium",
+              prompt: "Plan the development of a mobile app from concept to launch",
+              description: "Create a project plan with timeline, resources, and milestones"
+            },
+            {
+              id: "marketing-strategy",
+              title: "Marketing Strategy",
+              category: "Marketing",
+              complexity: "medium",
+              prompt: "Develop a marketing strategy for launching a new product",
+              description: "Create a comprehensive marketing plan with target audience analysis"
+            }
+          ];
 
-          const data = await response.json();
-          
-          if (data.success) {
-            set({
-              promptExamples: data.examples,
-              promptCategories: data.categories,
-              isLoadingPrompts: false,
-              promptsError: null,
-              promptsLastLoaded: new Date()
-            });
-          } else {
-            throw new Error('Failed to load prompt examples');
-          }
+          set({
+            promptExamples: hardcodedPrompts,
+            promptCategories: ["Business", "Project Management", "Marketing"],
+            isLoadingPrompts: false,
+            promptsError: null,
+            promptsLastLoaded: new Date()
+          });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           set({ 

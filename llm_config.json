@@ -1,91 +1,92 @@
 {
-    "openrouter-paid-openai-gpt-oss-20b": {
-        "comment": "This is very fast. It's paid, so check the pricing before use. Created August 5, 2025. 131,072 context. $0.05/M input tokens. $0.20/M output tokens. This is a reasoning model, and uses more tokens than LLMs.",
-        "class": "OpenRouter",
-        "arguments": {
-            "model": "openai/gpt-oss-20b",
-            "api_key": "${OPENROUTER_API_KEY}",
-            "temperature": 0.1,
-            "timeout": 60.0,
-            "is_function_calling_model": false,
-            "is_chat_model": true,
-            "max_tokens": 8192,
-            "max_retries": 5
-        }
-    },
-    "openrouter-paid-gemini-2.0-flash-001": {
-        "comment": "This is very fast. It's paid, so check the pricing before use. Created Feb 25, 2025. 1,048,576 context. $0.075/M input tokens. $0.30/M output tokens.",
+    "gemini-2.0-flash": {
+        "comment": "Google's latest fast model. 1M context. $0.20/M input, $0.60/M output.",
         "priority": 1,
-        "class": "OpenRouter",
+        "class": "GoogleGenAI",
         "arguments": {
-            "model": "google/gemini-2.0-flash-001",
-            "api_key": "${OPENROUTER_API_KEY}",
+            "model": "models/gemini-2.0-flash",
+            "api_key": "${GEMINI_API_KEY}",
             "temperature": 0.1,
             "timeout": 60.0,
             "is_function_calling_model": false,
             "is_chat_model": true,
             "max_tokens": 8192,
-            "max_retries": 5
+            "max_retries": 3
         }
     },
-    "openrouter-paid-openai-gpt-4o-mini": {
-        "comment": "This is medium fast. It's paid, so check the pricing before use. Created Jul 18, 2024. 128,000 context. Starting at $0.15/M input tokens. Starting at $0.60/M output tokens.",
+    "gpt-4o-mini": {
+        "comment": "Latest fast OpenAI model. 128K context. Cost-effective for production.",
         "priority": 2,
-        "class": "OpenRouter",
+        "class": "OpenAI",
         "arguments": {
-            "model": "openai/gpt-4o-mini",
-            "api_key": "${OPENROUTER_API_KEY}",
+            "model": "gpt-4o-mini",
+            "api_key": "${OPENAI_API_KEY}",
             "temperature": 0.1,
             "timeout": 60.0,
-            "is_function_calling_model": false,
+            "is_function_calling_model": true,
             "is_chat_model": true,
-            "max_tokens": 8192,
-            "max_retries": 5
+            "max_tokens": 16384,
+            "max_retries": 3
         }
     },
-    "openrouter-paid-qwen3-30b-a3b": {
-        "comment": "This is slow. It's paid, so check the pricing before use. Created Apr 28, 2025. 40,960 context. $0.08/M input tokens. $0.29/M output tokens.",
+    "gpt-4o": {
+        "comment": "Latest OpenAI flagship model. 128K context. Best quality.",
+        "priority": 2,
+        "class": "OpenAI",
+        "arguments": {
+            "model": "gpt-4o",
+            "api_key": "${OPENAI_API_KEY}",
+            "temperature": 0.1,
+            "timeout": 90.0,
+            "is_function_calling_model": true,
+            "is_chat_model": true,
+            "max_tokens": 16384,
+            "max_retries": 3
+        }
+    },
+    "gpt-4-turbo": {
+        "comment": "OpenAI GPT-4 Turbo. 128K context. Reliable performance.",
         "priority": 3,
+        "class": "OpenAI",
+        "arguments": {
+            "model": "gpt-4-turbo",
+            "api_key": "${OPENAI_API_KEY}",
+            "temperature": 0.1,
+            "timeout": 90.0,
+            "is_function_calling_model": true,
+            "is_chat_model": true,
+            "max_tokens": 16384,
+            "max_retries": 3
+        }
+    },
+    "qwen-qwen3-max": {
+        "comment": "High-performance Qwen model via OpenRouter. Excellent reasoning.",
+        "priority": 4,
         "class": "OpenRouter",
         "arguments": {
-            "model": "qwen/qwen3-30b-a3b",
+            "model": "qwen/qwen3-max",
             "api_key": "${OPENROUTER_API_KEY}",
             "temperature": 0.1,
-            "timeout": 60.0,
+            "timeout": 120.0,
             "is_function_calling_model": false,
             "is_chat_model": true,
             "max_tokens": 8192,
-            "max_retries": 5
+            "max_retries": 3
         }
     },
-    "ollama-llama3.1": {
-        "comment": "This runs on your own computer. It's free. Requires Ollama to be installed.",
-        "class": "Ollama",
+    "x-ai-grok-4-fast-free": {
+        "comment": "Free high-speed Grok model via OpenRouter. Good for testing.",
+        "priority": 5,
+        "class": "OpenRouter",
         "arguments": {
-            "model": "llama3.1:latest",
-            "temperature": 0.5,
-            "request_timeout": 120.0,
-            "is_function_calling_model": false
-        }
-    },
-    "ollama-qwen2.5-coder": {
-        "comment": "This runs on your own computer. It's free. Requires Ollama to be installed.",
-        "class": "Ollama",
-        "arguments": {
-            "model": "qwen2.5-coder:latest",
-            "temperature": 0.5,
-            "request_timeout": 120.0,
-            "is_function_calling_model": false
-        }
-    },
-    "lmstudio-qwen2.5-7b-instruct-1m": {
-        "comment": "This runs on your own computer. It's free. Requires LM Studio to be installed. Great for inspecting the request/response.",
-        "class": "LMStudio",
-        "arguments": {
-            "model_name": "qwen2.5-7b-instruct-1m",
-            "temperature": 0.2,
-            "request_timeout": 120.0,
-            "is_function_calling_model": false
+            "model": "x-ai/grok-4-fast:free",
+            "api_key": "${OPENROUTER_API_KEY}",
+            "temperature": 0.1,
+            "timeout": 90.0,
+            "is_function_calling_model": false,
+            "is_chat_model": true,
+            "max_tokens": 8192,
+            "max_retries": 3
         }
     }
 }

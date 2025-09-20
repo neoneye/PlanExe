@@ -26,12 +26,7 @@ export default function Home() {
   // Initialize stores
   useEffect(() => {
     const init = async () => {
-      // Initialize session
-      if (session?.sessionId) {
-        await loadSession(session.sessionId);
-      } else {
-        await createSession();
-      }
+      // Skip session management for now - focus on core functionality
 
       // Load configuration
       await loadLLMModels();

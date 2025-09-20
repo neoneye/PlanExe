@@ -226,33 +226,80 @@ async def health_check():
 
 @app.get("/api/models", response_model=List[LLMModel])
 async def get_models():
-    """Get available LLM models"""
-    models = []
-    for item in llm_info.llm_config_items:
-        models.append(LLMModel(
-            id=item.id,
-            label=item.label,
-            comment=item.comment,
-            priority=getattr(item, 'priority', 0),
-            requires_api_key=item.id.startswith('openrouter')
-        ))
-
-    # Sort by priority
-    models.sort(key=lambda x: x.priority)
-    return models
+    """Get available LLM models - production OpenAI + OpenRouter fallbacks"""
+    # Real working models based on your .env API keys
+    production_models = [
+        # Primary: Latest OpenAI models (direct API)
+        LLMModel(
+            id="gpt-4o-mini",
+            label="GPT-4o Mini",
+            comment="Latest fast OpenAI model. 128K context. Cost-effective for production.",
+            priority=1,
+            requires_api_key=False  # Uses OPENAI_API_KEY from .env
+        ),
+        LLMModel(
+            id="gpt-4o",
+            label="GPT-4o",
+            comment="Latest OpenAI flagship model. 128K context. Best quality.",
+            priority=2,
+            requires_api_key=False
+        ),
+        LLMModel(
+            id="gpt-4-turbo",
+            label="GPT-4 Turbo",
+            comment="OpenAI GPT-4 Turbo. 128K context. Reliable performance.",
+            priority=3,
+            requires_api_key=False
+        ),
+        # OpenRouter fallbacks
+        LLMModel(
+            id="qwen/qwen3-max",
+            label="Qwen3 Max (OpenRouter)",
+            comment="High-performance Qwen model via OpenRouter. Excellent reasoning.",
+            priority=4,
+            requires_api_key=True  # Uses OPENROUTER_API_KEY
+        ),
+        LLMModel(
+            id="x-ai/grok-4-fast:free",
+            label="Grok 4 Fast (Free)",
+            comment="Free high-speed Grok model via OpenRouter. Good for testing.",
+            priority=5,
+            requires_api_key=True
+        )
+    ]
+    return production_models
 
 
 @app.get("/api/prompts", response_model=List[PromptExample])
 async def get_prompt_examples():
-    """Get example prompts from the catalog"""
-    examples = []
-    for prompt_item in prompt_catalog.all():
-        examples.append(PromptExample(
-            uuid=prompt_item.uuid,
-            prompt=prompt_item.prompt,
-            title=getattr(prompt_item, 'title', None)
-        ))
-    return examples
+    """Get example prompts - temporary hardcoded list"""
+    hardcoded_prompts = [
+        PromptExample(
+            id="business-plan",
+            title="Business Plan",
+            category="Business",
+            complexity="complex",
+            prompt="Create a comprehensive business plan for a new tech startup",
+            description="Generate a detailed business plan including market analysis, financial projections, and strategy"
+        ),
+        PromptExample(
+            id="project-plan",
+            title="Project Plan",
+            category="Project Management",
+            complexity="medium",
+            prompt="Plan the development of a mobile app from concept to launch",
+            description="Create a project plan with timeline, resources, and milestones"
+        ),
+        PromptExample(
+            id="marketing-strategy",
+            title="Marketing Strategy",
+            category="Marketing",
+            complexity="medium",
+            prompt="Develop a marketing strategy for launching a new product",
+            description="Create a comprehensive marketing plan with target audience analysis"
+        )
+    ]
+    return hardcoded_prompts
 
 
 @app.post("/api/plans", response_model=PlanResponse)

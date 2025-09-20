@@ -13,10 +13,10 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
-# Database URL from environment variable
+# Database URL from environment variable - default to SQLite for development
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://user:password@localhost:5432/planexe"
+    "sqlite:///./planexe.db"
 )
 
 # Create engine
