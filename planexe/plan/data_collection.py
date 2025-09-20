@@ -134,8 +134,6 @@ class DataCollection:
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
 
-        logger.debug(f"User Prompt:\n{user_prompt}")
-
         system_prompt = DATA_COLLECTION_SYSTEM_PROMPT.strip()
 
         chat_message_list = [
