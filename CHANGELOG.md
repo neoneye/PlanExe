@@ -2,6 +2,41 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2025-09-20
+
+### Fixed - Frontend Development Setup
+
+#### 🔧 **Development Environment Configuration**
+- **Fixed FastAPI startup issues** preventing local development
+- **Switched from PostgreSQL to SQLite** for dependency-free development setup
+- **Resolved import path conflicts** in NextJS frontend components
+- **Corrected startup commands** in developer documentation
+
+#### 🏗️ **Frontend Architecture Fixes**
+- **Implemented direct FastAPI client** replacing broken NextJS API proxy routes
+- **Fixed module resolution errors** preventing frontend compilation
+- **Updated component imports** to use new FastAPI client architecture
+- **Verified end-to-end connectivity** between NextJS frontend and FastAPI backend
+
+#### 📚 **Developer Experience Improvements**
+- **Updated CLAUDE.md** with correct startup procedures
+- **Documented architecture decisions** in FRONTEND-ARCHITECTURE-FIX-PLAN.md
+- **Added troubleshooting guides** for common development issues
+- **Streamlined two-terminal development workflow**
+
+**Current Status:**
+- ✅ FastAPI backend running on localhost:8000 with SQLite database
+- ✅ NextJS frontend running on localhost:3002 (or 3000) 
+- ✅ Direct frontend ↔ backend communication established
+- 🚧 Ready for FastAPI client testing and Luigi pipeline integration
+
+**Next Steps for Developer:**
+1. Test FastAPI client in browser console (health, models, prompts endpoints)
+2. Create test plan through UI to verify pipeline connection
+3. Validate Server-Sent Events for real-time progress tracking
+4. Test file downloads and report generation
+
+
 ## [0.1.0] - 2025-09-19 
 
 ### Added - REST API & Node.js Integration
