@@ -398,6 +398,49 @@ async def get_plan(plan_id: str, db: Session = Depends(get_database)):
     )
 
 
+@app.post("/api/plans/{plan_id}/retry", response_model=PlanResponse)
+async def retry_plan(plan_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_database)):
+    """Retry a failed or stuck plan"""
+    db_service = DatabaseService(db)
+    plan = db_service.get_plan(plan_id)
+
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    # Reset plan to pending status
+    db_service.update_plan(plan_id, {
+        "status": PlanStatus.pending.value,
+        "progress_percentage": 0,
+        "progress_message": "Plan queued for retry processing...",
+        "error_message": None,
+        "started_at": None,
+        "completed_at": None
+    })
+
+    # Create request object from stored plan data
+    request = CreatePlanRequest(
+        prompt=plan.prompt,
+        llm_model=plan.llm_model,
+        speed_vs_detail=plan.speed_vs_detail
+    )
+
+    # Start background task
+    background_tasks.add_task(run_plan_job, plan_id, request)
+
+    # Return updated plan
+    updated_plan = db_service.get_plan(plan_id)
+    return PlanResponse(
+        plan_id=updated_plan.plan_id,
+        status=PlanStatus(updated_plan.status),
+        created_at=updated_plan.created_at,
+        prompt=updated_plan.prompt,
+        progress_percentage=updated_plan.progress_percentage,
+        progress_message=updated_plan.progress_message,
+        error_message=updated_plan.error_message,
+        output_dir=updated_plan.output_dir
+    )
+
+
 @app.get("/api/plans/{plan_id}/stream")
 async def stream_plan_progress(plan_id: str):
     """Server-sent events stream for real-time plan progress"""

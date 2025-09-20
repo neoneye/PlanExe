@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { PlanForm } from '@/components/planning/PlanForm';
 import { ProgressMonitor } from '@/components/monitoring/ProgressMonitor';
 import { FileManager } from '@/components/files/FileManager';
+import { PlansQueue } from '@/components/PlansQueue';
 import { useSessionStore } from '@/lib/stores/session';
 import { useConfigStore } from '@/lib/stores/config';
 import { usePlanningStore } from '@/lib/stores/planning';
@@ -76,8 +77,9 @@ export default function Home() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         <Tabs defaultValue="create" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="create">Create Plan</TabsTrigger>
+            <TabsTrigger value="queue">Plans Queue</TabsTrigger>
             <TabsTrigger value="monitor" disabled={!activePlan}>
               Monitor Progress
             </TabsTrigger>
@@ -142,6 +144,16 @@ export default function Home() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          <TabsContent value="queue" className="space-y-6">
+            <PlansQueue
+              className="w-full"
+              onPlanSelect={(planId) => {
+                // TODO: Load plan details when selected
+                console.log('Selected plan:', planId);
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="monitor" className="space-y-6">
