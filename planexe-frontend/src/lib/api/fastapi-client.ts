@@ -10,7 +10,7 @@
 export interface CreatePlanRequest {
   prompt: string;
   llm_model?: string;
-  speed_vs_detail: 'fast_but_skip_details' | 'balanced_speed_and_detail' | 'all_details_but_slow';
+  speed_vs_detail: 'FAST_BUT_BASIC' | 'BALANCED_SPEED_AND_DETAIL' | 'ALL_DETAILS_BUT_SLOW';
   openrouter_api_key?: string;
 }
 

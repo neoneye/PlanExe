@@ -45,7 +45,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
     defaultValues: {
       prompt: '',
       llm_model: '',
-      speed_vs_detail: 'all_details_but_slow',
+      speed_vs_detail: 'ALL_DETAILS_BUT_SLOW',
       openrouter_api_key: '',
       title: '',
       tags: []
@@ -89,13 +89,13 @@ export const PlanForm: React.FC<PlanFormProps> = ({
 
   const speedOptions = [
     {
-      value: 'all_details_but_slow' as const,
+      value: 'ALL_DETAILS_BUT_SLOW' as const,
       label: 'All Details (Slow)',
       description: 'Complete analysis with all 50+ tasks (~60 minutes)',
       duration: '45-90 min'
     },
     {
-      value: 'fast_but_skip_details' as const,
+      value: 'FAST_BUT_BASIC' as const,
       label: 'Fast Mode (Basic)',
       description: 'Essential tasks only for quick results (~15 minutes)',
       duration: '10-20 min'
