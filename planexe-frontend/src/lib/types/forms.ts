@@ -50,7 +50,7 @@ export const PlanFormSchema = z.object({
 
 export const SessionConfigSchema = z.object({
   defaultSpeedVsDetail: z
-    .enum(['ALL_DETAILS_BUT_SLOW', 'FAST_BUT_SKIP_DETAILS'])
+    .enum(['ALL_DETAILS_BUT_SLOW', 'FAST_BUT_BASIC'])
     .default('ALL_DETAILS_BUT_SLOW'),
 
   preferredLLMModel: z

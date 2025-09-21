@@ -9,7 +9,7 @@
 // CORE PIPELINE TYPES
 // =======================
 
-export type SpeedVsDetail = 'ALL_DETAILS_BUT_SLOW' | 'FAST_BUT_SKIP_DETAILS';
+export type SpeedVsDetail = 'ALL_DETAILS_BUT_SLOW' | 'FAST_BUT_BASIC' | 'BALANCED_SPEED_AND_DETAIL';
 
 export type PipelineStatus = 'created' | 'running' | 'completed' | 'failed' | 'stopped' | 'pending' | 'cancelled';
 
