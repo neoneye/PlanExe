@@ -313,6 +313,38 @@ async def ping():
     """Ultra simple ping endpoint"""
     return {"ping": "pong"}
 
+@app.post("/debug-plan")
+async def debug_plan(request: CreatePlanRequest):
+    """Debug version that logs everything"""
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
+    logger.info(f"Received request: {request}")
+
+    try:
+        from datetime import datetime
+        from planexe.plan.generate_run_id import generate_run_id
+
+        start_time = datetime.utcnow()
+        plan_id = generate_run_id(use_uuid=True, start_time=start_time)
+
+        logger.info(f"Generated plan_id: {plan_id}")
+
+        return {"status": "success", "plan_id": plan_id, "received": request.dict()}
+
+    except Exception as e:
+        logger.error(f"Error in debug_plan: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
+
+@app.post("/test-request")
+async def test_request(request: CreatePlanRequest):
+    """Test endpoint to isolate request parsing issues"""
+    return {"received": request.prompt, "speed": request.speed_vs_detail}
+
+
 @app.post("/test-create-plan")
 async def test_create_plan_simple():
     """Test the create plan logic without background tasks"""
