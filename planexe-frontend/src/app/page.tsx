@@ -18,37 +18,55 @@ import { PlansQueue } from '@/components/PlansQueue';
 import { PipelineDetails } from '@/components/PipelineDetails';
 import { useSessionStore } from '@/lib/stores/session';
 import { useConfigStore } from '@/lib/stores/config';
-import { usePlanningStore } from '@/lib/stores/planning';
+import { CreatePlanRequest, fastApiClient } from '@/lib/api/fastapi-client';
 
 export default function Home() {
   const { session, createSession, loadSession } = useSessionStore();
   const { llmModels, promptExamples, loadLLMModels, loadPromptExamples } = useConfigStore();
-  const { activePlan, createPlan, clearPlan, isCreating } = usePlanningStore();
+  
+  // Simple, local state management instead of the complex planning store
+  const [activePlanId, setActivePlanId] = React.useState<string | null>(null);
+  const [isCreating, setIsCreating] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
-  // Initialize stores
+  // Initialize config store
   useEffect(() => {
     const init = async () => {
-      // Skip session management for now - focus on core functionality
-
-      // Load configuration
       await loadLLMModels();
       await loadPromptExamples();
     };
-
     init();
-  }, []);
+  }, [loadLLMModels, loadPromptExamples]);
 
-  const handlePlanSubmit = async (planData: any) => {
-    await createPlan(planData);
+  const handlePlanSubmit = async (planData: CreatePlanRequest) => {
+    setIsCreating(true);
+    setError(null);
+    try {
+      const newPlan = await fastApiClient.createPlan(planData);
+      setActivePlanId(newPlan.plan_id);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create plan.';
+      setError(errorMessage);
+      console.error('Plan creation error:', errorMessage);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handlePlanComplete = () => {
-    // Plan completed - could show success message
     console.log('Plan completed successfully!');
+    // Optionally, reset the view after a delay
+    setTimeout(() => setActivePlanId(null), 5000);
   };
 
   const handlePlanError = (error: string) => {
+    setError(error);
     console.error('Plan error:', error);
+  };
+
+  const handleStop = () => {
+    console.log('Plan stopped by user.');
+    setActivePlanId(null); // Return to the form
   };
 
   return (
@@ -61,14 +79,9 @@ export default function Home() {
             <p className="text-sm text-gray-600">AI-Powered Strategic Planning System</p>
           </div>
           <div className="flex items-center space-x-4">
-            {session && (
-              <div className="text-sm text-gray-600">
-                Session: {session.sessionId.substring(0, 8)}...
-              </div>
-            )}
-            {activePlan && (
-              <Badge variant={activePlan.status === 'running' ? 'default' : 'secondary'}>
-                {activePlan.status.toUpperCase()}
+            {activePlanId && (
+              <Badge variant={'default'}>
+                PLANNING
               </Badge>
             )}
           </div>
@@ -81,13 +94,13 @@ export default function Home() {
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="create">Create Plan</TabsTrigger>
             <TabsTrigger value="queue">Plans Queue</TabsTrigger>
-            <TabsTrigger value="monitor" disabled={!activePlan}>
+            <TabsTrigger value="monitor" disabled={!activePlanId}>
               Monitor Progress
             </TabsTrigger>
-            <TabsTrigger value="details" disabled={!activePlan}>
+            <TabsTrigger value="details" disabled={!activePlanId}>
               Details
             </TabsTrigger>
-            <TabsTrigger value="files" disabled={!activePlan}>
+            <TabsTrigger value="files" disabled={!activePlanId}>
               View Files
             </TabsTrigger>
           </TabsList>
@@ -104,12 +117,12 @@ export default function Home() {
             </Card>
 
             {/* Show Progress Monitor if plan is active, otherwise show form */}
-            {activePlan ? (
+            {activePlanId ? (
               <ProgressMonitor
-                planId={activePlan.planId}
+                planId={activePlanId}
                 onComplete={handlePlanComplete}
                 onError={handlePlanError}
-                onStop={clearPlan}
+                onStop={handleStop}
               />
             ) : (
               /* Plan Creation Form */
@@ -121,52 +134,37 @@ export default function Home() {
               />
             )}
 
-            {/* Recent Plans */}
-            {session?.planHistory && session.planHistory.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Plans</CardTitle>
-                  <CardDescription>Your planning history</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {session.planHistory.slice(0, 5).map((plan) => (
-                      <div key={plan.planId} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-                        <div>
-                          <div className="font-medium">{plan.title}</div>
-                          <div className="text-sm text-gray-600">{plan.promptPreview}</div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            Created {plan.createdAt.toLocaleDateString()} • {plan.fileCount} files
-                          </div>
-                        </div>
-                        <Badge variant={plan.status === 'completed' ? 'default' : 'secondary'}>
-                          {plan.status}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Display error if any */}
+            {error && (
+                <Card className="border-red-500">
+                    <CardHeader>
+                        <CardTitle className="text-red-600">An Error Occurred</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-red-600">{error}</p>
+                        <button onClick={() => setError(null)} className="mt-4 text-sm text-blue-500">Dismiss</button>
+                    </CardContent>
+                </Card>
             )}
+
           </TabsContent>
 
           <TabsContent value="queue" className="space-y-6">
             <PlansQueue
               className="w-full"
               onPlanSelect={(planId) => {
-                // TODO: Load plan details when selected
-                console.log('Selected plan:', planId);
+                setActivePlanId(planId);
               }}
             />
           </TabsContent>
 
           <TabsContent value="monitor" className="space-y-6">
-            {activePlan ? (
+            {activePlanId ? (
               <ProgressMonitor
-                planId={activePlan.planId}
+                planId={activePlanId}
                 onComplete={handlePlanComplete}
                 onError={handlePlanError}
-                onStop={clearPlan}
+                onStop={handleStop}
               />
             ) : (
               <Card>
@@ -178,9 +176,9 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="details" className="space-y-6">
-            {activePlan ? (
+            {activePlanId ? (
               <PipelineDetails
-                planId={activePlan.planId}
+                planId={activePlanId}
                 className="w-full"
               />
             ) : (
@@ -193,9 +191,9 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="files" className="space-y-6">
-            {activePlan ? (
+            {activePlanId ? (
               <FileManager
-                planId={activePlan.planId}
+                planId={activePlanId}
               />
             ) : (
               <Card>

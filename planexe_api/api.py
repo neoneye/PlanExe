@@ -50,10 +50,18 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+# Define allowed origins for CORS
+origins = [
+    "http://localhost:3000",  # Standard Next.js dev port
+    "http://localhost:3001",  # Current dev port in use
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+]
+
 # Add CORS middleware for browser-based frontends
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -61,6 +69,7 @@ app.add_middleware(
 
 # Global state - keeping in-memory processes but using DB for persistence
 running_processes: Dict[str, subprocess.Popen] = {}
+progress_streams: Dict[str, asyncio.Queue] = {}  # In-memory queues for real-time progress
 MODULE_PATH_PIPELINE = "planexe.plan.run_plan_pipeline"
 RUN_DIR = "run"
 
@@ -89,6 +98,9 @@ llm_info = LLMInfo.obtain_info()
 
 
 def run_plan_job(plan_id: str, request: CreatePlanRequest):
+    # Create a queue for this job to send progress updates
+    progress_queue = asyncio.Queue()
+    progress_streams[plan_id] = progress_queue
     """Background task to run the plan generation pipeline"""
     print(f"DEBUG: Starting run_plan_job for plan_id: {plan_id}")
 
@@ -115,7 +127,15 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
         # Set up environment
         environment = os.environ.copy()
         environment[PipelineEnvironmentEnum.RUN_ID_DIR.value] = str(run_id_dir)
-        environment[PipelineEnvironmentEnum.SPEED_VS_DETAIL.value] = request.speed_vs_detail.value
+
+        # Map API enum values to pipeline enum values
+        speed_vs_detail_mapping = {
+            "fast_but_skip_details": "fast_but_skip_details",
+            "balanced_speed_and_detail": "all_details_but_slow",  # Map balanced to detailed
+            "all_details_but_slow": "all_details_but_slow"
+        }
+        pipeline_speed_value = speed_vs_detail_mapping.get(request.speed_vs_detail.value, "all_details_but_slow")
+        environment[PipelineEnvironmentEnum.SPEED_VS_DETAIL.value] = pipeline_speed_value
 
         if request.llm_model:
             environment[PipelineEnvironmentEnum.LLM_MODEL.value] = request.llm_model
@@ -166,29 +186,58 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
         # Store process reference
         running_processes[plan_id] = process
 
-        # Monitor progress (simplified - in production you'd parse actual pipeline output)
-        progress_stages = [
-            (10, "Analyzing prompt and identifying purpose..."),
-            (20, "Determining plan type and scope..."),
-            (30, "Generating work breakdown structure..."),
-            (50, "Estimating costs and resources..."),
-            (70, "Creating timeline and dependencies..."),
-            (85, "Generating expert analysis..."),
-            (95, "Compiling final report..."),
-        ]
+        # Monitor actual Luigi pipeline progress by parsing stdout
+        import re
+        completed_tasks = set()
+        total_tasks = 61  # Actual count of Luigi task classes
 
-        stage_idx = 0
-        while process.poll() is None:
-            time.sleep(2)
+        # Monitor stdout and send progress updates to the queue
+        if process.stdout:
+            for line in iter(process.stdout.readline, ''):
+                line = line.strip()
+                if not line:
+                    continue
 
-            # Simple progress simulation - replace with actual pipeline monitoring
-            if stage_idx < len(progress_stages):
-                progress, message = progress_stages[stage_idx]
-                db_service.update_plan(plan_id, {
-                    "progress_percentage": progress,
-                    "progress_message": message
-                })
-                stage_idx += 1
+                print(f"DEBUG Luigi: {line}")
+
+                # Parse for task name
+                task_name_match = re.search(r'(\w+Task)', line)
+                if not task_name_match:
+                    continue
+                
+                task_name = task_name_match.group(1)
+                
+                # Determine task status from log message
+                status = None
+                if "DONE" in line or "complete" in line:
+                    status = "completed"
+                elif "running" in line.lower() or "starting" in line.lower() or "executing" in line.lower():
+                    status = "running"
+                elif "failed" in line.lower() or "error" in line.lower():
+                    status = "failed"
+
+                if status:
+                    update_data = {
+                        "task_id": task_name,
+                        "status": status,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                    try:
+                        progress_queue.put_nowait(update_data)
+                    except asyncio.QueueFull:
+                        print(f"Warning: Progress queue for plan {plan_id} is full.")
+
+                # Also update the database for polling fallback and persistence
+                if status == 'completed' and task_name not in completed_tasks:
+                    completed_tasks.add(task_name)
+                    progress_percentage = min(95, int((len(completed_tasks) / total_tasks) * 100))
+                    progress_message = f"Task {len(completed_tasks)}/{total_tasks}: {task_name} completed"
+                    db_service.update_plan(plan_id, {
+                        "progress_percentage": progress_percentage,
+                        "progress_message": progress_message
+                    })
+
+            process.stdout.close()
 
         # Process completed
         return_code = process.wait()
@@ -238,9 +287,14 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
         except Exception as db_err:
             print(f"Failed to update plan status: {db_err}")
     finally:
-        # Clean up process reference
+        # Clean up process reference and signal end of stream
         if plan_id in running_processes:
             del running_processes[plan_id]
+        if plan_id in progress_streams:
+            try:
+                progress_streams[plan_id].put_nowait(None)  # Signal end
+            except asyncio.QueueFull:
+                pass # If full, consumer will eventually get there
         # Close database session
         try:
             db.close()
@@ -550,50 +604,46 @@ async def get_plan_details(plan_id: str, db: Session = Depends(get_database)):
 @app.get("/api/plans/{plan_id}/stream")
 async def stream_plan_progress(plan_id: str):
     """Server-sent events stream for real-time plan progress"""
-    # Check if plan exists
-    db_service = DatabaseService(get_db())
-    plan = db_service.get_plan(plan_id)
-    if not plan:
-        raise HTTPException(status_code=404, detail="Plan not found")
-    db_service.close()
+
+    # Wait for a short period for the stream to be initialized by the background task.
+    # This handles the race condition where the frontend connects immediately.
+    for _ in range(10):  # Try for up to 5 seconds (10 * 0.5s)
+        if plan_id in progress_streams:
+            break
+        await asyncio.sleep(0.5)
+    else:
+        # If the loop completes without finding the stream, raise an error.
+        raise HTTPException(
+            status_code=404, 
+            detail="Progress stream could not be established. The plan may have failed to start."
+        )
 
     async def event_generator():
-        last_status = None
-        last_progress = -1
+        queue = progress_streams[plan_id]
+        try:
+            while True:
+                # Wait for a new message from the background job
+                update = await queue.get()
 
-        while True:
-            # Get fresh data from database
-            db_service = DatabaseService(get_db())
-            plan = db_service.get_plan(plan_id)
-            db_service.close()
+                if update is None:  # End of stream signal
+                    yield {"event": "end", "data": "Stream ended"}
+                    break
 
-            if not plan:
-                break
+                # Send the detailed task update to the client
+                yield {"event": "task_update", "data": json.dumps(update)}
 
-            current_status = plan.status
-            current_progress = plan.progress_percentage
-
-            # Send update if status or progress changed
-            if current_status != last_status or current_progress != last_progress:
-                event = PlanProgressEvent(
-                    plan_id=plan_id,
-                    status=PlanStatus(current_status),
-                    progress_percentage=current_progress,
-                    progress_message=plan.progress_message,
-                    timestamp=datetime.utcnow(),
-                    error_message=plan.error_message
-                )
-
-                yield {"event": "progress", "data": event.json()}
-
-                last_status = current_status
-                last_progress = current_progress
-
-            # Stop streaming if job is complete or failed
-            if current_status in ["completed", "failed", "cancelled"]:
-                break
-
-            await asyncio.sleep(1)
+                queue.task_done()
+        except asyncio.CancelledError:
+            print(f"Stream for plan {plan_id} was cancelled by client.")
+        finally:
+            # Clean up the queue when the client disconnects or stream ends
+            if plan_id in progress_streams:
+                # Ensure the queue is empty before deleting
+                while not progress_streams[plan_id].empty():
+                    progress_streams[plan_id].get_nowait()
+                    progress_streams[plan_id].task_done()
+                del progress_streams[plan_id]
+            print(f"Cleaned up progress stream for plan {plan_id}")
 
     return EventSourceResponse(event_generator())
 

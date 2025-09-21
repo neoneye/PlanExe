@@ -56,7 +56,7 @@ export interface HealthResponse {
 export class FastAPIClient {
   private baseURL: string;
 
-  constructor(baseURL = 'http://localhost:8000') {
+  constructor(baseURL = 'http://localhost:8001') {
     this.baseURL = baseURL;
   }
 
