@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlanFormSchema, PlanFormData } from '@/lib/types/forms';
 import { CreatePlanRequest, LLMModel, PromptExample } from '@/lib/api/fastapi-client';
+import { Loader2 } from 'lucide-react';
 
 interface PlanFormProps {
   onSubmit: (data: CreatePlanRequest) => Promise<void>;
@@ -339,7 +340,14 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                   disabled={isSubmitting}
                   className="min-w-32"
                 >
-                  {isSubmitting ? 'Creating Plan...' : 'Create Plan'}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Plan...
+                    </>
+                  ) : (
+                    'Create Plan'
+                  )}
                 </Button>
               </div>
 

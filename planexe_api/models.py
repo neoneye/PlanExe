@@ -21,15 +21,16 @@ class PlanStatus(str, Enum):
 
 class SpeedVsDetail(str, Enum):
     """Speed vs detail trade-off options"""
-    fast_basic = "fast_but_skip_details"
-    detailed_slow = "all_details_but_slow"
+    ALL_DETAILS_BUT_SLOW = "all_details_but_slow"
+    BALANCED_SPEED_AND_DETAIL = "balanced_speed_and_detail"  # Will map to detailed mode in pipeline
+    FAST_BUT_BASIC = "fast_but_skip_details"
 
 
 class CreatePlanRequest(BaseModel):
     """Request to create a new plan"""
     prompt: str = Field(..., description="The planning prompt/idea", min_length=1, max_length=10000)
     llm_model: Optional[str] = Field(None, description="LLM model ID to use")
-    speed_vs_detail: SpeedVsDetail = Field(SpeedVsDetail.detailed_slow, description="Speed vs detail preference")
+    speed_vs_detail: SpeedVsDetail = Field(SpeedVsDetail.ALL_DETAILS_BUT_SLOW, description="Speed vs detail preference")
     openrouter_api_key: Optional[str] = Field(None, description="OpenRouter API key for paid models")
 
 

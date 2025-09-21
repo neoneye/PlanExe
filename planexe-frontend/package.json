@@ -6,7 +6,7 @@
     "predev": "node scripts/generate-favicon.js",
     "dev": "next dev --turbopack",
     "dev:frontend": "next dev --turbopack",
-    "dev:backend": "cd .. && set DATABASE_URL=sqlite:///./planexe.db && uvicorn planexe_api.api:app --reload --port 8001",
+    "dev:backend": "cd .. && set DATABASE_URL=sqlite:///./planexe.db && uvicorn planexe_api.api:app --reload --port 8000",
     "go": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" --names \"backend,frontend\" --prefix-colors \"blue,green\"",
     "prebuild": "node scripts/generate-favicon.js",
     "build": "next build --turbopack",
@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-progress": "^1.1.7",

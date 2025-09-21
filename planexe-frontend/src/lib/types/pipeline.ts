@@ -11,7 +11,7 @@
 
 export type SpeedVsDetail = 'ALL_DETAILS_BUT_SLOW' | 'FAST_BUT_SKIP_DETAILS';
 
-export type PipelineStatus = 'created' | 'running' | 'completed' | 'failed' | 'stopped';
+export type PipelineStatus = 'created' | 'running' | 'completed' | 'failed' | 'stopped' | 'pending' | 'cancelled';
 
 export type PlanPurpose = 'business' | 'personal' | 'other';
 
@@ -21,20 +21,40 @@ export type PlanType = 'physical' | 'digital';
 // PIPELINE PROGRESS
 // =======================
 
-export interface PipelineProgress {
-  planId: string;
-  runId: string;
+// Represents the status of an individual task in the pipeline
+export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+// Represents the state of a single task in the UI
+export interface TaskState {
+  id: string; // The technical task name, e.g., 'IdentifyPurposeTask'
+  name: string; // The user-friendly name, e.g., 'Identifying Plan Purpose'
+  status: TaskStatus;
+}
+
+// Represents a logical grouping of tasks
+export interface TaskPhase {
+  name: string; // The name of the phase, e.g., 'I. Plan Initiation & Validation'
+  tasks: TaskState[];
+  completedTasks: number;
+  totalTasks: number;
+}
+
+// Data structure for the new SSE event from the backend
+export interface TaskUpdateEvent {
+  task_id: string; // The technical task name from the backend
+  status: TaskStatus;
+  timestamp: string;
+}
+
+// Overall progress state, including all phases and tasks
+export interface PipelineProgressState {
   status: PipelineStatus;
-  progressPercentage: number;
-  progressMessage: string;
-  filesCompleted: number;
-  totalExpectedFiles: number;
-  currentTask?: string;
-  currentPhase?: PipelinePhase;
+  phases: TaskPhase[];
+  overallPercentage: number;
+  completedTasks: number;
+  totalTasks: number;
+  error: string | null;
   duration: number;
-  estimatedTimeRemaining?: number;
-  errors: (string | PipelineError)[];
-  lastUpdated: Date;
 }
 
 export interface PipelineError {

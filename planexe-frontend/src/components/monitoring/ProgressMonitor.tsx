@@ -131,7 +131,7 @@ export const ProgressMonitor: React.FC<ProgressMonitorProps> = ({
 
     setIsStopping(true);
     try {
-      const response = await fetch(`http://localhost:8001/api/plans/${planId}`, {
+      const response = await fetch(`http://localhost:8000/api/plans/${planId}`, {
         method: 'DELETE'
       });
 

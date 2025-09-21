@@ -50,18 +50,10 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Define allowed origins for CORS
-origins = [
-    "http://localhost:3000",  # Standard Next.js dev port
-    "http://localhost:3001",  # Current dev port in use
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001",
-]
-
-# Add CORS middleware for browser-based frontends
+# Allow all origins during development - this eliminates all CORS issues
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -605,20 +597,20 @@ async def get_plan_details(plan_id: str, db: Session = Depends(get_database)):
 async def stream_plan_progress(plan_id: str):
     """Server-sent events stream for real-time plan progress"""
 
-    # Wait for a short period for the stream to be initialized by the background task.
-    # This handles the race condition where the frontend connects immediately.
-    for _ in range(10):  # Try for up to 5 seconds (10 * 0.5s)
-        if plan_id in progress_streams:
-            break
-        await asyncio.sleep(0.5)
-    else:
-        # If the loop completes without finding the stream, raise an error.
-        raise HTTPException(
-            status_code=404, 
-            detail="Progress stream could not be established. The plan may have failed to start."
-        )
-
     async def event_generator():
+        # This function is now responsible for handling the initial connection and the stream lifecycle.
+        # This ensures that the EventSourceResponse is always created, allowing CORS headers to be sent.
+
+        # Wait for the queue to become available, but do it inside the generator.
+        for _ in range(10):  # Try for up to 5 seconds
+            if plan_id in progress_streams:
+                break
+            await asyncio.sleep(0.5)
+        
+        if plan_id not in progress_streams:
+            yield {"event": "error", "data": json.dumps({"message": "Stream could not be established."})}
+            return
+
         queue = progress_streams[plan_id]
         try:
             while True:
