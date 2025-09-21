@@ -21,9 +21,8 @@ class PlanStatus(str, Enum):
 
 class SpeedVsDetail(str, Enum):
     """Speed vs detail trade-off options"""
-    fast_basic = "FAST_BUT_BASIC"
-    balanced = "BALANCED_SPEED_AND_DETAIL"
-    detailed_slow = "ALL_DETAILS_BUT_SLOW"
+    fast_basic = "fast_but_skip_details"
+    detailed_slow = "all_details_but_slow"
 
 
 class CreatePlanRequest(BaseModel):

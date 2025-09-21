@@ -123,9 +123,18 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
         if request.openrouter_api_key:
             environment["OPENROUTER_API_KEY"] = request.openrouter_api_key
 
-        # Write the plan prompt to setup file
-        setup_file = run_id_dir / "setup.txt"  # Use simple filename instead of enum
-        with open(setup_file, "w", encoding="utf-8") as f:
+        # Create START_TIME file as expected by Luigi pipeline
+        start_time_file = run_id_dir / FilenameEnum.START_TIME.value
+        start_time_data = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "plan_id": plan_id
+        }
+        with open(start_time_file, "w", encoding="utf-8") as f:
+            json.dump(start_time_data, f, indent=2)
+
+        # Write the plan prompt to INITIAL_PLAN file as expected by Luigi pipeline
+        initial_plan_file = run_id_dir / FilenameEnum.INITIAL_PLAN.value
+        with open(initial_plan_file, "w", encoding="utf-8") as f:
             f.write(request.prompt)
 
         # Update plan status in database
@@ -258,6 +267,26 @@ async def ping():
     """Ultra simple ping endpoint"""
     return {"ping": "pong"}
 
+@app.post("/test-create-plan")
+async def test_create_plan_simple():
+    """Test the create plan logic without background tasks"""
+    try:
+        print("DEBUG: Starting test create plan")
+        from planexe_api.models import CreatePlanRequest, SpeedVsDetail
+
+        request = CreatePlanRequest(
+            prompt="test",
+            speed_vs_detail=SpeedVsDetail.fast_basic
+        )
+        print("DEBUG: Request created successfully")
+
+        return {"success": True, "message": "Plan creation logic works"}
+    except Exception as e:
+        print(f"ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
 
 @app.get("/api/models", response_model=List[LLMModel])
 async def get_models():
@@ -332,49 +361,69 @@ async def get_prompt_examples():
 async def create_plan(request: CreatePlanRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_database)):
     """Create a new plan generation job"""
 
-    # Generate unique plan ID
-    start_time = datetime.utcnow()
-    plan_id = generate_run_id(use_uuid=True, start_time=start_time)
-    run_id_dir = run_dir / plan_id
+    try:
+        print(f"DEBUG: Starting create_plan with request: {request}")
 
-    # Create output directory
-    run_id_dir.mkdir(parents=True, exist_ok=True)
+        # Generate unique plan ID
+        start_time = datetime.utcnow()
+        print(f"DEBUG: Generated start_time: {start_time}")
 
-    # Hash API key for storage (never store plaintext)
-    api_key_hash = None
-    if request.openrouter_api_key:
-        api_key_hash = hashlib.sha256(request.openrouter_api_key.encode()).hexdigest()
+        plan_id = generate_run_id(use_uuid=True, start_time=start_time)
+        print(f"DEBUG: Generated plan_id: {plan_id}")
 
-    # Create plan in database
-    db_service = DatabaseService(db)
-    plan_data = {
-        "plan_id": plan_id,
-        "prompt": request.prompt,
-        "llm_model": request.llm_model,
-        "speed_vs_detail": request.speed_vs_detail.value,
-        "openrouter_api_key_hash": api_key_hash,
-        "status": PlanStatus.pending.value,
-        "progress_percentage": 0,
-        "progress_message": "Plan queued for processing...",
-        "output_dir": str(run_id_dir)
-    }
+        run_id_dir = (run_dir / plan_id).resolve()  # Convert to absolute path
+        print(f"DEBUG: Run directory path: {run_id_dir}")
 
-    plan = db_service.create_plan(plan_data)
+        # Create output directory
+        run_id_dir.mkdir(parents=True, exist_ok=True)
+        print(f"DEBUG: Directory created successfully")
 
-    # Start background task
-    background_tasks.add_task(run_plan_job, plan_id, request)
+        # Hash API key for storage (never store plaintext)
+        api_key_hash = None
+        if request.openrouter_api_key:
+            api_key_hash = hashlib.sha256(request.openrouter_api_key.encode()).hexdigest()
+        print(f"DEBUG: API key hash created")
 
-    # Convert to response format
-    return PlanResponse(
-        plan_id=plan.plan_id,
-        status=PlanStatus(plan.status),
-        created_at=plan.created_at,
-        prompt=plan.prompt,
-        progress_percentage=plan.progress_percentage,
-        progress_message=plan.progress_message,
-        error_message=plan.error_message,
-        output_dir=plan.output_dir
-    )
+        # Create plan in database
+        db_service = DatabaseService(db)
+        print(f"DEBUG: Database service created")
+
+        plan_data = {
+            "plan_id": plan_id,
+            "prompt": request.prompt,
+            "llm_model": request.llm_model,
+            "speed_vs_detail": request.speed_vs_detail.value,
+            "openrouter_api_key_hash": api_key_hash,
+            "status": PlanStatus.pending.value,
+            "progress_percentage": 0,
+            "progress_message": "Plan queued for processing...",
+            "output_dir": str(run_id_dir)
+        }
+        print(f"DEBUG: Plan data prepared: {plan_data}")
+
+        plan = db_service.create_plan(plan_data)
+        print(f"DEBUG: Plan created in database")
+
+        # Start background task
+        background_tasks.add_task(run_plan_job, plan_id, request)
+        print(f"DEBUG: Background task added")
+
+        # Convert to response format
+        return PlanResponse(
+            plan_id=plan.plan_id,
+            status=PlanStatus(plan.status),
+            created_at=plan.created_at,
+            prompt=plan.prompt,
+            progress_percentage=plan.progress_percentage,
+            progress_message=plan.progress_message,
+            error_message=plan.error_message,
+            output_dir=plan.output_dir
+        )
+    except Exception as e:
+        print(f"ERROR in create_plan: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/plans/{plan_id}", response_model=PlanResponse)

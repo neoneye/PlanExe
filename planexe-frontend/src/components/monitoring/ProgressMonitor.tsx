@@ -51,7 +51,7 @@ export const ProgressMonitor: React.FC<ProgressMonitorProps> = ({
   // Fetch progress data via polling
   const fetchProgress = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:8001/api/plans/${planId}`);
+      const response = await fetch(`http://localhost:8000/api/plans/${planId}`);
       const data: PlanResponse = await response.json();
 
       if (!response.ok) {

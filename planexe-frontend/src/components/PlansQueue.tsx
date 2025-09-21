@@ -37,7 +37,7 @@ export function PlansQueue({ className, onPlanSelect }: PlansQueueProps) {
   // Fetch all plans
   const fetchPlans = async () => {
     try {
-      const response = await fetch('http://localhost:8001/api/plans')
+      const response = await fetch('http://localhost:8000/api/plans')
       if (response.ok) {
         const plansData = await response.json()
         setPlans(plansData.reverse()) // Show newest first
@@ -53,7 +53,7 @@ export function PlansQueue({ className, onPlanSelect }: PlansQueueProps) {
   const retryPlan = async (planId: string) => {
     setRetryingPlanId(planId)
     try {
-      const response = await fetch(`http://localhost:8001/api/plans/${planId}/retry`, {
+      const response = await fetch(`http://localhost:8000/api/plans/${planId}/retry`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       })
