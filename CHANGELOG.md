@@ -17,7 +17,29 @@ This release implements a robust, definitive fix for the failing retry functiona
 - **New Status Endpoint**: A lightweight `/api/plans/{plan_id}/stream-status` endpoint was added to allow the frontend to safely check if a log stream is available before attempting to connect.
 - **Frontend Polling**: The `Terminal` component now uses a smart polling mechanism to wait for the backend to be ready, guaranteeing a successful connection every time.
 
-This marks a significant improvement in the stability and reliability of the application's core functionality.
+## [0.1.9] - 2025-09-23
+
+### 🔧 **Development Environment Fix**
+
+Fixed the core development workflow that was broken on Windows systems.
+
+#### ✅ **Problem Solved**
+- **NPM Scripts Failing**: The `npm run go` command was failing on Windows due to problematic directory changes and command separators
+- **Backend Not Starting**: The `dev:backend` script couldn't find Python modules when run from the wrong directory
+- **Development Blocked**: Users couldn't start the full development environment
+
+#### 🔧 **Implementation Details**
+- **Fixed `go` Script**: Modified to properly start the backend from the project root using `cd .. && python -m uvicorn planexe_api.api:app --reload --port 8000`
+- **Directory Management**: Backend now runs from the correct directory where it can find all Python modules
+- **Concurrent Execution**: Frontend runs from `planexe-frontend` directory while backend runs from project root
+- **Windows Compatibility**: Removed problematic `&&` separators and `cd` commands that don't work reliably in npm scripts
+
+#### 🎯 **User Impact**
+- **Single Command**: Users can now run `npm run go` from the `planexe-frontend` directory to start both backend and frontend
+- **Reliable Startup**: Development environment starts consistently across different systems
+- **Proper Separation**: Backend and frontend run in their correct directories with proper module resolution
+
+This fix resolves the fundamental development environment issue that was preventing users from running the project locally.
 
 ## [0.1.7] - 2025-09-23
 

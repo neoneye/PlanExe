@@ -227,6 +227,10 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
             else:
                 print(f"  {key}: NOT SET")
 
+        # Fix Windows path issues by using shell=True on Windows
+        import platform
+        use_shell = platform.system() == "Windows"
+
         process = subprocess.Popen(
             command,
             cwd=str(planexe_project_root),
@@ -235,7 +239,8 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
             stderr=subprocess.PIPE,
             text=True,
             bufsize=1,
-            universal_newlines=True
+            universal_newlines=True,
+            shell=use_shell
         )
         print(f"DEBUG: Subprocess started with PID: {process.pid}")
 
