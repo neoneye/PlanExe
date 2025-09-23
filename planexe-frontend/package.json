@@ -6,7 +6,7 @@
     "predev": "node scripts/generate-favicon.js",
     "dev": "next dev --turbopack",
     "dev:frontend": "next dev --turbopack",
-    "dev:backend": "cd .. && export DATABASE_URL=\"postgresql://postgres:aiogEjczIWJPgUKAeVFBBDjsEGRNXWPh@yamanote.proxy.rlwy.net:32126/railway\" && uvicorn planexe_api.api:app --reload --port 8000",
+    "dev:backend": "cd .. && set DATABASE_URL=sqlite:///./planexe.db && uvicorn planexe_api.api:app --reload --port 8000",
     "go": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" --names \"backend,frontend\" --prefix-colors \"blue,green\"",
     "prebuild": "node scripts/generate-favicon.js",
     "build": "next build --turbopack",

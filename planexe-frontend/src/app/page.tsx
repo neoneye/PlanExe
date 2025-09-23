@@ -55,8 +55,10 @@ export default function Home() {
 
   const handlePlanComplete = () => {
     console.log('Plan completed successfully!');
-    // Optionally, reset the view after a delay
-    setTimeout(() => setActivePlanId(null), 5000);
+    // Switch to the "details" tab so the user can see outputs instead of hiding the UI
+    const detailsTab = document.querySelector('[data-radix-value="details"]') as HTMLElement | null;
+    detailsTab?.click();
+    // Do NOT clear activePlanId automatically; let the user decide what to do next.
   };
 
   const handlePlanError = (error: string) => {

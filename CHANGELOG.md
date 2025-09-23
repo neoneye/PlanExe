@@ -53,7 +53,7 @@ This release marks a major overhaul of the frontend architecture to provide a st
 - **Comprehensive testing completed** - models, prompts, and plan creation endpoints
 
 **Current Status:**
-- ✅ FastAPI backend: `http://localhost:8001` (fully functional)
+- ✅ FastAPI backend: `http://localhost:8001` (fully functional)  NOT TRUE!!  WRONG PORT!!!
 - ✅ NextJS frontend: `http://localhost:3000` (connects to backend)
 - ✅ End-to-end plan creation: Working with real-time progress
 - ✅ Model validation: Luigi pipeline integration confirmed
