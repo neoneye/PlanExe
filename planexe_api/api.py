@@ -240,21 +240,33 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
         import platform
         use_shell = platform.system() == "Windows"
 
-        process = subprocess.Popen(
-            command,
-            cwd=str(planexe_project_root),
-            env=environment,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-            universal_newlines=True,
-            shell=use_shell
-        )
-        print(f"DEBUG: Subprocess started with PID: {process.pid}")
+        try:
+            process = subprocess.Popen(
+                command,
+                cwd=str(planexe_project_root),
+                env=environment,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                universal_newlines=True,
+                shell=use_shell
+            )
+            print(f"DEBUG: Subprocess started with PID: {process.pid}")
 
-        # Store process reference
-        running_processes[plan_id] = process
+            # Test if subprocess actually started
+            if process.poll() is not None:
+                raise subprocess.SubprocessError(f"Subprocess failed to start, exit code: {process.returncode}")
+
+            # Store process reference
+            running_processes[plan_id] = process
+        except Exception as e:
+            print(f"DEBUG: Subprocess creation failed: {e}")
+            db_service.update_plan(plan_id, {
+                "status": PlanStatus.failed.value,
+                "error_message": f"Failed to start subprocess: {str(e)}"
+            })
+            return
 
         # Monitor actual Luigi pipeline progress by parsing stdout
         import re
