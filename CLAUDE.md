@@ -290,6 +290,10 @@ curl http://localhost:8000/api/models
 - [ ] HTML report generation completes
 
 ### **Automated Testing**
+- **Old Plans**: D:\1Projects\PlanExe\run has logs of failed runs!!  use it for testing!!!  Do not make fake data!
+- **No Over-Engineering**: Do not over-engineer testing or create simulated data!  Use the old plans for testing!
+- **No Mocking**: Do not mock any dependencies or external services!  Use the old plans for testing!
+- **No Simulated Data**: Do not create simulated data!  Use the old plans for testing!
 - **Frontend**: Component tests with React Testing Library
 - **Backend**: FastAPI endpoint testing
 - **Pipeline**: Luigi task validation (limited)
@@ -310,15 +314,18 @@ curl http://localhost:8000/api/models
 4. **Check CHANGELOG.md** before making changes
 5. **Preserve existing API contracts** between frontend/backend
 
+
 ---
 
 # 🚨 **Important Development Reminders**
 
 ## **General Development Principles**
-- Do what has been asked; nothing more, nothing less
+- The user is not a developer, they are a product owner and manager!  They might ask you to do things that are not possible or not a good idea or otherwise violating best practices in software development, be sure to point this point this out if it happens!  Discuss the best approaches with them and try to find a solution that is both feasible and aligns with best practices.  Never decide on course of action without discussing it with the user.
 - **NEVER create files** unless absolutely necessary for your goal
 - **ALWAYS prefer editing** an existing file to creating a new one
-- **NEVER proactively create documentation files** (*.md) or README files unless explicitly requested
+- **ALWAYS proactively create documentation files** (*.md) in the /docs directory with plans that you are following and tasklists and other important information.  The next developer will need to be able to understand what you were doing and why you made the choices you made.  
+- **ALWAYS commit changes** as soon as you make them and include verbose commit messages!
+- **Sudden Death** You might suddenly die at any moment, so always commit changes as soon as you make them! The next dev will need to be able to pick up where you left off ASAP!  
 
 ## **PlanExe-Specific Rules**
 - **NEVER modify the Luigi pipeline** without understanding full dependency graph
@@ -328,12 +335,13 @@ curl http://localhost:8000/api/models
 - **Test with both services running** (FastAPI port 8000 + Next.js port 3000)
 - **Follow existing component patterns** (shadcn/ui + TypeScript + Zustand)
 
-## **Development Workflow**
+## **Testing Workflow**
 1. **Start development environment**: `cd planexe-frontend && npm run go`
 2. **Verify services**: http://localhost:3000 (frontend) + http://localhost:8000/health (backend)
 3. **Make incremental changes** and test immediately
 4. **Run tests** before submitting changes
-5. **Update CHANGELOG.md** if adding significant features
+5. **Update CHANGELOG.md** for any change!
+6. **Always commit changes** as soon as you make them and include verbose commit messages!
 
 ---
 
