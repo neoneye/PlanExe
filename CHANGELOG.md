@@ -2,6 +2,35 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2025-09-23
+
+### 💥 FAILED - UX Breakdown Debugging Attempt
+
+**CRITICAL SYSTEM STATUS: COMPLETELY UNUSABLE FOR USERS**
+
+Attempted to fix the broken user experience where users cannot access their generated plans or get accurate progress information. **This effort failed to address the core issues.**
+
+#### ❌ **What Was NOT Fixed (Still Broken)**
+- **Progress Monitoring**: Still shows false "Task 61/61: ReportTask completed" when pipeline is actually at "2 of 109" (1.8% real progress)
+- **File Access**: `/api/plans/{id}/files` still returns Internal Server Error - users cannot browse or download files
+- **Plan Completion**: Unknown if Luigi pipeline ever actually completes all 61 tasks
+- **User Experience**: System remains completely unusable - users cannot access their results
+
+#### 🔧 **Superficial Changes Made (Don't Help Users)**
+- Fixed Unicode encoding issues (≥ symbols → >= words) in premise_attack.py
+- Fixed LlamaIndex compatibility (_client attribute) in simple_openai_llm.py
+- Fixed filename enum mismatch (FINAL_REPORT_HTML → REPORT) in api.py
+- Added filesystem fallback to file listing API (still crashes)
+- Removed artificial 95% progress cap (progress data still false)
+
+#### 📋 **Root Cause Identified But Not Fixed**
+**Progress monitoring completely broken**: Luigi subprocess output parsing misinterprets log messages, causing false completion signals. Real pipeline progress is ~1-2% but API reports 95% completion immediately.
+
+#### 📄 **Handover Documentation**
+Created `docs/24SeptUXBreakdownHandover.md` - honest assessment of failures and what next developer must fix.
+
+**Bottom Line**: Despite technical fixes, users still cannot access their plans, get accurate progress, or download results. System remains fundamentally broken for actual usage.
+
 ## [0.1.5] - 2025-09-22
 
 ### 🎉 MAJOR FIX - LLM System Completely Replaced & Working
