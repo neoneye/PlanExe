@@ -8,13 +8,19 @@ SRP and DRY check: Pass - Single responsibility for OpenAI API calls with minima
 import os
 from typing import Any, Optional
 from openai import OpenAI
+from llama_index.core.llms.llm import LLM
+from pydantic import Field, PrivateAttr
 
 
-class SimpleOpenAILLM:
+class SimpleOpenAILLM(LLM):
     """
     Simple wrapper around OpenAI client that supports both direct OpenAI and OpenRouter.
     Maintains compatibility with existing LlamaIndex LLM interface methods.
     """
+
+    model: str = Field(description="The model name")
+    provider: str = Field(description="Either 'openai' or 'openrouter'")
+    _client: OpenAI = PrivateAttr()
 
     def __init__(self, model: str, provider: str, **kwargs):
         """
@@ -25,13 +31,12 @@ class SimpleOpenAILLM:
             provider: Either "openai" or "openrouter"
             **kwargs: Additional parameters (maintained for compatibility)
         """
-        self.model = model
-        self.provider = provider
+        super().__init__(model=model, provider=provider, **kwargs)
 
         if provider == "openai":
-            self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            self._client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         elif provider == "openrouter":
-            self.client = OpenAI(
+            self._client = OpenAI(
                 base_url="https://openrouter.ai/api/v1",
                 api_key=os.getenv("OPENROUTER_API_KEY")
             )
@@ -60,7 +65,7 @@ class SimpleOpenAILLM:
                     "X-Title": "PlanExe"
                 }
 
-            completion = self.client.chat.completions.create(
+            completion = self._client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 extra_headers=extra_headers
@@ -90,7 +95,7 @@ class SimpleOpenAILLM:
                     "X-Title": "PlanExe"
                 }
 
-            completion = self.client.chat.completions.create(
+            completion = self._client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 extra_headers=extra_headers
@@ -99,6 +104,20 @@ class SimpleOpenAILLM:
 
         except Exception as e:
             raise Exception(f"LLM chat failed for model {self.model}: {str(e)}")
+
+    def complete(self, prompt: str, **kwargs):
+        """
+        Complete a text prompt using the LLM.
+
+        Args:
+            prompt: The input prompt text
+            **kwargs: Additional parameters
+
+        Returns:
+            Completion response text
+        """
+        messages = [{"role": "user", "content": prompt}]
+        return self.chat(messages, **kwargs)
 
     # Additional compatibility methods for LlamaIndex interface
     @property
@@ -133,6 +152,41 @@ class SimpleOpenAILLM:
         This maintains compatibility with LlamaIndex structured output interface.
         """
         return StructuredSimpleOpenAILLM(self, output_cls)
+
+    # Abstract methods required by LlamaIndex LLM base class
+    def stream_chat(self, messages, **kwargs):
+        """Stream chat completion (required abstract method)."""
+        # For now, just return non-streaming result as single chunk
+        response = self.chat(messages, **kwargs)
+        yield response
+
+    def stream_complete(self, prompt: str, **kwargs):
+        """Stream text completion (required abstract method)."""
+        # For now, just return non-streaming result as single chunk
+        response = self.complete(prompt, **kwargs)
+        yield response
+
+    async def achat(self, messages, **kwargs):
+        """Async chat completion (required abstract method)."""
+        # For now, just call sync version
+        return self.chat(messages, **kwargs)
+
+    async def acomplete(self, prompt: str, **kwargs):
+        """Async text completion (required abstract method)."""
+        # For now, just call sync version
+        return self.complete(prompt, **kwargs)
+
+    async def astream_chat(self, messages, **kwargs):
+        """Async stream chat completion (required abstract method)."""
+        # For now, just yield sync result
+        response = self.chat(messages, **kwargs)
+        yield response
+
+    async def astream_complete(self, prompt: str, **kwargs):
+        """Async stream text completion (required abstract method)."""
+        # For now, just yield sync result
+        response = self.complete(prompt, **kwargs)
+        yield response
 
 
 class StructuredLLMResponse:
@@ -203,7 +257,7 @@ Your response must be valid JSON only, no other text.
         try:
             # Get response from base LLM
             if self.base_llm.provider == "openai":
-                completion = self.base_llm.client.chat.completions.create(
+                completion = self.base_llm._client.chat.completions.create(
                     model=self.base_llm.model,
                     messages=formatted_messages,
                     response_format={"type": "json_object"}  # Force JSON mode
@@ -211,7 +265,7 @@ Your response must be valid JSON only, no other text.
                 response_text = completion.choices[0].message.content
             else:
                 # OpenRouter doesn't always support response_format
-                completion = self.base_llm.client.chat.completions.create(
+                completion = self.base_llm._client.chat.completions.create(
                     model=self.base_llm.model,
                     messages=formatted_messages,
                     extra_headers={

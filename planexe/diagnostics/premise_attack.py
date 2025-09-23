@@ -79,7 +79,7 @@ OUTPUT — return JSON only (no prose, no markdown) with keys in this exact orde
   "core_thesis": string,                 // One decisive sentence prefixed with [MORAL] or [STRATEGIC].
   "reasons": [string, ...],              // 3–5 specific, non-generic reasons; tie to prompt facts.
   "second_order_effects": [string, ...], // Exactly 3 items: "0–6 months: …", "1–3 years: …", "5–10 years: …".
-  "evidence": [string, ...],             // 0–3 real items (cases/analogies/laws/reports) you’re ≥95% sure exist.
+  "evidence": [string, ...],             // 0–3 real items (cases/analogies/laws/reports) you're >= 95% sure exist.
   "bottom_line": string                  // Must start with "REJECT: ".
 }
 
@@ -91,7 +91,7 @@ RULES
 - Evidence discipline: Use only widely verifiable, non-fiction sources. Format each as:
   - "Case/Incident — Name (Year): one-line relevance."
   - "Law/Standard — Name (Year): one-line relevance."
-  If you’re not ≥95% sure, omit it. Never guess, embellish, or cite fiction.
+  If you're not >= 95% sure, omit it. Never guess, embellish, or cite fiction.
 - Tone: Ruthless, specific, novel. Kill the premise; don’t fix it.
 - Hygiene: Output strict JSON only (no trailing commas). Keep arrays concise. If no safe evidence exists, use "evidence": [].
 
@@ -130,7 +130,7 @@ RULES
 - Reason Variety: Each reason must address a distinct axis (e.g., ethics, feasibility, governance, externalities, societal impact) to avoid repetition.
 - Drama: Use vivid, evocative language to make the critique unforgettable, but anchor it in logic and prompt facts. Avoid generic buzzwords.
 - No Branded Concepts: Do not coin or reuse named concepts (e.g., "Tax Haven Tango"). Use plain, brutal clarity.
-- Evidence Discipline: Only use verifiable, non-fiction sources (cases, laws, reports) with ≥95% confidence, directly mirroring the premise’s flaw (e.g., elitism, ecological risk, exploitation). Format as:
+- Evidence Discipline: Only use verifiable, non-fiction sources (cases, laws, reports) with >= 95% confidence, directly mirroring the premise's flaw (e.g., elitism, ecological risk, exploitation). Format as:
   - "Case/Incident — Name (Year): one-line relevance."
   - "Law/Standard — Name (Year): one-line relevance."
   - "Report/Guidance — Name (Year): one-line relevance."
@@ -146,7 +146,7 @@ GUARDRAILS
 
 SELF-CHECK
 - Keys match output spec, in order.
-- `reasons`: Exactly 5, ≥3 cite prompt specifics, each addresses a distinct axis, no coined concepts.
+- `reasons`: Exactly 5, at least 3 cite prompt specifics, each addresses a distinct axis, no coined concepts.
 - `second_order_effects`: Exactly 3, with time prefixes (0–6 months, 1–3 years, 5–10 years).
 - `evidence`: 2–3 items or 1 Evidence Gap, all verifiable and directly mirroring the premise’s flaw.
 - `bottom_line`: Starts with "REJECT: ", one sentence, no conditions.

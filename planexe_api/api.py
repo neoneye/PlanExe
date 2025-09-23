@@ -289,7 +289,8 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
                     # Also update the database for polling fallback and persistence
                     if status == 'completed' and task_name not in completed_tasks:
                         completed_tasks.add(task_name)
-                        progress_percentage = min(95, int((len(completed_tasks) / total_tasks) * 100))
+                        # Don't cap progress artificially - let it reflect actual completion
+                        progress_percentage = int((len(completed_tasks) / total_tasks) * 90)  # Reserve 10% for final processing
                         progress_message = f"Task {len(completed_tasks)}/{total_tasks}: {task_name} completed"
                         db_service.update_plan(plan_id, {
                             "progress_percentage": progress_percentage,
@@ -753,22 +754,47 @@ async def stream_plan_progress(plan_id: str):
 @app.get("/api/plans/{plan_id}/files", response_model=PlanFilesResponse)
 async def get_plan_files(plan_id: str, db: Session = Depends(get_database)):
     """Get list of files generated for a plan"""
-    db_service = DatabaseService(db)
-    plan = db_service.get_plan(plan_id)
+    try:
+        db_service = DatabaseService(db)
+        plan = db_service.get_plan(plan_id)
 
-    if not plan:
-        raise HTTPException(status_code=404, detail="Plan not found")
+        if not plan:
+            raise HTTPException(status_code=404, detail="Plan not found")
 
-    # Get files from database
-    plan_files = db_service.get_plan_files(plan_id)
-    files = [pf.filename for pf in plan_files]
-    has_report = FilenameEnum.FINAL_REPORT_HTML.value in files
+        # Get files from database
+        try:
+            plan_files = db_service.get_plan_files(plan_id)
+            files = [pf.filename for pf in plan_files]
+        except Exception as e:
+            print(f"Warning: Database query failed for plan {plan_id}: {e}")
+            files = []
 
-    return PlanFilesResponse(
-        plan_id=plan_id,
-        files=sorted(files),
-        has_report=has_report
-    )
+        # Fallback: scan filesystem if database is empty
+        if not files and plan.output_dir:
+            try:
+                output_dir = Path(plan.output_dir)
+                if output_dir.exists():
+                    # Get all files except log and tracking files
+                    filesystem_files = []
+                    for file_path in output_dir.iterdir():
+                        if file_path.is_file() and file_path.name not in ['log.txt', 'track_activity.jsonl']:
+                            filesystem_files.append(file_path.name)
+                    files = filesystem_files
+            except Exception as e:
+                print(f"Warning: Could not scan filesystem for plan {plan_id}: {e}")
+
+        has_report = FilenameEnum.REPORT.value in files
+
+        return PlanFilesResponse(
+            plan_id=plan_id,
+            files=sorted(files),
+            has_report=has_report
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in get_plan_files for {plan_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @app.get("/api/plans/{plan_id}/report")
@@ -784,7 +810,7 @@ async def download_plan_report(plan_id: str, db: Session = Depends(get_database)
         raise HTTPException(status_code=400, detail="Plan is not completed")
 
     output_dir = Path(plan.output_dir)
-    report_file = output_dir / FilenameEnum.FINAL_REPORT_HTML.value
+    report_file = output_dir / FilenameEnum.REPORT.value
 
     if not report_file.exists():
         raise HTTPException(status_code=404, detail="Report file not found")
