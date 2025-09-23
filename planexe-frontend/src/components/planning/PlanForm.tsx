@@ -134,7 +134,6 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                         <FormControl>
                           <Input
                             id="plan-title"
-                            name="title"
                             placeholder="e.g. Website Redesign Project"
                             {...field}
                             disabled={isSubmitting}
@@ -158,7 +157,6 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                         <FormControl>
                           <Textarea
                             id="plan-prompt"
-                            name="prompt"
                             placeholder="Describe your project, goal, or idea in detail. The more context you provide, the better the plan will be..."
                             className="min-h-[120px]"
                             {...field}
@@ -190,11 +188,11 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                             {llmModels.map((model) => (
                               <SelectItem key={model.id} value={model.id}>
                                 <div className="flex items-center space-x-2">
-                                  <span>{model.name}</span>
-                                  <Badge variant={model.type === 'paid' ? 'default' : 'secondary'}>
-                                    {model.provider}
+                                  <span>{model.label ?? model.id}</span>
+                                  <Badge variant={(model.requires_api_key) ? 'default' : 'secondary'}>
+                                    {model.comment}
                                   </Badge>
-                                  {model.requiresApiKey && (
+                                  {model.requires_api_key && (
                                     <Badge variant="outline" className="text-xs">
                                       API Key
                                     </Badge>
@@ -223,7 +221,6 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                           <FormControl>
                             <Input
                               id="openrouter-api-key"
-                              name="openrouter_api_key"
                               type="password"
                               placeholder="sk-or-v1-..."
                               {...field}

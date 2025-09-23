@@ -184,52 +184,76 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
         total_tasks = 61  # Actual count of Luigi task classes
 
         # Monitor stdout and send progress updates to the queue
-        if process.stdout:
-            for line in iter(process.stdout.readline, ''):
-                line = line.strip()
-                if not line:
-                    continue
+        import threading
+        
+        def read_stdout():
+            if process.stdout:
+                for line in iter(process.stdout.readline, ''):
+                    line = line.strip()
+                    if not line:
+                        continue
 
-                print(f"DEBUG Luigi: {line}")
+                    print(f"DEBUG Luigi STDOUT: {line}")
 
-                # Parse for task name
-                task_name_match = re.search(r'(\w+Task)', line)
-                if not task_name_match:
-                    continue
+                    # Parse for task name
+                    task_name_match = re.search(r'(\w+Task)', line)
+                    if not task_name_match:
+                        continue
+                    
+                    task_name = task_name_match.group(1)
+                    
+                    # Determine task status from log message
+                    status = None
+                    if "DONE" in line or "complete" in line:
+                        status = "completed"
+                    elif "running" in line.lower() or "starting" in line.lower() or "executing" in line.lower():
+                        status = "running"
+                    elif "failed" in line.lower() or "error" in line.lower():
+                        status = "failed"
+
+                    if status:
+                        update_data = {
+                            "task_id": task_name,
+                            "status": status,
+                            "timestamp": datetime.utcnow().isoformat()
+                        }
+                        try:
+                            progress_queue.put_nowait(update_data)
+                        except asyncio.QueueFull:
+                            print(f"Warning: Progress queue for plan {plan_id} is full.")
+
+                    # Also update the database for polling fallback and persistence
+                    if status == 'completed' and task_name not in completed_tasks:
+                        completed_tasks.add(task_name)
+                        progress_percentage = min(95, int((len(completed_tasks) / total_tasks) * 100))
+                        progress_message = f"Task {len(completed_tasks)}/{total_tasks}: {task_name} completed"
+                        db_service.update_plan(plan_id, {
+                            "progress_percentage": progress_percentage,
+                            "progress_message": progress_message
+                        })
+
+                process.stdout.close()
                 
-                task_name = task_name_match.group(1)
-                
-                # Determine task status from log message
-                status = None
-                if "DONE" in line or "complete" in line:
-                    status = "completed"
-                elif "running" in line.lower() or "starting" in line.lower() or "executing" in line.lower():
-                    status = "running"
-                elif "failed" in line.lower() or "error" in line.lower():
-                    status = "failed"
-
-                if status:
-                    update_data = {
-                        "task_id": task_name,
-                        "status": status,
-                        "timestamp": datetime.utcnow().isoformat()
-                    }
-                    try:
-                        progress_queue.put_nowait(update_data)
-                    except asyncio.QueueFull:
-                        print(f"Warning: Progress queue for plan {plan_id} is full.")
-
-                # Also update the database for polling fallback and persistence
-                if status == 'completed' and task_name not in completed_tasks:
-                    completed_tasks.add(task_name)
-                    progress_percentage = min(95, int((len(completed_tasks) / total_tasks) * 100))
-                    progress_message = f"Task {len(completed_tasks)}/{total_tasks}: {task_name} completed"
-                    db_service.update_plan(plan_id, {
-                        "progress_percentage": progress_percentage,
-                        "progress_message": progress_message
-                    })
-
-            process.stdout.close()
+        def read_stderr():
+            if process.stderr:
+                for line in iter(process.stderr.readline, ''):
+                    line = line.strip()
+                    if line:
+                        print(f"DEBUG Luigi STDERR: {line}")
+                process.stderr.close()
+        
+        # Start threads to read both stdout and stderr
+        stdout_thread = threading.Thread(target=read_stdout)
+        stderr_thread = threading.Thread(target=read_stderr)
+        stdout_thread.start()
+        stderr_thread.start()
+        
+        # Wait for process to complete
+        return_code = process.wait()
+        
+        # Wait for threads to finish
+        stdout_thread.join()
+        stderr_thread.join()
 
         # Process completed
         return_code = process.wait()
