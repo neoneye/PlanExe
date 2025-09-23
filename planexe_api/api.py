@@ -178,13 +178,6 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
             environment["OPENROUTER_API_KEY"] = request.openrouter_api_key
             print(f"DEBUG ENV: Override OPENROUTER_API_KEY from request")
 
-        # Ensure all API keys from os.environ are passed to subprocess
-        api_key_names = ["OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"]
-        for api_key_name in api_key_names:
-            if api_key_name in os.environ and api_key_name not in environment:
-                environment[api_key_name] = os.environ[api_key_name]
-                print(f"DEBUG ENV: Added {api_key_name} to subprocess environment")
-
         # Final check of API keys in subprocess environment
         print("DEBUG ENV: Final API keys in subprocess environment:")
         for key in api_keys_to_check:

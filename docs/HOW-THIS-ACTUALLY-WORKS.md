@@ -82,37 +82,6 @@ This single command starts:
 4. **Frontend can't connect** - FastAPI not running on port 8000
 5. **No progress updates** - Luigi subprocess died silently
 
-## CURRENT ISSUE (Sept 23, 2025)
-
-**Status**: Luigi pipeline works manually but FastAPI subprocess fails
-
-**Root Cause Found**: FastAPI subprocess gets "I/O operation on closed file" error
-
-**What Works**:
-- ✅ Luigi pipeline executes manually with proper environment variables
-- ✅ LLM creation and API calls work when API keys are set
-- ✅ All 61 Luigi tasks get scheduled correctly
-- ✅ FastAPI correctly loads .env file and API keys
-
-**What's Broken**:
-- ❌ FastAPI subprocess.Popen fails with I/O error
-- ❌ Subprocess spawning on Windows has shell/path issues
-- ❌ No Luigi debug output appears in FastAPI logs
-
-**Manual Test Verified Working**:
-```bash
-export RUN_ID_DIR="D:\\1Projects\\PlanExe\\run\\{plan_id}"
-export SPEED_VS_DETAIL="fast_but_skip_details"
-export LLM_MODEL="gpt-5-mini-2025-08-07"
-export OPENAI_API_KEY="sk-proj-..."
-python -m planexe.plan.run_plan_pipeline
-```
-
-**Next Steps**:
-1. Fix FastAPI subprocess spawning mechanism (Windows compatibility)
-2. Ensure subprocess inherits environment properly
-3. Test end-to-end plan execution
-
 ## Debug Commands
 
 ```bash
