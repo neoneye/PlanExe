@@ -70,8 +70,32 @@ create_tables()
 
 # Load configuration
 planexe_config = PlanExeConfig.load()
+print("DEBUG ENV: Loading .env file...")
 planexe_dotenv = PlanExeDotEnv.load()
+print(f"DEBUG ENV: Loaded .env from: {planexe_dotenv.dotenv_path}")
+print(f"DEBUG ENV: .env contains {len(planexe_dotenv.dotenv_dict)} variables")
+
+# Log API keys from .env file before updating os.environ
+api_keys_in_dotenv = ["OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"]
+print("DEBUG ENV: API keys found in .env file:")
+for key in api_keys_in_dotenv:
+    value = planexe_dotenv.dotenv_dict.get(key)
+    if value:
+        print(f"  {key}: {'*' * 10}...{value[-4:] if len(value) > 4 else '****'}")
+    else:
+        print(f"  {key}: NOT FOUND in .env")
+
+print("DEBUG ENV: Updating os.environ with .env values...")
 planexe_dotenv.update_os_environ()
+
+# Verify API keys are now in os.environ
+print("DEBUG ENV: API keys in os.environ after .env update:")
+for key in api_keys_in_dotenv:
+    value = os.environ.get(key)
+    if value:
+        print(f"  {key}: {'*' * 10}...{value[-4:] if len(value) > 4 else '****'}")
+    else:
+        print(f"  {key}: NOT FOUND in os.environ")
 
 # Set up paths
 planexe_project_root = Path(__file__).parent.parent.absolute()
@@ -116,9 +140,25 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
 
         run_id_dir = Path(plan.output_dir)
 
-        # Set up environment
+        # Set up environment with comprehensive logging
+        print(f"DEBUG ENV: Starting environment setup for plan {plan_id}")
+
+        # Check what API keys are available in os.environ before copying
+        api_keys_to_check = ["OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"]
+        print("DEBUG ENV: API keys in os.environ before copy:")
+        for key in api_keys_to_check:
+            value = os.environ.get(key)
+            if value:
+                print(f"  {key}: {'*' * 10}...{value[-4:] if len(value) > 4 else '****'}")
+            else:
+                print(f"  {key}: NOT FOUND")
+
         environment = os.environ.copy()
+        print(f"DEBUG ENV: Copied os.environ, total variables: {len(environment)}")
+
+        # Add pipeline-specific environment variables
         environment[PipelineEnvironmentEnum.RUN_ID_DIR.value] = str(run_id_dir)
+        print(f"DEBUG ENV: Set RUN_ID_DIR = {str(run_id_dir)}")
 
         # Map API enum values to pipeline enum values
         speed_vs_detail_mapping = {
@@ -128,12 +168,26 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
         }
         pipeline_speed_value = speed_vs_detail_mapping.get(request.speed_vs_detail.value, "all_details_but_slow")
         environment[PipelineEnvironmentEnum.SPEED_VS_DETAIL.value] = pipeline_speed_value
+        print(f"DEBUG ENV: Set SPEED_VS_DETAIL = {pipeline_speed_value}")
 
         if request.llm_model:
             environment[PipelineEnvironmentEnum.LLM_MODEL.value] = request.llm_model
+            print(f"DEBUG ENV: Set LLM_MODEL = {request.llm_model}")
 
         if request.openrouter_api_key:
             environment["OPENROUTER_API_KEY"] = request.openrouter_api_key
+            print(f"DEBUG ENV: Override OPENROUTER_API_KEY from request")
+
+        # Final check of API keys in subprocess environment
+        print("DEBUG ENV: Final API keys in subprocess environment:")
+        for key in api_keys_to_check:
+            value = environment.get(key)
+            if value:
+                print(f"  {key}: {'*' * 10}...{value[-4:] if len(value) > 4 else '****'}")
+            else:
+                print(f"  {key}: NOT FOUND IN SUBPROCESS ENV")
+
+        print(f"DEBUG ENV: Final subprocess environment variables count: {len(environment)}")
 
         # Create START_TIME file as expected by Luigi pipeline
         start_time_file = run_id_dir / FilenameEnum.START_TIME.value
@@ -162,6 +216,16 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
         print(f"DEBUG: Starting subprocess with command: {command}")
         print(f"DEBUG: Working directory: {planexe_project_root}")
         print(f"DEBUG: RUN_ID_DIR env var: {environment.get('RUN_ID_DIR')}")
+        print(f"DEBUG ENV: Subprocess will receive {len(environment)} environment variables")
+        print(f"DEBUG ENV: Key pipeline variables for subprocess:")
+        for key in ["RUN_ID_DIR", "SPEED_VS_DETAIL", "LLM_MODEL", "OPENAI_API_KEY", "OPENROUTER_API_KEY"]:
+            value = environment.get(key)
+            if key.endswith("_API_KEY") and value:
+                print(f"  {key}: {'*' * 10}...{value[-4:] if len(value) > 4 else '****'}")
+            elif value:
+                print(f"  {key}: {value}")
+            else:
+                print(f"  {key}: NOT SET")
 
         process = subprocess.Popen(
             command,
@@ -392,48 +456,38 @@ async def test_create_plan_simple():
 
 @app.get("/api/models", response_model=List[LLMModel])
 async def get_models():
-    """Get available LLM models - production OpenAI + OpenRouter fallbacks"""
-    # Real working models based on your .env API keys
-    production_models = [
-        # Primary: Latest OpenAI models (direct API)
-        LLMModel(
-            id="gpt-4o-mini",
-            label="GPT-4o Mini",
-            comment="Latest fast OpenAI model. 128K context. Cost-effective for production.",
-            priority=1,
-            requires_api_key=False  # Uses OPENAI_API_KEY from .env
-        ),
-        LLMModel(
-            id="gpt-4o",
-            label="GPT-4o",
-            comment="Latest OpenAI flagship model. 128K context. Best quality.",
-            priority=2,
-            requires_api_key=False
-        ),
-        LLMModel(
-            id="gpt-4-turbo",
-            label="GPT-4 Turbo",
-            comment="OpenAI GPT-4 Turbo. 128K context. Reliable performance.",
-            priority=3,
-            requires_api_key=False
-        ),
-        # OpenRouter fallbacks - using exact llm_config.json keys
-        LLMModel(
-            id="qwen-qwen3-max",
-            label="Qwen3 Max (OpenRouter)",
-            comment="High-performance Qwen model via OpenRouter. Excellent reasoning.",
-            priority=4,
-            requires_api_key=True  # Uses OPENROUTER_API_KEY
-        ),
-        LLMModel(
-            id="x-ai-grok-4-fast-free",
-            label="Grok 4 Fast (Free)",
-            comment="Free high-speed Grok model via OpenRouter. Good for testing.",
-            priority=5,
-            requires_api_key=True
-        )
-    ]
-    return production_models
+    """Get available LLM models from llm_config.json"""
+    from planexe.utils.planexe_llmconfig import PlanExeLLMConfig
+    
+    # Load current LLM configuration
+    llm_config = PlanExeLLMConfig.load()
+    models = []
+    
+    # Convert each config entry to LLMModel format
+    for model_id, config in llm_config.llm_config_dict.items():
+        priority = config.get("priority", 999)
+        comment = config.get("comment", "")
+        provider = config.get("provider", "unknown")
+        
+        # Determine if API key is required based on provider
+        requires_api_key = provider in ["openrouter", "anthropic"]
+        
+        # Create friendly label
+        label = model_id
+        if priority <= 10:  # Only show priority for configured models
+            label = f"{model_id} (Priority {priority})"
+        
+        models.append(LLMModel(
+            id=model_id,
+            label=label,
+            comment=comment,
+            priority=priority,
+            requires_api_key=requires_api_key
+        ))
+    
+    # Sort by priority (lower numbers first)
+    models.sort(key=lambda x: x.priority)
+    return models
 
 
 @app.get("/api/prompts", response_model=List[PromptExample])
