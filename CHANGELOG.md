@@ -2,6 +2,23 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2025-09-23
+
+### 🛠️ **Architectural Fix: Retry Logic and Race Condition**
+
+This release implements a robust, definitive fix for the failing retry functionality and the persistent `EventSource failed` error. Instead of patching symptoms, this work addresses the underlying architectural flaws.
+
+#### ✅ **Core Problems Solved**
+- **Reliable Retries**: The retry feature has been re-architected. It no longer tries to revive a failed plan. Instead, it creates a **brand new, clean plan** using the exact same settings as the failed one. This is a more reliable and predictable approach.
+- **Race Condition Eliminated**: The `EventSource failed` error has been fixed by eliminating the race condition between the frontend and backend. The frontend now patiently polls a new status endpoint and only connects to the log stream when the backend confirms it is ready.
+
+#### 🔧 **Implementation Details**
+- **Backend Refactoring**: The core plan creation logic was extracted into a reusable helper function. The `create` and `retry` endpoints now both use this same, bulletproof function, adhering to the DRY (Don't Repeat Yourself) principle.
+- **New Status Endpoint**: A lightweight `/api/plans/{plan_id}/stream-status` endpoint was added to allow the frontend to safely check if a log stream is available before attempting to connect.
+- **Frontend Polling**: The `Terminal` component now uses a smart polling mechanism to wait for the backend to be ready, guaranteeing a successful connection every time.
+
+This marks a significant improvement in the stability and reliability of the application's core functionality.
+
 ## [0.1.7] - 2025-09-23
 
 ### 🚀 **MAJOR UX FIX - Real-Time Terminal Monitoring**
