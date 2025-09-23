@@ -219,7 +219,9 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
         })
 
         # Start the pipeline process
-        command = ["python", "-m", MODULE_PATH_PIPELINE]
+        import sys
+        python_executable = sys.executable
+        command = [python_executable, "-m", MODULE_PATH_PIPELINE]
         print(f"DEBUG: Starting subprocess with command: {command}")
         print(f"DEBUG: Working directory: {planexe_project_root}")
         print(f"DEBUG: RUN_ID_DIR env var: {environment.get('RUN_ID_DIR')}")
