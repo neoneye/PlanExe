@@ -85,35 +85,22 @@ export const useConfigStore = create<ConfigState>()(
         set({ isLoadingModels: true, modelsError: null });
 
         try {
-          // Working models with exact IDs that match llm_config.json keys
-          const workingModels = [
-            {
-              id: "gemini-2.0-flash",
-              label: "Gemini 2.0 Flash",
-              comment: "Google's latest fast model. 1M context. $0.20/M input, $0.60/M output.",
-              priority: 1,
-              requires_api_key: false
-            },
-            {
-              id: "gpt-4o-mini",
-              label: "GPT-4o Mini",
-              comment: "Latest fast OpenAI model. 128K context. Cost-effective.",
-              priority: 2,
-              requires_api_key: false
-            },
-            {
-              id: "qwen-qwen3-max",
-              label: "Qwen3 Max",
-              comment: "High-performance Qwen model via OpenRouter.",
-              priority: 3,
-              requires_api_key: true
-            }
-          ];
+          // Fetch real models from FastAPI backend
+          const response = await fetch('http://localhost:8000/api/models');
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
+          }
+
+          const models = await response.json();
+
+          // Use first model by priority as default
+          const defaultModelId = models.length > 0 ? models[0].id : '';
 
           set({
-            llmModels: workingModels,
-            defaultModel: "gemini-2.0-flash",
-            priorityOrder: workingModels.map(m => m.id),
+            llmModels: models,
+            defaultModel: defaultModelId,
+            priorityOrder: models.map((m: any) => m.id),
             isLoadingModels: false,
             modelsError: null,
             modelsLastLoaded: new Date()
@@ -270,7 +257,7 @@ export const useConfigStore = create<ConfigState>()(
       }
     }),
     {
-      name: 'planexe-config',
+      name: 'planexe-config-v2', // Bump cache version to clear old hardcoded models
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         // Cache models and prompts for offline use
@@ -278,7 +265,7 @@ export const useConfigStore = create<ConfigState>()(
         defaultModel: state.defaultModel,
         priorityOrder: state.priorityOrder,
         modelsLastLoaded: state.modelsLastLoaded,
-        
+
         promptExamples: state.promptExamples,
         promptCategories: state.promptCategories,
         promptsLastLoaded: state.promptsLastLoaded
@@ -292,7 +279,7 @@ if (typeof window !== 'undefined') {
   // Load initial config after a short delay to avoid SSR issues
   setTimeout(() => {
     const store = useConfigStore.getState();
-    store.loadLLMModels();
+    store.loadLLMModels(true); // Force reload to get fresh API data
     store.loadPromptExamples();
   }, 100);
 }
