@@ -6,3 +6,5 @@ run/
 __pycache__/
 .vscode/
 planexe.db
+planexe-frontend/public/favicon.svg
+planexe-frontend/public/favicon.ico
