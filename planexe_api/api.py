@@ -251,60 +251,60 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
         import threading
         
         def read_stdout():
+            """Stream raw Luigi pipeline logs directly to frontend terminal"""
             if process.stdout:
                 for line in iter(process.stdout.readline, ''):
                     line = line.strip()
                     if not line:
                         continue
 
-                    print(f"DEBUG Luigi STDOUT: {line}")
-
-                    # Parse for task name
-                    task_name_match = re.search(r'(\w+Task)', line)
-                    if not task_name_match:
-                        continue
+                    # Send raw log line to frontend terminal
+                    log_data = {
+                        "type": "log", 
+                        "message": line,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                    try:
+                        progress_queue.put_nowait(log_data)
+                    except asyncio.QueueFull:
+                        print(f"Warning: Progress queue for plan {plan_id} is full.")
                     
-                    task_name = task_name_match.group(1)
+                    # Also print to server console for debugging
+                    print(f"Luigi: {line}")
+
+                # Send completion signal
+                try:
+                    completion_data = {
+                        "type": "status",
+                        "status": "stdout_closed",
+                        "message": "Pipeline stdout stream closed"
+                    }
+                    progress_queue.put_nowait(completion_data)
+                except asyncio.QueueFull:
+                    pass
                     
-                    # Determine task status from log message
-                    status = None
-                    if "DONE" in line or "complete" in line:
-                        status = "completed"
-                    elif "running" in line.lower() or "starting" in line.lower() or "executing" in line.lower():
-                        status = "running"
-                    elif "failed" in line.lower() or "error" in line.lower():
-                        status = "failed"
-
-                    if status:
-                        update_data = {
-                            "task_id": task_name,
-                            "status": status,
-                            "timestamp": datetime.utcnow().isoformat()
-                        }
-                        try:
-                            progress_queue.put_nowait(update_data)
-                        except asyncio.QueueFull:
-                            print(f"Warning: Progress queue for plan {plan_id} is full.")
-
-                    # Also update the database for polling fallback and persistence
-                    if status == 'completed' and task_name not in completed_tasks:
-                        completed_tasks.add(task_name)
-                        # Don't cap progress artificially - let it reflect actual completion
-                        progress_percentage = int((len(completed_tasks) / total_tasks) * 90)  # Reserve 10% for final processing
-                        progress_message = f"Task {len(completed_tasks)}/{total_tasks}: {task_name} completed"
-                        db_service.update_plan(plan_id, {
-                            "progress_percentage": progress_percentage,
-                            "progress_message": progress_message
-                        })
-
                 process.stdout.close()
                 
         def read_stderr():
+            """Stream error logs to frontend terminal"""
             if process.stderr:
                 for line in iter(process.stderr.readline, ''):
                     line = line.strip()
                     if line:
-                        print(f"DEBUG Luigi STDERR: {line}")
+                        # Send error line to frontend terminal
+                        error_data = {
+                            "type": "log", 
+                            "message": f"ERROR: {line}",
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "level": "error"
+                        }
+                        try:
+                            progress_queue.put_nowait(error_data)
+                        except asyncio.QueueFull:
+                            print(f"Warning: Progress queue for plan {plan_id} is full.")
+                        
+                        # Also print to server console for debugging
+                        print(f"Luigi ERROR: {line}")
                 process.stderr.close()
         
         # Start threads to read both stdout and stderr
@@ -327,6 +327,17 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
             # Check if pipeline completed successfully
             complete_file = run_id_dir / FilenameEnum.PIPELINE_COMPLETE.value
             if complete_file.exists():
+                # Send success message to terminal
+                try:
+                    success_data = {
+                        "type": "status",
+                        "status": "completed",
+                        "message": "✅ Pipeline completed successfully! All files generated."
+                    }
+                    progress_queue.put_nowait(success_data)
+                except asyncio.QueueFull:
+                    pass
+
                 # Index generated files
                 files = list(run_id_dir.iterdir())
                 for file_path in files:
@@ -347,11 +358,33 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
                     "completed_at": datetime.utcnow()
                 })
             else:
+                # Send failure message to terminal
+                try:
+                    failure_data = {
+                        "type": "status",
+                        "status": "failed",
+                        "message": "❌ Pipeline completed but final output file not found"
+                    }
+                    progress_queue.put_nowait(failure_data)
+                except asyncio.QueueFull:
+                    pass
+
                 db_service.update_plan(plan_id, {
                     "status": PlanStatus.failed.value,
                     "error_message": "Pipeline did not complete successfully"
                 })
         else:
+            # Send failure message to terminal
+            try:
+                failure_data = {
+                    "type": "status",
+                    "status": "failed",
+                    "message": f"❌ Pipeline failed with exit code {return_code}"
+                }
+                progress_queue.put_nowait(failure_data)
+            except asyncio.QueueFull:
+                pass
+
             stderr_output = process.stderr.read() if process.stderr else "Unknown error"
             db_service.update_plan(plan_id, {
                 "status": PlanStatus.failed.value,
@@ -360,6 +393,19 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
 
     except Exception as e:
         print(f"Exception in run_plan_job: {e}")
+        
+        # Send exception message to terminal
+        if plan_id in progress_streams:
+            try:
+                exception_data = {
+                    "type": "status",
+                    "status": "failed",
+                    "message": f"💥 Fatal error in pipeline: {str(e)}"
+                }
+                progress_streams[plan_id].put_nowait(exception_data)
+            except asyncio.QueueFull:
+                pass
+
         try:
             db_service.update_plan(plan_id, {
                 "status": PlanStatus.failed.value,

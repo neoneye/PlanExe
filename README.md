@@ -165,26 +165,82 @@ PlanExe/
 └── README.md            # You are here
 ```
 
-## Local Development Workflow
+## Current Development Workflow (v0.1.6)
 
+**CRITICAL NOTE**: The system is currently not usable for end users due to progress monitoring bugs. See CHANGELOG.md v0.1.6 for details.
+
+### Setup Environment
 1. Clone & create virtual env:
    ```powershell
    git clone https://github.com/neoneye/PlanExe.git
+   cd PlanExe
    python -m venv .venv
    .venv\Scripts\Activate
    pip install -e ".[dev,gradio-ui]"
    ```
-2. Copy `.env.example` to `.env` and fill in any provider keys (e.g. `OPENROUTER_API_KEY`).
-3. Launch FastAPI + Vite UI for a full-stack experience:
-   ```powershell
-   # Terminal 1 – API
-   uvicorn planexe_api.api:app --reload
 
-   # Terminal 2 – React UI (auto proxies 5173 → 8000)
-   cd nodejs-ui
-   npm install && npm run dev
+2. **REQUIRED**: Copy `.env.example` to `.env` and add your API keys:
    ```
-4. Open http://localhost:5173 and start generating plans.
+   OPENAI_API_KEY=your_key_here
+   OPENROUTER_API_KEY=your_key_here
+   ```
+
+### Running the Full System (3 Components Required)
+
+**You need ALL 3 components running for the system to work:**
+
+```powershell
+# Terminal 1 – FastAPI Backend (port 8000)
+python -m planexe_api.api
+
+# Terminal 2 – Next.js Frontend (port 3000)
+cd planexe-frontend
+npm install
+npm run dev
+
+# Terminal 3 – Luigi Pipeline Execution
+# (Automatically triggered when plans are created via API)
+# NO separate command needed - pipeline runs as subprocess
+```
+
+### How Plan Generation Actually Works
+
+1. **User submits plan** via frontend (http://localhost:3000)
+2. **FastAPI creates plan** and launches Luigi pipeline as subprocess
+3. **Luigi pipeline executes 61 tasks** (python -m planexe.plan.run_plan_pipeline)
+4. **Progress monitoring** streams updates back to frontend via SSE
+5. **Generated files** stored in `run/{plan_id}/` directory
+
+### Simplified One-Command Setup
+
+```powershell
+# Start both backend and frontend together
+cd planexe-frontend
+npm run go
+```
+
+### Testing Plan Generation
+
+```bash
+# Create a plan via API
+curl -X POST "http://localhost:8000/api/plans" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "test plan", "llm_model": "gpt-5-mini-2025-08-07", "speed_vs_detail": "fast_but_skip_details"}'
+
+# Check plan status
+curl "http://localhost:8000/api/plans/{plan_id}"
+
+# Monitor progress (note: currently shows false completion)
+curl "http://localhost:8000/api/plans/{plan_id}/stream"
+```
+
+### Known Issues (v0.1.6)
+- ❌ Progress monitoring shows false "95% complete" immediately
+- ❌ File access API crashes with Internal Server Error
+- ❌ Users cannot download generated reports
+- ❌ No reliable way to know when plans actually complete
+
+See `docs/24SeptUXBreakdownHandover.md` for detailed issue analysis.
 
 ## Automated Tests
 
