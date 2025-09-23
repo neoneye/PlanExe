@@ -218,7 +218,7 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
             "started_at": datetime.utcnow()
         })
 
-        # Start the pipeline process
+        # Start the pipeline process with extensive debugging
         command = ["python", "-m", MODULE_PATH_PIPELINE]
         print(f"DEBUG: Starting subprocess with command: {command}")
         print(f"DEBUG: Working directory: {planexe_project_root}")
@@ -234,135 +234,66 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
             else:
                 print(f"  {key}: NOT SET")
 
-        # Fix Windows path issues by using shell=True on Windows
+        # Extensive environment debugging
         import platform
+        import sys
+        print(f"DEBUG: Platform system: {platform.system()}")
+        print(f"DEBUG: Python executable: {sys.executable}")
+        print(f"DEBUG: Current working directory exists: {planexe_project_root.exists()}")
+        print(f"DEBUG: Current working directory readable: {os.access(planexe_project_root, os.R_OK)}")
+
+        # Test if python command works in this environment
+        print("DEBUG: Testing python command availability...")
+        try:
+            test_result = subprocess.run(["python", "--version"], capture_output=True, text=True, timeout=5)
+            print(f"DEBUG: Python test result: {test_result.returncode}, stdout: {test_result.stdout.strip()}")
+        except Exception as e:
+            print(f"DEBUG: Python command test failed: {e}")
+
+        # Fix Windows path issues by using shell=True on Windows
         use_shell = platform.system() == "Windows"
+        print(f"DEBUG: Using shell={use_shell}")
 
-        process = subprocess.Popen(
-            command,
-            cwd=str(planexe_project_root),
-            env=environment,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-            universal_newlines=True,
-            shell=use_shell
-        )
-        print(f"DEBUG: Subprocess started with PID: {process.pid}")
+        # Use in-process Luigi execution to avoid subprocess environment issues
+        print("DEBUG: Running Luigi pipeline in-process to avoid subprocess issues...")
 
-        # Store process reference
-        running_processes[plan_id] = process
+        try:
+            # Set environment variables for Luigi pipeline
+            for key, value in environment.items():
+                os.environ[key] = value
+                if key.endswith("_API_KEY"):
+                    print(f"DEBUG: Set environment {key}: {'*' * 10}...{value[-4:] if len(value) > 4 else '****'}")
+                else:
+                    print(f"DEBUG: Set environment {key}: {value}")
 
-        # Monitor actual Luigi pipeline progress by parsing stdout
-        import re
-        completed_tasks = set()
-        total_tasks = 61  # Actual count of Luigi task classes
+            # Import and execute Luigi pipeline directly
+            print("DEBUG: Importing Luigi pipeline module...")
+            import sys
+            import importlib.util
 
-        # Monitor stdout and send progress updates to the queue
-        import threading
-        
-        def read_stdout():
-            """Stream raw Luigi pipeline logs directly to frontend terminal"""
-            if process.stdout:
-                for line in iter(process.stdout.readline, ''):
-                    line = line.strip()
-                    if not line:
-                        continue
+            # Import the Luigi pipeline module
+            from planexe.plan.run_plan_pipeline import ExecutePipeline
+            from planexe.plan.pipeline_environment import PipelineEnvironment
 
-                    # Send raw log line to frontend terminal
-                    log_data = {
-                        "type": "log", 
-                        "message": line,
-                        "timestamp": datetime.utcnow().isoformat()
-                    }
-                    try:
-                        progress_queue.put_nowait(log_data)
-                    except asyncio.QueueFull:
-                        print(f"Warning: Progress queue for plan {plan_id} is full.")
-                    
-                    # Also print to server console for debugging
-                    print(f"Luigi: {line}")
+            print("DEBUG: Creating pipeline environment...")
+            pipeline_env = PipelineEnvironment.from_env()
+            print(f"DEBUG: Pipeline environment: {pipeline_env}")
 
-                # Send completion signal
-                try:
-                    completion_data = {
-                        "type": "status",
-                        "status": "stdout_closed",
-                        "message": "Pipeline stdout stream closed"
-                    }
-                    progress_queue.put_nowait(completion_data)
-                except asyncio.QueueFull:
-                    pass
-                    
-                process.stdout.close()
-                
-        def read_stderr():
-            """Stream error logs to frontend terminal"""
-            if process.stderr:
-                for line in iter(process.stderr.readline, ''):
-                    line = line.strip()
-                    if line:
-                        # Send error line to frontend terminal
-                        error_data = {
-                            "type": "log", 
-                            "message": f"ERROR: {line}",
-                            "timestamp": datetime.utcnow().isoformat(),
-                            "level": "error"
-                        }
-                        try:
-                            progress_queue.put_nowait(error_data)
-                        except asyncio.QueueFull:
-                            print(f"Warning: Progress queue for plan {plan_id} is full.")
-                        
-                        # Also print to server console for debugging
-                        print(f"Luigi ERROR: {line}")
-                process.stderr.close()
-        
-        # Start threads to read both stdout and stderr
-        stdout_thread = threading.Thread(target=read_stdout)
-        stderr_thread = threading.Thread(target=read_stderr)
-        stdout_thread.start()
-        stderr_thread.start()
-        
-        # Wait for process to complete
-        return_code = process.wait()
-        
-        # Wait for threads to finish
-        stdout_thread.join()
-        stderr_thread.join()
+            print("DEBUG: Executing Luigi pipeline in-process...")
+            execute_pipeline = ExecutePipeline(
+                run_id_dir=pipeline_env.get_run_id_dir(),
+                speedvsdetail=pipeline_env.speed_vs_detail,
+                llm_models=[pipeline_env.llm_model] if pipeline_env.llm_model else []
+            )
 
-        # Process completed
-        return_code = process.wait()
+            # Execute the pipeline in the current thread (for now)
+            # This will block but ensures proper execution
+            result = execute_pipeline.execute_pipeline()
 
-        if return_code == 0:
-            # Check if pipeline completed successfully
-            complete_file = run_id_dir / FilenameEnum.PIPELINE_COMPLETE.value
-            if complete_file.exists():
-                # Send success message to terminal
-                try:
-                    success_data = {
-                        "type": "status",
-                        "status": "completed",
-                        "message": "✅ Pipeline completed successfully! All files generated."
-                    }
-                    progress_queue.put_nowait(success_data)
-                except asyncio.QueueFull:
-                    pass
+            print(f"DEBUG: Luigi pipeline completed with result: {result}")
 
-                # Index generated files
-                files = list(run_id_dir.iterdir())
-                for file_path in files:
-                    if file_path.is_file():
-                        db_service.create_plan_file({
-                            "plan_id": plan_id,
-                            "filename": file_path.name,
-                            "file_type": file_path.suffix.lstrip('.') or 'unknown',
-                            "file_size_bytes": file_path.stat().st_size,
-                            "file_path": str(file_path),
-                            "generated_by_stage": "pipeline_complete"
-                        })
-
+            # Update plan status based on result
+            if result:
                 db_service.update_plan(plan_id, {
                     "status": PlanStatus.completed.value,
                     "progress_percentage": 100,
@@ -370,53 +301,44 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
                     "completed_at": datetime.utcnow()
                 })
             else:
-                # Send failure message to terminal
-                try:
-                    failure_data = {
-                        "type": "status",
-                        "status": "failed",
-                        "message": "❌ Pipeline completed but final output file not found"
-                    }
-                    progress_queue.put_nowait(failure_data)
-                except asyncio.QueueFull:
-                    pass
-
                 db_service.update_plan(plan_id, {
                     "status": PlanStatus.failed.value,
-                    "error_message": "Pipeline did not complete successfully"
+                    "error_message": "Luigi pipeline execution returned False"
                 })
-        else:
-            # Send failure message to terminal
-            try:
-                failure_data = {
-                    "type": "status",
-                    "status": "failed",
-                    "message": f"❌ Pipeline failed with exit code {return_code}"
-                }
-                progress_queue.put_nowait(failure_data)
-            except asyncio.QueueFull:
-                pass
 
-            stderr_output = process.stderr.read() if process.stderr else "Unknown error"
+        except Exception as e:
+            print(f"DEBUG: In-process Luigi execution failed: {e}")
+            import traceback
+            traceback.print_exc()
+
             db_service.update_plan(plan_id, {
                 "status": PlanStatus.failed.value,
-                "error_message": f"Pipeline failed with code {return_code}: {stderr_output}"
+                "error_message": f"In-process execution failed: {str(e)}"
             })
+            raise
+
+        # Index generated files after in-process execution
+        print("DEBUG: Indexing generated files...")
+        try:
+            files = list(run_id_dir.iterdir())
+            for file_path in files:
+                if file_path.is_file():
+                    db_service.create_plan_file({
+                        "plan_id": plan_id,
+                        "filename": file_path.name,
+                        "file_type": file_path.suffix.lstrip('.') or 'unknown',
+                        "file_size_bytes": file_path.stat().st_size,
+                        "file_path": str(file_path),
+                        "generated_by_stage": "pipeline_complete"
+                    })
+            print(f"DEBUG: Indexed {len(files)} generated files")
+        except Exception as e:
+            print(f"DEBUG: Error indexing files: {e}")
 
     except Exception as e:
         print(f"Exception in run_plan_job: {e}")
-        
-        # Send exception message to terminal
-        if plan_id in progress_streams:
-            try:
-                exception_data = {
-                    "type": "status",
-                    "status": "failed",
-                    "message": f"💥 Fatal error in pipeline: {str(e)}"
-                }
-                progress_streams[plan_id].put_nowait(exception_data)
-            except asyncio.QueueFull:
-                pass
+        import traceback
+        traceback.print_exc()
 
         try:
             db_service.update_plan(plan_id, {
@@ -426,14 +348,12 @@ def run_plan_job(plan_id: str, request: CreatePlanRequest):
         except Exception as db_err:
             print(f"Failed to update plan status: {db_err}")
     finally:
-        # Clean up process reference and signal end of stream
-        if plan_id in running_processes:
-            del running_processes[plan_id]
+        # Clean up progress streams (no subprocess to clean up)
         if plan_id in progress_streams:
             try:
                 progress_streams[plan_id].put_nowait(None)  # Signal end
             except asyncio.QueueFull:
-                pass # If full, consumer will eventually get there
+                pass
         # Close database session
         try:
             db.close()
