@@ -560,12 +560,10 @@ async def get_prompt_examples():
     return hardcoded_prompts
 
 
-@app.post("/api/plans", response_model=PlanResponse)
-async def create_plan(request: CreatePlanRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_database)):
-    """Create a new plan generation job"""
-
+async def _create_and_run_plan(request: CreatePlanRequest, background_tasks: BackgroundTasks, db: Session) -> Plan:
+    """Helper function to create a new plan record and start the background job."""
     try:
-        print(f"DEBUG: Starting create_plan with request: {request}")
+        print(f"DEBUG: Starting _create_and_run_plan with request: {request}")
 
         # Generate unique plan ID
         start_time = datetime.utcnow()
@@ -611,7 +609,20 @@ async def create_plan(request: CreatePlanRequest, background_tasks: BackgroundTa
         background_tasks.add_task(run_plan_job, plan_id, request)
         print(f"DEBUG: Background task added")
 
-        # Convert to response format
+        return plan
+
+    except Exception as e:
+        print(f"ERROR in _create_and_run_plan: {e}")
+        import traceback
+        traceback.print_exc()
+        # Re-raise the exception to be handled by the calling endpoint
+        raise
+
+@app.post("/api/plans", response_model=PlanResponse)
+async def create_plan(request: CreatePlanRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_database)):
+    """Create a new plan generation job."""
+    try:
+        plan = await _create_and_run_plan(request, background_tasks, db)
         return PlanResponse(
             plan_id=plan.plan_id,
             status=PlanStatus(plan.status),
@@ -652,45 +663,45 @@ async def get_plan(plan_id: str, db: Session = Depends(get_database)):
 
 @app.post("/api/plans/{plan_id}/retry", response_model=PlanResponse)
 async def retry_plan(plan_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_database)):
-    """Retry a failed or stuck plan"""
+    """Retries a failed or stuck plan by creating a new plan with the same settings."""
     db_service = DatabaseService(db)
-    plan = db_service.get_plan(plan_id)
+    original_plan = db_service.get_plan(plan_id)
 
-    if not plan:
-        raise HTTPException(status_code=404, detail="Plan not found")
+    if not original_plan:
+        raise HTTPException(status_code=404, detail="Original plan not found")
 
-    # Reset plan to pending status
-    db_service.update_plan(plan_id, {
-        "status": PlanStatus.pending.value,
-        "progress_percentage": 0,
-        "progress_message": "Plan queued for retry processing...",
-        "error_message": None,
-        "started_at": None,
-        "completed_at": None
-    })
-
-    # Create request object from stored plan data
-    request = CreatePlanRequest(
-        prompt=plan.prompt,
-        llm_model=plan.llm_model,
-        speed_vs_detail=plan.speed_vs_detail
+    # Create a new request from the original plan's data
+    retry_request = CreatePlanRequest(
+        prompt=original_plan.prompt,
+        llm_model=original_plan.llm_model,
+        speed_vs_detail=SpeedVsDetail(original_plan.speed_vs_detail),
+        # We don't have the original API key if it was per-request, so we use None
+        openrouter_api_key=None
     )
 
-    # Start background task
-    background_tasks.add_task(run_plan_job, plan_id, request)
+    # Create and run the new plan using the refactored helper function
+    new_plan = await _create_and_run_plan(retry_request, background_tasks, db)
 
-    # Return updated plan
-    updated_plan = db_service.get_plan(plan_id)
+    # Return the NEW plan's information
     return PlanResponse(
-        plan_id=updated_plan.plan_id,
-        status=PlanStatus(updated_plan.status),
-        created_at=updated_plan.created_at,
-        prompt=updated_plan.prompt,
-        progress_percentage=updated_plan.progress_percentage,
-        progress_message=updated_plan.progress_message,
-        error_message=updated_plan.error_message,
-        output_dir=updated_plan.output_dir
+        plan_id=new_plan.plan_id,
+        status=PlanStatus(new_plan.status),
+        created_at=new_plan.created_at,
+        prompt=new_plan.prompt,
+        progress_percentage=new_plan.progress_percentage,
+        progress_message=new_plan.progress_message,
+        error_message=new_plan.error_message,
+        output_dir=new_plan.output_dir
     )
+
+
+@app.get("/api/plans/{plan_id}/stream-status")
+async def get_stream_status(plan_id: str):
+    """Check if the progress stream for a given plan is available."""
+    if plan_id in progress_streams and progress_streams[plan_id] is not None:
+        return {"status": "ready"}
+    else:
+        return {"status": "pending"}
 
 
 @app.get("/api/plans/{plan_id}/details")

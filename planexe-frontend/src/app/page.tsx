@@ -71,6 +71,15 @@ export default function Home() {
     setActivePlanId(null); // Return to the form
   };
 
+  const handlePlanRetry = (planId: string) => {
+    setActivePlanId(planId);
+    // Use a timeout to ensure the tab is enabled before clicking
+    setTimeout(() => {
+      const monitorTab = document.querySelector('[data-radix-value="monitor"]') as HTMLElement | null;
+      monitorTab?.click();
+    }, 100);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -157,6 +166,7 @@ export default function Home() {
               onPlanSelect={(planId) => {
                 setActivePlanId(planId);
               }}
+              onPlanRetry={handlePlanRetry}
             />
           </TabsContent>
 

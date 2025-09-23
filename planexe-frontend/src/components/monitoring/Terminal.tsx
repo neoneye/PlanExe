@@ -34,7 +34,7 @@ export const Terminal: React.FC<TerminalProps> = ({
   className = ''
 }) => {
   const [logs, setLogs] = useState<LogLine[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
+  const [isStreamReady, setIsStreamReady] = useState(false);
   const [status, setStatus] = useState<'connecting' | 'running' | 'completed' | 'failed'>('connecting');
   const [searchFilter, setSearchFilter] = useState('');
   const [autoScroll, setAutoScroll] = useState(true);
@@ -49,14 +49,39 @@ export const Terminal: React.FC<TerminalProps> = ({
     }
   }, [logs, autoScroll]);
 
-  // Connect to SSE stream for raw logs
+  // Poll for stream readiness
   useEffect(() => {
+    if (!planId) return;
+
+    const checkStreamStatus = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/plans/${planId}/stream-status`);
+        const data = await response.json();
+        if (data.status === 'ready') {
+          setIsStreamReady(true);
+        }
+      } catch (error) {
+        console.error('Failed to check stream status:', error);
+      }
+    };
+
+    // Start polling if the stream isn't ready yet
+    if (!isStreamReady) {
+      const intervalId = setInterval(checkStreamStatus, 500);
+      // Cleanup function to clear the interval
+      return () => clearInterval(intervalId);
+    }
+  }, [planId, isStreamReady]);
+
+  // Connect to SSE stream for raw logs once it's ready
+  useEffect(() => {
+    if (!isStreamReady) return;
+
     const eventSource = new EventSource(`http://localhost:8000/api/plans/${planId}/stream`);
 
     eventSource.onopen = () => {
-      setIsConnected(true);
       setStatus('running');
-      addLog('Connected to pipeline log stream...', 'info');
+      addLog('✅ Connected to pipeline log stream.', 'info');
     };
 
     eventSource.onmessage = (event) => {
@@ -86,18 +111,16 @@ export const Terminal: React.FC<TerminalProps> = ({
 
     eventSource.onerror = (err) => {
       console.error('EventSource failed:', err);
-      setIsConnected(false);
       setStatus('failed');
-      addLog('Connection to log stream lost', 'error');
+      addLog('❌ Connection to log stream lost. Please check the server logs.', 'error');
       if (onError) onError('Connection to log stream failed');
       eventSource.close();
     };
 
     return () => {
       eventSource.close();
-      setIsConnected(false);
     };
-  }, [planId, onComplete, onError]);
+  }, [isStreamReady, planId, onComplete, onError]);
 
   const addLog = useCallback((text: string, level: LogLine['level'] = 'info') => {
     const timestamp = new Date().toLocaleTimeString();

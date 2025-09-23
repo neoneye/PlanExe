@@ -27,9 +27,10 @@ interface Plan {
 interface PlansQueueProps {
   className?: string
   onPlanSelect?: (planId: string) => void
+  onPlanRetry?: (planId: string) => void
 }
 
-export function PlansQueue({ className, onPlanSelect }: PlansQueueProps) {
+export function PlansQueue({ className, onPlanSelect, onPlanRetry }: PlansQueueProps) {
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [retryingPlanId, setRetryingPlanId] = useState<string | null>(null)
@@ -58,8 +59,13 @@ export function PlansQueue({ className, onPlanSelect }: PlansQueueProps) {
         headers: { 'Content-Type': 'application/json' }
       })
       if (response.ok) {
+        const newPlan = await response.json();
         // Refresh plans to show updated status
-        await fetchPlans()
+        await fetchPlans();
+        if (onPlanRetry) {
+          // Pass the NEW planId to the handler
+          onPlanRetry(newPlan.plan_id);
+        }
       } else {
         console.error('Failed to retry plan')
       }
