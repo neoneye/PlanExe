@@ -2,6 +2,40 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] - 2025-09-23
+
+### 🚀 **MAJOR UX FIX - Real-Time Terminal Monitoring**
+
+**BREAKTHROUGH: Users can now see what's actually happening!**
+
+#### ✅ **Core UX Problems SOLVED**
+- **REAL Progress Visibility**: Users now see actual Luigi pipeline logs in real-time terminal interface
+- **Error Transparency**: All errors, warnings, and debug info visible to users immediately  
+- **No More False Completion**: Removed broken progress parsing that lied to users about completion status
+- **Full Luigi Visibility**: Stream raw Luigi stdout/stderr directly to frontend terminal
+
+#### 🖥️ **New Terminal Interface**
+- **Live Log Streaming**: Real-time display of Luigi task execution via Server-Sent Events
+- **Terminal Features**: Search/filter logs, copy to clipboard, download full logs
+- **Status Indicators**: Connection status, auto-scroll, line counts
+- **Error Highlighting**: Different colors for info/warn/error log levels
+
+#### 🔧 **Implementation Details**
+- **Frontend**: New `Terminal.tsx` component with terminal-like UI
+- **Backend**: Modified API to stream raw Luigi output instead of parsing it
+- **Architecture**: Simplified from complex task parsing to direct log streaming
+- **Reliability**: Removed unreliable progress percentage calculations
+
+#### 🎯 **User Experience Transformation**
+- **Before**: Users saw fake "95% complete" while pipeline was actually at 2%
+- **After**: Users see exact Luigi output: "Task 2 of 109: PrerequisiteTask RUNNING"
+- **Before**: Mysterious failures with no error visibility
+- **After**: Full error stack traces visible in terminal interface
+- **Before**: No way to know what's happening during 45+ minute pipeline runs
+- **After**: Live updates on every Luigi task start/completion/failure
+
+This completely addresses the "COMPLETELY UNUSABLE FOR USERS" status from previous version. Users now have full visibility into the Luigi pipeline execution process.
+
 ## [0.1.6] - 2025-09-23
 
 ### 💥 FAILED - UX Breakdown Debugging Attempt
