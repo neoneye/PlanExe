@@ -2,30 +2,26 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.3] - 2025-09-21
+## [0.1.4] - 2025-09-22
 
-### Fixed - Real-Time Progress UI & Stability
+### Fixed - Frontend Form Issues and Backend Logging
 
-This release marks a major overhaul of the frontend architecture to provide a stable, real-time progress monitoring experience. All known connection and CORS errors have been resolved.
+This release addresses several critical issues in the frontend forms and improves backend logging for better debugging.
 
-#### 🚀 **Frontend Architecture Overhaul**
-- **Removed Over-Engineered State Management**: The complex and buggy `planning.ts` Zustand store has been completely removed from the main application page (`page.tsx`).
-- **Simplified State with React Hooks**: Replaced the old store with simple, local `useState` for managing the active plan, loading states, and errors. This significantly reduces complexity and improves stability.
-- **Direct API Client Integration**: The UI now directly uses the new, clean `fastApiClient` for all operations, ensuring consistent and correct communication with the backend.
+#### 🐛 **Frontend Fixes**
+- **Fixed React Warnings**: Resolved duplicate 'name' attributes in PlanForm.tsx that were causing React warnings
+- **Fixed TypeScript Errors**: Corrected type errors in PlanForm.tsx by using proper LLMModel fields (`label`, `requires_api_key`, `comment`)
+- **Improved Form Behavior**: Removed auto-reset that was hiding the UI after plan completion
 
-#### 🐛 **Critical Bug Fixes**
-- **CORS Errors Resolved**: Fixed all Cross-Origin Resource Sharing (CORS) errors by implementing a robust and specific configuration on the FastAPI backend.
-- **Connection Errors Eliminated**: Corrected all hardcoded URLs and port mismatches across the entire frontend, including in the API client and the `ProgressMonitor` component.
-- **Backend Race Condition Fixed**: Made the backend's real-time streaming endpoint more resilient by adding an intelligent wait loop, preventing server crashes when the frontend connects immediately after plan creation.
-
-#### ✨ **New Features & UI Improvements**
-- **Real-Time Task List**: The new `ProgressMonitor` and `TaskList` components are now fully integrated, providing a detailed, real-time view of all 61 pipeline tasks.
-- **Accordion UI**: Added the `accordion` component from `shadcn/ui` to create a clean, user-friendly, and collapsible display for the task list.
+#### 🛠️ **Backend Improvements**
+- **Enhanced Logging**: Improved backend logging to capture stderr from Luigi pipeline for better error diagnosis
+- **Robust Error Handling**: Added more robust error handling in the plan execution pipeline
 
 **Current Status:**
-- ✅ **Stable End-to-End Connection**: Frontend and backend communicate reliably on the correct ports (`3000` and `8001`).
-- ✅ **Real-Time Streaming Works**: The Server-Sent Events (SSE) stream connects successfully and provides real-time updates.
-- ✅ **Simplified Architecture**: The frontend is now more maintainable, performant, and easier to understand.
+- ✅ **Frontend Forms Work**: Plan creation form functions correctly without React warnings
+- ✅ **TypeScript Compilation**: No TypeScript errors in the frontend code
+- ✅ **Backend Logging**: Better visibility into pipeline execution errors
+- ✅ **Stable UI**: UI remains visible after plan completion for user review
 
 ## [0.1.2] - 2025-09-20
 
