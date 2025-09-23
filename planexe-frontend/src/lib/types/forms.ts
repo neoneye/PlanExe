@@ -27,7 +27,7 @@ export const PlanFormSchema = z.object({
     .min(1, 'Please select an LLM model'),
 
   speed_vs_detail: z
-    .enum(['FAST_BUT_BASIC', 'BALANCED_SPEED_AND_DETAIL', 'ALL_DETAILS_BUT_SLOW']),
+    .enum(['fast_but_skip_details', 'balanced_speed_and_detail', 'all_details_but_slow']),
 
   openrouter_api_key: z
     .string()
@@ -50,8 +50,8 @@ export const PlanFormSchema = z.object({
 
 export const SessionConfigSchema = z.object({
   defaultSpeedVsDetail: z
-    .enum(['ALL_DETAILS_BUT_SLOW', 'FAST_BUT_BASIC'])
-    .default('ALL_DETAILS_BUT_SLOW'),
+    .enum(['all_details_but_slow', 'fast_but_skip_details'])
+    .default('all_details_but_slow'),
 
   preferredLLMModel: z
     .string()
