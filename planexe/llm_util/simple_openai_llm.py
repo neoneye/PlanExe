@@ -106,8 +106,153 @@ class SimpleOpenAILLM:
         """Return the model name for compatibility."""
         return self.model
 
+    @property
+    def metadata(self) -> dict:
+        """Return metadata dict for compatibility with LlamaIndex."""
+        return {
+            "model": self.model,
+            "provider": self.provider,
+            "model_name": self.model,
+            "max_tokens": None,  # We don't have this info in simplified implementation
+            "temperature": None,  # We don't have this info in simplified implementation
+        }
+
+    def class_name(self) -> str:
+        """Return class name for compatibility with LlamaIndex."""
+        return self.__class__.__name__
+
     def __str__(self) -> str:
         return f"SimpleOpenAILLM(model={self.model}, provider={self.provider})"
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    def as_structured_llm(self, output_cls):
+        """
+        Return a structured LLM that can parse responses into Pydantic models.
+        This maintains compatibility with LlamaIndex structured output interface.
+        """
+        return StructuredSimpleOpenAILLM(self, output_cls)
+
+
+class StructuredLLMResponse:
+    """
+    LlamaIndex-compatible structured LLM response object.
+    """
+
+    def __init__(self, parsed_model, raw_text: str):
+        self.raw = parsed_model  # This is what the pipeline expects
+        self.text = raw_text
+        self.message = type('Message', (), {'content': raw_text})()
+
+    def __str__(self) -> str:
+        return str(self.raw)
+
+    def __repr__(self) -> str:
+        return f"StructuredLLMResponse(raw={self.raw})"
+
+
+class StructuredSimpleOpenAILLM:
+    """
+    Wrapper that provides structured output capabilities for SimpleOpenAILLM.
+    Compatible with LlamaIndex structured LLM interface.
+    """
+
+    def __init__(self, base_llm: SimpleOpenAILLM, output_cls):
+        self.base_llm = base_llm
+        self.output_cls = output_cls
+
+    def chat(self, messages, **kwargs):
+        """
+        Chat with structured output parsing.
+
+        Args:
+            messages: List of ChatMessage objects or message dicts
+            **kwargs: Additional parameters
+
+        Returns:
+            Parsed Pydantic model instance
+        """
+        # Convert ChatMessage objects to standard format if needed
+        if hasattr(messages[0], 'role') and hasattr(messages[0], 'content'):
+            # LlamaIndex ChatMessage format
+            formatted_messages = []
+            for msg in messages:
+                formatted_messages.append({
+                    "role": msg.role.lower() if hasattr(msg.role, 'lower') else str(msg.role).lower(),
+                    "content": msg.content
+                })
+        else:
+            # Already in dict format
+            formatted_messages = messages
+
+        # Build structured prompt
+        schema_prompt = f"""
+You must respond with valid JSON that matches this exact schema:
+{self.output_cls.model_json_schema()}
+
+Your response must be valid JSON only, no other text.
+"""
+
+        # Add schema instruction to the last user message
+        if formatted_messages and formatted_messages[-1]["role"] == "user":
+            formatted_messages[-1]["content"] += f"\n\n{schema_prompt}"
+        else:
+            formatted_messages.append({"role": "user", "content": schema_prompt})
+
+        try:
+            # Get response from base LLM
+            if self.base_llm.provider == "openai":
+                completion = self.base_llm.client.chat.completions.create(
+                    model=self.base_llm.model,
+                    messages=formatted_messages,
+                    response_format={"type": "json_object"}  # Force JSON mode
+                )
+                response_text = completion.choices[0].message.content
+            else:
+                # OpenRouter doesn't always support response_format
+                completion = self.base_llm.client.chat.completions.create(
+                    model=self.base_llm.model,
+                    messages=formatted_messages,
+                    extra_headers={
+                        "HTTP-Referer": "https://github.com/neoneye/PlanExe",
+                        "X-Title": "PlanExe"
+                    }
+                )
+                response_text = completion.choices[0].message.content
+
+            # Parse JSON response into Pydantic model
+            import json
+            try:
+                response_data = json.loads(response_text)
+                parsed_model = self.output_cls.model_validate(response_data)
+
+                # Create LlamaIndex-compatible response object
+                return StructuredLLMResponse(parsed_model, response_text)
+            except json.JSONDecodeError as e:
+                # Fallback: try to extract JSON from response
+                import re
+                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                if json_match:
+                    response_data = json.loads(json_match.group())
+                    parsed_model = self.output_cls.model_validate(response_data)
+                    return StructuredLLMResponse(parsed_model, response_text)
+                else:
+                    raise ValueError(f"Could not parse JSON response: {response_text}") from e
+
+        except Exception as e:
+            raise Exception(f"Structured LLM completion failed for model {self.base_llm.model}: {str(e)}")
+
+    def complete(self, prompt: str, **kwargs):
+        """
+        Complete a prompt with structured output parsing.
+
+        Args:
+            prompt: The input prompt text
+            **kwargs: Additional parameters
+
+        Returns:
+            Parsed Pydantic model instance
+        """
+        messages = [{"role": "user", "content": prompt}]
+        return self.chat(messages, **kwargs)
