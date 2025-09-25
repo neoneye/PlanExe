@@ -35,12 +35,12 @@ ENV PYTHONPATH=/app
 ENV PLANEXE_RUN_DIR=/app/run
 ENV PYTHONUNBUFFERED=1
 
-# Railway provides PORT environment variable
-EXPOSE $PORT
+# Railway provides PORT environment variable - use dynamic port
+EXPOSE 8000
 
-# Health check using Railway's PORT variable
+# Health check using Railway's PORT variable (shell form for variable expansion)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:$PORT/health || exit 1
+    CMD sh -c 'curl -f http://localhost:${PORT:-8000}/health || exit 1'
 
-# Start the API server using Railway's PORT variable
-CMD python -m uvicorn planexe_api.api:app --host 0.0.0.0 --port $PORT
+# Start the API server using Railway's PORT variable (shell form for variable expansion)
+CMD ["sh", "-c", "python -m uvicorn planexe_api.api:app --host 0.0.0.0 --port ${PORT:-8000}"]

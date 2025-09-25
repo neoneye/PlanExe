@@ -51,12 +51,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
-# Railway provides PORT environment variable
-EXPOSE $PORT
+# Railway provides PORT environment variable - use dynamic port
+EXPOSE 3000
 
-# Health check
+# Health check (shell form for variable expansion)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:$PORT/ || exit 1
+    CMD sh -c 'wget --no-verbose --tries=1 --spider http://localhost:${PORT:-3000}/ || exit 1'
 
-# Start the Next.js application
+# Start the Next.js application (Next.js standalone server reads PORT env var automatically)
 CMD ["node", "server.js"]
