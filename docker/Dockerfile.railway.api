@@ -30,6 +30,39 @@ COPY . .
 # Create run directory for plan outputs
 RUN mkdir -p /app/run && chmod 755 /app/run
 
+# Create startup script that generates .env from Railway environment variables
+RUN cat > /app/startup.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "Generating .env file from Railway environment variables..."
+
+# Create .env file from Railway environment variables
+cat > /app/.env << ENV_EOF
+# Generated from Railway environment variables at startup
+OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+OPENAI_API_KEY=${OPENAI_API_KEY:-}
+ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+PLANEXE_RUN_DIR=${PLANEXE_RUN_DIR:-/app/run}
+PYTHONPATH=${PYTHONPATH:-/app}
+PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+DATABASE_URL=${DATABASE_URL:-}
+PORT=${PORT:-8000}
+ENV_EOF
+
+echo "Generated .env file contents:"
+cat /app/.env
+
+echo "Starting uvicorn server..."
+exec "$@"
+EOF
+
+RUN chmod +x /app/startup.sh
+
+# Ensure llm_config.json exists (copy from project root)
+RUN test -f /app/llm_config.json || echo '{}' > /app/llm_config.json
+
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV PLANEXE_RUN_DIR=/app/run
@@ -42,5 +75,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD sh -c 'curl -f http://localhost:${PORT:-8000}/health || exit 1'
 
-# Start the API server using Railway's PORT variable (shell form for variable expansion)
-CMD ["sh", "-c", "python -m uvicorn planexe_api.api:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Start the API server using startup script that generates .env from Railway environment variables
+CMD ["/app/startup.sh", "sh", "-c", "python -m uvicorn planexe_api.api:app --host 0.0.0.0 --port ${PORT:-8000}"]
