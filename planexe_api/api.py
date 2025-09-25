@@ -54,25 +54,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize configuration and environment
-planexe_config = PlanExeConfig()
+# Initialize cloud-native configuration system
+print("=== PlanExe API Initialization ===")
+planexe_config = PlanExeConfig.load()
 RUN_DIR = "run"
 
-# Load environment variables
-planexe_dotenv = PlanExeDotEnv()
-print("DEBUG ENV: Loading .env file...")
-env_path = planexe_dotenv.load_dot_env()
-print(f"DEBUG ENV: Loaded .env from: {env_path}")
+if planexe_config.cloud_mode:
+    print("🚀 Cloud environment detected - using cloud-native configuration")
+else:
+    print("🏠 Local development environment - using file-based configuration")
 
-# Debug API key loading
+# Load environment variables with hybrid approach (cloud-native)
+print("Loading environment configuration...")
+planexe_dotenv = PlanExeDotEnv.load()  # Automatically uses hybrid loading in cloud mode
+print(f"Configuration loaded from: {planexe_dotenv.dotenv_path}")
+
+# CRITICAL: Ensure environment variables are available in os.environ for Luigi subprocess
+print("Merging configuration into system environment...")
+planexe_dotenv.update_os_environ()
+
+# Validate API keys are available
 api_keys_to_check = ["OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"]
-print("DEBUG ENV: API keys found in .env file:")
+available_keys = []
 for key in api_keys_to_check:
     value = os.environ.get(key)
     if value:
-        print(f"  {key}: {'*' * 10}...{value[-4:] if len(value) > 4 else '****'}")
+        available_keys.append(key)
+        print(f"  ✅ {key}: Available")
     else:
-        print(f"  {key}: NOT FOUND in os.environ")
+        print(f"  ❌ {key}: Not available")
+
+print(f"Environment validation complete - {len(available_keys)} API keys available")
 
 # Set up paths
 planexe_project_root = Path(__file__).parent.parent.absolute()

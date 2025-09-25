@@ -25,7 +25,16 @@ class PlanExeDotEnv:
 
     @classmethod
     def load(cls):
+        """
+        Legacy load method for backward compatibility.
+        For cloud environments, consider using load_hybrid() instead.
+        """
         config = PlanExeConfig.load()
+        if config.cloud_mode:
+            logger.info("Cloud environment detected - using hybrid loading with environment variable priority")
+            return cls.load_hybrid()
+
+        # Original file-based loading for local development
         if config.dotenv_path is None:
             raise PlanExeConfigError("Required configuration file '.env' was not found. Cannot create a PlanExeDotEnv instance.")
         dotenv_path = config.dotenv_path
@@ -38,7 +47,80 @@ class PlanExeDotEnv:
         else:
             logger.debug(f"PlanExeDotEnv.load() Great!This is what is expected. The dotenv_values() did not modify the environment variables. number of items: {len(os.environ)}")
         return cls(
-            dotenv_path=dotenv_path, 
+            dotenv_path=dotenv_path,
+            dotenv_dict=dotenv_dict
+        )
+
+    @classmethod
+    def load_hybrid(cls):
+        """
+        Cloud-native hybrid loading: Environment variables take priority over .env files.
+
+        Priority order:
+        1. Environment variables (Railway dashboard, Docker env, etc.)
+        2. .env file contents (if available)
+        3. Default values
+
+        This method enables Railway and other cloud deployments to work without physical .env files.
+        """
+        config = PlanExeConfig.load()
+
+        # Define all possible environment variables PlanExe might need
+        env_var_keys = [
+            # API Keys
+            "OPENROUTER_API_KEY",
+            "OPENAI_API_KEY",
+            "ANTHROPIC_API_KEY",
+            "GOOGLE_API_KEY",
+            "GEMINI_API_KEY",
+
+            # PlanExe Configuration
+            "PLANEXE_RUN_DIR",
+            "PLANEXE_CONFIG_PATH",
+            "PATH_TO_PYTHON",
+
+            # Database
+            "DATABASE_URL",
+
+            # System
+            "PYTHONPATH",
+            "PYTHONUNBUFFERED",
+            "PORT"
+        ]
+
+        # Priority 1: Environment variables (Railway dashboard, etc.)
+        dotenv_dict = {}
+        env_var_count = 0
+        for key in env_var_keys:
+            env_value = os.environ.get(key)
+            if env_value:
+                dotenv_dict[key] = env_value
+                env_var_count += 1
+
+        logger.info(f"Loaded {env_var_count} environment variables from system environment")
+
+        # Priority 2: .env file (if exists) - only for keys not already set
+        file_var_count = 0
+        if config.dotenv_path and config.dotenv_path.exists():
+            logger.info(f"Loading .env file from: {config.dotenv_path}")
+            file_dict = dotenv_values(dotenv_path=config.dotenv_path)
+            for key, value in file_dict.items():
+                if key not in dotenv_dict and value:  # Environment variables win
+                    dotenv_dict[key] = value
+                    file_var_count += 1
+
+            logger.info(f"Loaded {file_var_count} additional variables from .env file")
+        else:
+            logger.info("No .env file found - using environment variables only (cloud mode)")
+
+        # Use the config dotenv_path or create a virtual path
+        dotenv_path = config.dotenv_path or Path("/app/.env")  # Virtual path for cloud
+
+        total_vars = len(dotenv_dict)
+        logger.info(f"Hybrid loading complete - total variables: {total_vars}")
+
+        return cls(
+            dotenv_path=dotenv_path,
             dotenv_dict=dotenv_dict
         )
 

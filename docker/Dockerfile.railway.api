@@ -30,9 +30,8 @@ COPY . .
 # Create run directory for plan outputs
 RUN mkdir -p /app/run && chmod 755 /app/run
 
-# Copy Railway startup script and make it executable
-COPY docker/railway-startup.sh /app/startup.sh
-RUN chmod +x /app/startup.sh
+# Set cloud mode environment variable for PlanExe configuration system
+ENV PLANEXE_CLOUD_MODE=true
 
 # Ensure llm_config.json exists (copy from project root)
 RUN test -f /app/llm_config.json || echo '{}' > /app/llm_config.json
@@ -49,5 +48,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD sh -c 'curl -f http://localhost:${PORT:-8000}/health || exit 1'
 
-# Start the API server using startup script that generates .env from Railway environment variables
-CMD ["/app/startup.sh", "sh", "-c", "python -m uvicorn planexe_api.api:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Start the API server using cloud-native configuration
+CMD ["sh", "-c", "python -m uvicorn planexe_api.api:app --host 0.0.0.0 --port ${PORT:-8000}"]
