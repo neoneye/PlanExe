@@ -1,0 +1,62 @@
+# Author: Buffy the Base Agent
+# Date: 2025-01-27
+# PURPOSE: Railway-optimized Dockerfile for PlanExe Next.js frontend - handles Railway environment and port
+# SRP and DRY check: Pass - Single responsibility of Railway UI containerization
+
+FROM node:20-alpine AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Copy package files
+COPY planexe-frontend/package*.json ./
+RUN npm ci
+
+# Build the application
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY planexe-frontend/ .
+
+# Generate favicon before build
+RUN npm run prebuild
+
+# Build Next.js application
+RUN npm run build
+
+# Production image
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+# Disable Next.js telemetry
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Create nextjs user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy built application
+COPY --from=builder /app/public ./public
+
+# Set the correct permission for prerender cache
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
+
+# Copy built application with correct permissions
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+# Railway provides PORT environment variable
+EXPOSE $PORT
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:$PORT/ || exit 1
+
+# Start the Next.js application
+CMD ["node", "server.js"]

@@ -1,0 +1,33 @@
+# Railway Configuration for PlanExe
+# Author: Buffy the Base Agent
+# Date: 2025-01-27
+# PURPOSE: Railway.app deployment configuration for PlanExe FastAPI backend and Next.js frontend
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "docker/Dockerfile.railway.api"
+
+[deploy]
+startCommand = "python -m uvicorn planexe_api.api:app --host 0.0.0.0 --port $PORT"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[environments.production]
+# Railway will automatically provide these
+# DATABASE_URL - from PostgreSQL service
+# PORT - from Railway
+
+# Required environment variables to set in Railway dashboard:
+# OPENROUTER_API_KEY - Your OpenRouter API key
+# OPENAI_API_KEY - Your OpenAI API key (if using OpenAI models)
+# PLANEXE_RUN_DIR - /app/run (default)
+
+[services.api]
+name = "planexe-api"
+
+[services.frontend]
+name = "planexe-frontend"
+
+[services.database]
+name = "planexe-db"
+type = "postgresql"

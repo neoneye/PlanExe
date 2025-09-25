@@ -1,0 +1,36 @@
+# Railway Environment Variables Template
+# Copy these variables to your Railway service dashboard
+
+# === REQUIRED API KEYS ===
+# Get from: https://openrouter.ai/keys
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+
+# Get from: https://platform.openai.com/api-keys  
+OPENAI_API_KEY=your_openai_api_key_here
+
+# === OPTIONAL API KEYS ===
+# Add if you want to use these providers
+ANTHROPIC_API_KEY=your_anthropic_key_here
+GOOGLE_API_KEY=your_google_key_here
+
+# === APPLICATION SETTINGS ===
+# Plan execution directory (Railway will create this)
+PLANEXE_RUN_DIR=/app/run
+
+# Python path for module imports
+PYTHONPATH=/app
+
+# Ensure output is not buffered
+PYTHONUNBUFFERED=1
+
+# === AUTOMATICALLY PROVIDED BY RAILWAY ===
+# Do NOT set these manually - Railway provides them:
+# DATABASE_URL=postgresql://...
+# PORT=...
+# RAILWAY_ENVIRONMENT=production
+
+# === FRONTEND ENVIRONMENT VARIABLES ===
+# Set in the frontend service:
+# NEXT_PUBLIC_API_URL=https://your-api-service.railway.app
+# NODE_ENV=production
+# NEXT_TELEMETRY_DISABLED=1

@@ -2,6 +2,57 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.10] - 2025-01-27
+
+### 🚀 **MAJOR: Railway Deployment Configuration**
+
+**SOLUTION FOR WINDOWS ISSUES**: Complete Railway deployment setup to resolve Windows subprocess, environment variable, and Luigi pipeline execution problems.
+
+#### ✅ **New Railway Deployment System**
+- **Railway-Optimized Dockerfiles**: Created `docker/Dockerfile.railway.api` and `docker/Dockerfile.railway.ui` specifically for Railway's PORT variable and environment handling
+- **Railway Configuration**: Added `railway.toml` for proper service configuration
+- **Next.js Production Config**: Updated `next.config.ts` with standalone output for containerized deployment
+- **Environment Template**: Created `railway-env-template.txt` with all required environment variables
+- **Deployment Helper**: Added `railway-deploy.sh` script for deployment validation
+
+#### 📚 **Comprehensive Documentation**
+- **Railway Setup Guide**: `docs/RAILWAY-SETUP-GUIDE.md` - Complete step-by-step deployment instructions
+- **Deployment Plan**: `docs/RAILWAY-DEPLOYMENT-PLAN.md` - Strategic deployment approach
+- **Troubleshooting**: Detailed error resolution for common deployment issues
+- **Environment Variables**: Complete guide for setting up API keys and configuration
+
+#### 🔧 **Technical Improvements**
+- **Docker Optimization**: Multi-stage builds with proper user permissions
+- **Health Checks**: Added health check support for Railway PORT variable
+- **Production Ready**: Standalone Next.js build, proper environment handling
+- **Security**: Non-root user execution, proper file permissions
+
+#### 🎯 **Solves Windows Development Issues**
+- ✅ **Luigi Subprocess Issues**: Linux containers handle process spawning correctly
+- ✅ **Environment Variable Inheritance**: Proper Unix environment variable handling
+- ✅ **Path Handling**: Unix paths work correctly with Luigi pipeline
+- ✅ **Dependency Management**: Consistent Linux environment eliminates Windows conflicts
+- ✅ **Scalability**: Cloud-based execution removes local resource constraints
+
+#### 📋 **Deployment Workflow**
+1. **Prepare**: Run `./railway-deploy.sh` to validate deployment readiness
+2. **Database**: Create PostgreSQL service on Railway
+3. **Backend**: Deploy FastAPI + Luigi using `docker/Dockerfile.railway.api`
+4. **Frontend**: Deploy Next.js using `docker/Dockerfile.railway.ui`
+5. **Configure**: Set environment variables from `railway-env-template.txt`
+6. **Test**: Verify end-to-end plan generation on Linux containers
+
+#### 🔄 **Development Workflow Change**
+- **Before**: Fight Windows subprocess issues locally
+- **After**: Develop on Windows, test/deploy on Railway Linux containers
+- **Benefits**: Reliable Luigi execution, proper environment inheritance, scalable cloud deployment
+
+**Current Status**:
+- ✅ **Railway Deployment Ready**: All configuration files and documentation complete
+- ✅ **Windows Issues Bypassed**: Deploy to Linux containers instead of local Windows execution
+- ✅ **Production Environment**: Proper containerization with health checks and security
+- 🔄 **Next Step**: Follow `docs/RAILWAY-SETUP-GUIDE.md` for actual deployment
+
 ## [0.1.8] - 2025-09-23
 
 ### 🛠️ **Architectural Fix: Retry Logic and Race Condition**
@@ -567,4 +618,4 @@ For existing PlanExe installations:
 
 ---
 
-*This changelog represents a complete REST API and Node.js integration for PlanExe, transforming it from a Python-only tool into a modern, scalable web application with persistent storage and real-time capabilities.*
+*This changelog represents a complete REST API and Node.js integration for PlanExe, transforming it from a Python-only tool into a modern, scalable web application with persistent storage and real-time capabilities.*

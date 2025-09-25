@@ -1,0 +1,46 @@
+# Author: Buffy the Base Agent
+# Date: 2025-01-27
+# PURPOSE: Railway-optimized Dockerfile for PlanExe API server - handles Railway's PORT variable and environment
+# SRP and DRY check: Pass - Single responsibility of Railway API containerization
+
+FROM python:3.13-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies including curl for health checks
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python requirements first for better caching
+COPY pyproject.toml ./
+COPY planexe_api/requirements.txt ./planexe_api/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -e . && \
+    pip install --no-cache-dir -r planexe_api/requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create run directory for plan outputs
+RUN mkdir -p /app/run && chmod 755 /app/run
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV PLANEXE_RUN_DIR=/app/run
+ENV PYTHONUNBUFFERED=1
+
+# Railway provides PORT environment variable
+EXPOSE $PORT
+
+# Health check using Railway's PORT variable
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:$PORT/health || exit 1
+
+# Start the API server using Railway's PORT variable
+CMD python -m uvicorn planexe_api.api:app --host 0.0.0.0 --port $PORT
