@@ -1,9 +1,6 @@
 """
 Identify what data is needed for the plan. Such as for validating demand, the plan needs data from audience research or simulations.
 
-For the initial plan, focus on planned simulations that runs automated.
-For the 2nd plan, gather real world data from humans.
-
 Data Areas to Cover:
 - Market Research and Participant Feedback
 - Financial Estimates and Revenue Streams
