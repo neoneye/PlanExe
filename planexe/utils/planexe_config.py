@@ -97,29 +97,44 @@ class PlanExeConfig:
         """
         Validates cloud environment has required environment variables.
         In cloud mode, we check os.environ instead of requiring physical files.
+        Railway-friendly: logs warnings instead of failing hard on missing vars.
         """
-        required_env_vars = [
+        # Core API keys - warn if missing but don't fail startup
+        api_key_vars = [
             "OPENROUTER_API_KEY",
-            "OPENAI_API_KEY",
-            "DATABASE_URL"
+            "OPENAI_API_KEY"
         ]
 
-        missing_vars = []
-        for var in required_env_vars:
+        # Optional vars that may be set by platform
+        optional_vars = [
+            "DATABASE_URL",  # Railway may set this after initial startup
+            "ANTHROPIC_API_KEY",
+            "GEMINI_API_KEY"
+        ]
+
+        missing_api_keys = []
+        for var in api_key_vars:
             if not os.environ.get(var):
-                missing_vars.append(var)
+                missing_api_keys.append(var)
+
+        missing_optional = []
+        for var in optional_vars:
+            if not os.environ.get(var):
+                missing_optional.append(var)
 
         # For cloud, we still prefer llm_config.json if available, but can fall back to defaults
         if self.llm_config_json_path is None:
             logger.warning("llm_config.json not found in cloud environment - using environment-based LLM configuration")
 
-        if missing_vars:
-            msg = f"Cloud environment missing required environment variables: {', '.join(missing_vars)}"
-            logger.error(msg)
-            logger.error("Set these variables in your Railway dashboard or cloud provider")
-            raise PlanExeConfigError(msg)
+        # Log warnings for missing API keys but don't fail startup (Railway deployment)
+        if missing_api_keys:
+            logger.warning(f"API keys not found at startup: {', '.join(missing_api_keys)}")
+            logger.warning("Set these variables in your Railway dashboard. System will continue startup and check again when needed.")
 
-        logger.info("Cloud configuration validation passed - using environment variables")
+        if missing_optional:
+            logger.info(f"Optional environment variables not set: {', '.join(missing_optional)}")
+
+        logger.info("Cloud configuration validation passed - Railway-friendly startup mode")
 
     def _validate_local_file_configuration(self) -> None:
         """
