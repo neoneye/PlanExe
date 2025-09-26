@@ -27,11 +27,12 @@ from planexe.prompt.prompt_catalog import PromptCatalog
 from planexe.utils.planexe_config import PlanExeConfig
 from planexe.utils.planexe_dotenv import PlanExeDotEnv, DotEnvKeyEnum
 from planexe.llm_factory import LLMInfo
+from planexe.utils.planexe_llmconfig import PlanExeLLMConfig
 
 from planexe_api.models import (
     CreatePlanRequest, PlanResponse, PlanProgressEvent, LLMModel,
     PromptExample, PlanFilesResponse, APIError, HealthResponse,
-    PlanStatus, SpeedVsDetail
+    PlanStatus, SpeedVsDetail, PipelineDetailsResponse, StreamStatusResponse
 )
 from planexe_api.database import (
     get_database, create_tables, DatabaseService, Plan, LLMInteraction,
@@ -116,6 +117,7 @@ else:
 prompt_catalog = PromptCatalog()
 prompt_catalog.load_simple_plan_prompts()
 llm_info = LLMInfo.obtain_info()
+llm_config = PlanExeLLMConfig.load()
 pipeline_service = PipelineExecutionService(planexe_project_root)
 
 # Database initialization
@@ -161,12 +163,16 @@ async def get_models():
     """Get available LLM models"""
     try:
         models = []
-        for config in llm_info.llm_config_items:
+        for config_item in llm_info.llm_config_items:
+            # Get original config data to access comment, priority, etc.
+            original_config = llm_config.llm_config_dict.get(config_item.id, {})
+
             model = LLMModel(
-                id=config.model_id,
-                name=config.model_name,
-                provider=config.provider,
-                description=f"{config.provider} - {config.model_name}"
+                id=config_item.id,
+                label=config_item.label,
+                comment=original_config.get("comment", ""),
+                priority=original_config.get("priority", 999),
+                requires_api_key=True  # All models require API keys in this system
             )
             models.append(model)
         return models
@@ -180,12 +186,11 @@ async def get_prompts():
     """Get example prompts"""
     try:
         examples = []
-        for prompt in prompt_catalog.prompts:
+        for i, prompt in enumerate(prompt_catalog._catalog.values()):
             example = PromptExample(
-                title=prompt.title,
-                description=prompt.description,
+                uuid=prompt.id,  # Use the prompt's existing ID as UUID
                 prompt=prompt.prompt,
-                category=getattr(prompt, 'category', 'general')
+                title=prompt.extras.get('title', prompt.id)  # Use title from extras or ID as fallback
             )
             examples.append(example)
         return examples
@@ -329,23 +334,108 @@ async def get_plan_files(plan_id: str, db: DatabaseService = Depends(get_databas
 
         files = db.get_plan_files(plan_id)
 
+        # Extract just the filenames as simple strings
+        filenames = [f.filename for f in files]
+
+        # Check if HTML report exists
+        report_path = Path(plan.output_dir) / "999-final-report.html"
+        has_report = report_path.exists()
+
         return PlanFilesResponse(
             plan_id=plan_id,
-            files=[
-                {
-                    "filename": f.filename,
-                    "file_type": f.file_type,
-                    "file_size_bytes": f.file_size_bytes,
-                    "generated_by_stage": f.generated_by_stage,
-                    "created_at": f.created_at
-                }
-                for f in files
-            ]
+            files=filenames,  # Simple string list
+            has_report=has_report  # Boolean flag
         )
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get plan files: {str(e)}")
+
+
+# Plan details endpoint
+@app.get("/api/plans/{plan_id}/details", response_model=PipelineDetailsResponse)
+async def get_plan_details(plan_id: str, db: DatabaseService = Depends(get_database)):
+    """Get detailed pipeline information for a plan"""
+    try:
+        plan = db.get_plan(plan_id)
+        if not plan:
+            raise HTTPException(status_code=404, detail="Plan not found")
+
+        # Read pipeline stage files and logs
+        plan_dir = Path(plan.output_dir)
+
+        # Get pipeline stages (simplified - would need to read actual stage files)
+        pipeline_stages = []
+        if plan_dir.exists():
+            stage_files = list(plan_dir.glob("*.json"))
+            for stage_file in sorted(stage_files):
+                try:
+                    with open(stage_file, 'r') as f:
+                        stage_data = json.loads(f.read())
+                        pipeline_stages.append({
+                            "stage": stage_file.stem,
+                            "status": "completed" if stage_file.exists() else "pending",
+                            "data": stage_data
+                        })
+                except:
+                    pass
+
+        # Read pipeline log
+        log_file = plan_dir / "log.txt"
+        pipeline_log = ""
+        if log_file.exists():
+            try:
+                with open(log_file, 'r') as f:
+                    pipeline_log = f.read()
+            except:
+                pass
+
+        # Get generated files
+        files = db.get_plan_files(plan_id)
+        generated_files = [
+            {
+                "filename": f.filename,
+                "file_type": getattr(f, 'file_type', 'unknown'),
+                "size": getattr(f, 'file_size_bytes', 0),
+                "created_at": getattr(f, 'created_at', None)
+            }
+            for f in files
+        ]
+
+        return PipelineDetailsResponse(
+            plan_id=plan_id,
+            run_directory=str(plan.output_dir),
+            pipeline_stages=pipeline_stages,
+            pipeline_log=pipeline_log,
+            generated_files=generated_files,
+            total_files=len(files)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get plan details: {str(e)}")
+
+
+# Stream status endpoint
+@app.get("/api/plans/{plan_id}/stream-status", response_model=StreamStatusResponse)
+async def get_stream_status(plan_id: str, db: DatabaseService = Depends(get_database)):
+    """Check if SSE stream is ready for a plan"""
+    try:
+        plan = db.get_plan(plan_id)
+        if not plan:
+            raise HTTPException(status_code=404, detail="Plan not found")
+
+        # Check if SSE stream is ready based on plan status
+        is_ready = plan.status in ['running', 'completed', 'failed']
+
+        return StreamStatusResponse(
+            status="ready" if is_ready else "not_ready",
+            ready=is_ready
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get stream status: {str(e)}")
 
 
 # File download endpoints

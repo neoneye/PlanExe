@@ -23,7 +23,7 @@ class SpeedVsDetail(str, Enum):
     """Speed vs detail trade-off options"""
     ALL_DETAILS_BUT_SLOW = "all_details_but_slow"
     BALANCED_SPEED_AND_DETAIL = "balanced_speed_and_detail"  # Will map to detailed mode in pipeline
-    FAST_BUT_BASIC = "fast_but_skip_details"
+    FAST_BUT_SKIP_DETAILS = "fast_but_skip_details"
 
 
 class CreatePlanRequest(BaseModel):
@@ -84,6 +84,22 @@ class APIError(BaseModel):
     error: str = Field(..., description="Error message")
     details: Optional[Dict[str, Any]] = Field(None, description="Additional error details")
     timestamp: datetime = Field(default_factory=datetime.now)
+
+
+class PipelineDetailsResponse(BaseModel):
+    """Response for pipeline details endpoint"""
+    plan_id: str
+    run_directory: str
+    pipeline_stages: List[Dict[str, Any]]
+    pipeline_log: str
+    generated_files: List[Dict[str, Any]]
+    total_files: int
+
+
+class StreamStatusResponse(BaseModel):
+    """Response for stream status endpoint"""
+    status: str
+    ready: bool
 
 
 class HealthResponse(BaseModel):

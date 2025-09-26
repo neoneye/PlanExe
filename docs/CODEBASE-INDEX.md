@@ -8,20 +8,20 @@
 
 ## 🏗️ System Architecture Overview
 
-PlanExe is a **complex AI-powered planning system** that transforms vague ideas into comprehensive, multi-chapter execution plans using a sophisticated **Next.js frontend** connected to a **FastAPI backend** that orchestrates a **Luigi pipeline** with **61 interconnected tasks**.
+PlanExe is a **complex AI-powered planning system** that transforms vague ideas into comprehensive, multi-chapter execution plans using a sophisticated **Next.js frontend** connected to a **FastAPI backend** that orchestrates a **Luigi pipeline** with **62 interconnected tasks**.
 
 ### High-Level Data Flow
 
 #### Development Mode (Local)
 ```
-User → Next.js UI (3000) --CORS--> FastAPI (8000) → Luigi Pipeline (61 Tasks) → Generated Files
+User → Next.js UI (3000) --CORS--> FastAPI (8000) → Luigi Pipeline (62 Tasks) → Generated Files
    ↑                                    ↓
    └── Real-time Progress (SSE) ←-------┘
 ```
 
 #### Production Mode (Railway)
 ```
-User → Railway URL (8080) → FastAPI (serves UI + API) → Luigi Pipeline (61 Tasks) → Generated Files
+User → Railway URL (8080) → FastAPI (serves UI + API) → Luigi Pipeline (62 Tasks) → Generated Files
    ↑                           ↓
    └── Real-time Progress (SSE) ←
 ```
@@ -30,7 +30,7 @@ User → Railway URL (8080) → FastAPI (serves UI + API) → Luigi Pipeline (61
 
 - **Frontend**: Next.js 15 + TypeScript + Tailwind CSS + shadcn/ui + Zustand
 - **Backend**: FastAPI + SQLAlchemy + PostgreSQL/SQLite + Server-Sent Events
-- **Pipeline**: Luigi (61 interconnected tasks) + LLM orchestration
+- **Pipeline**: Luigi (62 interconnected tasks) + LLM orchestration
 - **AI**: OpenAI + OpenRouter + multiple model fallbacks
 - **Deployment**: Railway single-service (FastAPI serves static UI + API)
 
