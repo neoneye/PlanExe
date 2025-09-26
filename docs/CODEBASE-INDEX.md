@@ -12,10 +12,18 @@ PlanExe is a **complex AI-powered planning system** that transforms vague ideas 
 
 ### High-Level Data Flow
 
+#### Development Mode (Local)
 ```
-User Input → Next.js UI → FastAPI → Luigi Pipeline (61 Tasks) → Generated Files → HTML Report
-    ↑                          ↓
-    └── Real-time Progress (SSE) ←
+User → Next.js UI (3000) --CORS--> FastAPI (8000) → Luigi Pipeline (61 Tasks) → Generated Files
+   ↑                                    ↓
+   └── Real-time Progress (SSE) ←-------┘
+```
+
+#### Production Mode (Railway)
+```
+User → Railway URL (8080) → FastAPI (serves UI + API) → Luigi Pipeline (61 Tasks) → Generated Files
+   ↑                           ↓
+   └── Real-time Progress (SSE) ←
 ```
 
 ### Technology Stack
@@ -24,7 +32,7 @@ User Input → Next.js UI → FastAPI → Luigi Pipeline (61 Tasks) → Generate
 - **Backend**: FastAPI + SQLAlchemy + PostgreSQL/SQLite + Server-Sent Events
 - **Pipeline**: Luigi (61 interconnected tasks) + LLM orchestration
 - **AI**: OpenAI + OpenRouter + multiple model fallbacks
-- **Deployment**: Docker Compose + multi-container setup
+- **Deployment**: Railway single-service (FastAPI serves static UI + API)
 
 ---
 

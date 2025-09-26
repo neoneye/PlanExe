@@ -281,7 +281,7 @@ export function useSessionInit() {
     };
 
     initSession();
-  }, []);
+  }, [createSession, loadSession, session?.sessionId]);
 
   return session;
 }

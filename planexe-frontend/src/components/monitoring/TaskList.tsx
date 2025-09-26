@@ -9,10 +9,10 @@
 'use client';
 
 import React from 'react';
-import { TaskPhase, TaskState, TaskStatus } from '@/lib/types/pipeline';
+import { TaskPhase, TaskStatus } from '@/lib/types/pipeline';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { CheckCircle, RefreshCw, XCircle, AlertCircle, Clock } from 'lucide-react';
+import { CheckCircle, RefreshCw, XCircle, Clock } from 'lucide-react';
 
 // Helper to get the right icon for each task status
 const statusIcons: Record<TaskStatus, React.ReactNode> = {

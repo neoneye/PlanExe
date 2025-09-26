@@ -56,8 +56,17 @@ export interface HealthResponse {
 export class FastAPIClient {
   private baseURL: string;
 
-  constructor(baseURL = 'http://localhost:8000') {
-    this.baseURL = baseURL;
+  constructor(baseURL?: string) {
+    // In production (static export served by FastAPI), use relative paths
+    // In development, use absolute URL to separate Next.js server
+    if (typeof window !== 'undefined' && !baseURL) {
+      // Client-side: check if we're in development or production
+      const isDevelopment = process.env.NODE_ENV === 'development' ||
+                           process.env.NEXT_PUBLIC_API_URL === 'http://localhost:8000';
+      this.baseURL = isDevelopment ? 'http://localhost:8000' : '';
+    } else {
+      this.baseURL = baseURL || 'http://localhost:8000';
+    }
   }
 
   private async handleResponse<T>(response: Response): Promise<T> {

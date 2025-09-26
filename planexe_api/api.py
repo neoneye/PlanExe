@@ -16,6 +16,7 @@ from typing import Dict, Optional, List
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
+from fastapi.staticfiles import StaticFiles
 from sse_starlette import EventSourceResponse
 
 from planexe.plan.filenames import FilenameEnum
@@ -45,14 +46,31 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Environment detection
+IS_DEVELOPMENT = os.environ.get("PLANEXE_CLOUD_MODE", "false").lower() != "true"
+
+# CORS configuration - only enable for local development
+if IS_DEVELOPMENT:
+    print("Development mode: CORS enabled for localhost:3000")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    print("Production mode: CORS disabled, serving static UI")
+
+# Static file serving for production (Railway single-service deployment)
+if not IS_DEVELOPMENT:
+    static_dir = Path("/app/ui_static")
+    if static_dir.exists():
+        app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")
+        print(f"Serving static UI from: {static_dir}")
+    else:
+        print(f"Warning: Static UI directory not found: {static_dir}")
+        print("   This is expected in local development mode")
 
 # Initialize cloud-native configuration system
 print("=== PlanExe API Initialization ===")
@@ -60,9 +78,9 @@ planexe_config = PlanExeConfig.load()
 RUN_DIR = "run"
 
 if planexe_config.cloud_mode:
-    print("🚀 Cloud environment detected - using cloud-native configuration")
+    print("Cloud environment detected - using cloud-native configuration")
 else:
-    print("🏠 Local development environment - using file-based configuration")
+    print("Local development environment - using file-based configuration")
 
 # Load environment variables with hybrid approach (cloud-native)
 print("Loading environment configuration...")
@@ -80,9 +98,9 @@ for key in api_keys_to_check:
     value = os.environ.get(key)
     if value:
         available_keys.append(key)
-        print(f"  ✅ {key}: Available")
+        print(f"  [OK] {key}: Available")
     else:
-        print(f"  ❌ {key}: Not available")
+        print(f"  [MISSING] {key}: Not available")
 
 print(f"Environment validation complete - {len(available_keys)} API keys available")
 
@@ -102,7 +120,7 @@ pipeline_service = PipelineExecutionService(planexe_project_root)
 
 # Database initialization
 database = get_database()
-create_tables(database)
+create_tables()
 
 
 def execute_plan_async(plan_id: str, request: CreatePlanRequest) -> None:
@@ -428,4 +446,5 @@ async def list_plans(db: DatabaseService = Depends(get_database)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", "8080"))
+    uvicorn.run(app, host="0.0.0.0", port=port)

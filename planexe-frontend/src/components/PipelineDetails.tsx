@@ -69,7 +69,7 @@ export function PipelineDetails({ planId, className }: PipelineDetailsProps) {
     fetchDetails()
     const interval = setInterval(fetchDetails, 3000)
     return () => clearInterval(interval)
-  }, [planId])
+  }, [planId, fetchDetails])
 
   const getStageIcon = (eventName: string) => {
     switch (eventName) {

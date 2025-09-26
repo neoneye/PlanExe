@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, RotateCcw, X, ExternalLink } from 'lucide-react'
+import { Loader2, RotateCcw, ExternalLink } from 'lucide-react'
 
 interface Plan {
   plan_id: string
@@ -98,7 +98,7 @@ export function PlansQueue({ className, onPlanSelect, onPlanRetry }: PlansQueueP
     )
   }
 
-  const getStatusIcon = (status: string, progress: number) => {
+  const getStatusIcon = (status: string, _progress: number) => {
     if (status === 'running') {
       return <Loader2 className="h-4 w-4 animate-spin" />
     }

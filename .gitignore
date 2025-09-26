@@ -8,3 +8,4 @@ __pycache__/
 planexe.db
 planexe-frontend/public/favicon.svg
 planexe-frontend/public/favicon.ico
+/planexe-frontend/public

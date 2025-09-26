@@ -8,7 +8,7 @@
 import { create } from 'zustand';
 import { CreatePlanRequest, PlanResponse } from '@/lib/api/fastapi-client';
 import { fastApiClient as apiClient } from '@/lib/api/fastapi-client';
-import { PipelineProgress, PipelineStatus } from '@/lib/types/pipeline';
+import { PipelineProgressState, PipelineStatus } from '@/lib/types/pipeline';
 import { useSessionStore } from './session';
 
 interface ActivePlan {
@@ -16,7 +16,7 @@ interface ActivePlan {
   runId: string;
   runDir: string;
   status: PipelineStatus;
-  progress: PipelineProgress | null;
+  progress: PipelineProgressState | null;
   startTime: Date;
   lastUpdated: Date;
 }
@@ -100,7 +100,7 @@ export const usePlanningStore = create<PlanningState>((set, get) => ({
   },
 
   // Stop plan execution
-  stopPlan: async (reason) => {
+  stopPlan: async (_reason) => {
     const { activePlan } = get();
     if (!activePlan) return;
 
@@ -115,7 +115,7 @@ export const usePlanningStore = create<PlanningState>((set, get) => ({
         throw new Error(errorData.error?.message || 'Failed to stop plan');
       }
 
-      const data = await response.json();
+      const _data = await response.json();
 
       // API returns message directly
       set((state) => ({
@@ -253,17 +253,15 @@ export const usePlanningStore = create<PlanningState>((set, get) => ({
 
       const data: PlanResponse = await response.json();
 
-      // API returns PlanResponse directly
-      const progress: PipelineProgress = {
+      // API returns PlanResponse directly - create simplified progress state
+      const progress: PipelineProgressState = {
         status: data.status as PipelineStatus,
-        percentage: data.progress_percentage,
-        currentTask: data.progress_message,
-        tasksCompleted: Math.floor(data.progress_percentage / 2), // Approximate
-        totalTasks: 50, // Approximate total
-        filesCompleted: 0,
-        currentFile: '',
-        duration: 0,
-        error: data.error_message || null
+        phases: [], // Will be populated by SSE updates
+        overallPercentage: data.progress_percentage,
+        completedTasks: Math.floor(data.progress_percentage / 2), // Approximate
+        totalTasks: 61, // Luigi pipeline has 61 tasks
+        error: data.error_message || null,
+        duration: 0, // Will be calculated from startTime
       };
 
       set((state) => ({

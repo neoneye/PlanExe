@@ -1,33 +1,24 @@
-# Railway Configuration for PlanExe
-# Author: Buffy the Base Agent
+# Railway Configuration for PlanExe Single-Service Deployment
+# Author: Claude Code using Sonnet 4
 # Date: 2025-01-27
-# PURPOSE: Railway.app deployment configuration for PlanExe FastAPI backend and Next.js frontend
+# PURPOSE: Railway.app single-service deployment - FastAPI serves both UI and API on port 8080
 
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "docker/Dockerfile.railway.api"
+dockerfilePath = "docker/Dockerfile.railway.single"
 
 [deploy]
-startCommand = "sh -c 'python -m uvicorn planexe_api.api:app --host 0.0.0.0 --port ${PORT:-8000}'"
+startCommand = "sh -c 'python -m uvicorn planexe_api.api:app --host 0.0.0.0 --port ${PORT:-8080}'"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
-[environments.production]
-# Railway will automatically provide these
-# DATABASE_URL - from PostgreSQL service
-# PORT - from Railway
+# Single service combines FastAPI backend + static Next.js frontend
+# No separate frontend service needed - FastAPI serves static files from /ui_static/
 
 # Required environment variables to set in Railway dashboard:
 # OPENROUTER_API_KEY - Your OpenRouter API key
 # OPENAI_API_KEY - Your OpenAI API key (if using OpenAI models)
-# PLANEXE_RUN_DIR - /app/run (default)
-
-[services.api]
-name = "planexe-api"
-
-[services.frontend]
-name = "planexe-frontend"
-
-[services.database]
-name = "planexe-db"
-type = "postgresql"
+# DATABASE_URL - PostgreSQL connection string (from Railway PostgreSQL service)
+# PORT - Automatically provided by Railway (8080)
+# PLANEXE_CLOUD_MODE - Set to "true" by Dockerfile
+# PLANEXE_RUN_DIR - Defaults to /app/run

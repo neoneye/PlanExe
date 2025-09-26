@@ -8,11 +8,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Terminal } from './Terminal';
-import { fastApiClient } from '@/lib/api/fastapi-client';
 
 interface ProgressMonitorProps {
   planId: string;

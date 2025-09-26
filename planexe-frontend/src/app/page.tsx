@@ -21,7 +21,8 @@ import { useConfigStore } from '@/lib/stores/config';
 import { CreatePlanRequest, fastApiClient } from '@/lib/api/fastapi-client';
 
 export default function Home() {
-  const { session, createSession, loadSession } = useSessionStore();
+  // Session store available but not used in this component
+  // const { session, createSession, loadSession } = useSessionStore();
   const { llmModels, promptExamples, loadLLMModels, loadPromptExamples } = useConfigStore();
   
   // Simple, local state management instead of the complex planning store

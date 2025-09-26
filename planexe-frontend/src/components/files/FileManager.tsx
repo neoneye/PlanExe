@@ -62,7 +62,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
 
   useEffect(() => {
     fetchFiles();
-  }, [planId]);
+  }, [planId, fetchFiles]);
 
   // Filter files based on search and filters
   useEffect(() => {

@@ -1,0 +1,78 @@
+/**
+ * Author: Claude Code using Sonnet 4
+ * Date: 2025-01-27
+ * PURPOSE: Single-service Railway Dockerfile - builds Next.js static export AND runs FastAPI on port 8080
+ * SRP and DRY check: Pass - Single responsibility of Railway single-service deployment
+ */
+
+# Multi-stage build for Railway single-service deployment
+FROM node:18-slim AS frontend-builder
+
+# Set working directory for frontend build
+WORKDIR /app/frontend
+
+# Install Node dependencies
+COPY planexe-frontend/package*.json ./
+RUN npm ci --only=production
+
+# Copy frontend source and build static export
+COPY planexe-frontend/ ./
+RUN npm run build
+
+# Verify static export was created
+RUN ls -la out/ && echo "✅ Next.js static export created successfully"
+
+# Main Python runtime stage
+FROM python:3.13-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies including curl for health checks
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python requirements first for better caching
+COPY pyproject.toml ./
+COPY planexe_api/requirements.txt ./planexe_api/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -e . && \
+    pip install --no-cache-dir -r planexe_api/requirements.txt
+
+# Copy application code
+COPY . .
+
+# Copy Next.js static build from frontend-builder stage
+COPY --from=frontend-builder /app/frontend/out /app/ui_static
+
+# Verify static files were copied
+RUN ls -la /app/ui_static/ && echo "✅ Static UI files copied successfully"
+
+# Create run directory for plan outputs
+RUN mkdir -p /app/run && chmod 755 /app/run
+
+# Set cloud mode environment variable for PlanExe configuration system
+ENV PLANEXE_CLOUD_MODE=true
+
+# Ensure llm_config.json exists (copy from project root)
+RUN test -f /app/llm_config.json || echo '{}' > /app/llm_config.json
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV PLANEXE_RUN_DIR=/app/run
+ENV PYTHONUNBUFFERED=1
+
+# Railway provides PORT environment variable - expose 8080 externally
+EXPOSE 8080
+
+# Health check using Railway's PORT variable (shell form for variable expansion)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD sh -c 'curl -f http://localhost:${PORT:-8080}/health || exit 1'
+
+# Start the FastAPI server which serves both API and static UI
+CMD ["sh", "-c", "python -m uvicorn planexe_api.api:app --host 0.0.0.0 --port ${PORT:-8080}"]

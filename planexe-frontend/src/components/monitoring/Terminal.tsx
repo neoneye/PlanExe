@@ -42,6 +42,11 @@ export const Terminal: React.FC<TerminalProps> = ({
   const terminalRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const addLog = useCallback((text: string, level: LogLine['level'] = 'info') => {
+    const timestamp = new Date().toLocaleTimeString();
+    setLogs(prev => [...prev, { timestamp, text, level }]);
+  }, []);
+
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
     if (autoScroll && bottomRef.current) {
@@ -103,7 +108,7 @@ export const Terminal: React.FC<TerminalProps> = ({
             if (onError) onError('Pipeline execution failed');
           }
         }
-      } catch (e) {
+      } catch (_e) {
         // If not JSON, treat as raw log line
         addLog(event.data, detectLogLevel(event.data));
       }
@@ -120,12 +125,7 @@ export const Terminal: React.FC<TerminalProps> = ({
     return () => {
       eventSource.close();
     };
-  }, [isStreamReady, planId, onComplete, onError]);
-
-  const addLog = useCallback((text: string, level: LogLine['level'] = 'info') => {
-    const timestamp = new Date().toLocaleTimeString();
-    setLogs(prev => [...prev, { timestamp, text, level }]);
-  }, []);
+  }, [isStreamReady, planId, onComplete, onError, addLog]);
 
   const detectLogLevel = (text: string): LogLine['level'] => {
     const upperText = text.toLowerCase();

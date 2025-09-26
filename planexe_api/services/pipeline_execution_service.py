@@ -16,7 +16,8 @@ from typing import Dict, Optional
 
 from planexe_api.models import CreatePlanRequest, PlanStatus
 from planexe_api.database import DatabaseService
-from planexe.pipeline_environment import PipelineEnvironmentEnum, FilenameEnum
+from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
+from planexe.plan.filenames import FilenameEnum
 
 # Global process and queue management
 running_processes: Dict[str, subprocess.Popen] = {}
