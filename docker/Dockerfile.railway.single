@@ -1,9 +1,9 @@
-/**
- * Author: Claude Code using Sonnet 4
- * Date: 2025-01-27
- * PURPOSE: Single-service Railway Dockerfile - builds Next.js static export AND runs FastAPI on port 8080
- * SRP and DRY check: Pass - Single responsibility of Railway single-service deployment
- */
+
+ # Author: Claude Code using Sonnet 4
+ # Date: 2025-01-27
+ # PURPOSE: Single-service Railway Dockerfile - builds Next.js static export AND runs FastAPI on port 8080
+ # SRP and DRY check: Pass - Single responsibility of Railway single-service deployment
+ #
 
 # Multi-stage build for Railway single-service deployment
 FROM node:18-slim AS frontend-builder
