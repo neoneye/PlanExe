@@ -257,7 +257,7 @@ Ensure these are properly set before running the pipeline.
 After reading the 4000-line pipeline file, I now understand the true complexity:
 
 ### **Luigi Pipeline Architecture (DO NOT TOUCH)**
-- **50+ Luigi Tasks** in complex dependency chains
+- **62 Luigi Tasks** in complex dependency chains
 - **File-based I/O pattern** with numbered outputs (FilenameEnum)
 - **Multi-stage data flow** from initial prompt → strategic decisions → WBS → reports
 - **LLM orchestration** with fallback mechanisms and retry logic

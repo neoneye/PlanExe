@@ -1,6 +1,6 @@
 # Railway Configuration for PlanExe Single-Service Deployment
 # Author: Claude Code using Sonnet 4
-# Date: 2025-01-27
+# Date: 2025-09-27
 # PURPOSE: Railway.app single-service deployment - FastAPI serves both UI and API on port 8080
 
 [build]

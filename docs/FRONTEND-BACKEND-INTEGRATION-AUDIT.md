@@ -93,7 +93,7 @@ A thorough examination of the PlanExe system reveals **critical compatibility is
 #### `/api/plans/{id}/details` - Expected by PipelineDetails Component
 ```typescript
 // planexe-frontend/src/components/PipelineDetails.tsx:51
-const response = await fetch(`http://localhost:8000/api/plans/${planId}/details`)
+const response = await fetch(`http://localhost:8080/api/plans/${planId}/details`)
 ```
 **Status**: ❌ **ENDPOINT DOES NOT EXIST**
 
