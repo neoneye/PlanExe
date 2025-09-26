@@ -62,10 +62,10 @@ export class FastAPIClient {
     if (typeof window !== 'undefined' && !baseURL) {
       // Client-side: check if we're in development or production
       const isDevelopment = process.env.NODE_ENV === 'development' ||
-                           process.env.NEXT_PUBLIC_API_URL === 'http://localhost:8000';
-      this.baseURL = isDevelopment ? 'http://localhost:8000' : '';
+                           process.env.NEXT_PUBLIC_API_URL === 'http://localhost:8080';
+      this.baseURL = isDevelopment ? 'http://localhost:8080' : '';
     } else {
-      this.baseURL = baseURL || 'http://localhost:8000';
+      this.baseURL = baseURL || 'http://localhost:8080';
     }
   }
 

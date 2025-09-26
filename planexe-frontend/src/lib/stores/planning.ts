@@ -105,7 +105,7 @@ export const usePlanningStore = create<PlanningState>((set, get) => ({
     if (!activePlan) return;
 
     try {
-      const response = await fetch(`http://localhost:8000/api/plans/${activePlan.planId}`, {
+      const response = await fetch(`http://localhost:8080/api/plans/${activePlan.planId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -148,7 +148,7 @@ export const usePlanningStore = create<PlanningState>((set, get) => ({
 
     try {
       // Note: Resume endpoint not implemented in backend yet
-      const response = await fetch(`http://localhost:8000/api/plans/${activePlan.planId}/resume`, {
+      const response = await fetch(`http://localhost:8080/api/plans/${activePlan.planId}/resume`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fromTask })
@@ -243,7 +243,7 @@ export const usePlanningStore = create<PlanningState>((set, get) => ({
   // Fetch current progress
   fetchProgress: async (planId) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/plans/${planId}`);
+      const response = await fetch(`http://localhost:8080/api/plans/${planId}`);
       
       if (!response.ok) {
         // Don't throw error for progress fetch failures - just log

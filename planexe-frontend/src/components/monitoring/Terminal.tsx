@@ -60,7 +60,7 @@ export const Terminal: React.FC<TerminalProps> = ({
 
     const checkStreamStatus = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/plans/${planId}/stream-status`);
+        const response = await fetch(`http://localhost:8080/api/plans/${planId}/stream-status`);
         const data = await response.json();
         if (data.status === 'ready') {
           setIsStreamReady(true);
@@ -82,7 +82,7 @@ export const Terminal: React.FC<TerminalProps> = ({
   useEffect(() => {
     if (!isStreamReady) return;
 
-    const eventSource = new EventSource(`http://localhost:8000/api/plans/${planId}/stream`);
+    const eventSource = new EventSource(`http://localhost:8080/api/plans/${planId}/stream`);
 
     eventSource.onopen = () => {
       setStatus('running');
