@@ -41,7 +41,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
   const [selectedExample, setSelectedExample] = useState<string>('');
 
   const form = useForm<PlanFormData>({
-    resolver: zodResolver(PlanFormSchema) as any,
+    resolver: zodResolver(PlanFormSchema),
     defaultValues: {
       prompt: '',
       llm_model: '',
@@ -355,3 +355,4 @@ export const PlanForm: React.FC<PlanFormProps> = ({
     </div>
   );
 };
+

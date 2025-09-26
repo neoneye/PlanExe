@@ -17,7 +17,7 @@ interface SessionState {
   error: string | null;
 
   // Actions
-  createSession: (preferences?: Record<string, any>) => Promise<void>;
+  createSession: (preferences?: Partial<UserSession['preferences']>) => Promise<void>;
   loadSession: (sessionId: string) => Promise<void>;
   updateSession: (updates: Partial<UserSession>) => Promise<void>;
   endSession: () => Promise<void>;
@@ -45,7 +45,7 @@ export const useSessionStore = create<SessionState>()(
       error: null,
 
       // Create new session
-      createSession: async (preferences) => {
+      createSession: async (preferences?: Partial<UserSession['preferences']>) => {
         set({ isLoading: true, error: null });
         
         try {
@@ -285,3 +285,5 @@ export function useSessionInit() {
 
   return session;
 }
+
+

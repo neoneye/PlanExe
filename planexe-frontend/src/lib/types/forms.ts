@@ -247,8 +247,8 @@ export interface DataTableProps<T> {
     onSortChange: (column: keyof T, direction: 'asc' | 'desc') => void;
   };
   filtering?: {
-    filters: Record<string, any>;
-    onFilterChange: (filters: Record<string, any>) => void;
+    filters: Record<string, unknown>;
+    onFilterChange: (filters: Record<string, unknown>) => void;
   };
   selection?: {
     selectedRows: string[];

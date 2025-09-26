@@ -296,7 +296,7 @@ export interface Scenario {
   id: string;
   title: string;
   description: string;
-  characteristics: Record<string, any>;
+  characteristics: Record<string, unknown>;
   assumptions: Assumption[];
   feasibility: number;
   impact: number;
@@ -403,7 +403,7 @@ export interface ExecutiveSummary {
   scope: string;
   duration: number;
   budget: number;
-  keyMetrics: Record<string, any>;
+  keyMetrics: Record<string, unknown>;
   risks: string[];
   recommendations: string[];
   nextSteps: string[];

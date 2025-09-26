@@ -92,7 +92,7 @@ export const useConfigStore = create<ConfigState>()(
             throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
           }
 
-          const models = await response.json();
+          const models = (await response.json()) as LLMModel[];
 
           // Use first model by priority as default
           const defaultModelId = models.length > 0 ? models[0].id : '';
@@ -100,7 +100,7 @@ export const useConfigStore = create<ConfigState>()(
           set({
             llmModels: models,
             defaultModel: defaultModelId,
-            priorityOrder: models.map((m: any) => m.id),
+            priorityOrder: models.map((m) => m.id),
             isLoadingModels: false,
             modelsError: null,
             modelsLastLoaded: new Date()
@@ -283,3 +283,4 @@ if (typeof window !== 'undefined') {
     store.loadPromptExamples();
   }, 100);
 }
+
