@@ -7,9 +7,9 @@ const nextConfig: NextConfig = {
   // Required for static export
   trailingSlash: true,
 
-  // Environment variables for Railway deployment
+  // Railway deployment: FastAPI serves both static files and API, no separate API URL needed
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || '',
   },
 
   // Optimize for production deployment

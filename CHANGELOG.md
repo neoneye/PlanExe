@@ -1,3 +1,37 @@
+## [0.1.12] - 2025-09-26
+
+### 🚨 **CRITICAL FIX: Railway Frontend API Connection**
+
+**PROBLEM RESOLVED**: Models dropdown and all API calls were failing in Railway production due to hardcoded `localhost:8080` URLs.
+
+#### ✅ **Railway-Only URL Configuration**
+- **Converted hardcoded URLs to relative URLs** in all frontend components for Railway single-service deployment
+- **Fixed Models Loading**: `'http://localhost:8080/api/models'` → `'/api/models'` in config store
+- **Fixed Planning Operations**: All 3 hardcoded URLs in planning store converted to relative paths
+- **Fixed Component API Calls**: Updated PipelineDetails, PlansQueue, ProgressMonitor, Terminal components
+- **Fixed SSE Streaming**: EventSource now uses relative URLs for real-time progress
+
+#### 🏗️ **Architecture Simplification**
+- **FastAPI Client Simplified**: Removed complex development/production detection logic
+- **Railway-First Approach**: Since only Railway is used (no Windows local development), optimized for single-service deployment
+- **Next.js Config Updated**: Removed localhost references for clean static export
+
+#### 📁 **Files Modified (8 total)**
+1. `src/lib/stores/config.ts` - Models loading endpoint
+2. `src/lib/stores/planning.ts` - 3 API endpoints for plan operations
+3. `src/components/PipelineDetails.tsx` - Details endpoint
+4. `src/components/PlansQueue.tsx` - Plans list and retry endpoints
+5. `src/components/monitoring/ProgressMonitor.tsx` - Stop plan endpoint
+6. `src/components/monitoring/Terminal.tsx` - Stream status and SSE endpoints
+7. `src/lib/api/fastapi-client.ts` - Base URL configuration
+8. `next.config.ts` - Environment variable defaults
+
+#### 🎯 **Expected Results**
+- ✅ Models dropdown will now load in Railway production
+- ✅ Plan creation, monitoring, and management will function correctly
+- ✅ Real-time progress streaming will connect properly
+- ✅ All API endpoints accessible via relative URLs
+
 ## [0.1.11] - 2025-09-26
 
 ### Build & Deployment

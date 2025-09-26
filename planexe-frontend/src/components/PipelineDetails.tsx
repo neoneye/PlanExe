@@ -49,7 +49,7 @@ export function PipelineDetails({ planId, className }: PipelineDetailsProps) {
   // Fetch pipeline details
   const fetchDetails = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/plans/${planId}/details`)
+      const response = await fetch(`/api/plans/${planId}/details`)
       if (response.ok) {
         const detailsData = await response.json()
         setDetails(detailsData)

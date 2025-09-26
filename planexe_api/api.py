@@ -515,7 +515,7 @@ async def delete_plan(plan_id: str, db: DatabaseService = Depends(get_database))
 async def list_plans(db: DatabaseService = Depends(get_database)):
     """Get list of all plans"""
     try:
-        plans = db.get_all_plans()
+        plans = db.list_plans()
 
         return [
             PlanResponse(
