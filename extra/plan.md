@@ -9,6 +9,22 @@ Ideally take an entire plan and go with it.
 
 ## Improve plan
 
+**Boost initial prompt:** The `initial prompt` has the biggest impact on the generated plan, if it's bad then the final plan is bad.
+If it's well written, concise, there is a higher chance for a realistic/feasible plan.
+Currently I use AIs to write the initial prompt for me by first having a long conversation about the topic,
+and showing examples of other initial prompts that have worked well in the past.
+It may by a small tweak to the initial prompt and it yields a better plan.
+It may be an entire rewrite of the initial prompt.
+The user may have specified a vague prompt, or the user may not be domain expert, the prompt may be non-sense,
+or the prompt may be overly specific so PlanExe attends to the wrong things.
+Suggest changes to the initial prompt. This can be by picking a bigger budget, a different technology,
+a different set of levers, fixing typos.
+
+**Grid search:** Currently PlanExe only generates a plan for 1 permutation of levers.
+A plan may have 10 levers with 3-5 settings. Here it could be interesting to create 
+100 full plans, each with a different combination of levers. Compare the generated plans against each other 
+and pick the most 3 promising plans.
+
 **Multiple refinements:** Currently PlanExe generates the first iteration of the plan.
 Usually issues arises when making the first iteration, that have to be incorporated into the timeline.
 In the future I want to do multiple iterations, until the plan is of a reasonable quality.
