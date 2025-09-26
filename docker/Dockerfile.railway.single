@@ -11,9 +11,9 @@ FROM node:18-slim AS frontend-builder
 # Set working directory for frontend build
 WORKDIR /app/frontend
 
-# Install Node dependencies
+# Install Node dependencies (including dev dependencies for build process)
 COPY planexe-frontend/package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy frontend source and build static export
 COPY planexe-frontend/ ./
