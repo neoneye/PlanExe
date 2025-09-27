@@ -1,8 +1,14 @@
 # PlanExe Codebase Index
-THIS DOC INCORRECTLY STATES THAT WE USE PORT 8000 FOR THE FASTAPI SERVER. WE USE PORT 8080!!!!  THIS NEEDS FIXED!!!
+
 **Generated**: 2025-09-27  
-**Version**: 0.1.5  
+**Version**: 0.2.1  
 **Purpose**: Comprehensive index and architectural overview of the PlanExe AI-powered planning system
+
+## 🚨 **CRITICAL PORT INFORMATION - UPDATED v0.2.1**
+- **Railway Production**: FastAPI runs on port **8080** (Railway's PORT environment variable)
+- **Local Development**: FastAPI runs on port **8000** (development only)
+- **Architecture**: Railway single-service deployment (FastAPI serves UI + API)
+- **Development Workflow**: Railway-first deployment, no local Windows debugging
 
 ---
 
@@ -12,18 +18,20 @@ PlanExe is a **complex AI-powered planning system** that transforms vague ideas 
 
 ### High-Level Data Flow
 
-#### Development Mode (Local)
+#### Railway Production (Primary)
+```
+User → Railway URL (8080) → FastAPI (serves UI + API) → Luigi Pipeline (62 Tasks) → Generated Files
+   ↑                           ↓
+   └── Real-time Progress (WebSocket/SSE) ←
+```
+
+#### Local Development (Legacy - Railway-First Workflow Now)
 ```
 User → Next.js UI (3000) --CORS--> FastAPI (8000) → Luigi Pipeline (62 Tasks) → Generated Files
    ↑                                    ↓
    └── Real-time Progress (SSE) ←-------┘
-```
 
-#### Production Mode (Railway)
-```
-User → Railway URL (8080) → FastAPI (serves UI + API) → Luigi Pipeline (62 Tasks) → Generated Files
-   ↑                           ↓
-   └── Real-time Progress (SSE) ←
+⚠️ NOTE: Local development discouraged. Railway-first workflow recommended.
 ```
 
 ### Technology Stack
@@ -270,26 +278,29 @@ result = llm_executor.run(lambda llm: task.execute(llm, query))
 
 ## 🚀 Development Workflow
 
-### Quick Start
+### 🎯 **PRIMARY: Railway-First Development**
 
 ```bash
-# Start full development environment
+# 1. Make changes locally (Windows)
+# 2. Commit immediately
+git add .
+git commit -m "descriptive message"
+git push origin main
+
+# 3. Railway auto-deploys from GitHub
+# 4. Debug using Railway logs + robust UI
+# 5. Iterate with rapid commit-push-deploy cycle
+```
+
+### 🔧 **LEGACY: Local Development (Discouraged)**
+
+```bash
+# Only use for quick testing - Railway is primary environment
 cd planexe-frontend
 npm install
 npm run go  # Starts both FastAPI (port 8000) and Next.js (port 3000)
-```
 
-### Individual Services
-
-```bash
-# Backend only
-cd planexe_api
-set DATABASE_URL=sqlite:///./planexe.db
-uvicorn api:app --reload --port 8000
-
-# Frontend only
-cd planexe-frontend
-npm run dev
+# ⚠️ NOTE: Luigi pipeline has Windows issues. Use Railway for real testing.
 ```
 
 ### Testing Strategy
@@ -308,17 +319,17 @@ npm run dev
 
 1. **Modify Luigi pipeline** without understanding the full 61-task dependency graph
 2. **Create fake test data** - use existing plans in `/run` directory
-3. **Assume SSE is reliable** - it has known issues in v0.1.4
-4. **Use port 8001** - backend runs on port 8000
-5. **Create Next.js API routes** - use direct FastAPI client
+3. **Debug Windows Luigi issues** - deploy to Railway instead
+4. **Use local development for Luigi testing** - Railway is primary environment
+5. **Over-engineer for hobbyist project** - keep solutions simple
 
 ### DO
 
-1. **Test incrementally** with both services running
-2. **Use snake_case** field names throughout (matches backend)
-3. **Commit changes immediately** with verbose messages
-4. **Follow existing patterns** in components and tasks
-5. **Read CHANGELOG.md** before making changes
+1. **Use Railway-first development workflow** - rapid commit-push-deploy
+2. **Make UI robust for debugging** - show all status without browser console
+3. **Use snake_case** field names throughout (matches backend)
+4. **Commit changes immediately** with verbose messages
+5. **Focus on features, not Windows debugging**
 
 ### Architecture Decisions
 

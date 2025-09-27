@@ -267,21 +267,12 @@ tail -f run/*/log.txt
 # Test API connectivity
 curl http://localhost:8000/health
 curl http://localhost:8000/api/models
-```
 
-### **Development Workflow**
-1. **Start both services**: `npm run go` in planexe-frontend
-2. **Verify connectivity**: Visit http://localhost:3000
-3. **Check backend health**: Visit http://localhost:8000/health
-4. **Test plan creation**: Create a simple test plan
-5. **Monitor progress**: Real-time updates may be unreliable
-6. **Check generated files**: Browse to plan output directory
-
-## 📋 **Testing Strategy**
-
-### **Manual Testing Checklist**
-- [ ] Services start without errors (`npm run go`)
-- [ ] Health endpoint returns 200 (http://localhost:8000/health)
+# Test plan creation
+curl -X POST \
+  http://localhost:8000/api/plans \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt": "Create a plan for a new business", "model": "llm-1"}'
 - [ ] LLM models load correctly (http://localhost:8000/api/models)
 - [ ] Plan creation form works without React warnings
 - [ ] Plan creation triggers Luigi pipeline

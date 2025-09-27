@@ -1,3 +1,32 @@
+## [0.2.1] - 2025-09-27
+
+### 🎯 **DEVELOPMENT WORKFLOW PARADIGM SHIFT: RAILWAY-FIRST DEBUGGING**
+
+**CRITICAL INSIGHT**: The development workflow has been refocused from local debugging to **Railway-first deployment** with the UI as the primary debugging tool.
+
+#### 🔄 **Circular Debugging Problem Identified**
+- **Issue**: We've been going in circles with Session vs DatabaseService dependency injection
+- **Root Cause**: Trying to debug locally on Windows when only Railway production matters
+- **Solution**: Make the UI itself robust enough for real-time debugging on Railway
+
+#### 🚨 **New Development Philosophy**
+- **Railway-Only Deployment**: No local testing/development - only Railway matters
+- **UI as Debug Tool**: Use shadcn/ui components to show real-time plan execution without browser console logs
+- **Production Debugging**: All debugging happens in Railway production environment, not locally
+
+#### 📚 **Documentation Updates Completed**
+- **CLAUDE.md**: Updated with Railway-first workflow and port 8080 clarification
+- **CODEBASE-INDEX.md**: Added critical warning about port 8080 vs 8000 confusion
+- **New Documentation**: Created comprehensive guide explaining circular debugging patterns
+
+#### 🎯 **Next Phase Priorities**
+1. **Robust UI Components**: Enhanced real-time progress display using shadcn/ui
+2. **Railway-Based Debugging**: UI shows exactly what's happening without console dependency
+3. **Clear Error States**: Visual indicators for all plan execution states
+4. **Real-Time Feedback**: Perfect user visibility into Luigi pipeline execution
+
+---
+
 ## [0.2.0] - 2025-09-27
 
 ### 🎉 **MAJOR MILESTONE: ENTERPRISE-GRADE WEBSOCKET ARCHITECTURE**
