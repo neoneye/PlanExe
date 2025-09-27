@@ -146,7 +146,16 @@ class PlanMetrics(Base):
 
 # Database connection management
 def get_database():
-    """Get database session"""
+    """Get DatabaseService instance for dependency injection"""
+    db = SessionLocal()
+    try:
+        yield DatabaseService(db)
+    finally:
+        db.close()
+
+
+def get_raw_database():
+    """Get raw database session"""
     db = SessionLocal()
     try:
         yield db
