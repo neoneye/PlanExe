@@ -48,6 +48,19 @@ export const LuigiPipelineView: React.FC<LuigiPipelineViewProps> = ({
       return prevPhases.map(phase => {
         const updatedTasks = phase.tasks.map(task => {
           if (task.id === taskId) {
+            // Trigger completion animation
+            if (status === 'completed' && task.status !== 'completed') {
+              setTimeout(() => {
+                const element = document.querySelector(`[data-task-id="${taskId}"]`);
+                if (element) {
+                  element.classList.add('animate-pulse', 'bg-green-100', 'scale-105', 'shadow-lg', 'transition-all', 'duration-500');
+                  setTimeout(() => {
+                    element.classList.remove('animate-pulse', 'scale-105', 'shadow-lg');
+                                        element.classList.add('bg-green-50');
+                  }, 800);
+                }
+              }, 100);
+            }
             return { ...task, status };
           }
           return task;
@@ -344,7 +357,7 @@ export const LuigiPipelineView: React.FC<LuigiPipelineViewProps> = ({
                 <AccordionContent>
                   <ul className="space-y-2 pl-4">
                     {phase.tasks.map((task, index) => (
-                      <li key={task.id} className={`flex items-center space-x-3 p-2 rounded-lg transition-all duration-200 ${
+                      <li key={task.id} data-task-id={task.id} className={`flex items-center space-x-3 p-2 rounded-lg transition-all duration-200 ${
                         task.status === 'running'
                           ? 'bg-blue-50 border border-blue-200 shadow-sm'
                           : task.status === 'completed'
