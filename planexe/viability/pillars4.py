@@ -52,6 +52,13 @@ PILLAR_ORDER: List[str] = [
     "Rights_Legality",
 ]
 
+PILLAR_DISPLAY_NAMES: Dict[str, str] = {
+    "HumanStability": "Human Stability",
+    "EconomicResilience": "Economic Resilience",
+    "EcologicalIntegrity": "Ecological Integrity",
+    "Rights_Legality": "Rights & Legality",
+}
+
 STATUS_ENUM: List[str] = ["GREEN", "YELLOW", "RED", "GRAY"]
 
 REASON_CODES_BY_PILLAR: Dict[str, List[str]] = {
@@ -430,12 +437,13 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
 
     for pillar in pillars:
         name = pillar.get("pillar", "Unknown")
+        display_name = PILLAR_DISPLAY_NAMES.get(name, name)
         status = pillar.get("status", "GRAY")
         score = pillar.get("score", "N/A")
         reason_codes = pillar.get("reason_codes", [])
         evidence = pillar.get("evidence_todo", [])
 
-        rows.append(f"### {name}")
+        rows.append(f"### {display_name}")
         rows.append(f"**Status**: {status} ({score})")
         if reason_codes:
             rows.append(f"**Issues**: {', '.join(reason_codes)}")
