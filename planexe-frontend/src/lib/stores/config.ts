@@ -89,7 +89,15 @@ export const useConfigStore = create<ConfigState>()(
           const response = await fetch('/api/models');
 
           if (!response.ok) {
-            throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
+            // Enhanced Railway error reporting
+            const errorDetails = `HTTP ${response.status} ${response.statusText}`;
+            if (response.status === 404) {
+              throw new Error(`Railway API endpoint not found: /api/models (${errorDetails})`);
+            } else if (response.status >= 500) {
+              throw new Error(`Railway server error: ${errorDetails}`);
+            } else {
+              throw new Error(`Railway API error: ${errorDetails}`);
+            }
           }
 
           const models = (await response.json()) as LLMModel[];
@@ -106,11 +114,23 @@ export const useConfigStore = create<ConfigState>()(
             modelsLastLoaded: new Date()
           });
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const errorMessage = error instanceof Error ? error.message : 'Unknown Railway connection error';
+          
+          // Enhanced error with Railway debugging context
+          const railwayError = `${errorMessage}. Railway deployment may still be starting up. Try refreshing in 30 seconds.`;
+          
           set({ 
-            modelsError: errorMessage, 
+            modelsError: railwayError, 
             isLoadingModels: false 
           });
+
+          // Auto-retry after 10 seconds for Railway startup scenarios
+          setTimeout(() => {
+            const { modelsError } = get();
+            if (modelsError && modelsError.includes('Railway')) {
+              get().loadLLMModels(true);
+            }
+          }, 10000);
         }
       },
 

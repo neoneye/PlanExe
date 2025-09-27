@@ -30,6 +30,7 @@ interface PlanFormProps {
   className?: string;
   modelsError?: string | null;
   isLoadingModels?: boolean;
+  loadLLMModels?: (force?: boolean) => Promise<void>;
 }
 
 export const PlanForm: React.FC<PlanFormProps> = ({
@@ -39,7 +40,8 @@ export const PlanForm: React.FC<PlanFormProps> = ({
   promptExamples = [],
   className = '',
   modelsError = null,
-  isLoadingModels = false
+  isLoadingModels = false,
+  loadLLMModels
 }) => {
   const [selectedModelRequiresKey, setSelectedModelRequiresKey] = useState(false);
   const [selectedExample, setSelectedExample] = useState<string>('');
@@ -195,24 +197,44 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                           </FormControl>
                           <SelectContent>
                             {isLoadingModels ? (
-                              <SelectItem value="" disabled>
+                              <SelectItem value="__loading__" disabled>
                                 <div className="flex items-center space-x-2">
                                   <Loader2 className="h-4 w-4 animate-spin" />
-                                  <span>Loading models...</span>
+                                  <span>Loading models from Railway...</span>
                                 </div>
                               </SelectItem>
                             ) : modelsError ? (
-                              <SelectItem value="" disabled>
-                                <div className="flex items-center space-x-2 text-red-600">
-                                  <span>❌ Error: {modelsError}</span>
-                                </div>
-                              </SelectItem>
+                              <>
+                                <SelectItem value="__error__" disabled>
+                                  <div className="flex items-center space-x-2 text-red-600">
+                                    <span>❌ Railway Error: {modelsError}</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="fallback-gpt4" >
+                                  <div className="flex items-center space-x-2">
+                                    <span>🔄 Fallback: GPT-4 (Manual Entry)</span>
+                                    <Badge variant="outline" className="text-xs">
+                                      Backup Option
+                                    </Badge>
+                                  </div>
+                                </SelectItem>
+                              </>
                             ) : llmModels.length === 0 ? (
-                              <SelectItem value="" disabled>
-                                <div className="flex items-center space-x-2 text-orange-600">
-                                  <span>⚠️ No models found</span>
-                                </div>
-                              </SelectItem>
+                              <>
+                                <SelectItem value="__empty__" disabled>
+                                  <div className="flex items-center space-x-2 text-orange-600">
+                                    <span>⚠️ No models from Railway API</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="fallback-gpt4">
+                                  <div className="flex items-center space-x-2">
+                                    <span>🔄 Fallback: GPT-4 (Manual Entry)</span>
+                                    <Badge variant="outline" className="text-xs">
+                                      Backup Option
+                                    </Badge>
+                                  </div>
+                                </SelectItem>
+                              </>
                             ) : (
                               llmModels.map((model) => (
                                 <SelectItem key={model.id} value={model.id}>
@@ -234,7 +256,44 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                         </Select>
                         <FormDescription>
                           Choose the AI model for plan generation. Paid models generally provide higher quality results.
-                          {llmModels.length === 0 && <span className="text-red-600 block">⚠️ No models loaded - check connection</span>}
+                          {modelsError && (
+                            <div className="text-red-600 block mt-2 p-2 bg-red-50 rounded">
+                              <strong>Railway Debug Info:</strong><br/>
+                              • API Error: {modelsError}<br/>
+                              • Endpoint: /api/models<br/>
+                              • Fallback option available above<br/>
+                              {loadLLMModels && (
+                                <Button 
+                                  type="button"
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="mt-2"
+                                  onClick={() => loadLLMModels(true)}
+                                  disabled={isLoadingModels}
+                                >
+                                  {isLoadingModels ? "Retrying..." : "🔄 Retry Railway Connection"}
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                          {llmModels.length === 0 && !modelsError && !isLoadingModels && (
+                            <div className="text-orange-600 block mt-2 p-2 bg-orange-50 rounded">
+                              <strong>Railway Status:</strong><br/>
+                              • Models API returned empty list<br/>
+                              • Using fallback option above<br/>
+                              {loadLLMModels && (
+                                <Button 
+                                  type="button"
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="mt-2"
+                                  onClick={() => loadLLMModels(true)}
+                                >
+                                  🔄 Refresh from Railway
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

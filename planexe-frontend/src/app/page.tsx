@@ -220,6 +220,7 @@ export default function Home() {
                 promptExamples={promptExamples}
                 modelsError={modelsError}
                 isLoadingModels={isLoadingModels}
+                loadLLMModels={loadLLMModels}
               />
             )}
 
