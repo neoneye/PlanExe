@@ -6,7 +6,7 @@ This protocol turns that mess into a short, decision-ready path:
 	•	Contain the scope first. We score four CAS pillars so risk lives inside a clear frame, not as a free-for-all list.
 	•	Convert weakness into action. Only non-green pillars produce 3–5 blockers, each with acceptance tests and artifacts—no hand-wavy “mitigate later.”
 	•	Bundle execution. We group blockers into Fix Packs, with FP0 (Pre-Commit Gate) capturing the minimal, high-leverage work that flips the recommendation.
-	•	Make the verdict mechanical. The final Overall & Summary is a roll-up driven by rules, not vibes: worst pillar color, upgraded only if FP0 closes the hard gaps.
+	•	Make the verdict mechanical. The final Overall & Summary is a roll-up driven by rules, not vibes: worst pillar status, upgraded only if FP0 closes the hard gaps.
 
 It also solves a practical tooling problem: weaker LLMs struggle with rich schemas and will hallucinate fields. Splitting the task into four small steps with enums and guardrails keeps outputs stable, auditable, and easy to wire into CI/CD or dashboards.
 
@@ -26,7 +26,7 @@ This README defines purpose, data flow, enums, JSON shapes, guardrails, and vali
 TL;DR
 	•	Order matters: Do Pillars first (scope), then Blockers (derived), then Fix Packs (clusters), then Overall/Summary (mechanical roll-up).
 	•	Keep outputs tiny, enum-driven, ID-stable.
-	•	After each step, run a validator/auto-repair pass to fix color/score ranges, drop unknown fields, and back-fill defaults.
+	•	After each step, run a validator/auto-repair pass to fix status/score ranges, drop unknown fields, and back-fill defaults.
 
 ⸻
 
@@ -59,7 +59,7 @@ Step 0 — Constants & Enums (used in all steps)
 PILLAR_ENUM
 	•	HumanStability, EconomicResilience, EcologicalIntegrity, Rights_Legality
 
-COLOR_ENUM
+STATUS_ENUM
 	•	GREEN, YELLOW, RED, GRAY (unknown/insufficient info)
 
 REASON_CODE_ENUM (small, stable set)
@@ -91,7 +91,7 @@ Output (JSON) — what the LLM must emit
   "pillars": [
     {
       "pillar": "HumanStability",
-      "light": "YELLOW",
+      "status": "YELLOW",
       "score": 60,
       "reason_codes": ["STAFF_AVERSION"],
       "evidence_todo": ["Stakeholder survey baseline"]
@@ -101,9 +101,19 @@ Output (JSON) — what the LLM must emit
 
 Note: The model outputs only the pillars array. No inline rule metadata.
 
+The status mean:
+	•	GREEN — Good to go.
+You have solid evidence and no open critical unknowns. Proceed. Any remaining tasks are minor polish.
+	•	YELLOW — Viable, but risks/unknowns exist.
+There’s promise, but you’re missing proof on key points or see non-fatal risks. Proceed with caution and a focused checklist.
+	•	RED — Not viable right now.
+There’s a concrete blocker or negative evidence (legal, technical, economic) that stops execution until fixed. Pause or pivot.
+	•	GRAY — Unknown / unassessed.
+You don’t have enough information to judge. Don’t guess—add a “first measurement” task to get out of uncertainty.
+
 Interpretation & validation (spec — not emitted by the LLM)
 	•	Enumerations
-	•	light ∈ {"GREEN","YELLOW","RED","GRAY"}
+	•	status ∈ {"GREEN","YELLOW","RED","GRAY"}
 	•	pillar ∈ PILLAR_ENUM (unknown pillar names → treated as GRAY)
 	•	reason_codes must come from the whitelist for that pillar (enforced downstream)
 	•	Score bands
@@ -112,9 +122,9 @@ Interpretation & validation (spec — not emitted by the LLM)
 	•	RED: 0–39
 	•	GRAY: score must be null
 	•	Validator behavior
-	•	If light ≠ GRAY and score is missing or outside the band, the validator snaps to the band midpoint (GREEN:85, YELLOW:55, RED:20).
-	•	If light == GRAY, score must be null (validator will null it if present).
-	•	Unknown/unsupported pillar values are coerced to { "light":"GRAY", "score":null }.
+	•	If status ≠ GRAY and score is missing or outside the band, the validator snaps to the band midpoint (GREEN:85, YELLOW:55, RED:20).
+	•	If status == GRAY, score must be null (validator will null it if present).
+	•	Unknown/unsupported pillar values are coerced to { "status":"GRAY", "score":null }.
 	•	Evidence gating
 	•	GREEN requires no open evidence items: evidence_todo must be empty.
 	•	YELLOW/RED may have evidence_todo entries.
@@ -131,7 +141,7 @@ Step 2 — Emit Blockers (derived from Step 1)
 Goal: Convert weak/unknown pillars into 3–5 crisp blockers with verifiable acceptance tests.
 
 Derivation rule
-	•	Only from pillars where color ∈ {RED, YELLOW, GRAY}.
+	•	Only from pillars where status ∈ {RED, YELLOW, GRAY}.
 	•	reason_codes must be a subset of the pillar’s reason_codes (or drawn from a small mapping you control).
 
 Output (JSON)
@@ -190,7 +200,7 @@ Guardrails
 Step 4 — Emit Overall & Viability Summary (mechanical roll-up)
 
 Computation rules (do these outside the LLM, in code)
-	•	Overall color: start with the worst pillar color; upgrade one notch if FP0 fully covers all RED/GRAY blockers.
+	•	Overall status: start with the worst pillar status; upgrade one notch if FP0 fully covers all RED/GRAY blockers.
 	•	Recommendation:
 	•	Any RED pillar → PROCEED_WITH_CAUTION
 (If FP0 neutralizes all RED/GRAY, use GO_IF_FP0.)
@@ -200,7 +210,7 @@ Computation rules (do these outside the LLM, in code)
 Output (JSON)
 
 {
-  "overall": {"score": 56, "color": "YELLOW", "confidence": "Medium"},
+  "overall": {"score": 56, "status": "YELLOW", "confidence": "Medium"},
   "viability_summary": {
     "recommendation": "PROCEED_WITH_CAUTION",
     "why": [
@@ -221,21 +231,21 @@ Validation & Auto-repair (run after each step)
 
 Implement a tiny validator that:
 	1.	Enum checks: drop unknown fields; coerce invalid enum values to GRAY/defaults.
-	2.	Color/score sync: enforce color_to_score bands; if score missing, set to band midpoint.
-	3.	Evidence gate: if color="GREEN" and evidence_todo not empty → downgrade to YELLOW.
+	2.	Status/score sync: enforce status_to_score bands; if score missing, set to band midpoint.
+	3.	Evidence gate: if status="GREEN" and evidence_todo not empty → downgrade to YELLOW.
 	4.	ID integrity: verify blocker_ids exist; remove or flag extras.
 	5.	Defaults: back-fill rom missing with {"cost_band":"LOW","eta_days":14}.
 
 Pseudocode (Python):
 
-def band_mid(color): return {"GREEN":85,"YELLOW":55,"RED":20}.get(color)
+def band_mid(status): return {"GREEN":85,"YELLOW":55,"RED":20}.get(status)
 def validate_pillars(pillars):
     out=[]
     for p in pillars:
-        if p["pillar"] not in PILLAR_ENUM: p["pillar"]="Rights_Legality"; p["color"]="GRAY"
-        if p["color"]=="GREEN" and p.get("evidence_todo"): p["color"]="YELLOW"
-        if "score" not in p or not in_band(p["score"], p["color"]):
-            p["score"]=band_mid(p["color"])
+        if p["pillar"] not in PILLAR_ENUM: p["pillar"]="Rights_Legality"; p["status"]="GRAY"
+        if p["status"]=="GREEN" and p.get("evidence_todo"): p["status"]="YELLOW"
+        if "score" not in p or not in_band(p["score"], p["status"]):
+            p["score"]=band_mid(p["status"])
         out.append(p)
     return out
 
@@ -266,7 +276,7 @@ GREEN requires evidence_todo empty.
 
 Step 2 (blockers):
 
-Create ≤5 blockers only from pillars where color ≠ GREEN.
+Create ≤5 blockers only from pillars where status ≠ GREEN.
 reason_codes must be a subset of the pillar’s reason_codes.
 
 Step 3 (fix packs):
@@ -285,12 +295,12 @@ Interfaces (optional; keep loose for weaker models)
 
 TypeScript (consuming side):
 
-type Color = "GREEN" | "YELLOW" | "RED" | "GRAY";
+type Status = "GREEN" | "YELLOW" | "RED" | "GRAY";
 type Pillar = "HumanStability" | "EconomicResilience" | "EcologicalIntegrity" | "Rights_Legality";
 type CostBand = "LOW" | "MEDIUM" | "HIGH";
 
 interface PillarItem {
-  pillar: Pillar; color: Color; score?: number;
+  pillar: Pillar; status: Status; score?: number;
   reason_codes?: string[]; evidence_todo?: string[];
 }
 
