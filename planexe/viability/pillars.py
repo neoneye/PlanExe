@@ -45,6 +45,8 @@ logger = logging.getLogger(__name__)
 # Constants & enums (string-based for LLM friendliness)
 # ---------------------------------------------------------------------------
 
+STATUS_ENUM: List[str] = ["GREEN", "YELLOW", "RED", "GRAY"]
+
 PILLAR_ORDER: List[str] = [
     "HumanStability",
     "EconomicResilience",
@@ -58,8 +60,6 @@ PILLAR_DISPLAY_NAMES: Dict[str, str] = {
     "EcologicalIntegrity": "Ecological Integrity",
     "Rights_Legality": "Rights & Legality",
 }
-
-STATUS_ENUM: List[str] = ["GREEN", "YELLOW", "RED", "GRAY"]
 
 REASON_CODES_BY_PILLAR: Dict[str, List[str]] = {
     "HumanStability": ["TALENT_UNKNOWN", "STAFF_AVERSION"],
