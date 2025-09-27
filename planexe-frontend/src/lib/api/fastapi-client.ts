@@ -57,8 +57,8 @@ export class FastAPIClient {
   private baseURL: string;
 
   constructor(baseURL?: string) {
-    // Always use port 8080 for FastAPI backend - dev and prod both use 8080
-    this.baseURL = baseURL || 'http://localhost:8080';
+    // Railway deployment: FastAPI serves both backend and frontend from same instance
+    this.baseURL = baseURL || '';
   }
 
   private async handleResponse<T>(response: Response): Promise<T> {
