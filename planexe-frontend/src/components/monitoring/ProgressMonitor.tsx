@@ -11,6 +11,7 @@ import React, { useState } from 'react';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Terminal } from './Terminal';
+import { LuigiPipelineView } from './LuigiPipelineView';
 
 interface ProgressMonitorProps {
   planId: string;
@@ -57,7 +58,7 @@ export const ProgressMonitor: React.FC<ProgressMonitorProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Pipeline Execution Monitor</CardTitle>
-              <CardDescription>Real-time Luigi pipeline logs for Plan ID: {planId}</CardDescription>
+              <CardDescription>Real-time Luigi pipeline execution for Plan ID: {planId}</CardDescription>
             </div>
             <div className="flex items-center space-x-2">
               {onStop && (
@@ -74,6 +75,12 @@ export const ProgressMonitor: React.FC<ProgressMonitorProps> = ({
           </div>
         </CardHeader>
       </Card>
+
+      {/* Luigi Pipeline Visualization */}
+      <LuigiPipelineView
+        planId={planId}
+        className="w-full"
+      />
 
       {/* Terminal component showing raw logs */}
       <Terminal

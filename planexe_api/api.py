@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, List
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -39,6 +39,7 @@ from planexe_api.database import (
     PlanFile, PlanMetrics, SessionLocal
 )
 from planexe_api.services.pipeline_execution_service import PipelineExecutionService
+from planexe_api.websocket_manager import websocket_manager
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -125,19 +126,50 @@ database = get_database()
 create_tables()
 
 
+# Application lifecycle events
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on application startup"""
+    await websocket_manager.start_heartbeat_task()
+    print("FastAPI application started - WebSocket manager initialized")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up services on application shutdown"""
+    await websocket_manager.shutdown()
+    print("FastAPI application shutdown - WebSocket manager cleaned up")
+
+
 def execute_plan_async(plan_id: str, request: CreatePlanRequest) -> None:
-    """Execute Luigi pipeline asynchronously using the dedicated service"""
-    db = SessionLocal()
+    """Execute Luigi pipeline asynchronously using the dedicated service with WebSocket support"""
+    import asyncio
+
+    async def run_pipeline():
+        db = SessionLocal()
+        try:
+            db_service = DatabaseService(db)
+            await pipeline_service.execute_plan(plan_id, request, db_service)
+        except Exception as e:
+            print(f"Exception in plan execution: {e}")
+        finally:
+            try:
+                db.close()
+            except Exception:
+                pass
+
+    # Create new event loop for the thread
     try:
-        db_service = DatabaseService(db)
-        pipeline_service.execute_plan(plan_id, request, db_service)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(run_pipeline())
     except Exception as e:
-        print(f"Exception in plan execution: {e}")
+        print(f"Failed to execute pipeline for plan {plan_id}: {e}")
     finally:
         try:
-            db.close()
-        except Exception as e:
-            print(f"Error closing database: {e}")
+            loop.close()
+        except Exception:
+            pass
 
 
 # Health check endpoint
@@ -280,47 +312,90 @@ async def get_plan(plan_id: str, db: DatabaseService = Depends(get_database)):
         raise HTTPException(status_code=500, detail=f"Failed to get plan: {str(e)}")
 
 
-# SSE stream endpoint for real-time progress
+# DEPRECATED SSE endpoint - replaced with WebSocket for thread-safety
 @app.get("/api/plans/{plan_id}/stream")
-async def stream_plan_progress(plan_id: str, db: DatabaseService = Depends(get_database)):
-    """Stream real-time progress updates via Server-Sent Events"""
+async def stream_plan_progress_deprecated(plan_id: str, db: DatabaseService = Depends(get_database)):
+    """
+    DEPRECATED: SSE stream has been replaced with WebSocket for thread-safety
+    Use WebSocket endpoint: ws://localhost:8000/ws/plans/{plan_id}/progress
+    """
+    from fastapi.responses import JSONResponse
 
-    async def event_generator():
-        # Check if plan exists
-        plan = db.get_plan(plan_id)
-        if not plan:
-            yield {"event": "error", "data": json.dumps({"message": "Plan not found"})}
-            return
+    return JSONResponse(
+        status_code=410,  # Gone
+        content={
+            "error": "SSE endpoint deprecated due to thread safety issues",
+            "message": "Please migrate to WebSocket endpoint for real-time progress",
+            "websocket_url": f"ws://localhost:8000/ws/plans/{plan_id}/progress",
+            "migration_guide": {
+                "old": f"GET /api/plans/{plan_id}/stream",
+                "new": f"WebSocket ws://localhost:8000/ws/plans/{plan_id}/progress",
+                "reason": "Thread-safe WebSocket architecture replaces broken SSE global dictionaries"
+            }
+        }
+    )
 
-        # Get progress stream from service
-        progress_queue = pipeline_service.get_progress_stream(plan_id)
-        if not progress_queue:
-            yield {"event": "error", "data": json.dumps({"message": "Stream could not be established."})}
-            return
 
-        try:
-            while True:
-                # Non-blocking check for messages
-                try:
-                    update = progress_queue.get_nowait()
-                except:  # queue.Empty or similar
-                    await asyncio.sleep(0.1)  # Wait briefly
-                    continue
+# WebSocket endpoint for real-time progress (replaces unreliable SSE)
+@app.websocket("/ws/plans/{plan_id}/progress")
+async def websocket_plan_progress(websocket: WebSocket, plan_id: str):
+    """
+    WebSocket endpoint for real-time Luigi pipeline progress updates.
 
-                if update is None:  # End signal
-                    yield {"event": "end", "data": "Stream ended"}
-                    break
+    This replaces the unreliable SSE endpoint and fixes:
+    - Global dictionary race conditions
+    - Thread safety violations
+    - Memory leaks from abandoned connections
+    - Poor error handling
+    - Connection reliability issues
+    """
+    await websocket.accept()
 
-                # Send update to client
-                yield {"event": "task_update", "data": json.dumps(update)}
+    client_id = None
+    try:
+        # Add connection to WebSocket manager
+        client_id = await websocket_manager.add_connection(websocket, plan_id)
 
-        except asyncio.CancelledError:
-            print(f"Stream for plan {plan_id} was cancelled by client.")
-        finally:
-            # Clean up progress stream
-            pipeline_service.cleanup_progress_stream(plan_id)
+        # Send initial connection confirmation
+        await websocket.send_json({
+            "type": "connection",
+            "status": "connected",
+            "plan_id": plan_id,
+            "client_id": client_id,
+            "message": "Connected to Luigi pipeline progress stream"
+        })
 
-    return EventSourceResponse(event_generator())
+        # Keep connection alive and handle incoming messages
+        while True:
+            try:
+                # Wait for messages from client (heartbeat responses, commands, etc.)
+                data = await websocket.receive_json()
+
+                # Handle heartbeat responses
+                if data.get("type") == "heartbeat_response":
+                    # Update heartbeat timestamp
+                    pass
+
+                # Handle other client messages (future expansion)
+                elif data.get("type") == "command":
+                    # Could be used for pause/resume pipeline, etc.
+                    pass
+
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                print(f"WebSocket error for plan {plan_id}, client {client_id}: {e}")
+                break
+
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        print(f"WebSocket connection error for plan {plan_id}: {e}")
+    finally:
+        # Clean up connection
+        if client_id:
+            await websocket_manager.remove_connection(client_id)
+            print(f"WebSocket disconnected: plan_id={plan_id}, client_id={client_id}")
 
 
 # Plan files endpoint
@@ -489,11 +564,26 @@ async def download_plan_file(plan_id: str, filename: str, db: DatabaseService = 
 # Plan management endpoints
 @app.delete("/api/plans/{plan_id}")
 async def delete_plan(plan_id: str, db: DatabaseService = Depends(get_database)):
-    """Delete a plan and its associated files"""
+    """Delete a plan, terminate running processes, and clean up all associated resources"""
     try:
         plan = db.get_plan(plan_id)
         if not plan:
             raise HTTPException(status_code=404, detail="Plan not found")
+
+        # Terminate running pipeline process if exists
+        try:
+            terminated = pipeline_service.terminate_plan_execution(plan_id)
+            if terminated:
+                print(f"Terminated running pipeline for plan {plan_id}")
+        except Exception as e:
+            print(f"Warning: Failed to terminate pipeline for plan {plan_id}: {e}")
+
+        # Clean up WebSocket connections for this plan
+        try:
+            await websocket_manager.cleanup_plan_connections(plan_id)
+            print(f"Cleaned up WebSocket connections for plan {plan_id}")
+        except Exception as e:
+            print(f"Warning: Failed to cleanup WebSocket connections for plan {plan_id}: {e}")
 
         # Delete files from filesystem
         output_dir = Path(plan.output_dir)
@@ -504,7 +594,7 @@ async def delete_plan(plan_id: str, db: DatabaseService = Depends(get_database))
         # Delete from database
         db.delete_plan(plan_id)
 
-        return {"message": f"Plan {plan_id} deleted successfully"}
+        return {"message": f"Plan {plan_id} deleted successfully with full resource cleanup"}
     except HTTPException:
         raise
     except Exception as e:

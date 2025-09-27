@@ -1,12 +1,11 @@
 """
 Author: Claude Code using Sonnet 4
-Date: 2025-09-24
-PURPOSE: Dedicated service for Luigi pipeline execution - handles subprocess orchestration,
-         progress streaming, environment setup, and file management separately from HTTP concerns
-SRP and DRY check: Pass - Single responsibility of pipeline execution, extracted from bloated API layer
+Date: 2025-09-27
+PURPOSE: Thread-safe Luigi pipeline execution service using WebSocket broadcasting
+         Replaces broken global dictionary architecture with proper thread-safe communication
+SRP and DRY check: Pass - Single responsibility of pipeline execution with thread-safe WebSocket integration
 """
 import os
-import queue
 import subprocess
 import threading
 import time
@@ -16,12 +15,32 @@ from typing import Dict, Optional
 
 from planexe_api.models import CreatePlanRequest, PlanStatus
 from planexe_api.database import DatabaseService
+from planexe_api.websocket_manager import websocket_manager
 from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
 from planexe.plan.filenames import FilenameEnum
 
-# Global process and queue management
-running_processes: Dict[str, subprocess.Popen] = {}
-progress_streams: Dict[str, queue.Queue] = {}
+# Thread-safe process management (replaces global dictionary)
+class ProcessRegistry:
+    """Thread-safe registry for running subprocess references"""
+
+    def __init__(self):
+        self._processes: Dict[str, subprocess.Popen] = {}
+        self._lock = threading.RLock()
+
+    def register(self, plan_id: str, process: subprocess.Popen) -> None:
+        with self._lock:
+            self._processes[plan_id] = process
+
+    def unregister(self, plan_id: str) -> Optional[subprocess.Popen]:
+        with self._lock:
+            return self._processes.pop(plan_id, None)
+
+    def get(self, plan_id: str) -> Optional[subprocess.Popen]:
+        with self._lock:
+            return self._processes.get(plan_id)
+
+# Thread-safe process registry (replaces global dictionary)
+process_registry = ProcessRegistry()
 
 # Pipeline configuration
 MODULE_PATH_PIPELINE = "planexe.run_plan_pipeline"
@@ -33,19 +52,15 @@ class PipelineExecutionService:
     def __init__(self, planexe_project_root: Path):
         self.planexe_project_root = planexe_project_root
 
-    def execute_plan(self, plan_id: str, request: CreatePlanRequest, db_service: DatabaseService) -> None:
+    async def execute_plan(self, plan_id: str, request: CreatePlanRequest, db_service: DatabaseService) -> None:
         """
-        Execute Luigi pipeline in background thread for the given plan
+        Execute Luigi pipeline in background thread with WebSocket progress streaming
 
         Args:
             plan_id: Unique plan identifier
             request: Plan creation request with prompt and configuration
             db_service: Database service for persistence
         """
-        # Create thread-safe queue for progress updates
-        progress_queue = queue.Queue()
-        progress_streams[plan_id] = progress_queue
-
         print(f"DEBUG: Starting pipeline execution for plan_id: {plan_id}")
 
         try:
@@ -63,7 +78,7 @@ class PipelineExecutionService:
             # Write pipeline input files
             self._write_pipeline_inputs(run_id_dir, request)
 
-            # Update plan status to running
+            # Update plan status to running and broadcast
             db_service.update_plan(plan_id, {
                 "status": PlanStatus.running.value,
                 "progress_percentage": 0,
@@ -71,13 +86,22 @@ class PipelineExecutionService:
                 "started_at": datetime.utcnow()
             })
 
+            # Broadcast initial status via WebSocket
+            await websocket_manager.broadcast_to_plan(plan_id, {
+                "type": "status",
+                "status": "running",
+                "message": "Starting plan generation pipeline...",
+                "progress_percentage": 0,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+
             # Start Luigi subprocess
             process = self._start_luigi_subprocess(plan_id, environment, db_service)
             if not process:
                 return
 
-            # Monitor process execution
-            self._monitor_process_execution(plan_id, process, run_id_dir, db_service, progress_queue)
+            # Monitor process execution with WebSocket streaming
+            await self._monitor_process_execution(plan_id, process, run_id_dir, db_service)
 
         except Exception as e:
             print(f"DEBUG: Pipeline execution failed for {plan_id}: {e}")
@@ -85,9 +109,16 @@ class PipelineExecutionService:
                 "status": PlanStatus.failed.value,
                 "error_message": f"Pipeline execution failed: {str(e)}"
             })
+            # Broadcast error via WebSocket
+            await websocket_manager.broadcast_to_plan(plan_id, {
+                "type": "status",
+                "status": "failed",
+                "message": f"Pipeline execution failed: {str(e)}",
+                "timestamp": datetime.utcnow().isoformat()
+            })
         finally:
             # Clean up resources
-            self._cleanup_execution(plan_id)
+            await self._cleanup_execution(plan_id)
 
     def _setup_environment(self, plan_id: str, request: CreatePlanRequest, run_id_dir: Path) -> Dict[str, str]:
         """Set up environment variables for Luigi pipeline execution"""
@@ -167,8 +198,8 @@ class PipelineExecutionService:
             if process.poll() is not None:
                 raise subprocess.SubprocessError(f"Subprocess failed to start, exit code: {process.returncode}")
 
-            # Store process reference
-            running_processes[plan_id] = process
+            # Store process reference in thread-safe registry
+            process_registry.register(plan_id, process)
             return process
 
         except Exception as e:
@@ -179,47 +210,49 @@ class PipelineExecutionService:
             })
             return None
 
-    def _monitor_process_execution(self, plan_id: str, process: subprocess.Popen,
-                                 run_id_dir: Path, db_service: DatabaseService,
-                                 progress_queue: queue.Queue) -> None:
-        """Monitor Luigi process execution and stream progress updates"""
+    async def _monitor_process_execution(self, plan_id: str, process: subprocess.Popen,
+                                        run_id_dir: Path, db_service: DatabaseService) -> None:
+        """Monitor Luigi process execution and stream progress via WebSocket"""
+        import asyncio
 
-        def read_stdout():
-            """Stream Luigi pipeline logs to progress queue"""
+        async def read_stdout():
+            """Stream Luigi pipeline logs via WebSocket"""
             if process.stdout:
                 for line in iter(process.stdout.readline, ''):
                     line = line.strip()
                     if not line:
                         continue
 
-                    # Send log line to progress queue
+                    # Broadcast log line via WebSocket
                     log_data = {
                         "type": "log",
                         "message": line,
                         "timestamp": datetime.utcnow().isoformat()
                     }
+
                     try:
-                        progress_queue.put_nowait(log_data)
-                    except queue.Full:
-                        print(f"Warning: Progress queue for plan {plan_id} is full.")
+                        await websocket_manager.broadcast_to_plan(plan_id, log_data)
+                    except Exception as e:
+                        print(f"WebSocket broadcast error for plan {plan_id}: {e}")
 
                     print(f"Luigi: {line}")
 
                 # Signal stdout completion
+                completion_data = {
+                    "type": "status",
+                    "status": "stdout_closed",
+                    "message": "Pipeline stdout stream closed",
+                    "timestamp": datetime.utcnow().isoformat()
+                }
                 try:
-                    completion_data = {
-                        "type": "status",
-                        "status": "stdout_closed",
-                        "message": "Pipeline stdout stream closed"
-                    }
-                    progress_queue.put_nowait(completion_data)
-                except queue.Full:
+                    await websocket_manager.broadcast_to_plan(plan_id, completion_data)
+                except Exception:
                     pass
 
                 process.stdout.close()
 
-        def read_stderr():
-            """Stream Luigi pipeline errors to progress queue"""
+        async def read_stderr():
+            """Stream Luigi pipeline errors via WebSocket"""
             if process.stderr:
                 for line in iter(process.stderr.readline, ''):
                     line = line.strip()
@@ -231,51 +264,57 @@ class PipelineExecutionService:
                         "message": line,
                         "timestamp": datetime.utcnow().isoformat()
                     }
+
                     try:
-                        progress_queue.put_nowait(error_data)
-                    except queue.Full:
-                        pass
+                        await websocket_manager.broadcast_to_plan(plan_id, error_data)
+                    except Exception as e:
+                        print(f"WebSocket error broadcast failed for plan {plan_id}: {e}")
 
                     print(f"Luigi ERROR: {line}")
 
                 process.stderr.close()
 
-        # Start monitoring threads
-        stdout_thread = threading.Thread(target=read_stdout, name=f"stdout-{plan_id}")
-        stderr_thread = threading.Thread(target=read_stderr, name=f"stderr-{plan_id}")
-        stdout_thread.start()
-        stderr_thread.start()
+        # Start monitoring tasks concurrently
+        stdout_task = asyncio.create_task(read_stdout())
+        stderr_task = asyncio.create_task(read_stderr())
 
-        # Wait for process completion
-        return_code = process.wait()
+        # Wait for process completion in executor (blocking operation)
+        loop = asyncio.get_event_loop()
+        return_code = await loop.run_in_executor(None, process.wait)
         print(f"DEBUG: Luigi process completed with return code: {return_code}")
 
-        # Wait for monitoring threads to complete
-        stdout_thread.join(timeout=5.0)
-        stderr_thread.join(timeout=5.0)
+        # Wait for monitoring tasks to complete
+        try:
+            await asyncio.wait_for(asyncio.gather(stdout_task, stderr_task), timeout=5.0)
+        except asyncio.TimeoutError:
+            print(f"Warning: Monitoring tasks for plan {plan_id} timed out")
+            stdout_task.cancel()
+            stderr_task.cancel()
 
         # Update final plan status based on results
-        self._finalize_plan_status(plan_id, return_code, run_id_dir, db_service, progress_queue)
+        await self._finalize_plan_status(plan_id, return_code, run_id_dir, db_service)
 
-    def _finalize_plan_status(self, plan_id: str, return_code: int, run_id_dir: Path,
-                            db_service: DatabaseService, progress_queue: queue.Queue) -> None:
-        """Update final plan status and index generated files"""
+    async def _finalize_plan_status(self, plan_id: str, return_code: int, run_id_dir: Path,
+                                  db_service: DatabaseService) -> None:
+        """Update final plan status, index generated files, and broadcast via WebSocket"""
 
         if return_code == 0:
             # Check for expected final output file
             final_output_file = run_id_dir / "999-final-report.html"
 
             if final_output_file.exists():
-                # Success - send completion message
+                # Success - broadcast completion message
+                success_data = {
+                    "type": "status",
+                    "status": "completed",
+                    "message": "✅ Pipeline completed successfully! All files generated.",
+                    "progress_percentage": 100,
+                    "timestamp": datetime.utcnow().isoformat()
+                }
                 try:
-                    success_data = {
-                        "type": "status",
-                        "status": "completed",
-                        "message": "✅ Pipeline completed successfully! All files generated."
-                    }
-                    progress_queue.put_nowait(success_data)
-                except queue.Full:
-                    pass
+                    await websocket_manager.broadcast_to_plan(plan_id, success_data)
+                except Exception as e:
+                    print(f"WebSocket success broadcast failed for plan {plan_id}: {e}")
 
                 # Index all generated files
                 files = list(run_id_dir.iterdir())
@@ -298,15 +337,16 @@ class PipelineExecutionService:
                 })
             else:
                 # Pipeline completed but no final output
+                failure_data = {
+                    "type": "status",
+                    "status": "failed",
+                    "message": "❌ Pipeline completed but final output file not found",
+                    "timestamp": datetime.utcnow().isoformat()
+                }
                 try:
-                    failure_data = {
-                        "type": "status",
-                        "status": "failed",
-                        "message": "❌ Pipeline completed but final output file not found"
-                    }
-                    progress_queue.put_nowait(failure_data)
-                except queue.Full:
-                    pass
+                    await websocket_manager.broadcast_to_plan(plan_id, failure_data)
+                except Exception as e:
+                    print(f"WebSocket failure broadcast failed for plan {plan_id}: {e}")
 
                 db_service.update_plan(plan_id, {
                     "status": PlanStatus.failed.value,
@@ -314,47 +354,60 @@ class PipelineExecutionService:
                 })
         else:
             # Process failed
+            failure_data = {
+                "type": "status",
+                "status": "failed",
+                "message": f"❌ Pipeline failed with exit code {return_code}",
+                "timestamp": datetime.utcnow().isoformat()
+            }
             try:
-                failure_data = {
-                    "type": "status",
-                    "status": "failed",
-                    "message": f"❌ Pipeline failed with exit code {return_code}"
-                }
-                progress_queue.put_nowait(failure_data)
-            except queue.Full:
-                pass
+                await websocket_manager.broadcast_to_plan(plan_id, failure_data)
+            except Exception as e:
+                print(f"WebSocket failure broadcast failed for plan {plan_id}: {e}")
 
             db_service.update_plan(plan_id, {
                 "status": PlanStatus.failed.value,
                 "error_message": f"Pipeline process failed with exit code {return_code}"
             })
 
-        # Signal end of stream
+        # Signal end of stream and cleanup connections
+        end_data = {
+            "type": "stream_end",
+            "message": "Pipeline execution completed - closing connections",
+            "timestamp": datetime.utcnow().isoformat()
+        }
         try:
-            progress_queue.put_nowait(None)  # End signal
-        except queue.Full:
-            pass
+            await websocket_manager.broadcast_to_plan(plan_id, end_data)
+            # Clean up plan connections after final broadcast
+            await websocket_manager.cleanup_plan_connections(plan_id)
+        except Exception as e:
+            print(f"WebSocket end stream broadcast failed for plan {plan_id}: {e}")
 
-    def _cleanup_execution(self, plan_id: str) -> None:
-        """Clean up execution resources"""
-        # Remove process reference
-        if plan_id in running_processes:
-            del running_processes[plan_id]
+    async def _cleanup_execution(self, plan_id: str) -> None:
+        """Clean up execution resources and WebSocket connections"""
+        # Remove process reference from thread-safe registry
+        process = process_registry.unregister(plan_id)
+        if process:
+            print(f"DEBUG: Removed process reference for plan {plan_id}")
+
+        # Ensure all WebSocket connections are cleaned up
+        await websocket_manager.cleanup_plan_connections(plan_id)
 
         print(f"DEBUG: Cleaned up execution resources for {plan_id}")
 
-    def get_progress_stream(self, plan_id: str) -> Optional[queue.Queue]:
-        """Get progress stream queue for a plan"""
-        return progress_streams.get(plan_id)
+    def get_process(self, plan_id: str) -> Optional[subprocess.Popen]:
+        """Get subprocess reference for a plan (thread-safe)"""
+        return process_registry.get(plan_id)
 
-    def cleanup_progress_stream(self, plan_id: str) -> None:
-        """Clean up progress stream for a plan"""
-        if plan_id in progress_streams:
-            # Empty the queue
-            while not progress_streams[plan_id].empty():
-                try:
-                    progress_streams[plan_id].get_nowait()
-                except queue.Empty:
-                    break
-            del progress_streams[plan_id]
-            print(f"Cleaned up progress stream for plan {plan_id}")
+    def terminate_plan_execution(self, plan_id: str) -> bool:
+        """Terminate a running plan execution (thread-safe)"""
+        process = process_registry.get(plan_id)
+        if process and process.poll() is None:  # Process is still running
+            try:
+                process.terminate()
+                print(f"Terminated process for plan {plan_id}")
+                return True
+            except Exception as e:
+                print(f"Failed to terminate process for plan {plan_id}: {e}")
+                return False
+        return False
