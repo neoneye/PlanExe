@@ -11,6 +11,7 @@ import React, { useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Zap, Brain, Target, Users, FileText, Activity, Sparkles } from 'lucide-react';
 import { PlanForm } from '@/components/planning/PlanForm';
 import { ProgressMonitor } from '@/components/monitoring/ProgressMonitor';
 import { FileManager } from '@/components/files/FileManager';
@@ -82,51 +83,125 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 px-6 py-6 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">PlanExe</h1>
-            <p className="text-sm text-gray-600">AI-Powered Strategic Planning System</p>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                <Brain className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  PlanExe
+                </h1>
+                <p className="text-sm text-gray-600 font-medium">AI-Powered Strategic Planning System</p>
+              </div>
+            </div>
           </div>
           <div className="flex items-center space-x-4">
             {activePlanId && (
-              <Badge variant={'default'}>
-                PLANNING
-              </Badge>
+              <div className="flex items-center space-x-2">
+                <Activity className="h-4 w-4 text-blue-600 animate-pulse" />
+                <Badge variant="default" className="bg-blue-600 hover:bg-blue-700 animate-pulse">
+                  PLANNING IN PROGRESS
+                </Badge>
+              </div>
             )}
+            <Badge variant="outline" className="text-xs">
+              v1.0.0
+            </Badge>
           </div>
         </div>
       </header>
 
+      {/* Hero Section - only show when no active plan */}
+      {!activePlanId && (
+        <section className="relative overflow-hidden">
+          <div className="max-w-7xl mx-auto px-6 py-16">
+            <div className="text-center space-y-8">
+              <div className="space-y-4">
+                <h2 className="text-5xl font-bold text-gray-900 leading-tight">
+                  Transform Ideas Into
+                  <span className="block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    Actionable Plans
+                  </span>
+                </h2>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                  Our AI-powered Luigi pipeline analyzes your ideas through 61 sophisticated tasks,
+                  creating comprehensive strategic plans with detailed analysis, resource planning, and implementation roadmaps.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+                <Card className="flex flex-col items-center p-6 bg-white/60 backdrop-blur-sm border border-gray-200 hover:shadow-lg transition-all duration-200">
+                  <Target className="h-12 w-12 text-blue-600 mb-4" />
+                  <CardTitle className="text-lg mb-2">Strategic Analysis</CardTitle>
+                  <p className="text-sm text-gray-600 text-center">Deep analysis of goals, constraints, and success factors</p>
+                </Card>
+                <Card className="flex flex-col items-center p-6 bg-white/60 backdrop-blur-sm border border-gray-200 hover:shadow-lg transition-all duration-200">
+                  <Users className="h-12 w-12 text-purple-600 mb-4" />
+                  <CardTitle className="text-lg mb-2">Resource Planning</CardTitle>
+                  <p className="text-sm text-gray-600 text-center">Team structure, budgets, and timeline optimization</p>
+                </Card>
+                <Card className="flex flex-col items-center p-6 bg-white/60 backdrop-blur-sm border border-gray-200 hover:shadow-lg transition-all duration-200">
+                  <FileText className="h-12 w-12 text-green-600 mb-4" />
+                  <CardTitle className="text-lg mb-2">Implementation</CardTitle>
+                  <p className="text-sm text-gray-600 text-center">Step-by-step execution with dependencies and milestones</p>
+                </Card>
+                <Card className="flex flex-col items-center p-6 bg-white/60 backdrop-blur-sm border border-gray-200 hover:shadow-lg transition-all duration-200">
+                  <Sparkles className="h-12 w-12 text-orange-600 mb-4" />
+                  <CardTitle className="text-lg mb-2">AI-Powered</CardTitle>
+                  <p className="text-sm text-gray-600 text-center">Luigi pipeline with 61 interconnected analysis tasks</p>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         <Tabs defaultValue="create" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="create">Create Plan</TabsTrigger>
-            <TabsTrigger value="queue">Plans Queue</TabsTrigger>
-            <TabsTrigger value="monitor" disabled={!activePlanId}>
-              Monitor Progress
+          <TabsList className="grid w-full grid-cols-5 bg-white/80 backdrop-blur-sm p-1 rounded-xl shadow-lg border border-gray-200">
+            <TabsTrigger value="create" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white flex items-center space-x-2">
+              <Zap className="h-4 w-4" />
+              <span>Create Plan</span>
             </TabsTrigger>
-            <TabsTrigger value="details" disabled={!activePlanId}>
-              Details
+            <TabsTrigger value="queue" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white flex items-center space-x-2">
+              <FileText className="h-4 w-4" />
+              <span>Plans Queue</span>
             </TabsTrigger>
-            <TabsTrigger value="files" disabled={!activePlanId}>
-              View Files
+            <TabsTrigger value="monitor" disabled={!activePlanId} className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white flex items-center space-x-2">
+              <Activity className="h-4 w-4" />
+              <span>Monitor Progress</span>
+            </TabsTrigger>
+            <TabsTrigger value="details" disabled={!activePlanId} className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white flex items-center space-x-2">
+              <Target className="h-4 w-4" />
+              <span>Details</span>
+            </TabsTrigger>
+            <TabsTrigger value="files" disabled={!activePlanId} className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white flex items-center space-x-2">
+              <FileText className="h-4 w-4" />
+              <span>View Files</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="create" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Create New Strategic Plan</CardTitle>
-                <CardDescription>
-                  Use AI to generate comprehensive strategic plans with detailed analysis, 
-                  resource planning, and implementation roadmaps.
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            {!activePlanId && (
+              <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-2xl">
+                    <Brain className="h-6 w-6 text-blue-600" />
+                    <span>Create New Strategic Plan</span>
+                  </CardTitle>
+                  <CardDescription className="text-lg">
+                    Describe your project or idea below. Our AI will analyze it through 61 specialized tasks
+                    to create a comprehensive strategic plan with detailed analysis, resource planning, and implementation roadmaps.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            )}
 
             {/* Show Progress Monitor if plan is active, otherwise show form */}
             {activePlanId ? (

@@ -178,7 +178,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel htmlFor="llm-model-select">AI Model *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting} name="llm_model">
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting} name="llm_model">
                           <FormControl>
                             <SelectTrigger id="llm-model-select">
                               <SelectValue placeholder="Select AI model" />
