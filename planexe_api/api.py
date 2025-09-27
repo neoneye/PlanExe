@@ -211,6 +211,36 @@ async def get_models():
         raise HTTPException(status_code=500, detail=f"Failed to get models: {str(e)}")
 
 
+# Railway debugging endpoint for models
+@app.get("/api/models/debug")
+async def debug_models():
+    """Debug endpoint to check LLM configuration on Railway"""
+    debug_info = {
+        "railway_environment": os.getenv("PLANEXE_CLOUD_MODE", "false") == "true",
+        "llm_config_available": False,
+        "llm_info_available": False,
+        "config_items_count": 0,
+        "config_dict_keys": [],
+        "error_details": None
+    }
+    
+    try:
+        # Check if llm_config is available
+        if llm_config:
+            debug_info["llm_config_available"] = True
+            debug_info["config_dict_keys"] = list(llm_config.llm_config_dict.keys())
+        
+        # Check if llm_info is available  
+        if llm_info:
+            debug_info["llm_info_available"] = True
+            debug_info["config_items_count"] = len(llm_info.llm_config_items)
+            
+    except Exception as e:
+        debug_info["error_details"] = str(e)
+    
+    return debug_info
+
+
 # Prompt examples endpoint
 @app.get("/api/prompts", response_model=List[PromptExample])
 async def get_prompts():
