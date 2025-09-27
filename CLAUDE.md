@@ -67,7 +67,7 @@ flowchart TB
 
 ### **Backend API (`planexe_api/`)**
 - **Technology**: FastAPI, SQLAlchemy, PostgreSQL/SQLite
-- **Port**: 8000 (development) - **CONFIRMED from package.json**
+- **Port**: 8080 (development) - **CONFIRMED from package.json**
 - **Purpose**: REST wrapper around Luigi pipeline
 - **Features**: Real-time SSE, file downloads, plan management
 - **Status**: ✅ Fully functional with enhanced logging (v0.1.4)
@@ -80,9 +80,11 @@ flowchart TB
 - **Status**: ⚠️ Stable but extremely complex - DO NOT MODIFY
 
 ### **Documentation (`docs/`)**
-- **`run_plan_pipeline_documentation.md`**: Complete Luigi pipeline documentation
-- **`FRONTEND-ARCHITECTURE-FIX-PLAN.md`**: Frontend architecture decisions
-- **`19092025-NextJS-Implementation-Plan.md`**: Implementation strategy
+- **`LUIGI.md`**: Luigi pipeline documentation
+- **`CODEBASE-INDEX.md`**: Codebase index
+- **`RUN_PLAN_PIPELINE_DOCUMENTATION.md`**: Luigi pipeline documentation
+- **`HOW-THIS-ACTUALLY-WORKS.md`**: How the system works
+
 
 ## 🚀 **Development Commands**
 
