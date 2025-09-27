@@ -185,7 +185,12 @@ async def health_check():
 @app.get("/ping")
 async def ping():
     """Ultra simple ping endpoint"""
-    return {"ping": "pong"}
+    return {
+        "ping": "pong",
+        "timestamp": "2025-09-27T16:01:00Z",
+        "railway_deployment_test": "latest_code_deployed",
+        "api_routes_working": True
+    }
 
 
 # LLM models endpoint
