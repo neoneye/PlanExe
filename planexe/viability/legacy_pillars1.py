@@ -17,7 +17,7 @@ Key Features:
 - Markdown output for human-readable reports
 - Follows the same patterns as executive_summary.py for consistency
 
-PROMPT> python -m planexe.viability.pillars1
+PROMPT> python -m planexe.viability.legacy_pillars1
 """
 import json
 import time

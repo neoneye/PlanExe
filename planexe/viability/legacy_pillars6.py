@@ -8,7 +8,7 @@ Based on ViabilityAssessor protocol from README.md.
 - Validator auto-repair applied post-LLM.
 - Similar structure to viability_desired_output1.json, but focused on pillars for now.
 
-PROMPT> python -m planexe.viability.pillars6
+PROMPT> python -m planexe.viability.legacy_pillars6
 """
 import os
 import json

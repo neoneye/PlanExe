@@ -18,7 +18,7 @@ The primary goal is to establish an authoritative, evidence-gated scope for the
 viability assessment, ensuring that risks and weaknesses are framed within these
 four deterministic categories.
 
-PROMPT> python -m planexe.viability.pillars5
+PROMPT> python -m planexe.viability.legacy_pillars5
 """
 import os
 import json

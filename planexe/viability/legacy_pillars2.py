@@ -12,7 +12,7 @@ This module queries an LLM for a raw pillars JSON, then *validates and repairs* 
 
 It is safe to run on weaker models. If no LLM is available, it falls back to a minimal stub.
 
-PROMPT> python -m planexe.viability.pillars2
+PROMPT> python -m planexe.viability.legacy_pillars2
 """
 from __future__ import annotations
 
