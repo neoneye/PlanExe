@@ -1,4 +1,6 @@
 """
+DO NOT USE, it's broken and doesn't use the PlanExe LLMs correctly.
+
 Step 1: Pillars assessment for the ViabilityAssessor pipeline.
 
 This module queries an LLM for a raw pillars JSON, then *validates and repairs* it:
