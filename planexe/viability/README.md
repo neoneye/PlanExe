@@ -83,30 +83,46 @@ Goal: Establish the authoritative scope and evidence gates. No blockers yet.
 
 Input
 	•	Plan synopsis (text)
-	•	The enums above
+	•	Pillar and reason-code enums
 
-Output (JSON)
+Output (JSON) — what the LLM must emit
 
 {
   "pillars": [
     {
       "pillar": "HumanStability",
-      "color": "YELLOW",
+      "light": "YELLOW",
       "score": 60,
       "reason_codes": ["STAFF_AVERSION"],
       "evidence_todo": ["Stakeholder survey baseline"]
     }
-  ],
-  "rules_applied": {
-    "color_to_score": {"GREEN":[70,100], "YELLOW":[40,69], "RED":[0,39], "GRAY":null},
-    "evidence_gate": "No GREEN unless evidence_todo is empty"
-  }
+  ]
 }
 
-Guardrails
-	•	pillar must be in PILLAR_ENUM. Unknown → emit GRAY.
-	•	If score is present, it must fall in the color’s band; otherwise the validator snaps to band midpoint.
-	•	Evidence gating: GREEN requires evidence_todo to be empty.
+Note: The model outputs only the pillars array. No inline rule metadata.
+
+Interpretation & validation (spec — not emitted by the LLM)
+	•	Enumerations
+	•	light ∈ {"GREEN","YELLOW","RED","GRAY"}
+	•	pillar ∈ PILLAR_ENUM (unknown pillar names → treated as GRAY)
+	•	reason_codes must come from the whitelist for that pillar (enforced downstream)
+	•	Score bands
+	•	GREEN: 70–100
+	•	YELLOW: 40–69
+	•	RED: 0–39
+	•	GRAY: score must be null
+	•	Validator behavior
+	•	If light ≠ GRAY and score is missing or outside the band, the validator snaps to the band midpoint (GREEN:85, YELLOW:55, RED:20).
+	•	If light == GRAY, score must be null (validator will null it if present).
+	•	Unknown/unsupported pillar values are coerced to { "light":"GRAY", "score":null }.
+	•	Evidence gating
+	•	GREEN requires no open evidence items: evidence_todo must be empty.
+	•	YELLOW/RED may have evidence_todo entries.
+	•	Recommendation: For GRAY, include at least one concrete “first measurement” in evidence_todo to exit unknown.
+	•	Formatting & determinism
+	•	Emit plain JSON (no Markdown).
+	•	Keep field names stable and lowercase with underscores for arrays.
+	•	Order pillars consistently (e.g., the canonical PILLAR_ENUM order).
 
 ⸻
 
