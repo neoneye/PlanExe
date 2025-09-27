@@ -24,7 +24,7 @@ import { CreatePlanRequest, fastApiClient } from '@/lib/api/fastapi-client';
 export default function Home() {
   // Session store available but not used in this component
   // const { session, createSession, loadSession } = useSessionStore();
-  const { llmModels, promptExamples, loadLLMModels, loadPromptExamples } = useConfigStore();
+  const { llmModels, promptExamples, modelsError, isLoadingModels, loadLLMModels, loadPromptExamples } = useConfigStore();
   
   // Simple, local state management instead of the complex planning store
   const [activePlanId, setActivePlanId] = React.useState<string | null>(null);
@@ -218,6 +218,8 @@ export default function Home() {
                 isSubmitting={isCreating}
                 llmModels={llmModels}
                 promptExamples={promptExamples}
+                modelsError={modelsError}
+                isLoadingModels={isLoadingModels}
               />
             )}
 

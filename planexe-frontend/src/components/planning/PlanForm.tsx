@@ -28,6 +28,8 @@ interface PlanFormProps {
   llmModels?: LLMModel[];
   promptExamples?: PromptExample[];
   className?: string;
+  modelsError?: string | null;
+  isLoadingModels?: boolean;
 }
 
 export const PlanForm: React.FC<PlanFormProps> = ({
@@ -35,7 +37,9 @@ export const PlanForm: React.FC<PlanFormProps> = ({
   isSubmitting = false,
   llmModels = [],
   promptExamples = [],
-  className = ''
+  className = '',
+  modelsError = null,
+  isLoadingModels = false
 }) => {
   const [selectedModelRequiresKey, setSelectedModelRequiresKey] = useState(false);
   const [selectedExample, setSelectedExample] = useState<string>('');
@@ -178,32 +182,59 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel htmlFor="llm-model-select">AI Model *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting} name="llm_model">
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting || isLoadingModels} name="llm_model">
                           <FormControl>
                             <SelectTrigger id="llm-model-select">
-                              <SelectValue placeholder="Select AI model" />
+                              <SelectValue placeholder={
+                                isLoadingModels ? "Loading models..." :
+                                modelsError ? "Error loading models" :
+                                llmModels.length === 0 ? "No models available" :
+                                "Select AI model"
+                              } />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {llmModels.map((model) => (
-                              <SelectItem key={model.id} value={model.id}>
+                            {isLoadingModels ? (
+                              <SelectItem value="" disabled>
                                 <div className="flex items-center space-x-2">
-                                  <span>{model.label ?? model.id}</span>
-                                  <Badge variant={(model.requires_api_key) ? 'default' : 'secondary'}>
-                                    {model.comment}
-                                  </Badge>
-                                  {model.requires_api_key && (
-                                    <Badge variant="outline" className="text-xs">
-                                      API Key
-                                    </Badge>
-                                  )}
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  <span>Loading models...</span>
                                 </div>
                               </SelectItem>
-                            ))}
+                            ) : modelsError ? (
+                              <SelectItem value="" disabled>
+                                <div className="flex items-center space-x-2 text-red-600">
+                                  <span>❌ Error: {modelsError}</span>
+                                </div>
+                              </SelectItem>
+                            ) : llmModels.length === 0 ? (
+                              <SelectItem value="" disabled>
+                                <div className="flex items-center space-x-2 text-orange-600">
+                                  <span>⚠️ No models found</span>
+                                </div>
+                              </SelectItem>
+                            ) : (
+                              llmModels.map((model) => (
+                                <SelectItem key={model.id} value={model.id}>
+                                  <div className="flex items-center space-x-2">
+                                    <span>{model.label ?? model.id}</span>
+                                    <Badge variant={(model.requires_api_key) ? 'default' : 'secondary'}>
+                                      {model.comment}
+                                    </Badge>
+                                    {model.requires_api_key && (
+                                      <Badge variant="outline" className="text-xs">
+                                        API Key
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                         <FormDescription>
                           Choose the AI model for plan generation. Paid models generally provide higher quality results.
+                          {llmModels.length === 0 && <span className="text-red-600 block">⚠️ No models loaded - check connection</span>}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
