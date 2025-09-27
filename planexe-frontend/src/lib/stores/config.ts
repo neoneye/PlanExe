@@ -85,8 +85,8 @@ export const useConfigStore = create<ConfigState>()(
         set({ isLoadingModels: true, modelsError: null });
 
         try {
-          // Fetch real models from FastAPI backend
-          const response = await fetch('/api/models');
+          // Fetch real models from FastAPI backend using proper client
+          const response = await fetch('http://localhost:8080/api/models');
 
           if (!response.ok) {
             throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
@@ -167,7 +167,7 @@ export const useConfigStore = create<ConfigState>()(
       // Test LLM model availability
       testLLMModel: async (modelId, apiKey) => {
         try {
-          const response = await fetch('/api/config/llms/test', {
+          const response = await fetch('http://localhost:8080/api/config/llms/test', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -192,7 +192,7 @@ export const useConfigStore = create<ConfigState>()(
       // Check system health
       checkSystemHealth: async () => {
         try {
-          const response = await fetch('/api/health');
+          const response = await fetch('http://localhost:8080/health');
           
           if (!response.ok) {
             set((state) => ({

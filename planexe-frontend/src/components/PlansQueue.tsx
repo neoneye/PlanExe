@@ -12,17 +12,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, RotateCcw, ExternalLink } from 'lucide-react'
+import { fastApiClient, PlanResponse } from '@/lib/api/fastapi-client'
 
-interface Plan {
-  plan_id: string
-  status: 'pending' | 'running' | 'completed' | 'failed'
-  created_at: string
-  prompt: string
-  progress_percentage: number
-  progress_message: string
-  error_message?: string
-  output_dir: string
-}
+// Use the PlanResponse type from fastapi-client instead of local interface
 
 interface PlansQueueProps {
   className?: string
@@ -31,18 +23,15 @@ interface PlansQueueProps {
 }
 
 export function PlansQueue({ className, onPlanSelect, onPlanRetry }: PlansQueueProps) {
-  const [plans, setPlans] = useState<Plan[]>([])
+  const [plans, setPlans] = useState<PlanResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [retryingPlanId, setRetryingPlanId] = useState<string | null>(null)
 
   // Fetch all plans
   const fetchPlans = async () => {
     try {
-      const response = await fetch('/api/plans')
-      if (response.ok) {
-        const plansData = await response.json()
-        setPlans(plansData.reverse()) // Show newest first
-      }
+      const plansData = await fastApiClient.getPlans()
+      setPlans(plansData.reverse()) // Show newest first
     } catch (error) {
       console.error('Failed to fetch plans:', error)
     } finally {

@@ -122,7 +122,6 @@ llm_config = PlanExeLLMConfig.load()
 pipeline_service = PipelineExecutionService(planexe_project_root)
 
 # Database initialization
-database = get_database()
 create_tables()
 
 
