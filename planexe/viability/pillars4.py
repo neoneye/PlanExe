@@ -95,16 +95,6 @@ COLOR_MIDPOINT = {
     "RED": 20,
 }
 
-DEFAULT_RULES_APPLIED = {
-    "color_to_score": {
-        "GREEN": [70, 100],
-        "YELLOW": [40, 69],
-        "RED": [0, 39],
-        "GRAY": None,
-    },
-    "evidence_gate": "No GREEN unless evidence_todo is empty; GREEN requires strength code or rationale",
-}
-
 DEFAULT_EVIDENCE_ITEM = "Gather evidence for assessment"
 
 # --- NEW: strength codes allowed for GREEN and canonical evidence templates ---
@@ -196,7 +186,6 @@ class PillarItemSchema(BaseModel):
 
 class PillarsSchema(BaseModel):
     pillars: List[PillarItemSchema] = Field(default_factory=list)
-    rules_applied: Optional[Dict[str, Any]] = Field(default=None)
 
     class Config:
         extra = "ignore"
@@ -208,8 +197,8 @@ class PillarsSchema(BaseModel):
 
 PILLARS_SYSTEM_PROMPT = f"""
 You output JSON only. No prose, no markdown.
-Task: Step 1 (PILLARS) of the Viability protocol. Emit an object with fields
-"pillars" (array of 4 items) and "rules_applied".
+Task: Step 1 (PILLARS) of the Viability protocol. Emit an object with the field
+"pillars" (array of 4 items).
 
 Rules:
 - Emit exactly one item per pillar in this order: {', '.join(PILLAR_ORDER)}.
@@ -228,8 +217,7 @@ Return JSON shaped like:
     {{"pillar":"HumanStability","color":"YELLOW","score":60,
       "reason_codes":["STAFF_AVERSION"],
       "evidence_todo":["Stakeholder survey baseline"]}}
-  ],
-  "rules_applied": {json.dumps(DEFAULT_RULES_APPLIED)}
+  ]
 }}
 """.strip()
 
@@ -241,7 +229,7 @@ Return JSON shaped like:
 def _extract_json_from_text(text: str) -> Dict[str, Any]:
     text = text.strip()
     if not text:
-        return {"pillars": [], "rules_applied": {}}
+        return {"pillars": []}
 
     if text.startswith("{"):
         try:
@@ -260,7 +248,7 @@ def _extract_json_from_text(text: str) -> Dict[str, Any]:
                 return json.loads(chunk)
             except json.JSONDecodeError:
                 continue
-    return {"pillars": [], "rules_applied": {}}
+    return {"pillars": []}
 
 
 def _ensure_list(value: Optional[Iterable[str]]) -> List[str]:
@@ -413,11 +401,7 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
             **({"strength_rationale": p["strength_rationale"]} if p.get("strength_rationale") else {}),
         })
 
-    return {"pillars": validated,
-            "rules_applied": {
-                "color_to_score": COLOR_TO_SCORE,
-                "evidence_gate": "No GREEN unless evidence_todo is empty; GREEN requires strength code or rationale"
-            }}
+    return {"pillars": validated}
 
 
 # ---------------------------------------------------------------------------
@@ -460,9 +444,6 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
             for item in evidence:
                 rows.append(f"- {item}")
         rows.append("")
-
-    rows.append("## Assessment Rules")
-    rows.append(f"- **Evidence Gate**: {DEFAULT_RULES_APPLIED['evidence_gate']}")
 
     markdown = "\n".join(rows)
     return fix_bullet_lists(markdown)
