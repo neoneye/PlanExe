@@ -1,6 +1,6 @@
 # PlanExe Codebase Index
-
-**Generated**: 2025-01-27  
+THIS DOC INCORRECTLY STATES THAT WE USE PORT 8000 FOR THE FASTAPI SERVER. WE USE PORT 8080!!!!  THIS NEEDS FIXED!!!
+**Generated**: 2025-09-27  
 **Version**: 0.1.5  
 **Purpose**: Comprehensive index and architectural overview of the PlanExe AI-powered planning system
 

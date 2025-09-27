@@ -28,7 +28,7 @@ flowchart TB
         A4[FastAPI Client]
     end
 
-    subgraph API ["FastAPI Server (Port 8000)"]
+    subgraph API ["FastAPI Server (Port 8080)"]
         B1[REST Endpoints]
         B2[Server-Sent Events]
         B3[Database ORM]
