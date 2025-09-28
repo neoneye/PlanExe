@@ -682,8 +682,12 @@ class PillarsAssessment:
         return result
 
     def save_raw(self, file_path: str) -> None:
-        with open(file_path, "w", encoding="utf-8") as handle:
-            json.dump(self.to_dict(), handle, indent=2, ensure_ascii=False)
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(self.to_dict(), f, indent=2, ensure_ascii=False)
+
+    def save_markdown(self, output_file_path: str):
+        with open(output_file_path, 'w', encoding='utf-8') as f:
+            f.write(self.markdown)
 
 
 if __name__ == "__main__":  # pragma: no cover
