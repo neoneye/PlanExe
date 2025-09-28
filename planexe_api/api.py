@@ -64,15 +64,8 @@ if IS_DEVELOPMENT:
 else:
     print("Production mode: CORS disabled, serving static UI")
 
-# Static file serving for production (Railway single-service deployment)
-if not IS_DEVELOPMENT:
-    static_dir = Path("/app/ui_static")
-    if static_dir.exists():
-        app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")
-        print(f"Serving static UI from: {static_dir}")
-    else:
-        print(f"Warning: Static UI directory not found: {static_dir}")
-        print("   This is expected in local development mode")
+
+STATIC_UI_DIR: Optional[Path] = Path("/app/ui_static") if not IS_DEVELOPMENT else None
 
 # Initialize cloud-native configuration system
 print("=== PlanExe API Initialization ===")
@@ -656,6 +649,17 @@ async def list_plans(db: DatabaseService = Depends(get_database)):
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get plans: {str(e)}")
+
+# Mount static frontend after all API routes are registered (production only)
+if not IS_DEVELOPMENT:
+    if STATIC_UI_DIR and STATIC_UI_DIR.exists():
+        app.mount("/", StaticFiles(directory=str(STATIC_UI_DIR), html=True), name="static")
+        print(f"Serving static UI from: {STATIC_UI_DIR}")
+    else:
+        missing_dir = STATIC_UI_DIR or Path("/app/ui_static")
+        print(f"Warning: Static UI directory not found: {missing_dir}")
+        print("   This is expected in local development mode or before frontend build")
+
 
 
 if __name__ == "__main__":
