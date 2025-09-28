@@ -67,13 +67,11 @@ def make_pillars_system_prompt(
 
     # ---- Derived values -----------------------------------------------------
     def _midpoints(bands: Dict[str, Optional[Tuple[int, int]]]) -> Dict[str, Optional[int]]:
-        out = {}
+        # Hardcode rounded midpoints to match validator logic.
+        MIDPOINT_OVERRIDES = {"GREEN": 85, "YELLOW": 55, "RED": 20}
+        out: Dict[str, Optional[int]] = {}
         for k, rng in bands.items():
-            if rng is None:
-                out[k] = None
-            else:
-                lo, hi = rng
-                out[k] = (lo + hi) // 2
+            out[k] = MIDPOINT_OVERRIDES.get(k) if rng is not None else None
         return out
 
     BAND_MIDPOINTS = _midpoints(STATUS_BANDS)
