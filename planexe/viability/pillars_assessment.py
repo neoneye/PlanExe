@@ -9,21 +9,9 @@ and enum-driven so GPT-5 style models can comply, while still providing:
 - Auto-repair that enforces status/score bands, evidence gating, and reason-code whitelists.
 - Deterministic markdown rendering (never trust the model to format it).
 
-Usage
------
-
-```
-from planexe.viability.pillars import PillarsAssessmentResult
-from planexe.llm_factory import get_llm
-
-llm = get_llm("gpt-4o-mini")
-result = PillarsAssessmentResult.execute(llm, plan_text)
-print(result.markdown)
-```
-
 IDEA: Extract the REASON_CODES_BY_PILLAR, DEFAULT_EVIDENCE_BY_PILLAR, EVIDENCE_TEMPLATES into a JSON file.
 
-PROMPT> python -u -m planexe.viability.pillars | tee output_a.txt
+PROMPT> python -u -m planexe.viability.pillars_assessment | tee output_a.txt
 """
 from __future__ import annotations
 
@@ -614,7 +602,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 
 @dataclass
-class PillarsAssessmentResult:
+class PillarsAssessment:
     system_prompt: str
     user_prompt: str
     response: Dict[str, Any]
@@ -622,7 +610,7 @@ class PillarsAssessmentResult:
     metadata: Dict[str, Any]
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> "PillarsAssessmentResult":
+    def execute(cls, llm: LLM, user_prompt: str) -> "PillarsAssessment":
         if not isinstance(user_prompt, str):
             raise TypeError("user_prompt must be a string")
         if not isinstance(llm, LLM):
@@ -722,7 +710,7 @@ def main() -> None:  # pragma: no cover - convenience helper
     llm = get_llm(model_name)
 
     print(f"PILLARS_SYSTEM_PROMPT: {PILLARS_SYSTEM_PROMPT}\n\n")
-    result = PillarsAssessmentResult.execute(llm, plan_text)
+    result = PillarsAssessment.execute(llm, plan_text)
     print(json.dumps(result.response, indent=2, ensure_ascii=False))
     print("\nMarkdown:\n")
     print(result.markdown)
