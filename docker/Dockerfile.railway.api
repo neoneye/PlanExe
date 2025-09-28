@@ -3,6 +3,16 @@
 # PURPOSE: Railway-optimized Dockerfile for PlanExe API server - handles Railway's PORT variable and environment
 # SRP and DRY check: Pass - Single responsibility of Railway API containerization
 
+FROM node:20-bullseye-slim AS frontend-builder
+
+WORKDIR /app/planexe-frontend
+
+# Install dependencies and build static Next.js export
+COPY planexe-frontend/package*.json ./
+RUN npm ci
+COPY planexe-frontend/ .
+RUN npm run build:static
+
 FROM python:3.13-slim
 
 # Set working directory
@@ -26,6 +36,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # Copy application code
 COPY . .
+
+# Copy built frontend static assets into location served by FastAPI
+COPY --from=frontend-builder /app/planexe-frontend/out /app/ui_static
 
 # Create run directory for plan outputs
 RUN mkdir -p /app/run && chmod 755 /app/run

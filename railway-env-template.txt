@@ -29,8 +29,3 @@ PYTHONUNBUFFERED=1
 # PORT=...
 # RAILWAY_ENVIRONMENT=production
 
-# === FRONTEND ENVIRONMENT VARIABLES ===
-# Set in the frontend service:
-# NEXT_PUBLIC_API_URL=https://your-api-service.railway.app
-# NODE_ENV=production
-# NEXT_TELEMETRY_DISABLED=1
