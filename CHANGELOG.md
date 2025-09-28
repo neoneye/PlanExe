@@ -4,6 +4,7 @@
 - **Docker pipeline**: `docker/Dockerfile.railway.api` now builds the Next.js frontend and copies the static export into `/app/ui_static`, eliminating the separate UI image.
 - **Single Railway service**: FastAPI serves both the UI and API; remove legacy `planexe-frontend` services from Railway projects.
 - **Environment simplification**: `NEXT_PUBLIC_API_URL` is now optional; the client defaults to relative paths when running in Railway.
+- **Static mount**: Mounted the UI after registering API routes so `/api/*` responses bypass the static handler.
 
 ### dY"s **Documentation Refresh**
 - **RAILWAY-SETUP-GUIDE.md**: Updated to describe the single-service workflow end-to-end.
