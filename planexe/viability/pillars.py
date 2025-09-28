@@ -63,18 +63,35 @@ PILLAR_DISPLAY_NAMES: Dict[str, str] = {
 }
 
 REASON_CODES_BY_PILLAR: Dict[str, List[str]] = {
-    "HumanStability": ["TALENT_UNKNOWN", "STAFF_AVERSION"],
+    "HumanStability": [
+        "TALENT_UNKNOWN",
+        "STAFF_AVERSION",
+        "GOVERNANCE_WEAK",
+        "CHANGE_MGMT_GAPS",
+        "TRAINING_GAPS",
+        "STAKEHOLDER_CONFLICT",
+        "SAFETY_CULTURE_WEAK",
+    ],
     "EconomicResilience": [
         "CONTINGENCY_LOW",
         "SINGLE_CUSTOMER",
         "ALT_COST_UNKNOWN",
         "LEGACY_IT",
         "INTEGRATION_RISK",
+        "UNIT_ECON_UNKNOWN",
+        "SUPPLIER_CONCENTRATION",
+        "SPOF_DEPENDENCY",
+        "BIA_MISSING",
+        "DR_TEST_GAPS",
     ],
     "EcologicalIntegrity": [
         "CLOUD_CARBON_UNKNOWN",
         "CLIMATE_UNQUANTIFIED",
         "WATER_STRESS",
+        "EIA_MISSING",
+        "BIODIVERSITY_RISK_UNSET",
+        "WASTE_MANAGEMENT_GAPS",
+        "WATER_PERMIT_RISK",
     ],
     "Rights_Legality": [
         "DPIA_GAPS",
@@ -83,6 +100,11 @@ REASON_CODES_BY_PILLAR: Dict[str, List[str]] = {
         "PERMIT_COMPLEXITY",
         "BIOSECURITY_GAPS",
         "ETHICS_VAGUE",
+        "INFOSEC_GAPS",
+        "DATA_QUALITY_WEAK",
+        "MODEL_RISK_UNQUANTIFIED",
+        "CROSSBORDER_RISK",
+        "CONSENT_MODEL_WEAK",
     ],
 }
 
@@ -167,6 +189,63 @@ EVIDENCE_TEMPLATES: Dict[str, List[str]] = {
     ],
     "ETHICS_VAGUE": [
         "Normative Charter v1.0 with auditable rules & dissent logging"
+    ],
+    "GOVERNANCE_WEAK": [
+        "RACI + decision log v1 (scope: this plan)"
+    ],
+    "CHANGE_MGMT_GAPS": [
+        "Change plan v1 (communications, training, adoption KPIs)"
+    ],
+    "TRAINING_GAPS": [
+        "Training needs assessment + skill gap analysis report"
+    ],
+    "STAKEHOLDER_CONFLICT": [
+        "Stakeholder conflict resolution framework + escalation matrix"
+    ],
+    "SAFETY_CULTURE_WEAK": [
+        "Safety culture assessment report (survey, incident analysis)"
+    ],
+    "UNIT_ECON_UNKNOWN": [
+        "Unit economics model v1 + sensitivity table (key drivers)"
+    ],
+    "SUPPLIER_CONCENTRATION": [
+        "Supplier risk register v1 + diversification plan"
+    ],
+    "SPOF_DEPENDENCY": [
+        "SPOF analysis note + mitigation options"
+    ],
+    "BIA_MISSING": [
+        "Business impact analysis v1 (RTO/RPO, critical processes)"
+    ],
+    "DR_TEST_GAPS": [
+        "DR/BCP test report (last test + outcomes)"
+    ],
+    "EIA_MISSING": [
+        "Environmental impact assessment scope + baseline metrics"
+    ],
+    "BIODIVERSITY_RISK_UNSET": [
+        "Biodiversity screening memo (species/habitat, mitigation)"
+    ],
+    "WASTE_MANAGEMENT_GAPS": [
+        "Waste management plan v1 (types, handling, compliance)"
+    ],
+    "WATER_PERMIT_RISK": [
+        "Water permit inventory + compliance status"
+    ],
+    "INFOSEC_GAPS": [
+        "Threat model + control mapping (e.g., STRIDE ↔ CIS/NIST)"
+    ],
+    "DATA_QUALITY_WEAK": [
+        "Data profiling report (completeness, accuracy, drift)"
+    ],
+    "MODEL_RISK_UNQUANTIFIED": [
+        "Model card + evaluation report (intended use, metrics, limits)"
+    ],
+    "CROSSBORDER_RISK": [
+        "Data flow map + transfer mechanism memo (SCCs/BCRs)"
+    ],
+    "CONSENT_MODEL_WEAK": [
+        "Consent/permission model spec + audit sample"
     ],
 }
 
