@@ -312,6 +312,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                             <Input
                               id="openrouter-api-key"
                               type="password"
+                              autoComplete="current-password"
                               placeholder="sk-or-v1-..."
                               {...field}
                               disabled={isSubmitting}
