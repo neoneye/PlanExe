@@ -11,17 +11,22 @@
  * - Production: Use relative URLs (FastAPI serves both static files and API)
  */
 export function getApiBaseUrl(): string {
-  // In production (static export served by FastAPI), use relative paths
-  // In development, use absolute URL to localhost:8080
-  if (typeof window !== 'undefined') {
-    // Client-side: check if we're in development or production
-    const isDevelopment = process.env.NODE_ENV === 'development' ||
-                         process.env.NEXT_PUBLIC_API_URL === 'http://localhost:8080';
-    return isDevelopment ? 'http://localhost:8080' : '';
-  } else {
-    // Server-side: always use localhost for SSR/SSG
-    return 'http://localhost:8080';
+  const envUrl = (process.env.NEXT_PUBLIC_API_URL || '').trim();
+
+  if (envUrl.length > 0) {
+    return envUrl.replace(/\/$/, '');
   }
+
+  const defaultDevUrl = 'http://localhost:8080';
+
+  if (typeof window === 'undefined') {
+    return process.env.NODE_ENV === 'development' ? defaultDevUrl : '';
+  }
+
+  const hostname = window.location.hostname;
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+
+  return isLocalhost ? defaultDevUrl : '';
 }
 
 /**

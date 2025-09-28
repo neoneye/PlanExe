@@ -6,6 +6,8 @@
  * SRP and DRY check: Pass - Single responsibility for FastAPI communication, no field translation complexity
  */
 
+import { getApiBaseUrl } from '@/lib/utils/api-config';
+
 // FastAPI Backend Types (EXACT match with backend)
 export interface CreatePlanRequest {
   prompt: string;
@@ -57,8 +59,8 @@ export class FastAPIClient {
   private baseURL: string;
 
   constructor(baseURL?: string) {
-    // Railway deployment: FastAPI serves both backend and frontend from same instance
-    this.baseURL = baseURL || '';
+    const normalized = (baseURL ?? '').trim();
+    this.baseURL = normalized.endsWith('/') ? normalized.slice(0, -1) : normalized;
   }
 
   private async handleResponse<T>(response: Response): Promise<T> {
@@ -162,6 +164,7 @@ export class FastAPIClient {
 }
 
 // Default client instance
-export const fastApiClient = new FastAPIClient();
+const resolvedBaseUrl = getApiBaseUrl();
+export const fastApiClient = new FastAPIClient(resolvedBaseUrl);
 
 // Types are already exported above with their interface declarations
