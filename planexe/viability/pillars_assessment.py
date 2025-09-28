@@ -143,7 +143,6 @@ STRENGTH_REASON_CODES = {
 # We intentionally use List[str] even when there is only one template for a key.
 # Rationale:
 #  - Future-proof: adding a second/third template needs no migration or refactor.
-#  - Simpler typing & tooling: keeps type hints and validators straightforward (mypy-friendly).
 #  - Ordering encodes priority: first item is the most canonical form.
 # Invariants:
 #  - Values are lists of unique, non-empty strings (singleton lists are OK).
