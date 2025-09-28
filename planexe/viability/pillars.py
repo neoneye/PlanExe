@@ -289,6 +289,8 @@ class PillarItemSchema(BaseModel):
     score: Optional[int] = Field(None, description="Score 0-100 matching the status band")
     reason_codes: Optional[List[str]] = Field(default=None)
     evidence_todo: Optional[List[str]] = Field(default=None)
+    strength_rationale: Optional[str] = Field(default=None, description="Short rationale for why status is GREEN; omit otherwise")
+
 
     class Config:
         extra = "ignore"
@@ -493,6 +495,11 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
             status_enum = "YELLOW"
             score = None  # will snap later
 
+        # Reason code gate: GREEN with negative reason codes -> downgrade
+        if status_enum == "GREEN" and any(rc in NEGATIVE_REASON_CODES for rc in reason_codes):
+            status_enum = "YELLOW"
+            score = None  # will snap later
+
         # Strength gate for GREEN
         if status_enum == "GREEN":
             has_strength = any(rc in STRENGTH_REASON_CODES for rc in reason_codes)
@@ -544,6 +551,7 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
+
 def convert_to_markdown(data: Dict[str, Any]) -> str:
     pillars = data.get("pillars", [])
     status_counts = {status: 0 for status in STATUS_ENUM}
@@ -552,14 +560,17 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         if status in status_counts:
             status_counts[status] += 1
 
+    def _pillars_label(n: int) -> str:
+        return "pillar" if n == 1 else "pillars"
+
     rows: List[str] = []
     rows.append("# Pillars Assessment")
     rows.append("")
     rows.append("## Summary")
-    rows.append(f"- **GREEN**: {status_counts['GREEN']} pillars")
-    rows.append(f"- **YELLOW**: {status_counts['YELLOW']} pillars")
-    rows.append(f"- **RED**: {status_counts['RED']} pillars")
-    rows.append(f"- **GRAY**: {status_counts['GRAY']} pillars")
+    rows.append(f"- **GREEN**: {status_counts['GREEN']} {_pillars_label(status_counts['GREEN'])}")
+    rows.append(f"- **YELLOW**: {status_counts['YELLOW']} {_pillars_label(status_counts['YELLOW'])}")
+    rows.append(f"- **RED**: {status_counts['RED']} {_pillars_label(status_counts['RED'])}")
+    rows.append(f"- **GRAY**: {status_counts['GRAY']} {_pillars_label(status_counts['GRAY'])}")
     rows.append("")
     rows.append("## Pillar Details")
 
@@ -567,18 +578,31 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         name = pillar.get("pillar", "Unknown")
         display_name = PILLAR_DISPLAY_NAMES.get(name, name)
         status = pillar.get("status", "GRAY")
-        score = pillar.get("score", "N/A")
-        reason_codes = pillar.get("reason_codes", [])
-        evidence = pillar.get("evidence_todo", [])
+        score = pillar.get("score", None)
+        reason_codes = pillar.get("reason_codes", []) or []
+        evidence = pillar.get("evidence_todo", []) or []
+        strength_rationale = pillar.get("strength_rationale")
 
         rows.append(f"### {display_name}")
-        rows.append(f"**Status**: {status} ({score})")
-        if reason_codes:
-            rows.append(f"**Issues**: {', '.join(reason_codes)}")
-        if evidence:
-            rows.append("**Evidence Needed:**")
-            for item in evidence:
-                rows.append(f"- {item}")
+        rows.append(f"**Status**: {status} ({score if score is not None else '—'})")
+
+        if status == "GREEN":
+            # GREEN pillars should not show evidence; optionally render the rationale if provided.
+            if strength_rationale:
+                rows.append(f"_Why green:_ {strength_rationale}")
+        elif status in ("YELLOW", "RED"):
+            if reason_codes:
+                rows.append("**Issues:** " + ", ".join(reason_codes))
+            if evidence:
+                rows.append("**Evidence Needed:**")
+                for item in evidence:
+                    rows.append(f"- {item}")
+        else:  # GRAY (or anything else treated as GRAY)
+            if evidence:
+                rows.append("**Evidence Needed:**")
+                for item in evidence:
+                    rows.append(f"- {item}")
+
         rows.append("")
 
     markdown = "\n".join(rows)

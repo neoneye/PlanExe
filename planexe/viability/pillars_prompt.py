@@ -87,7 +87,7 @@ def make_pillars_system_prompt(
                 "score": None,
                 "reason_codes": [],
                 "evidence_todo": DEFAULT_EVIDENCE_BY_PILLAR.get(p, [])[:2],
-                # strength_rationale remains optional; omit in skeleton
+                "strength_rationale": None,
             }
             for p in PILLAR_ORDER
         ]

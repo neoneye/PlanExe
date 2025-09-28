@@ -99,6 +99,23 @@ Output (JSON) — what the LLM must emit
   ]
 }
 
+
+
+**Example (GREEN with strength rationale):**
+```json
+{
+  "pillars": [
+    {
+      "pillar": "HumanStability",
+      "status": "GREEN",
+      "score": 85,
+      "reason_codes": ["STAKEHOLDER_ALIGNMENT"],
+      "evidence_todo": [],
+      "strength_rationale": "Strong stakeholder buy-in evidenced by baseline survey ≥80% support"
+    }
+  ]
+}
+```
 Note: The model outputs only the pillars array. No inline rule metadata.
 
 The status mean:
@@ -319,3 +336,7 @@ Design Rationale
 	•	Evidence-gated GREEN prevents “optimistic greenwashing.”
 	•	Fix Packs with FP0 create a pre-commit gate that flips the recommendation without re-scoring everything.
 	•	Roll-up in code (not in the LLM) keeps the final decision consistent and auditable.
+
+
+### Field notes — pillars
+- `strength_rationale` (string, optional): Only for `status: "GREEN"`. A one-sentence justification of why the pillar is green (e.g., what evidence shows it is strong). Omit or set to `null` for non-GREEN statuses.
