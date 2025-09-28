@@ -90,6 +90,25 @@ NEGATIVE_REASON_CODES: List[str] = sorted(
     {code for codes in REASON_CODES_BY_PILLAR.values() for code in codes}
 )
 
+DEFAULT_EVIDENCE_BY_PILLAR = {
+    "HumanStability": [
+        "Stakeholder map + skills gap snapshot",
+        "Change plan v1 (communications, training, adoption KPIs)",
+    ],
+    "EconomicResilience": [
+        "Assumption ledger v1 + sensitivity table",
+        "Cost model v2 (on-prem vs cloud TCO)",
+    ],
+    "EcologicalIntegrity": [
+        "Environmental baseline note (scope, metrics)",
+        "Cloud carbon estimate v1 (regions/services)",
+    ],
+    "Rights_Legality": [
+        "Regulatory mapping v1 + open questions list",
+        "Licenses & permits inventory + gaps list",
+    ],
+}
+
 STATUS_TO_SCORE = {
     "GREEN": (70, 100),
     "YELLOW": (40, 69),
@@ -329,6 +348,44 @@ def _default_pillar(pillar: str) -> Dict[str, Any]:
         "evidence_todo": [DEFAULT_EVIDENCE_ITEM],
     }
 
+def enforce_gray_evidence(
+    items: List[Dict[str, Any]],
+    defaults: Dict[str, List[str]],
+) -> List[Dict[str, Any]]:
+    """
+    Ensure every GRAY pillar has 1–2 artifact-style evidence items.
+    If missing, fill from `defaults[pillar]`; if that’s empty/missing, use a generic fallback.
+    """
+    GENERIC_FALLBACK: List[str] = ["Baseline note v1 (scope, metrics)"]
+
+    for it in items:
+        if it.get("status") == "GRAY":
+            raw_ev = it.get("evidence_todo") or []
+            ev: List[str] = [e for e in raw_ev if isinstance(e, str) and e.strip()]
+            if not ev:
+                pillar = str(it.get("pillar", ""))
+                ev = list(defaults.get(pillar, GENERIC_FALLBACK))[:2]
+            it["evidence_todo"] = ev[:2]
+    return items
+
+def enforce_colored_evidence(
+    items: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """
+    Ensure YELLOW/RED pillars have at least one artifact-style evidence item.
+    If empty, insert a minimal default. Also cap evidence_todo to max 2 items.
+    """
+    DEFAULT_EVIDENCE: List[str] = ["Issue analysis memo v1"]
+
+    for it in items:
+        status = it.get("status")
+        if status in {"YELLOW", "RED"}:
+            raw_ev = it.get("evidence_todo") or []
+            ev: List[str] = [e for e in raw_ev if isinstance(e, str) and e.strip()]
+            if not ev:
+                ev = DEFAULT_EVIDENCE[:1]
+            it["evidence_todo"] = ev[:2]
+    return items
 
 def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Make weak-model output deterministic and policy-compliant."""
@@ -338,42 +395,49 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     for p in pillars:
         pillar_name = p.get("pillar", "Rights_Legality")
-        status = p.get("status", "GRAY")
+        status_raw = p.get("status", "GRAY")
         score = p.get("score")
-        reason_codes = p.get("reason_codes", []) or []
-        evidence_todo = p.get("evidence_todo", []) or []
 
-        # Normalize enums/strings
-        try:
-            status_enum = status  # Keep as string for compatibility
-        except Exception:
-            status_enum = "GRAY"
-        # Evidence gate: GREEN must have empty evidence_todo
+        reason_codes = [rc for rc in (p.get("reason_codes") or []) if isinstance(rc, str)]
+        evidence_todo = [e for e in (p.get("evidence_todo") or []) if isinstance(e, str) and e.strip()]
+        strength_rationale = p.get("strength_rationale")
+
+        # Normalize status
+        status_enum = status_raw if status_raw in STATUS_TO_SCORE or status_raw == "GRAY" else "GRAY"
+
+        # Evidence gate: GREEN with evidence -> downgrade
         if status_enum == "GREEN" and evidence_todo:
             status_enum = "YELLOW"
-            score = None  # will snap to band midpoint
+            score = None  # will snap later
 
-        # --- NEW: Strength gate for GREEN ---
+        # Strength gate for GREEN
         if status_enum == "GREEN":
             has_strength = any(rc in STRENGTH_REASON_CODES for rc in reason_codes)
-            has_rationale = bool(p.get("strength_rationale"))
+            has_rationale = isinstance(strength_rationale, str) and strength_rationale.strip()
             if not (has_strength or has_rationale):
-                # Downgrade optimistic GREEN to YELLOW unless we have a strength signal
                 status_enum = "YELLOW"
                 score = None
 
-        # If YELLOW/RED but no reason codes AND no evidence → GRAY (we lack justification)
+        # Canonicalize evidence BEFORE checking GRAY fallback
+        evidence_todo = _canonicalize_evidence(pillar_name, reason_codes, evidence_todo)
+
+        # If YELLOW/RED but no reason codes AND no evidence → GRAY
         if status_enum in ("YELLOW", "RED") and not reason_codes and not evidence_todo:
             status_enum = "GRAY"
             score = None
 
-        # Canonicalize evidence to artifacts; drop action-y lines
-        evidence_todo = _canonicalize_evidence(pillar_name, reason_codes, evidence_todo)
-
-        # Snap score to status band midpoint when needed
+        # Snap score to band midpoint if missing
         if score is None:
             band = STATUS_TO_SCORE.get(status_enum)
-            score = None if band is None else int((band[0] + band[1]) / 2)
+            score = None if band is None else (band[0] + band[1]) // 2
+
+        if score is not None and status_enum in STATUS_TO_SCORE and STATUS_TO_SCORE[status_enum]:
+            lo, hi = STATUS_TO_SCORE[status_enum]
+            score = max(lo, min(hi, int(score)))
+
+        # Keep rationale only for final GREEN with non-empty text
+        if not (status_enum == "GREEN" and isinstance(strength_rationale, str) and strength_rationale.strip()):
+            strength_rationale = None
 
         validated.append({
             "pillar": pillar_name,
@@ -381,12 +445,16 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
             "score": score,
             "reason_codes": reason_codes,
             "evidence_todo": evidence_todo,
-            # Expose rationale only if model provided one
-            **({"strength_rationale": p["strength_rationale"]} if p.get("strength_rationale") else {}),
+            **({"strength_rationale": strength_rationale} if strength_rationale else {}),
         })
 
-    return {"pillars": validated}
+    validated = enforce_gray_evidence(validated, DEFAULT_EVIDENCE_BY_PILLAR)
+    validated = enforce_colored_evidence(validated)
 
+    # Keep pillar order & fill any missing pillars (belt-and-suspenders)
+    by_name = {it["pillar"]: it for it in validated}
+    ordered = [by_name.get(p, _default_pillar(p)) for p in PILLAR_ORDER]
+    return {"pillars": ordered}
 
 # ---------------------------------------------------------------------------
 # Markdown rendering
