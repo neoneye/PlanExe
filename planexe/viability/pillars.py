@@ -21,6 +21,8 @@ result = PillarsAssessmentResult.execute(llm, plan_text)
 print(result.markdown)
 ```
 
+IDEA: Extract the REASON_CODES_BY_PILLAR, DEFAULT_EVIDENCE_BY_PILLAR, EVIDENCE_TEMPLATES into a JSON file.
+
 PROMPT> python -u -m planexe.viability.pillars | tee output_a.txt
 """
 from __future__ import annotations
@@ -62,6 +64,7 @@ PILLAR_DISPLAY_NAMES: Dict[str, str] = {
     "Rights_Legality": "Rights & Legality",
 }
 
+# This list is not exhaustive, more items are likely to be added over time.
 REASON_CODES_BY_PILLAR: Dict[str, List[str]] = {
     "HumanStability": [
         "TALENT_UNKNOWN",
@@ -153,6 +156,7 @@ STRENGTH_REASON_CODES = {
 }
 
 # Canonical evidence templates per reason code (artifact-first, not actions)
+# This list is not exhaustive, more items are likely to be added over time.
 EVIDENCE_TEMPLATES: Dict[str, List[str]] = {
     "TALENT_UNKNOWN": [
         "Talent market scan report (availability, salary ranges, channels)"
