@@ -1,0 +1,8 @@
+{
+  "addedSpawnableAgents": [
+    "harsh/generate-landing-page@1.0.1",
+    "mark-barney/*",
+    "mark-barney/edgar-the-engineer@0.0.1",
+    "mark-barney/mark@0.0.5"
+  ]
+}
