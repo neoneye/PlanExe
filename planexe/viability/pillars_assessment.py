@@ -3,7 +3,6 @@ Pillars assessment
 
 Auto-repair that enforces status/score bands, evidence gating, and reason-code whitelists.
 
-IDEA: Should the EVIDENCE_TEMPLATES contain lists of strings, when the lists only have one item. Seems like it can be simplified, to a single string.
 IDEA: Extract the REASON_CODES_BY_PILLAR, DEFAULT_EVIDENCE_BY_PILLAR, EVIDENCE_TEMPLATES into a JSON file.
 
 PROMPT> python -u -m planexe.viability.pillars_assessment | tee output_a.txt
@@ -139,8 +138,21 @@ STRENGTH_REASON_CODES = {
 }
 
 # Canonical evidence templates per reason code (artifact-first, not actions)
-# This list is not exhaustive, more items are likely to be added over time.
+# EVIDENCE_TEMPLATES
+# Dict[str, List[str]] mapping a reason code -> ordered list of evidence templates.
+# We intentionally use List[str] even when there is only one template for a key.
+# Rationale:
+#  - Future-proof: adding a second/third template needs no migration or refactor.
+#  - Simpler typing & tooling: keeps type hints and validators straightforward (mypy-friendly).
+#  - Ordering encodes priority: first item is the most canonical form.
+# Invariants:
+#  - Values are lists of unique, non-empty strings (singleton lists are OK).
+#  - Missing keys must be treated by consumers as an empty list, not an error.
+# This dict with templates is not exhaustive, more items are likely to be added over time.
+# Note: downstream code may dedupe/cap at read time, but the source remains a list.
 EVIDENCE_TEMPLATES: Dict[str, List[str]] = {
+    # Example:
+    # "reason_code": ["template 1", "template 2 (optional)"],
     "TALENT_UNKNOWN": [
         "Talent market scan report (availability, salary ranges, channels)"
     ],
