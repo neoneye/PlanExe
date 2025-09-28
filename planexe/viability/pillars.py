@@ -38,6 +38,7 @@ from llama_index.core.llms.llm import LLM
 from pydantic import BaseModel, Field
 
 from planexe.markdown_util.fix_bullet_lists import fix_bullet_lists
+from planexe.viability.pillars_prompt import make_pillars_system_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -202,31 +203,7 @@ class PillarsSchema(BaseModel):
 # Prompt assembly
 # ---------------------------------------------------------------------------
 
-PILLARS_SYSTEM_PROMPT = f"""
-You output JSON only. No prose, no markdown.
-Task: Step 1 (PILLARS) of the Viability protocol. Emit an object with the field
-"pillars" (array of 4 items).
-
-Rules:
-- Emit exactly one item per pillar in this order: {', '.join(PILLAR_ORDER)}.
-- Status must be one of {', '.join(STATUS_ENUM)}.
-- reason_codes must come from the whitelist for each pillar:
-  {json.dumps(REASON_CODES_BY_PILLAR)}
-- Provide a numeric score for any pillar that is not GRAY.
-- Score must sit inside the status band: GREEN 70-100, YELLOW 40-69, RED 0-39.
-- GREEN requires evidence_todo to be empty. If unsure, use GRAY and add evidence_todo items.
-- If there are no clear negatives, leave reason_codes empty.
-- Keep evidence_todo short bullet fragments.
-
-Return JSON shaped like:
-{{
-  "pillars": [
-    {{"pillar":"HumanStability","status":"YELLOW","score":60,
-      "reason_codes":["STAFF_AVERSION"],
-      "evidence_todo":["Stakeholder survey baseline"]}}
-  ]
-}}
-""".strip()
+PILLARS_SYSTEM_PROMPT = make_pillars_system_prompt(PILLAR_ORDER, REASON_CODES_BY_PILLAR, STATUS_TO_SCORE)
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -568,6 +545,8 @@ def main() -> None:  # pragma: no cover - convenience helper
 
     model_name = "ollama-llama3.1"
     llm = get_llm(model_name)
+
+    print(f"PILLARS_SYSTEM_PROMPT: {PILLARS_SYSTEM_PROMPT}\n\n")
     result = PillarsAssessmentResult.execute(llm, plan_text)
     print(json.dumps(result.response, indent=2, ensure_ascii=False))
     print("\nMarkdown:\n")
