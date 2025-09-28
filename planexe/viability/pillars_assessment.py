@@ -577,25 +577,27 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         evidence = pillar.get("evidence_todo", []) or []
         strength_rationale = pillar.get("strength_rationale")
 
-        rows.append(f"### {display_name}")
-        rows.append(f"**Status**: {status} ({score if score is not None else '—'})")
+        rows.append(f"### {display_name}\n")
+        rows.append(f"**Status**: {status} ({score if score is not None else '—'})\n")
 
         if status == "GREEN":
             # GREEN pillars should not show evidence; optionally render the rationale if provided.
             if strength_rationale:
-                rows.append(f"_Why green:_ {strength_rationale}")
+                rows.append(f"_Why green:_ {strength_rationale}\n")
         elif status in ("YELLOW", "RED"):
             if reason_codes:
-                rows.append("**Issues:** " + ", ".join(reason_codes))
+                rows.append("**Issues:** " + ", ".join(reason_codes) + "\n")
             if evidence:
-                rows.append("**Evidence Needed:**")
+                rows.append("**Evidence Needed:**\n")
                 for item in evidence:
                     rows.append(f"- {item}")
+                rows.append("")
         else:  # GRAY (or anything else treated as GRAY)
             if evidence:
-                rows.append("**Evidence Needed:**")
+                rows.append("**Evidence Needed:**\n")
                 for item in evidence:
                     rows.append(f"- {item}")
+                rows.append("")
 
         rows.append("")
 
