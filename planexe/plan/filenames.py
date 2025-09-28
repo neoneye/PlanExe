@@ -115,7 +115,9 @@ class FilenameEnum(str, Enum):
     QUESTIONS_AND_ANSWERS_HTML = "027-3-questions_and_answers.html"
     PREMORTEM_RAW = "028-1-premortem_raw.json"
     PREMORTEM_MARKDOWN = "028-2-premortem.md"
-    REPORT = "029-report.html"
+    PILLARS_ASSESSMENT_RAW = "029-1-pillars_assessment_raw.json"
+    PILLARS_ASSESSMENT_MARKDOWN = "029-2-pillars_assessment.md"
+    REPORT = "030-report.html"
     PIPELINE_COMPLETE = "999-pipeline_complete.txt"
 
 class ExtraFilenameEnum(str, Enum):
