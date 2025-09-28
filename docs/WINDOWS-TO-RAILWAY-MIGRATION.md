@@ -19,10 +19,9 @@ Based on the CHANGELOG and recent git commits, you've been struggling with:
 ### 🚀 **Ready-to-Deploy Configuration**
 
 1. **`railway.toml`** - Railway service configuration
-2. **`docker/Dockerfile.railway.api`** - Backend container optimized for Railway
-3. **`docker/Dockerfile.railway.ui`** - Frontend container optimized for Railway
-4. **`railway-env-template.txt`** - All environment variables you need
-5. **`railway-deploy.sh`** - Deployment validation script
+2. **`docker/Dockerfile.railway.api`** - Combined FastAPI + static UI container optimized for Railway
+3. **`railway-env-template.txt`** - Environment variable template for the single service
+4. **`railway-deploy.sh`** - Deployment validation script
 
 ### 📚 **Complete Documentation**
 
@@ -50,8 +49,7 @@ git push origin main
 1. Visit [railway.app](https://railway.app)
 2. Create new project
 3. Add PostgreSQL database
-4. Deploy backend from GitHub (use `docker/Dockerfile.railway.api`)
-5. Deploy frontend from GitHub (use `docker/Dockerfile.railway.ui`)
+4. Deploy the combined service from GitHub (use `docker/Dockerfile.railway.api`)
 
 ### 3. Set Environment Variables
 Copy variables from `railway-env-template.txt` to Railway dashboard:
@@ -61,7 +59,7 @@ Copy variables from `railway-env-template.txt` to Railway dashboard:
 - `PLANEXE_RUN_DIR=/app/run`
 
 ### 4. Test It Works
-1. Visit your Railway frontend URL
+1. Visit your Railway service URL (FastAPI now serves the UI and API)
 2. Create a test plan
 3. Watch Luigi pipeline execute properly on Linux
 4. Download generated reports

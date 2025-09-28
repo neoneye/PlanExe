@@ -1,3 +1,23 @@
+## [0.2.3] - 2025-09-28 - RAILWAY SINGLE-SERVICE CONSOLIDATION
+
+### dYZ_ **Unified Deployment**
+- **Docker pipeline**: `docker/Dockerfile.railway.api` now builds the Next.js frontend and copies the static export into `/app/ui_static`, eliminating the separate UI image.
+- **Single Railway service**: FastAPI serves both the UI and API; remove legacy `planexe-frontend` services from Railway projects.
+- **Environment simplification**: `NEXT_PUBLIC_API_URL` is now optional; the client defaults to relative paths when running in Railway.
+
+### dY"s **Documentation Refresh**
+- **RAILWAY-SETUP-GUIDE.md**: Updated to describe the single-service workflow end-to-end.
+- **CLAUDE.md / AGENTS.md**: Clarified that the Next.js dev server only runs locally and production is served from FastAPI.
+- **WINDOWS-TO-RAILWAY-MIGRATION.md & RAILWAY-DEPLOYMENT-PLAN.md**: Removed references to `Dockerfile.railway.ui` and dual-service deployment.
+- **railway-env-template.txt**: Dropped obsolete frontend environment variables.
+- **railway-deploy.sh**: Validates only the API Dockerfile and reflects the unified deployment steps.
+
+### dY?3 **Operational Notes**
+- Re-run `npm run build` locally to confirm the static export completes before pushing to Railway.
+- When migrating existing environments, delete any stale UI service in Railway to avoid confusion.
+- Future changes should treat Railway as the single source of truth; local Windows issues remain out-of-scope.
+
+---
 ## [0.2.2] - 2025-09-27 - RAILWAY UI TRANSFORMATION COMPLETE
 
 ### 🎯 **LLM MODELS DROPDOWN - RESOLVED WITH ROBUST UI**
@@ -170,7 +190,7 @@
 **SOLUTION FOR WINDOWS ISSUES**: Complete Railway deployment setup to resolve Windows subprocess, environment variable, and Luigi pipeline execution problems.
 
 #### âœ… **New Railway Deployment System**
-- **Railway-Optimized Dockerfiles**: Created `docker/Dockerfile.railway.api` and `docker/Dockerfile.railway.ui` specifically for Railway's PORT variable and environment handling
+- **Railway-Optimized Dockerfiles**: Created `docker/Dockerfile.railway.api` and `docker/Dockerfile.railway.ui` specifically for Railway's PORT variable and environment handling (the UI Dockerfile is now obsolete after 0.2.3)
 - **Railway Configuration**: Added `railway.toml` for proper service configuration
 - **Next.js Production Config**: Updated `next.config.ts` with standalone output for containerized deployment
 - **Environment Template**: Created `railway-env-template.txt` with all required environment variables
@@ -199,7 +219,7 @@
 1. **Prepare**: Run `./railway-deploy.sh` to validate deployment readiness
 2. **Database**: Create PostgreSQL service on Railway
 3. **Backend**: Deploy FastAPI + Luigi using `docker/Dockerfile.railway.api`
-4. **Frontend**: Deploy Next.js using `docker/Dockerfile.railway.ui`
+4. **Frontend**: Deploy Next.js using `docker/Dockerfile.railway.ui` *(legacy; superseded by 0.2.3 single-service build)*
 5. **Configure**: Set environment variables from `railway-env-template.txt`
 6. **Test**: Verify end-to-end plan generation on Linux containers
 
@@ -779,4 +799,4 @@ For existing PlanExe installations:
 
 ---
 
-*This changelog represents a complete REST API and Node.js integration for PlanExe, transforming it from a Python-only tool into a modern, scalable web application with persistent storage and real-time capabilities.*
+*This changelog represents a complete REST API and Node.js integration for PlanExe, transforming it from a Python-only tool into a modern, scalable web application with persistent storage and real-time capabilities.*

@@ -81,7 +81,7 @@ grep -n "llm\." planexe/assume/identify_purpose.py
 #### **Task 3: Test Complete Fix**
 ```bash
 # Create test plan
-curl -X POST "http://localhost:8000/api/plans" \
+curl -X POST "http://localhost:8080/api/plans" \
   -H "Content-Type: application/json" \
   -d '{"prompt": "final compatibility test", "llm_model": "google/gemini-2.0-flash-001", "speed_vs_detail": "fast_but_skip_details"}'
 
@@ -98,7 +98,7 @@ curl -X POST "http://localhost:8000/api/plans" \
 
 ### **Required Services**
 ```bash
-# Terminal 1: Start FastAPI backend (port 8000)
+# Terminal 1: Start FastAPI backend (port 8080)
 cd D:\1Projects\PlanExe
 python -m planexe_api.api
 
@@ -107,20 +107,20 @@ cd planexe-frontend
 npm run dev
 
 # Verify both working
-curl http://localhost:8000/health
+curl http://localhost:8080/health
 curl http://localhost:3003  # or whatever port Next.js uses
 ```
 
 ### **Test Pipeline**
 ```bash
 # Create test plan via API
-curl -X POST "http://localhost:8000/api/plans" \
+curl -X POST "http://localhost:8080/api/plans" \
   -H "Content-Type: application/json" \
   -d '{"prompt": "test plan", "llm_model": "google/gemini-2.0-flash-001", "speed_vs_detail": "fast_but_skip_details"}' \
   | grep plan_id | cut -d'"' -f4
 
 # Check status (replace PLAN_ID)
-curl http://localhost:8000/api/plans/PLAN_ID
+curl http://localhost:8080/api/plans/PLAN_ID
 
 # Check logs
 tail -f D:\1Projects\PlanExe\run\PLAN_ID\log.txt

@@ -750,7 +750,7 @@ class PlanExeAPIClient {
   }
 }
 
-export const apiClient = new PlanExeAPIClient(process.env.NEXT_PUBLIC_API_URL!);
+export const apiClient = new PlanExeAPIClient(process.env.NEXT_PUBLIC_API_URL ?? "");
 ```
 
 #### **4.2 Real-time Progress Component**
@@ -863,7 +863,7 @@ npm run dev
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://your-railway-app.railway.app"
+    "NEXT_PUBLIC_API_URL": "https://your-railway-app.railway.app"  // optional override; defaults to same origin
   }
 }
 ```

@@ -5,7 +5,7 @@
 ## Phase 1: Immediate System Diagnosis (30 minutes)
 
 ### 1.1 Verify Basic Services
-- Test if backend starts on port 8000
+- Test if backend starts on port 8080
 - Test if frontend starts on port 3000
 - Check health endpoint responses
 - Verify model loading from llm_config.json

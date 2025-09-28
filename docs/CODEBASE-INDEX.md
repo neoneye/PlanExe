@@ -6,7 +6,7 @@
 
 ## 🚨 **CRITICAL PORT INFORMATION - UPDATED v0.2.1**
 - **Railway Production**: FastAPI runs on port **8080** (Railway's PORT environment variable)
-- **Local Development**: FastAPI runs on port **8000** (development only)
+- **Local Development**: FastAPI runs on port **8080** (development only)
 - **Architecture**: Railway single-service deployment (FastAPI serves UI + API)
 - **Development Workflow**: Railway-first deployment, no local Windows debugging
 
@@ -27,7 +27,7 @@ User → Railway URL (8080) → FastAPI (serves UI + API) → Luigi Pipeline (62
 
 #### Local Development (Legacy - Railway-First Workflow Now)
 ```
-User → Next.js UI (3000) --CORS--> FastAPI (8000) → Luigi Pipeline (62 Tasks) → Generated Files
+User → Next.js UI (3000) --CORS--> FastAPI (8080) → Luigi Pipeline (62 Tasks) → Generated Files
    ↑                                    ↓
    └── Real-time Progress (SSE) ←-------┘
 
@@ -298,7 +298,7 @@ git push origin main
 # Only use for quick testing - Railway is primary environment
 cd planexe-frontend
 npm install
-npm run go  # Starts both FastAPI (port 8000) and Next.js (port 3000)
+npm run go  # Starts both FastAPI (port 8080) and Next.js (port 3000)
 
 # ⚠️ NOTE: Luigi pipeline has Windows issues. Use Railway for real testing.
 ```
@@ -377,11 +377,11 @@ npm run go  # Starts both FastAPI (port 8000) and Next.js (port 3000)
 ```bash
 # Check services are running
 netstat -an | findstr :3000  # Next.js
-netstat -an | findstr :8000  # FastAPI
+netstat -an | findstr :8080  # FastAPI
 
 # Test API connectivity
-curl http://localhost:8000/health
-curl http://localhost:8000/api/models
+curl http://localhost:8080/health
+curl http://localhost:8080/api/models
 ```
 
 ### Log Locations

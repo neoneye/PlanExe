@@ -7,6 +7,10 @@
 
 # Railway Deployment AI Model Selection Fix - Port Standardization
 
+## Update 2025-09-28
+
+The single-service Railway build now generates a static UI during the API Docker build. The frontend defaults to relative URLs (falling back to `NEXT_PUBLIC_API_URL` only when provided), so production no longer depends on hardcoded ports. The historical notes below are kept for context.
+
 ## Issue Summary
 **Problem**: AI model selection dropdown is not working in Railway deployment.
 
@@ -70,55 +74,47 @@
 
 ## Technical Details
 
-### Current FastAPIClient Logic (Complex):
+> **Historical note (pre-2025-09-28):** The snippets below document the interim port-standardisation fix. The live code now relies on `getApiBaseUrl()` which prefers relative URLs and only uses `NEXT_PUBLIC_API_URL` when explicitly provided.
+
+### Original FastAPIClient Logic (Problematic)
 ```typescript
 const isDevelopment = process.env.NODE_ENV === 'development' ||
                      process.env.NEXT_PUBLIC_API_URL === 'http://localhost:8000';
 this.baseURL = isDevelopment ? 'http://localhost:8000' : '';
 ```
 
-### New Simplified Logic:
+### Initial Patch (8080 Standardisation)
 ```typescript
 // Always use 8080 for consistency
 this.baseURL = process.env.NODE_ENV === 'development' ? 'http://localhost:8080' : '';
 ```
 
-### Package.json Changes:
-```json
-// Before:
-"dev:backend": "python -m uvicorn planexe_api.api:app --reload --port ${PORT:-8000}",
-"go": "concurrently \"cd .. && python -m uvicorn planexe_api.api:app --reload --port ${PORT:-8000}\" ...",
-
-// After:
-"dev:backend": "python -m uvicorn planexe_api.api:app --reload --port ${PORT:-8080}",
-"go": "concurrently \"cd .. && python -m uvicorn planexe_api.api:app --reload --port ${PORT:-8080}\" ...",
+### Current Implementation (2025-09-28+)
+```typescript
+export function getApiBaseUrl(): string {
+  const envUrl = (process.env.NEXT_PUBLIC_API_URL || '').trim();
+  if (envUrl.length > 0) {
+    return envUrl.replace(/\\/$/, '');
+  }
+  const defaultDevUrl = 'http://localhost:8080';
+  if (typeof window === 'undefined') {
+    return process.env.NODE_ENV === 'development' ? defaultDevUrl : '';
+  }
+  const hostname = window.location.hostname;
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+  return isLocalhost ? defaultDevUrl : '';
+}
 ```
-
-## Railway Deployment Architecture (Unchanged)
-
-The Railway deployment already uses the correct architecture:
-
-```mermaid
-flowchart TD
-    A[User Browser] --> B[Railway URL :8080]
-    B --> C[FastAPI Server :8080]
-    C --> D[Static Next.js Files]
-    C --> E[API Endpoints /api/*]
-    E --> F[Luigi Pipeline]
-    F --> G[Plan Generation]
-```
-
-This fix ensures local development matches this production architecture exactly.
 
 ## Environment Variables
 
 ### Current:
-- `NEXT_PUBLIC_API_URL=http://localhost:8000` (development)
+- `NEXT_PUBLIC_API_URL` is optional (used only for explicit overrides)
 - `PORT=8080` (Railway automatically provides this)
 
 ### After Fix:
-- `NEXT_PUBLIC_API_URL=http://localhost:8080` (development)
-- `PORT=8080` (Railway, unchanged)
+- Local development still proxies to `http://localhost:8080` when using `npm run go`.
+- Railway relies on relative paths served by FastAPI.
 
 ## Testing Checklist
 

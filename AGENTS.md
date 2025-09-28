@@ -1,12 +1,12 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AGENTS when working with code in this repository.
 
 ## File Header Template
 Every file you create or edit should start with:
 ```
 /**
- * Author: Your NAME  (Example: Claude Code using Sonnet 4)
+ * Author: Your NAME  (Example: Claude Code using Sonnet 4 or Codex using GPT-5)
  * Date: `timestamp`
  * PURPOSE: VERBOSE DETAILS ABOUT HOW THIS WORKS AND WHAT ELSE IT TOUCHES
  * SRP and DRY check: Pass/Fail Is this file violating either? Do these things already exist in the project?  Did you look??
@@ -19,7 +19,7 @@ PlanExe is a **complex AI-powered planning system** that transforms vague ideas 
 
 
 
-**Railway Production**: FastAPI serves both the static Next.js export and the REST API from the same container in production. The standalone Next.js dev server (port 3000) only runs locally when using `npm run go`.
+**Railway Production**: FastAPI serves the static Next.js export and the REST API from a single container on Railway. The standalone Next.js dev server (port 3000) is only used locally when running `npm run go`.
 
 
 

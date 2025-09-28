@@ -19,7 +19,7 @@ cp .env.example .env
 docker compose -f docker/docker compose.yml up
 
 # Access the application
-# API: http://localhost:8000
+# API: http://localhost:8080
 # UI: http://localhost:3000
 ```
 
@@ -34,7 +34,7 @@ pip install fastapi uvicorn sse-starlette
 # Start the API server
 python -m planexe_api.api
 
-# API will be available at http://localhost:8000
+# API will be available at http://localhost:8080
 ```
 
 #### Start the Node.js Frontend
@@ -93,7 +93,7 @@ PlanExe/
 
 ```javascript
 // Create a plan
-const response = await fetch('http://localhost:8000/api/plans', {
+const response = await fetch('http://localhost:8080/api/plans', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -120,7 +120,7 @@ npm install planexe-client
 const { PlanExeClient } = require('planexe-client');
 
 const client = new PlanExeClient({
-  baseURL: 'http://localhost:8000'
+  baseURL: 'http://localhost:8080'
 });
 
 // Create a plan and watch progress
@@ -152,7 +152,7 @@ const watcher = client.watchPlan(plan.plan_id, {
 ```typescript
 import { PlanExeClient, CreatePlanOptions } from 'planexe-client';
 
-const client = new PlanExeClient({ baseURL: 'http://localhost:8000' });
+const client = new PlanExeClient({ baseURL: 'http://localhost:8080' });
 
 const options: CreatePlanOptions = {
   prompt: 'Design a smart home system',
@@ -211,7 +211,7 @@ PLANEXE_RUN_DIR=/custom/path/to/plans
 PATH_TO_PYTHON=/custom/python
 
 # UI Configuration
-PLANEXE_API_URL=http://localhost:8000
+PLANEXE_API_URL=http://localhost:8080
 ```
 
 ## 🔐 Configuration
@@ -242,7 +242,7 @@ pip install -e '.[gradio-ui,flask-ui]'
 pip install -r planexe_api/requirements.txt
 
 # Start with auto-reload
-uvicorn planexe_api.api:app --reload --host 0.0.0.0 --port 8000
+uvicorn planexe_api.api:app --reload --host 0.0.0.0 --port 8080
 ```
 
 ### Frontend Development
@@ -265,7 +265,7 @@ cd nodejs-client
 npm test
 
 # Test API endpoints
-curl http://localhost:8000/health
+curl http://localhost:8080/health
 ```
 
 ## 📖 Documentation
@@ -320,7 +320,7 @@ export default async function handler(req, res) {
 ### Common Issues
 
 1. **CORS Errors** - Use the provided proxy configuration
-2. **API Connection Failed** - Ensure API server is running on port 8000
+2. **API Connection Failed** - Ensure API server is running on port 8080
 3. **Plan Creation Fails** - Check LLM model availability and API keys
 4. **SSE Stream Disconnects** - Network timeouts, implement reconnection logic
 

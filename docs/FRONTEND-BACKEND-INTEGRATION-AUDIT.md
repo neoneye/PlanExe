@@ -100,7 +100,7 @@ const response = await fetch(`http://localhost:8080/api/plans/${planId}/details`
 #### `/api/plans/{id}/stream-status` - Expected by Terminal Component
 ```typescript
 // planexe-frontend/src/components/monitoring/Terminal.tsx:58
-const response = await fetch(`http://localhost:8000/api/plans/${planId}/stream-status`);
+const response = await fetch(`http://localhost:8080/api/plans/${planId}/stream-status`);
 ```
 **Status**: ❌ **ENDPOINT DOES NOT EXIST**
 
@@ -130,7 +130,7 @@ class SpeedVsDetail(str, Enum):
 ```
 
 #### Port Reference Inconsistencies
-- Some docs mention port 8000, others 8001, actual is 8080 for Railway
+- Some docs mention port 8080, others 8001, actual is 8080 for Railway
 - Development vs production port handling is inconsistent across documentation
 
 ---
@@ -252,7 +252,7 @@ async def get_stream_status(plan_id: str, db: DatabaseService = Depends(get_data
 
 #### 3.1 Fix CODEBASE-INDEX.md
 - Correct task count: 61 → 62 Luigi tasks
-- Standardize port references (8080 for Railway, 8000 for dev)
+- Standardize port references (8080 for Railway and development)
 - Update architecture diagrams
 
 #### 3.2 Update HOW-THIS-ACTUALLY-WORKS.md

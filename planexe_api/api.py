@@ -351,7 +351,7 @@ async def get_plan(plan_id: str, db: DatabaseService = Depends(get_database)):
 async def stream_plan_progress_deprecated(plan_id: str, db: DatabaseService = Depends(get_database)):
     """
     DEPRECATED: SSE stream has been replaced with WebSocket for thread-safety
-    Use WebSocket endpoint: ws://localhost:8000/ws/plans/{plan_id}/progress
+    Use WebSocket endpoint: ws://localhost:8080/ws/plans/{plan_id}/progress
     """
     from fastapi.responses import JSONResponse
 
@@ -360,10 +360,10 @@ async def stream_plan_progress_deprecated(plan_id: str, db: DatabaseService = De
         content={
             "error": "SSE endpoint deprecated due to thread safety issues",
             "message": "Please migrate to WebSocket endpoint for real-time progress",
-            "websocket_url": f"ws://localhost:8000/ws/plans/{plan_id}/progress",
+            "websocket_url": f"ws://localhost:8080/ws/plans/{plan_id}/progress",
             "migration_guide": {
                 "old": f"GET /api/plans/{plan_id}/stream",
-                "new": f"WebSocket ws://localhost:8000/ws/plans/{plan_id}/progress",
+                "new": f"WebSocket ws://localhost:8080/ws/plans/{plan_id}/progress",
                 "reason": "Thread-safe WebSocket architecture replaces broken SSE global dictionaries"
             }
         }

@@ -8,7 +8,7 @@ PlanExe uses different architectures for **development** vs **production**:
 
 ### Development (Local) - 3-Layer System
 - **Next.js UI**: Port 3000 (separate dev server)
-- **FastAPI API**: Port 8000 (with CORS enabled)
+- **FastAPI API**: Port 8080 (with CORS enabled)
 - **Luigi Pipeline**: Python subprocess (spawned by FastAPI)
 
 ### Production (Railway) - Single-Service System
@@ -42,7 +42,7 @@ PlanExe uses different architectures for **development** vs **production**:
 ### Development Mode
 ```
 1. User types plan in Next.js UI (localhost:3000)
-2. Next.js sends CORS request to FastAPI (localhost:8000)
+2. Next.js sends CORS request to FastAPI (localhost:8080)
 3. FastAPI creates a run directory in `run/`
 4. FastAPI writes initial files (START_TIME, INITIAL_PLAN)
 5. FastAPI spawns subprocess: `python -m planexe.plan.run_plan_pipeline`
@@ -75,12 +75,12 @@ npm run go
 ```
 
 This command starts:
-- **FastAPI backend** on port 8000 (with CORS enabled)
+- **FastAPI backend** on port 8080 (with CORS enabled)
 - **Next.js frontend** on port 3000 (separate dev server)
 
 **Verify it's working:**
 - Frontend: http://localhost:3000
-- Backend health: http://localhost:8000/health
+- Backend health: http://localhost:8080/health
 
 ### Production-Like Testing (Single Service)
 ```bash
@@ -118,7 +118,7 @@ npm run serve:single           # Start FastAPI serving both UI + API
 1. **Luigi subprocess fails to start** - check Python imports
 2. **Luigi can't find API keys** - environment variable inheritance issue
 3. **Luigi tasks fail** - check `run/{plan_id}/log.txt`
-4. **Frontend can't connect** - FastAPI not running on port 8000
+4. **Frontend can't connect** - FastAPI not running on port 8080
 5. **CORS errors** - FastAPI CORS not configured for localhost:3000
 6. **No progress updates** - Luigi subprocess died silently
 
@@ -135,13 +135,13 @@ npm run serve:single           # Start FastAPI serving both UI + API
 ```bash
 # Check if both servers are running
 netstat -an | findstr :3000  # Next.js
-netstat -an | findstr :8000  # FastAPI
+netstat -an | findstr :8080  # FastAPI
 
 # Test FastAPI health
-curl http://localhost:8000/health
+curl http://localhost:8080/health
 
 # Test CORS
-curl -H "Origin: http://localhost:3000" http://localhost:8000/api/models
+curl -H "Origin: http://localhost:3000" http://localhost:8080/api/models
 ```
 
 ### Production Mode

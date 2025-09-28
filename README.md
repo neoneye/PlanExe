@@ -190,7 +190,7 @@ PlanExe/
 **You need ALL 3 components running for the system to work:**
 
 ```powershell
-# Terminal 1 – FastAPI Backend (port 8000)
+# Terminal 1 – FastAPI Backend (port 8080)
 python -m planexe_api.api
 
 # Terminal 2 – Next.js Frontend (port 3000)
@@ -223,15 +223,15 @@ npm run go
 
 ```bash
 # Create a plan via API
-curl -X POST "http://localhost:8000/api/plans" \
+curl -X POST "http://localhost:8080/api/plans" \
   -H "Content-Type: application/json" \
   -d '{"prompt": "test plan", "llm_model": "gpt-5-mini-2025-08-07", "speed_vs_detail": "fast_but_skip_details"}'
 
 # Check plan status
-curl "http://localhost:8000/api/plans/{plan_id}"
+curl "http://localhost:8080/api/plans/{plan_id}"
 
 # Monitor progress (note: currently shows false completion)
-curl "http://localhost:8000/api/plans/{plan_id}/stream"
+curl "http://localhost:8080/api/plans/{plan_id}/stream"
 ```
 
 ### Known Issues (v0.1.6)
