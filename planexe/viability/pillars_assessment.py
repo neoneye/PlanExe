@@ -1,14 +1,9 @@
 """
-Step 1: Pillars assessment with resilient validation and LLM-friendly schema.
+Pillars assessment
 
-This module combines the reliability of the original pillars implementation with the
-strict repair rules described in viability/README.md. It keeps the JSON contract small
-and enum-driven so GPT-5 style models can comply, while still providing:
+Auto-repair that enforces status/score bands, evidence gating, and reason-code whitelists.
 
-- Structured prompts and metadata capture (works well with llamalindex LLMs).
-- Auto-repair that enforces status/score bands, evidence gating, and reason-code whitelists.
-- Deterministic markdown rendering (never trust the model to format it).
-
+IDEA: Should the EVIDENCE_TEMPLATES contain lists of strings, when the lists only have one item. Seems like it can be simplified, to a single string.
 IDEA: Extract the REASON_CODES_BY_PILLAR, DEFAULT_EVIDENCE_BY_PILLAR, EVIDENCE_TEMPLATES into a JSON file.
 
 PROMPT> python -u -m planexe.viability.pillars_assessment | tee output_a.txt
@@ -33,7 +28,7 @@ from planexe.viability.pillars_prompt import make_pillars_system_prompt
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Constants & enums (string-based for LLM friendliness)
+# Constants & enums
 # ---------------------------------------------------------------------------
 
 STATUS_ENUM: List[str] = ["GREEN", "YELLOW", "RED", "GRAY"]
@@ -137,7 +132,7 @@ STATUS_MIDPOINT = {
 
 DEFAULT_EVIDENCE_ITEM = "Gather evidence for assessment"
 
-# --- NEW: strength codes allowed for GREEN status and canonical evidence templates ---
+# --- strength codes allowed for GREEN status and canonical evidence templates ---
 STRENGTH_REASON_CODES = {
     # Use positive signals that justify GREEN
     "HITL_GOVERNANCE_OK",
@@ -268,7 +263,7 @@ def _canonicalize_evidence(pillar: str, reason_codes: List[str], evidence_todo: 
     return out[:2]
 
 # ---------------------------------------------------------------------------
-# Lightweight schema for structured output (keeps GPT-5 happy)
+# Lightweight schema for structured output
 # ---------------------------------------------------------------------------
 
 class PillarItemSchema(BaseModel):
@@ -597,10 +592,6 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
     return fix_bullet_lists(markdown)
 
 
-# ---------------------------------------------------------------------------
-# Public dataclass
-# ---------------------------------------------------------------------------
-
 @dataclass
 class PillarsAssessment:
     system_prompt: str
@@ -684,12 +675,7 @@ class PillarsAssessment:
             json.dump(self.to_dict(), handle, indent=2, ensure_ascii=False)
 
 
-# ---------------------------------------------------------------------------
-# CLI demo for manual runs
-# ---------------------------------------------------------------------------
-
-
-def main() -> None:  # pragma: no cover - convenience helper
+if __name__ == "__main__":  # pragma: no cover
     from planexe.llm_factory import get_llm
 
     plan_text = """
@@ -714,7 +700,3 @@ def main() -> None:  # pragma: no cover - convenience helper
     print(json.dumps(result.response, indent=2, ensure_ascii=False))
     print("\nMarkdown:\n")
     print(result.markdown)
-
-
-if __name__ == "__main__":  # pragma: no cover
-    main()
