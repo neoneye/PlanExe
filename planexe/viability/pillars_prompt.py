@@ -176,6 +176,8 @@ Output contract (emit JSON only; exactly one object per pillar, arrays must exis
         "Tie-breaks & determinism:\n"
         "- If unsure between GREEN and YELLOW, choose YELLOW with at least one whitelist reason_code; if still unsure, choose GRAY.\n"
         "- If the plan never touches a pillar, mark it GRAY and propose concrete evidence to unlock assessment.\n"
+        "- Treat any risk or need mentioned in the plan as an open issue unless there is explicit evidence it has been resolved.\n"
+        "- Scrutinize quantitative claims (e.g., budgets, timelines, percentages). A low contingency (<10-15%) for a complex project is a significant risk; do not mark it GREEN without strong counter-evidence.\n"
         "- Do not invent fields. Do not output prose or markdown.\n\n"
 
         f"{output_contract}\n"
