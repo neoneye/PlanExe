@@ -1,3 +1,33 @@
+## [0.2.4] - 2025-09-29 - CRITICAL BUG FIX: Luigi Pipeline Activation
+
+### 🐛 **CRITICAL FIX: Luigi Pipeline Never Started**
+- **Root Cause**: Module path typo in `pipeline_execution_service.py` line 46
+- **Bug**: `MODULE_PATH_PIPELINE = "planexe.run_plan_pipeline"` (incorrect, missing `.plan`)
+- **Fix**: Changed to `MODULE_PATH_PIPELINE = "planexe.plan.run_plan_pipeline"` (correct)
+- **Impact**: Luigi subprocess was failing immediately with "module not found" error
+- **Result**: FastAPI could never spawn Luigi pipeline, no plan generation was possible
+
+### 🎯 **Why This Was So Hard to Find**
+- WebSocket architecture was working perfectly (v0.2.0-0.2.2 improvements were correct)
+- Frontend UI was robust and displaying status correctly
+- Database integration was solid
+- **The bug was a single typo preventing subprocess from starting at all**
+- No stdout/stderr reached WebSocket because process never started
+- Python module system silently failed to find `planexe.run_plan_pipeline` (should be `planexe.plan.run_plan_pipeline`)
+
+### ✅ **Verification**
+- Module path now matches actual file location: `planexe/plan/run_plan_pipeline.py`
+- Python can successfully import: `python -m planexe.plan.run_plan_pipeline`
+- Luigi subprocess will now spawn correctly when FastAPI calls it
+
+### 📚 **Lessons Learned**
+- Original database integration plan (29092025-LuigiDatabaseConnectionFix.md) was solving the wrong problem
+- Luigi wasn't "isolated from database" - Luigi wasn't running at all
+- Always verify subprocess can actually start before debugging complex architectural issues
+- Module path typos can silently break subprocess spawning
+
+---
+
 ## [0.2.3] - 2025-09-28 - RAILWAY SINGLE-SERVICE CONSOLIDATION
 
 ### dYZ_ **Unified Deployment**

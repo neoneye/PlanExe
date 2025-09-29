@@ -43,7 +43,7 @@ class ProcessRegistry:
 process_registry = ProcessRegistry()
 
 # Pipeline configuration
-MODULE_PATH_PIPELINE = "planexe.run_plan_pipeline"
+MODULE_PATH_PIPELINE = "planexe.plan.run_plan_pipeline"
 
 
 class PipelineExecutionService:
