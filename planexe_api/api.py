@@ -35,7 +35,7 @@ from planexe_api.models import (
     PlanStatus, SpeedVsDetail, PipelineDetailsResponse, StreamStatusResponse
 )
 from planexe_api.database import (
-    get_database, create_tables, DatabaseService, Plan, LLMInteraction,
+    get_database, get_database_service, create_tables, DatabaseService, Plan, LLMInteraction,
     PlanFile, PlanMetrics, SessionLocal
 )
 from planexe_api.services.pipeline_execution_service import PipelineExecutionService
@@ -259,7 +259,7 @@ async def get_prompts():
 
 # Plan creation endpoint
 @app.post("/api/plans", response_model=PlanResponse)
-async def create_plan(request: CreatePlanRequest, db: DatabaseService = Depends(get_database)):
+async def create_plan(request: CreatePlanRequest):
     """Create a new plan and start background processing"""
     try:
         # Generate unique plan ID and directory
@@ -284,7 +284,11 @@ async def create_plan(request: CreatePlanRequest, db: DatabaseService = Depends(
             "output_dir": str(run_id_dir)
         }
 
-        plan = db.create_plan(plan_data)
+        db = get_database_service()
+        try:
+            plan = db.create_plan(plan_data)
+        finally:
+            db.close()
         print(f"DEBUG: Plan created in database")
 
         # Start background execution using threading (Windows compatibility)
@@ -665,4 +669,4 @@ if not IS_DEVELOPMENT:
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", "8080"))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=port)

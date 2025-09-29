@@ -144,35 +144,6 @@ class PlanMetrics(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
-# Database connection management
-def get_database():
-    """Get DatabaseService instance for dependency injection"""
-    db = SessionLocal()
-    try:
-        yield DatabaseService(db)
-    finally:
-        db.close()
-
-
-def get_raw_database():
-    """Get raw database session"""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-def create_tables():
-    """Create all database tables"""
-    Base.metadata.create_all(bind=engine)
-
-
-def get_db() -> Session:
-    """Get database session for dependency injection"""
-    return SessionLocal()
-
-
 # Database service functions
 class DatabaseService:
     """Service class for database operations"""
@@ -255,6 +226,57 @@ class DatabaseService:
         """Get metrics for a plan"""
         return self.db.query(PlanMetrics).filter(PlanMetrics.plan_id == plan_id).first()
 
+    def delete_plan(self, plan_id: str) -> bool:
+        """Delete a plan and all associated records"""
+        plan = self.get_plan(plan_id)
+        if plan:
+            # Delete associated records
+            self.db.query(LLMInteraction).filter(LLMInteraction.plan_id == plan_id).delete()
+            self.db.query(PlanFile).filter(PlanFile.plan_id == plan_id).delete()
+            self.db.query(PlanMetrics).filter(PlanMetrics.plan_id == plan_id).delete()
+            
+            # Delete the plan itself
+            self.db.delete(plan)
+            self.db.commit()
+            return True
+        return False
+
     def close(self):
         """Close database session"""
         self.db.close()
+
+
+# Database connection management
+def get_database():
+    """Get DatabaseService instance for dependency injection"""
+    db = SessionLocal()
+    try:
+        service = DatabaseService(db)
+        yield service
+    finally:
+        db.close()
+
+
+def get_database_service() -> DatabaseService:
+    """Get DatabaseService instance directly (no generator)"""
+    db = SessionLocal()
+    return DatabaseService(db)
+
+
+def get_raw_database():
+    """Get raw database session"""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def create_tables():
+    """Create all database tables"""
+    Base.metadata.create_all(bind=engine)
+
+
+def get_db() -> Session:
+    """Get database session for dependency injection"""
+    return SessionLocal()
