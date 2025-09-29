@@ -1,9 +1,9 @@
 {
     "gpt-5-mini-2025-08-07": {
-        "comment": "Latest GPT-5 Mini model - primary choice",
+        "comment": "Latest GPT-5 Nano model - primary choice",
         "priority": 1,
         "provider": "openai",
-        "model": "gpt-5-mini-2025-08-07"
+        "model": "gpt-5-nano-2025-08-07"
     },
     "gpt-4.1-nano-2025-04-14": {
         "comment": "GPT-4.1 Nano model - fast and efficient",
