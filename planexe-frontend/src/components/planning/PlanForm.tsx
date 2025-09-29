@@ -194,12 +194,12 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                               <>
                                 <SelectItem value="__error__" disabled>
                                   <div className="flex items-center space-x-2 text-red-600">
-                                    <span>❌ Railway Error: {modelsError}</span>
+                                    <span>[Error] Railway Error: {modelsError}</span>
                                   </div>
                                 </SelectItem>
-                                <SelectItem value="fallback-gpt4" >
+                                <SelectItem value="fallback-gpt5-nano" >
                                   <div className="flex items-center space-x-2">
-                                    <span>🔄 Fallback: GPT-4 (Manual Entry)</span>
+                                    <span>Fallback: GPT-5 Nano (Manual Entry)</span>
                                     <Badge variant="outline" className="text-xs">
                                       Backup Option
                                     </Badge>
@@ -210,12 +210,12 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                               <>
                                 <SelectItem value="__empty__" disabled>
                                   <div className="flex items-center space-x-2 text-orange-600">
-                                    <span>⚠️ No models from Railway API</span>
+                                    <span>[Warning] No models from Railway API</span>
                                   </div>
                                 </SelectItem>
-                                <SelectItem value="fallback-gpt4">
+                                <SelectItem value="fallback-gpt5-nano">
                                   <div className="flex items-center space-x-2">
-                                    <span>🔄 Fallback: GPT-4 (Manual Entry)</span>
+                                    <span>Fallback: GPT-5 Nano (Manual Entry)</span>
                                     <Badge variant="outline" className="text-xs">
                                       Backup Option
                                     </Badge>
@@ -241,9 +241,9 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                         {modelsError && (
                           <div className="text-red-600 block mt-2 p-2 bg-red-50 rounded">
                             <strong>Railway Debug Info:</strong><br/>
-                            • API Error: {modelsError}<br/>
-                            • Endpoint: /api/models<br/>
-                            • Fallback option available above<br/>
+                            - API Error: {modelsError}<br/>
+                            - Endpoint: /api/models<br/>
+                            - Fallback option available above<br/>
                             {loadLLMModels && (
                               <Button 
                                 type="button"
@@ -253,7 +253,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                                 onClick={() => loadLLMModels(true)}
                                 disabled={isLoadingModels}
                               >
-                                {isLoadingModels ? "Retrying..." : "🔄 Retry Railway Connection"}
+                                {isLoadingModels ? "Retrying..." : "Retry Railway Connection"}
                               </Button>
                             )}
                           </div>
@@ -261,8 +261,8 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                         {llmModels.length === 0 && !modelsError && !isLoadingModels && (
                           <div className="text-orange-600 block mt-2 p-2 bg-orange-50 rounded">
                             <strong>Railway Status:</strong><br/>
-                            • Models API returned empty list<br/>
-                            • Using fallback option above<br/>
+                            - Models API returned empty list<br/>
+                            - Using fallback option above<br/>
                             {loadLLMModels && (
                               <Button 
                                 type="button"
@@ -271,7 +271,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                                 className="mt-2"
                                 onClick={() => loadLLMModels(true)}
                               >
-                                🔄 Refresh from Railway
+                                Refresh from Railway
                               </Button>
                             )}
                           </div>
