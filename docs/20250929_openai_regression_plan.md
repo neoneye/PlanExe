@@ -155,3 +155,39 @@ The regression happened because:
 2. Confirm OpenAI API calls actually reach OpenAI servers
 3. Test fallback behavior if primary model fails
 4. Validate Railway deployment has correct API keys in environment
+
+---
+
+## RAILWAY DEPLOYMENT ISSUE IDENTIFIED (2025-09-29 17:07 ET)
+**Additional investigation by second assistant**
+
+### The Railway-Specific Problem
+Even with `DEFAULT_LLM_MODEL` fixed, Railway deployments were still failing because:
+
+**Line 50 of `docker/Dockerfile.railway.api`**:
+```dockerfile
+RUN test -f /app/llm_config.json || echo '{}' > /app/llm_config.json
+```
+
+This fallback creates an **empty** `llm_config.json` if the file doesn't exist in the Docker image.
+
+### Why This Happened
+1. ✅ `COPY . .` (line 38) should copy `llm_config.json` from project root
+2. ❌ **BUT** if `llm_config.json` wasn't committed to git, Railway doesn't get it
+3. ❌ Fallback creates empty `{}` config
+4. ❌ `get_llm_names_by_priority()` returns empty list `[]`
+5. ❌ `resolve_llm_models()` falls back to `DEFAULT_LLM_MODEL` (which we just fixed)
+
+### The Fix
+- ✅ Verified `llm_config.json` IS committed to git (git ls-tree confirms)
+- ✅ Railway will now receive the actual config with OpenAI models
+- ✅ No more empty config fallback
+
+### Lesson Learned
+**Two separate bugs working together**:
+1. Local dev: `DEFAULT_LLM_MODEL` pointed to removed model
+2. Railway: Missing `llm_config.json` in git meant empty config triggered the bad default
+
+Both needed to be fixed:
+- Updated `DEFAULT_LLM_MODEL` to valid model ✅
+- Ensured `llm_config.json` is in git ✅
