@@ -1,11 +1,21 @@
 ## [0.2.4] - 2025-09-29 - CRITICAL BUG FIX: Luigi Pipeline Activation
 
-### 🐛 **CRITICAL FIX: Luigi Pipeline Never Started**
+### 🐛 **CRITICAL FIX #1: Luigi Pipeline Never Started**
 - **Root Cause**: Module path typo in `pipeline_execution_service.py` line 46
 - **Bug**: `MODULE_PATH_PIPELINE = "planexe.run_plan_pipeline"` (incorrect, missing `.plan`)
 - **Fix**: Changed to `MODULE_PATH_PIPELINE = "planexe.plan.run_plan_pipeline"` (correct)
 - **Impact**: Luigi subprocess was failing immediately with "module not found" error
 - **Result**: FastAPI could never spawn Luigi pipeline, no plan generation was possible
+
+### 🐛 **CRITICAL FIX #2: SPEED_VS_DETAIL Environment Variable Mismatch**
+- **Root Cause**: Incorrect enum value mapping in `pipeline_execution_service.py` lines 142-150
+- **Bug**: Mapping used `"balanced"` and `"detailed"` which don't exist in Luigi's SpeedVsDetailEnum
+- **Fix**: Corrected mapping to use Luigi's actual enum values (Source of Truth):
+  - `"all_details_but_slow"` → `"all_details_but_slow"` ✅
+  - `"balanced_speed_and_detail"` → `"all_details_but_slow"` ✅ (per API models.py comment)
+  - `"fast_but_skip_details"` → `"fast_but_skip_details"` ✅
+- **Impact**: Luigi was logging error "Invalid value for SPEED_VS_DETAIL: balanced"
+- **Result**: Environment variable now passes valid Luigi enum values
 
 ### 🎯 **Why This Was So Hard to Find**
 - WebSocket architecture was working perfectly (v0.2.0-0.2.2 improvements were correct)

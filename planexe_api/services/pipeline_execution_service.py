@@ -138,15 +138,17 @@ class PipelineExecutionService:
         environment = os.environ.copy()
         environment[PipelineEnvironmentEnum.RUN_ID_DIR.value] = str(run_id_dir)
 
-        # Map API enum values to pipeline enum values
+        # Map API enum values to Luigi pipeline enum values (Source of Truth: planexe/plan/speedvsdetail.py)
+        # Luigi only has 2 values: "all_details_but_slow" and "fast_but_skip_details"
+        # API's "balanced_speed_and_detail" maps to "all_details_but_slow" per models.py line 25
         speed_vs_detail_mapping = {
-            "fast_but_skip_details": "fast_but_skip_details",
-            "balanced": "balanced",
-            "detailed": "detailed"
+            "all_details_but_slow": "all_details_but_slow",
+            "balanced_speed_and_detail": "all_details_but_slow",  # Maps balanced to detailed mode
+            "fast_but_skip_details": "fast_but_skip_details"
         }
 
         environment[PipelineEnvironmentEnum.SPEED_VS_DETAIL.value] = speed_vs_detail_mapping.get(
-            request.speed_vs_detail.value, "balanced"
+            request.speed_vs_detail.value, "all_details_but_slow"  # Default to detailed mode
         )
         environment[PipelineEnvironmentEnum.LLM_MODEL.value] = request.llm_model
 
