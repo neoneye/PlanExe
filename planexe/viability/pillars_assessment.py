@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 # Constants & enums
 # ---------------------------------------------------------------------------
 
+# IDEA: Replace with class PillarStatusEnum(str, Enum) and share it with the other files.
 STATUS_ENUM: List[str] = ["GREEN", "YELLOW", "RED", "GRAY"]
 
 PILLAR_ORDER: List[str] = [
