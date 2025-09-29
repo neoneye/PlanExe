@@ -42,6 +42,14 @@ git push origin main  # Auto-deploys to Railway
 
 ---
 
+## Configuration Source of Truth
+
+- `llm_config.json` lives in the repository and is baked into the Railway image during the Docker build, so update it here whenever the default model list changes.
+- The container entrypoint now exports that same JSON via `PLANEXE_LLM_CONFIG_JSON`, giving the FastAPI service a reliable fallback even if the file cannot be read at runtime (for example, due to read-only mounts).
+- Keep `railway-env-template.txt` in sync with the baked config so teammates can copy the sanitized JSON into Railway without exposing secrets.
+
+---
+
 ## 🛠️ **Debugging Tools**
 
 ### **1. UI-Based Debugging (Primary)**
@@ -159,3 +167,4 @@ curl https://your-railway-app.railway.app/health
 - ✅ Diagnostic endpoints confirm backend functionality
 
 **Performance is secondary to clarity** - users should always know what's happening, even if it's slow or broken.
+

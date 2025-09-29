@@ -1,3 +1,9 @@
+/**
+ * Author: Codex using GPT-5
+ * Date: 2025-09-30T02:15:00Z
+ * PURPOSE: Railway environment variable template including sanitized LLM config override
+ * SRP and DRY check: Pass - Single reference for deploying environment variables to Railway
+ */
 # Railway Environment Variables Template
 # Copy these variables to your Railway service dashboard
 
@@ -5,7 +11,7 @@
 # Get from: https://openrouter.ai/keys
 OPENROUTER_API_KEY=your_openrouter_api_key_here
 
-# Get from: https://platform.openai.com/api-keys  
+# Get from: https://platform.openai.com/api-keys
 OPENAI_API_KEY=your_openai_api_key_here
 
 # === OPTIONAL API KEYS ===
@@ -22,6 +28,9 @@ PYTHONPATH=/app
 
 # Ensure output is not buffered
 PYTHONUNBUFFERED=1
+
+# LLM configuration override (kept in sync with llm_config.json baked into the image)
+PLANEXE_LLM_CONFIG_JSON={"gpt-5-mini-2025-08-07":{"comment":"Latest GPT-5 Nano model - primary choice","priority":1,"provider":"openai","model":"gpt-5-nano-2025-08-07"},"gpt-4.1-nano-2025-04-14":{"comment":"GPT-4.1 Nano model - fast and efficient","priority":2,"provider":"openai","model":"gpt-4.1-nano-2025-04-14"},"google/gemini-2.0-flash-001":{"comment":"Gemini 2.0 Flash via OpenRouter - fallback 1","priority":3,"provider":"openrouter","model":"google/gemini-2.0-flash-001"},"google/gemini-2.5-flash":{"comment":"Gemini 2.5 Flash via OpenRouter - fallback 2","priority":4,"provider":"openrouter","model":"google/gemini-2.5-flash"}}
 
 # === AUTOMATICALLY PROVIDED BY RAILWAY ===
 # Do NOT set these manually - Railway provides them:

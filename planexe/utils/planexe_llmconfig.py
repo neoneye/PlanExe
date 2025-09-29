@@ -1,3 +1,9 @@
+/**
+ * Author: Codex using GPT-5
+ * Date: 2025-09-30T02:15:00Z
+ * PURPOSE: Load llm_config.json with optional PLANEXE_LLM_CONFIG_JSON override for Railway builds
+ * SRP and DRY check: Pass - Centralizes LLM configuration loading and env substitution logic
+ */
 """
 Load PlanExe's llm_config.json file, containing LLM configurations
 
@@ -7,6 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict
 import json
+import os
 from planexe.utils.planexe_config import PlanExeConfig
 from planexe.utils.planexe_dotenv import PlanExeDotEnv
 import logging
@@ -25,8 +32,23 @@ class PlanExeLLMConfig:
         config.raise_if_required_files_not_found()
         planexe_dotenv = PlanExeDotEnv.load()
 
-        llm_config_json_path = config.llm_config_json_path
-        llm_config_dict_raw = cls.load_llm_config(llm_config_json_path)
+        llm_config_json_path = config.llm_config_json_path or Path("/app/llm_config.json")
+
+        env_override = os.environ.get("PLANEXE_LLM_CONFIG_JSON")
+        env_config_loaded = False
+        llm_config_dict_raw: Dict[str, Any]
+
+        if env_override:
+            try:
+                llm_config_dict_raw = json.loads(env_override)
+                env_config_loaded = True
+                logger.info("Loaded llm_config.json from PLANEXE_LLM_CONFIG_JSON environment override")
+            except json.JSONDecodeError as exc:
+                logger.error("Failed to parse PLANEXE_LLM_CONFIG_JSON override. Falling back to filesystem copy.", exc_info=exc)
+
+        if not env_config_loaded:
+            llm_config_dict_raw = cls.load_llm_config(llm_config_json_path)
+
         llm_config_dict = cls.substitute_env_vars(llm_config_dict_raw, planexe_dotenv.dotenv_dict)
 
         return cls(

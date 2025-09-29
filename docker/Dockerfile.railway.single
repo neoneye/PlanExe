@@ -1,9 +1,14 @@
-
- # Author: Claude Code using Sonnet 4
- # Date: 2025-01-27
- # PURPOSE: Single-service Railway Dockerfile - builds Next.js static export AND runs FastAPI on port 8080
- # SRP and DRY check: Pass - Single responsibility of Railway single-service deployment
- #
+/**
+ * Author: Codex using GPT-5
+ * Date: 2025-09-30T02:15:00Z
+ * PURPOSE: Railway single-service Docker build exporting llm_config.json for runtime consumption
+ * SRP and DRY check: Pass - Single deployment recipe for combined API/UI service
+ */
+# Author: Claude Code using Sonnet 4
+# Date: 2025-01-27
+# PURPOSE: Single-service Railway Dockerfile - builds Next.js static export AND runs FastAPI on port 8080
+# SRP and DRY check: Pass - Single responsibility of Railway single-service deployment
+#
 
 # Multi-stage build for Railway single-service deployment
 FROM node:18-slim AS frontend-builder
@@ -20,7 +25,7 @@ COPY planexe-frontend/ ./
 RUN npm run build
 
 # Verify static export was created
-RUN ls -la out/ && echo "✅ Next.js static export created successfully"
+RUN ls -la out/ && echo "Next.js static export created successfully"
 
 # Main Python runtime stage
 FROM python:3.13-slim
@@ -44,14 +49,14 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -e . && \
     pip install --no-cache-dir -r planexe_api/requirements.txt
 
-# Copy application code
+# Copy application code (includes llm_config.json source of truth)
 COPY . .
 
 # Copy Next.js static build from frontend-builder stage
 COPY --from=frontend-builder /app/frontend/out /app/ui_static
 
 # Verify static files were copied
-RUN ls -la /app/ui_static/ && echo "✅ Static UI files copied successfully"
+RUN ls -la /app/ui_static/ && echo "Static UI files copied successfully"
 
 # Create run directory for plan outputs
 RUN mkdir -p /app/run && chmod 755 /app/run
@@ -59,7 +64,7 @@ RUN mkdir -p /app/run && chmod 755 /app/run
 # Set cloud mode environment variable for PlanExe configuration system
 ENV PLANEXE_CLOUD_MODE=true
 
-# Ensure llm_config.json exists (copy from project root)
+# Ensure llm_config.json exists (copy from project root; fallback keeps container healthy)
 RUN test -f /app/llm_config.json || echo '{}' > /app/llm_config.json
 
 # Set environment variables
@@ -74,5 +79,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD sh -c 'curl -f http://localhost:${PORT:-8080}/health || exit 1'
 
-# Start the FastAPI server which serves both API and static UI
-CMD ["sh", "-c", "python -m uvicorn planexe_api.api:app --host 0.0.0.0 --port ${PORT:-8080}"]
+# Start the FastAPI server which serves both API and static UI, exporting llm_config.json to env for PlanExe fallback
+CMD ["sh", "-c", "PLANEXE_LLM_CONFIG_JSON=\"$(cat /app/llm_config.json)\" exec python -m uvicorn planexe_api.api:app --host 0.0.0.0 --port ${PORT:-8080}"]
