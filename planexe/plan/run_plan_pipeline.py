@@ -89,7 +89,7 @@ from planexe.luigi_util.obtain_output_files import ObtainOutputFiles
 from planexe.plan.pipeline_environment import PipelineEnvironment
 
 logger = logging.getLogger(__name__)
-DEFAULT_LLM_MODEL = "ollama-llama3.1"
+DEFAULT_LLM_MODEL = "gpt-5-mini-2025-08-07"  # Updated from ollama-llama3.1 (no longer in config)
 
 REPORT_EXECUTE_PLAN_SECTION_HIDDEN = True
 # REPORT_EXECUTE_PLAN_SECTION_HIDDEN = False

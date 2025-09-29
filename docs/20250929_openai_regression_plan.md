@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Author: Codex using GPT-5
  * Date: 2025-09-29T20:13:35Z
  * PURPOSE: Document the diagnosed LLM regression, root cause, and remediation roadmap so the next developer can restore OpenAI integration without re-discovery.
@@ -35,7 +35,7 @@
      - planexe/lever/focus_on_vital_few_levers.py:302
      - planexe/governance/governance_phase1_audit.py:166
      - planexe/questions_answers/questions_answers.py:251
-   - Many proof-of-concept scripts under planexe/proof_of_concepts also hardcode the same model.
+   - Many proof-of-concept scripts under planexe/proof_of_concepts also hardcode the same model. (NOT A PROBLEM)
 6. Database State
    - Local SQLite dev DB (planexe_api/planexe.db) currently empty; production uses PostgreSQL, so regression is not tied to DB writes.
 
@@ -90,3 +90,68 @@
 - Are there Luigi tasks that require distinct models (for example, inexpensive summarizer versus premium reasoner)? If yes, extend llm_config.json with named presets instead of hardcoding strings inside tasks.
 
 Document owner will proceed with code changes only after explicit approval.
+
+---
+
+## ACTUAL ROOT CAUSE IDENTIFIED (2025-09-29 16:43 ET)
+**Analyst: Cascade using Sonnet 4.5**
+
+### The Real Bug
+The initial diagnosis was **partially correct but missed the critical failure point**. The actual sequence:
+
+1. ✅ **FastAPI passes environment correctly** - `os.environ.copy()` already exists (line 138 of `pipeline_execution_service.py`)
+2. ✅ **API keys are present** - OPENAI_API_KEY and OPENROUTER_API_KEY confirmed in environment
+3. ✅ **Pipeline reads LLM_MODEL from environment** - `resolve_llm_models()` works correctly
+4. ❌ **DEFAULT_LLM_MODEL is the poison pill** - Line 92 of `run_plan_pipeline.py`
+
+### The Critical Path
+```python
+# planexe/plan/run_plan_pipeline.py:92
+DEFAULT_LLM_MODEL = "ollama-llama3.1"  # ❌ THIS MODEL NO LONGER EXISTS IN llm_config.json
+
+# When resolve_llm_models() falls back (lines 3756-3760):
+def resolve_llm_models(cls, specified_llm_model: Optional[str]) -> list[str]:
+    llm_models = get_llm_names_by_priority()
+    if len(llm_models) == 0:
+        logger.error("No LLM models found...")
+        llm_models = [DEFAULT_LLM_MODEL]  # ❌ Sets non-existent model
+```
+
+### Why This Breaks
+1. Pipeline resolves to `["ollama-llama3.1"]` as fallback
+2. First task calls `self.create_llm_executor()` (line 122)
+3. `LLMModelFromName.from_names(["ollama-llama3.1"])` creates wrapper objects (llm_executor.py:72)
+4. When task executes, `LLMExecutor.run()` calls `llm_model.create_llm()` (llm_executor.py:144)
+5. This calls `get_llm("ollama-llama3.1")` (llm_executor.py:65)
+6. **`get_llm()` checks `is_valid_llm_name()` and raises ValueError** (llm_factory.py:114-116)
+7. Task fails immediately, **no OpenAI API calls ever happen**
+
+### The Fix (Applied)
+```python
+# planexe/plan/run_plan_pipeline.py:92
+DEFAULT_LLM_MODEL = "gpt-5-mini-2025-08-07"  # ✅ First model in llm_config.json
+```
+
+### Why The Original Diagnosis Was Wrong
+- **Incorrect assumption**: Hardcoded `get_llm("ollama-llama3.1")` calls in test blocks (`if __name__ == "__main__"`) were blamed
+- **Reality**: Those test blocks never execute during Luigi runs - they're for standalone testing only
+- **Actual cause**: The fallback DEFAULT_LLM_MODEL referenced a model removed during the OpenAI simplification
+
+### Verification Path
+1. Confirm `llm_config.json` contains only OpenAI/OpenRouter models (✅ verified)
+2. Confirm `DEFAULT_LLM_MODEL` pointed to removed Ollama model (✅ verified line 92)
+3. Confirm `get_llm()` raises ValueError for invalid model names (✅ verified line 114-116)
+4. Confirm this happens at task execution time, not import time (✅ verified via LLMExecutor flow)
+
+### Additional Context
+The regression happened because:
+- Commit a34e92b (2025-09-22) replaced LlamaIndex with SimpleOpenAILLM
+- `llm_config.json` was updated to remove all Ollama models
+- **BUT** `DEFAULT_LLM_MODEL` constant was never updated
+- This fallback only triggers if `get_llm_names_by_priority()` returns empty list OR when tasks default to it
+
+### Post-Fix Testing Needed
+1. Verify pipeline launches successfully with gpt-5-mini-2025-08-07
+2. Confirm OpenAI API calls actually reach OpenAI servers
+3. Test fallback behavior if primary model fails
+4. Validate Railway deployment has correct API keys in environment
