@@ -1,8 +1,8 @@
 /**
- * Author: Cascade
- * Date: 2025-09-19T16:59:36-04:00
- * PURPOSE: Main plan creation form component that replicates Gradio interface functionality with LLM model selection and speed settings
- * SRP and DRY check: Pass - Single responsibility for plan form UI, uses existing form validation schemas
+ * Author: Codex using GPT-5
+ * Date: `2025-09-28T21:31:26-04:00`
+ * PURPOSE: Renders the primary plan creation workflow, wiring FastAPI-backed model selection, prompt examples, and submission flow into the Next.js UI; integrates shadcn form primitives with shared schema/types so the dashboard stays consistent.
+ * SRP and DRY check: Pass - Single component handles plan creation UI; validated against shared form utilities to avoid duplication.
  */
 
 'use client';
@@ -43,7 +43,6 @@ export const PlanForm: React.FC<PlanFormProps> = ({
   isLoadingModels = false,
   loadLLMModels
 }) => {
-  const [selectedModelRequiresKey, setSelectedModelRequiresKey] = useState(false);
   const [selectedExample, setSelectedExample] = useState<string>('');
 
   const form = useForm<PlanFormData>({
@@ -52,21 +51,10 @@ export const PlanForm: React.FC<PlanFormProps> = ({
       prompt: '',
       llm_model: '',
       speed_vs_detail: 'all_details_but_slow',
-      openrouter_api_key: '',
       title: '',
       tags: []
     }
   });
-
-  // Watch for LLM model changes to show/hide API key field
-  const selectedModel = form.watch('llm_model');
-
-  useEffect(() => {
-    if (selectedModel && llmModels.length > 0) {
-      const model = llmModels.find(m => m.id === selectedModel);
-      setSelectedModelRequiresKey(model?.requires_api_key || false);
-    }
-  }, [selectedModel, llmModels]);
 
   // Set default model if available
   useEffect(() => {
@@ -81,7 +69,6 @@ export const PlanForm: React.FC<PlanFormProps> = ({
       prompt: data.prompt,
       llm_model: data.llm_model,
       speed_vs_detail: data.speed_vs_detail,
-      openrouter_api_key: selectedModelRequiresKey ? data.openrouter_api_key : undefined,
     };
 
     await onSubmit(request);
@@ -240,12 +227,9 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                                 <SelectItem key={model.id} value={model.id}>
                                   <div className="flex items-center space-x-2">
                                     <span>{model.label ?? model.id}</span>
-                                    <Badge variant={(model.requires_api_key) ? 'default' : 'secondary'}>
-                                      {model.comment}
-                                    </Badge>
-                                    {model.requires_api_key && (
-                                      <Badge variant="outline" className="text-xs">
-                                        API Key
+                                    {model.comment && (
+                                      <Badge variant="outline">
+                                        {model.comment}
                                       </Badge>
                                     )}
                                   </div>
@@ -254,86 +238,48 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                             )}
                           </SelectContent>
                         </Select>
-                        <FormDescription>
-                          Choose the AI model for plan generation. Paid models generally provide higher quality results.
-                          {modelsError && (
-                            <div className="text-red-600 block mt-2 p-2 bg-red-50 rounded">
-                              <strong>Railway Debug Info:</strong><br/>
-                              • API Error: {modelsError}<br/>
-                              • Endpoint: /api/models<br/>
-                              • Fallback option available above<br/>
-                              {loadLLMModels && (
-                                <Button 
-                                  type="button"
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="mt-2"
-                                  onClick={() => loadLLMModels(true)}
-                                  disabled={isLoadingModels}
-                                >
-                                  {isLoadingModels ? "Retrying..." : "🔄 Retry Railway Connection"}
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                          {llmModels.length === 0 && !modelsError && !isLoadingModels && (
-                            <div className="text-orange-600 block mt-2 p-2 bg-orange-50 rounded">
-                              <strong>Railway Status:</strong><br/>
-                              • Models API returned empty list<br/>
-                              • Using fallback option above<br/>
-                              {loadLLMModels && (
-                                <Button 
-                                  type="button"
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="mt-2"
-                                  onClick={() => loadLLMModels(true)}
-                                >
-                                  🔄 Refresh from Railway
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                        </FormDescription>
+                        {modelsError && (
+                          <div className="text-red-600 block mt-2 p-2 bg-red-50 rounded">
+                            <strong>Railway Debug Info:</strong><br/>
+                            • API Error: {modelsError}<br/>
+                            • Endpoint: /api/models<br/>
+                            • Fallback option available above<br/>
+                            {loadLLMModels && (
+                              <Button 
+                                type="button"
+                                variant="outline" 
+                                size="sm" 
+                                className="mt-2"
+                                onClick={() => loadLLMModels(true)}
+                                disabled={isLoadingModels}
+                              >
+                                {isLoadingModels ? "Retrying..." : "🔄 Retry Railway Connection"}
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                        {llmModels.length === 0 && !modelsError && !isLoadingModels && (
+                          <div className="text-orange-600 block mt-2 p-2 bg-orange-50 rounded">
+                            <strong>Railway Status:</strong><br/>
+                            • Models API returned empty list<br/>
+                            • Using fallback option above<br/>
+                            {loadLLMModels && (
+                              <Button 
+                                type="button"
+                                variant="outline" 
+                                size="sm" 
+                                className="mt-2"
+                                onClick={() => loadLLMModels(true)}
+                              >
+                                🔄 Refresh from Railway
+                              </Button>
+                            )}
+                          </div>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
-                  {/* OpenRouter API Key (conditional) */}
-                  {selectedModelRequiresKey && (
-                    <FormField
-                      control={form.control}
-                      name="openrouter_api_key"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel htmlFor="openrouter-api-key">OpenRouter API Key *</FormLabel>
-                          <FormControl>
-                            <Input
-                              id="openrouter-api-key"
-                              type="password"
-                              autoComplete="current-password"
-                              placeholder="sk-or-v1-..."
-                              {...field}
-                              disabled={isSubmitting}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Your OpenRouter API key is required for paid models. Get one at{' '}
-                            <a 
-                              href="https://openrouter.ai/" 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              openrouter.ai
-                            </a>
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
 
                   {/* Speed vs Detail Selection */}
                   <FormField
@@ -446,4 +392,3 @@ export const PlanForm: React.FC<PlanFormProps> = ({
     </div>
   );
 };
-
