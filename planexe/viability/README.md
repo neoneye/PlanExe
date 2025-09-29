@@ -161,43 +161,48 @@ Interpretation & validation (spec — not emitted by the LLM)
 
 ⸻
 
+
 ## Step 2 — Emit Blockers (derived from Step 1)
 
-Goal: Convert weak/unknown pillars into 3–5 crisp blockers with verifiable acceptance tests.
+**Goal:** From the Step 1 plan, emit up to **5** concrete blockers the team must resolve.  
 
-Derivation rule
-- Only from pillars where status ∈ {RED, YELLOW, GRAY}.
-- reason_codes must be a subset of the pillar’s reason_codes (or drawn from a small mapping you control).
+### Output contract (LLM → orchestrator)
+The model returns a JSON object with a single field:
 
-Output (JSON)
+```python
+# Pydantic schema
+from pydantic import BaseModel, conlist
 
+class BlockersPayload(BaseModel):
+    blockers: conlist(BlockerItem, max_length=5)
+```
+
+Where `BlockerItem` is defined elsewhere in this spec. The list can be empty **only** if there are truly no blockers; otherwise return the top 1–5.
+
+### Validation rules (applied by the orchestrator)
+- `1 ≤ len(blockers) ≤ 5` (unless explicitly allowed to be 0).
+- Each blocker must be specific, actionable, and clearly derived from Step 1.
+- (Optional) If you choose to attribute blockers to pillars **per item**, add that inside `BlockerItem` (e.g., a `pillar` or `pillars` field) — **do not** reintroduce a top-level `source_pillars` key.
+
+### Example (LLM output)
 ```json
 {
-  "source_pillars": ["EconomicResilience","Rights_Legality"],
   "blockers": [
     {
-      "id": "B1",
-      "pillar": "EconomicResilience",
-      "title": "Contingency too low",
-      "reason_codes": ["CONTINGENCY_LOW"],
-      "acceptance_tests": [
-        "≥10% contingency approved",
-        "Monte Carlo risk workbook attached"
-      ],
-      "artifacts_required": ["Budget_v2.pdf","Risk_MC.xlsx"],
-      "owner": "PMO",
-      "rom": {"cost_band": "LOW", "eta_days": 14}
+      "title": "Data processing throughput is below SLA",
+      "description": "Ingest pipeline caps at ~3k msgs/s; target is 10k msgs/s for peak events.",
+      "owner_hint": "Platform",
+      "severity": "high"
+    },
+    {
+      "title": "Consent text lacks DSR workflow coverage",
+      "description": "No documented process for access/erasure requests; risks non-compliance in launch regions.",
+      "owner_hint": "Legal/Privacy",
+      "severity": "medium"
     }
   ]
 }
 ```
-
-Guardrails
-- pillar must match one from Step 1.
-- If rom missing, back-fill {"cost_band":"LOW","eta_days":14}.
-- Cap blockers at max 5.
-
-⸻
 
 ## Step 3 — Emit Fix Packs (cluster Step-2 blockers)
 
