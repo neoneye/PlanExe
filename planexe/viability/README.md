@@ -17,7 +17,10 @@ Bottom line: this exists so teams don’t stall at the sight of a scary risk lis
 ViabilityAssessor — 4-Step, LLM-Friendly Protocol
 
 A minimal, deterministic protocol that lets even a weaker LLM produce a useful viability assessment in four constrained steps:
-	1.	Pillars → 2) Blockers → 3) Fix Packs → 4) Overall & Summary
+
+```text
+1) Pillars → 2) Blockers → 3) Fix Packs → 4) Overall & Summary
+```
 
 This README defines purpose, data flow, enums, JSON shapes, guardrails, and validator rules so a programmer can wire it up without prior context.
 
@@ -44,10 +47,13 @@ Why four steps? Weak LLMs often fail strict schemas. Breaking the task into sequ
 
 Data Flow
 
+```
 Plan text ──> Step 1: PILLARS ──> Step 2: BLOCKERS ──> Step 3: FIX_PACKS ──> Step 4: OVERALL+SUMMARY
                      ▲                  ▲                      ▲
                      │                  │                      │
                  validator           validator               validator
+```
+
 
 	•	Each step consumes the prior step’s JSON and emits its own small JSON.
 	•	Your backend runs a validator after each step (see “Validation & Auto-repair”).
@@ -87,6 +93,7 @@ Input
 
 Output (JSON) — what the LLM must emit
 
+```json
 {
   "pillars": [
     {
@@ -98,8 +105,7 @@ Output (JSON) — what the LLM must emit
     }
   ]
 }
-
-
+```
 
 **Example (GREEN with strength rationale):**
 ```json
@@ -150,6 +156,7 @@ Interpretation & validation (spec — not emitted by the LLM)
 	•	Emit plain JSON (no Markdown).
 	•	Keep field names stable and lowercase with underscores for arrays.
 	•	Order pillars consistently (e.g., the canonical PILLAR_ENUM order).
+	•	`strength_rationale` (string, optional): Only for `status: "GREEN"`. A one-sentence justification of why the pillar is green (e.g., what evidence shows it is strong). Omit or set to `null` for non-GREEN statuses.
 
 ⸻
 
@@ -163,6 +170,7 @@ Derivation rule
 
 Output (JSON)
 
+```json
 {
   "source_pillars": ["EconomicResilience","Rights_Legality"],
   "blockers": [
@@ -181,6 +189,7 @@ Output (JSON)
     }
   ]
 }
+```
 
 Guardrails
 	•	pillar must match one from Step 1.
@@ -201,12 +210,14 @@ Algorithm (simple)
 
 Output (JSON)
 
+```json
 {
   "fix_packs": [
     {"id":"FP0","title":"Pre-Commit Gate","blocker_ids":["B1","B3"],"priority":"Immediate"},
     {"id":"FP1","title":"Governance Hardening","blocker_ids":["B2"],"priority":"High"}
   ]
 }
+```
 
 Guardrails
 	•	Every blocker_id must exist in Step 2.
@@ -226,6 +237,7 @@ Computation rules (do these outside the LLM, in code)
 
 Output (JSON)
 
+```json
 {
   "overall": {"score": 56, "status": "YELLOW", "confidence": "Medium"},
   "viability_summary": {
@@ -240,7 +252,7 @@ Output (JSON)
     ]
   }
 }
-
+```
 
 ⸻
 
@@ -255,6 +267,7 @@ Implement a tiny validator that:
 
 Pseudocode (Python):
 
+```python
 def band_mid(status): return {"GREEN":85,"YELLOW":55,"RED":20}.get(status)
 def validate_pillars(pillars):
     out=[]
@@ -274,7 +287,7 @@ def validate_blockers(blockers, pillars):
         b.setdefault("rom", {"cost_band":"LOW","eta_days":14})
         out.append(b)
     return out
-
+```
 
 ⸻
 
@@ -312,6 +325,7 @@ Interfaces (optional; keep loose for weaker models)
 
 TypeScript (consuming side):
 
+```typescript
 type Status = "GREEN" | "YELLOW" | "RED" | "GRAY";
 type Pillar = "HumanStability" | "EconomicResilience" | "EcologicalIntegrity" | "Rights_Legality";
 type CostBand = "LOW" | "MEDIUM" | "HIGH";
@@ -327,6 +341,7 @@ interface Blocker {
   artifacts_required?: string[]; owner?: string;
   rom?: { cost_band: CostBand; eta_days: number };
 }
+```
 
 
 ⸻
@@ -336,7 +351,3 @@ Design Rationale
 	•	Evidence-gated GREEN prevents “optimistic greenwashing.”
 	•	Fix Packs with FP0 create a pre-commit gate that flips the recommendation without re-scoring everything.
 	•	Roll-up in code (not in the LLM) keeps the final decision consistent and auditable.
-
-
-### Field notes — pillars
-- `strength_rationale` (string, optional): Only for `status: "GREEN"`. A one-sentence justification of why the pillar is green (e.g., what evidence shows it is strong). Omit or set to `null` for non-GREEN statuses.
