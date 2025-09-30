@@ -1,6 +1,13 @@
 """
 Emit Blockers (ViabilityAssessor Step 2).
 
+This is a strengthened, more robust version of the script. It incorporates:
+1.  A more forceful system prompt that makes it a failure condition for the LLM
+    to return an empty list when non-GREEN pillars are present.
+2.  More forgiving guardrails that attempt to repair slightly malformed blockers
+    (e.g., missing reason codes or tests) instead of silently discarding them,
+    making the process more resilient to minor LLM errors.
+
 PROMPT> python -u -m planexe.viability.blockers6 | tee output6.txt
 """
 from __future__ import annotations
@@ -19,6 +26,7 @@ from pydantic import BaseModel, Field, ValidationError, conlist
 from planexe.markdown_util.fix_bullet_lists import fix_bullet_lists
 
 # --- Configuration and Constants ---
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 PILLAR_ENUM: Sequence[str] = (
@@ -63,7 +71,11 @@ class BlockersPayload(BaseModel):
 # --- System Prompt Engineered for Quality and Compliance ---
 
 BLOCKERS_SYSTEM_PROMPT = f"""
-You are a meticulous viability risk analyst creating Step 2 blockers. Your entire response must be a single, valid JSON object with only a `blockers` key. Strictly adhere to this schema:
+You are a proactive risk strategist. Your primary goal is to convert every non-GREEN pillar into at least one concrete, actionable blocker. Your entire response must be a single, valid JSON object with only a `blockers` key.
+
+**CRITICAL RULE: It is a failure to return an empty `blockers` array if the input contains any RED or YELLOW pillars. You MUST identify blockers for them.**
+
+Strictly adhere to this schema:
 {{
   "blockers": [
     {{
@@ -77,18 +89,18 @@ You are a meticulous viability risk analyst creating Step 2 blockers. Your entir
     }}
   ]
 }}
-Rules:
+
+Further Rules:
 1.  **Source:** Derive blockers ONLY from input pillars with status RED, YELLOW, or GRAY.
-2.  **Quantity:** Create a maximum of 5 blockers total. Focus on the highest-leverage fixes.
-3.  **Traceability:** `reason_codes` must be a non-empty subset of the source pillar's `reason_codes`. This is mandatory.
+2.  **Quantity:** If there are two or more non-GREEN pillars, you MUST generate at least two blockers. The total must not exceed 5.
+3.  **Traceability:** `reason_codes` MUST be a non-empty subset of the source pillar's `reason_codes`. This is mandatory for linking the problem to the solution.
 4.  **Actionability:**
     - `acceptance_tests`: Write 1-3 crisp, measurable, pass/fail conditions.
     - `artifacts_required`: Name 1-3 specific deliverables that prove the tests are met.
 5.  **Schema:**
     - Use sequential IDs (B1, B2...).
     - `pillar` must be one of {{{', '.join(PILLAR_ENUM)}}}.
-6.  **Edge Case:** If no non-green pillars are provided, return an empty `blockers` array.
-7.  **Output JSON only.** No extra text or markdown.
+6.  **Output JSON only.** No extra text or markdown.
 """
 
 
@@ -211,33 +223,53 @@ def _build_user_payload(pillars: Sequence[PillarItem]) -> Dict[str, Any]:
     return {"pillars": [p.model_dump() for p in pillars]}
 
 def _enforce_guardrails(output: BlockersPayload, source_pillars: Sequence[PillarItem]) -> BlockersPayload:
+    """
+    Sanitizes and validates the LLM's output. This version is more forgiving
+    and will attempt to repair minor flaws rather than discarding the entire blocker.
+    """
     allowed_pillars = {p.pillar: p for p in source_pillars}
     sanitized_blockers: List[Dict[str, Any]] = []
 
     for candidate in output.blockers:
+        # Hard rule: Must be derived from a valid source pillar.
         if candidate.pillar not in allowed_pillars:
-            continue
-
-        pillar_reason_codes = set(allowed_pillars[candidate.pillar].reason_codes)
-        candidate_reason_codes = [code for code in candidate.reason_codes if code in pillar_reason_codes]
-        if not candidate_reason_codes:
+            logger.warning(f"Discarding blocker with invalid pillar '{candidate.pillar}'.")
             continue
 
         blocker_data = candidate.model_dump(exclude_unset=True)
+        source_pillar = allowed_pillars[candidate.pillar]
+        pillar_reason_codes = set(source_pillar.reason_codes)
+
+        # Forgiving Repair: Handle reason codes.
+        candidate_reason_codes = [code for code in candidate.reason_codes if code in pillar_reason_codes]
+        if not candidate_reason_codes:
+            logger.warning(f"Repairing blocker '{candidate.title}' with missing/invalid reason codes. Assigning all parent codes.")
+            candidate_reason_codes = list(pillar_reason_codes)
+        # If there are still no reason codes (because the parent had none), it's un-traceable.
+        if not candidate_reason_codes:
+            logger.warning(f"Discarding blocker '{candidate.title}' because its source pillar has no reason codes to trace.")
+            continue
         blocker_data["reason_codes"] = candidate_reason_codes
 
+        # Forgiving Repair: Handle acceptance tests.
         valid_tests = [t.strip() for t in candidate.acceptance_tests if t.strip()][:3]
-        if not valid_tests: continue
+        if not valid_tests:
+            logger.warning(f"Repairing blocker '{candidate.title}' with a placeholder acceptance test.")
+            valid_tests = ["TBD: Define specific acceptance test."]
         blocker_data["acceptance_tests"] = valid_tests
 
+        # Forgiving Repair: Handle artifacts.
         valid_artifacts = [a.strip() for a in candidate.artifacts_required if a.strip()][:3]
-        if not valid_artifacts: continue
+        if not valid_artifacts:
+            logger.warning(f"Repairing blocker '{candidate.title}' with a placeholder artifact.")
+            valid_artifacts = ["TBD: Identify required artifact."]
         blocker_data["artifacts_required"] = valid_artifacts
         
         sanitized_blockers.append(blocker_data)
         if len(sanitized_blockers) >= 5:
             break
 
+    # Final sorting and re-IDing ensures consistency.
     pillar_order = {name: i for i, name in enumerate(PILLAR_ENUM)}
     sanitized_blockers.sort(key=lambda b: pillar_order.get(b["pillar"], 99))
     for i, blocker in enumerate(sanitized_blockers, 1):
@@ -273,5 +305,5 @@ if __name__ == "__main__":
     
     assessment = BlockerAssessment.execute(llm, example_input)
 
-    print("--- Output ---")
+    print("\n--- Output ---")
     print(json.dumps(assessment.response, indent=2))
