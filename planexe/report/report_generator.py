@@ -105,8 +105,8 @@ class ReportGenerator:
         # Create markdown content with JSON in a code block
         markdown_content = f"```json\n{json_str}\n```"
         
-        # Convert markdown to HTML and add to report
-        html = markdown.markdown(markdown_content)
+        # Convert markdown to HTML and add to report (fenced_code extension needed for ``` blocks)
+        html = markdown.markdown(markdown_content, extensions=['fenced_code'])
         self.report_item_list.append(ReportDocumentItem(document_title, html, css_classes=css_classes))
         
     def append_markdown(self, document_title: str, file_path: Path, css_classes: list[str] = []):

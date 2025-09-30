@@ -17,7 +17,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from math import ceil
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Dict, Iterable, List, Optional, Sequence
 
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
@@ -152,6 +152,7 @@ class FixPack:
     user_prompt: str
     response: Dict[str, object]
     metadata: Dict[str, object]
+    markdown: str
 
     def to_dict(
         self,
@@ -166,64 +167,63 @@ class FixPack:
             data["system_prompt"] = self.system_prompt
         if include_user_prompt:
             data["user_prompt"] = self.user_prompt
+        data["markdown"] = self.markdown
         return data
 
-    def save_json(self, file_path: str, include_full_context: bool = False) -> None:
-        payload = self.to_dict() if include_full_context else self.response
-        with open(file_path, "w", encoding="utf-8") as handle:
-            json.dump(payload, handle, indent=2)
-        logger.info("Fix pack data saved to %s", file_path)
+    def save_raw(self, file_path: str) -> None:
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(self.to_dict(), f, indent=2)
+
+    def save_markdown(self, file_path: str) -> None:
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(self.markdown)
+
+    @staticmethod
+    def convert_to_markdown(fix_packs_output: FixPacksOutput) -> str:
+        rows: List[str] = ["## Fix Packs"]
+
+        if not fix_packs_output.fix_packs:
+            rows.append("No fix packs generated. All blockers were placed into FP0.")
+            return "\n".join(rows)
+
+        for fix_pack in fix_packs_output.fix_packs:
+            rows.append(f"### {fix_pack.id}: {fix_pack.title}")
+            rows.append(f"- Priority: {fix_pack.priority}")
+            rows.append("- Blockers:")
+            for blocker_id in fix_pack.blocker_ids:
+                rows.append(f"  - {blocker_id}")
+            rows.append("")
+
+        return "\n".join(rows).rstrip()
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> "FixPack":
-        """Generate fix packs using the aggregated pipeline context string."""
+    def execute(
+        cls,
+        llm: LLM,
+        user_prompt: str,
+        pillars_assessment_json: str,
+        blockers_json: str,
+    ) -> "FixPack":
+        """Generate fix packs using pipeline context and serialized step outputs."""
         if not isinstance(llm, LLM):
             raise ValueError("Invalid LLM instance.")
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
 
-        raw_context = user_prompt
-        try:
-            context_payload = json.loads(user_prompt)
-        except json.JSONDecodeError:
-            context_payload = None
-
-        if isinstance(context_payload, dict):
-            pillars_payload = context_payload.get("pillars") or context_payload.get("pillars_output")
-            blockers_payload = context_payload.get("blockers") or context_payload.get("blockers_output")
-            if isinstance(pillars_payload, str):
-                try:
-                    pillars_payload = json.loads(pillars_payload)
-                except json.JSONDecodeError:
-                    pillars_payload = None
-            if isinstance(blockers_payload, str):
-                try:
-                    blockers_payload = json.loads(blockers_payload)
-                except json.JSONDecodeError:
-                    blockers_payload = None
-        else:
-            pillars_payload = None
-            blockers_payload = None
-
-        if not isinstance(pillars_payload, dict):
-            pillars_payload = _find_json_with_keys(raw_context, ["pillars"])
-        if not isinstance(blockers_payload, dict):
-            blockers_payload = _find_json_with_keys(raw_context, ["blockers"])
+        if not isinstance(pillars_assessment_json, str):
+            raise ValueError("Invalid pillars_assessment_json.")
+        if not isinstance(blockers_json, str):
+            raise ValueError("Invalid blockers_json.")
 
         try:
-            pillars_input = PillarsInput.model_validate({"pillars": pillars_payload["pillars"]})
-        except (ValidationError, KeyError) as exc:
-            raise ValueError("Pillars data is missing or malformed for Fix Pack generation.") from exc
+            pillars_input = PillarsInput.model_validate_json(pillars_assessment_json)
+        except (ValidationError, json.JSONDecodeError) as exc:
+            raise ValueError("Invalid JSON payload for pillars assessment.") from exc
 
         try:
-            blockers_output = BlockersOutput.model_validate(
-                {
-                    "source_pillars": blockers_payload.get("source_pillars", []),
-                    "blockers": blockers_payload["blockers"],
-                }
-            )
-        except (ValidationError, KeyError) as exc:
-            raise ValueError("Blockers data is missing or malformed for Fix Pack generation.") from exc
+            blockers_output = BlockersOutput.model_validate_json(blockers_json)
+        except (ValidationError, json.JSONDecodeError) as exc:
+            raise ValueError("Invalid JSON payload for blockers.") from exc
 
         status_map = _status_by_pillar(pillars_input.pillars)
         fp0_blocker_ids = _select_fp0_blockers(
@@ -249,7 +249,9 @@ class FixPack:
             "llm_classname": None,
             "duration": 0,
             "response_byte_count": 0,
-            "raw_context_bytes": len(raw_context.encode("utf-8")),
+            "raw_context_bytes": len(user_prompt.encode("utf-8")),
+            "pillars_payload_bytes": len(pillars_assessment_json.encode("utf-8")),
+            "blockers_payload_bytes": len(blockers_json.encode("utf-8")),
             "fp0_blocker_ids": fp0_blocker_ids,
             "remaining_blocker_ids": [blocker.id for blocker in remaining_blockers],
             "fp0_title": FP0_TITLE,
@@ -307,45 +309,14 @@ class FixPack:
         )
 
         response_model = FixPacksOutput(fix_packs=fix_packs)
+        markdown = cls.convert_to_markdown(response_model)
         return cls(
             system_prompt=FIX_PACK_SYSTEM_PROMPT,
             user_prompt=llm_payload,
             response=response_model.model_dump(),
             metadata=llm_metadata,
+            markdown=markdown,
         )
-
-
-# --- Helper functions ---
-
-
-def _iter_json_objects(text: str) -> Iterable[Dict[str, Any]]:
-    """Yield JSON objects discovered with tolerant scanning."""
-    decoder = json.JSONDecoder()
-    length = len(text)
-    index = 0
-    while index < length:
-        char = text[index]
-        if char == '{':
-            try:
-                obj, end_index = decoder.raw_decode(text, index)
-            except json.JSONDecodeError:
-                index += 1
-                continue
-            if isinstance(obj, dict):
-                yield obj
-            index = end_index
-        else:
-            index += 1
-
-
-def _find_json_with_keys(text: str, required_keys: Sequence[str]) -> Dict[str, Any]:
-    """Return the first JSON object within *text* containing all *required_keys*."""
-    for candidate in _iter_json_objects(text):
-        if all(key in candidate for key in required_keys):
-            return candidate
-    raise ValueError(
-        "Could not locate a JSON object containing keys: " + ", ".join(required_keys)
-    )
 
 
 def _status_by_pillar(pillars: Sequence[PillarItem]) -> Dict[str, str]:
@@ -541,5 +512,14 @@ if __name__ == "__main__":
         f"{json.dumps(blockers_example, indent=2)}"
     )
 
-    result = FixPack.execute(llm, prompt)
+    result = FixPack.execute(
+        llm=llm,
+        user_prompt=prompt,
+        pillars_assessment_json=json.dumps(pillars_example),
+        blockers_json=json.dumps(blockers_example),
+    )
     print(json.dumps(result.response, indent=2))
+    print("\nMarkdown:\n")
+    print(result.markdown)
+    print("\nMetadata:")
+    print(json.dumps(result.metadata, indent=2))
