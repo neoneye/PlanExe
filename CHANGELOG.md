@@ -1,3 +1,22 @@
+/**
+ * Author: Codex using GPT-5
+ * Date: 2025-09-30T15:30:00Z
+ * PURPOSE: Records release notes; updated to capture Luigi agentization work and provides metadata for future edits.
+ * SRP and DRY check: Pass. CHANGELOG centralizes history; header adds missing metadata without duplicating elsewhere.
+ */
+
+## [0.2.5] - 2025-09-30 - Luigi Pipeline Agentization
+
+### Highlights
+- Added documentation (`docs/agentization-plan.md`) detailing Luigi agent hierarchy research and execution plan.
+- Generated 61 specialized task agents mirroring each Luigi task and eleven stage-lead agents to coordinate them.
+- Introduced `luigi-master-orchestrator` to supervise stage leads and enforce dependency sequencing with thinker fallbacks.
+- Embedded Anthropic/OpenAI agent best practices across new agents, ensuring handoff clarity and risk escalation paths.
+
+### Follow-up
+- Validate conversational coordination between stage leads once multi-agent runtime is wired into pipeline triggers.
+- Monitor need for additional exporter agents (e.g., Gantt outputs) if future pipeline steps expose more callable tasks.
+
 ## [0.2.4] - 2025-09-29 - CRITICAL BUG FIX: Luigi Pipeline Activation
 
 ### 🐛 **CRITICAL FIX #1: Luigi Pipeline Never Started**
