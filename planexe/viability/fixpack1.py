@@ -2,9 +2,10 @@
 Implements Step 3 of the ViabilityAssessor protocol: Fix Pack generation.
 
 This module consumes the JSON outputs from Step 1 (Pillars) and Step 2 (Blockers)
-and emits a structured set of Fix Packs that bundle blockers into execution-ready
-clusters. FP0 is always reserved for the pre-commit gate containing the blockers
-that must be resolved before proceeding.
+packaged in the combined pipeline prompt and emits a structured set of Fix Packs
+that bundle blockers into execution-ready clusters. FP0 is always reserved for
+the pre-commit gate containing the blockers that must be resolved before
+proceeding.
 
 PROMPT> python -u -m planexe.viability.fixpack1 | tee output1.txt
 """
@@ -16,11 +17,11 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from math import ceil
-from typing import Dict, List, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
-from pydantic import BaseModel, Field, ValidationError, conlist
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, conlist
 
 logger = logging.getLogger(__name__)
 
@@ -53,29 +54,38 @@ class FixPackPriorityEnum(str, Enum):
     LOW = "Low"
 
 
+FP0_TITLE = "Pre-Commit Gate"
 MUST_FIX_REASON_CODES = {"DPIA_GAPS", "CONTINGENCY_LOW", "ETHICS_VAGUE"}
 
 # --- Pydantic models for input payloads ---
 
 
 class PillarItem(BaseModel):
-    pillar: str
-    status: str
+    model_config = ConfigDict(extra="allow")
+
+    pillar: PillarEnum
+    status: StatusEnum
     score: Optional[int] = None
     reason_codes: List[str] = Field(default_factory=list)
     evidence_todo: List[str] = Field(default_factory=list)
 
 
 class PillarsInput(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     pillars: List[PillarItem]
 
 
 class ROM(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     cost_band: str
     eta_days: int
 
 
 class Blocker(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     id: str
     pillar: str
     title: str
@@ -87,11 +97,15 @@ class Blocker(BaseModel):
 
 
 class BlockersOutput(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     source_pillars: List[str] = Field(default_factory=list)
     blockers: List[Blocker]
 
 
 class FixPack(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     id: str
     title: str
     blocker_ids: conlist(str, min_length=1)
@@ -99,10 +113,14 @@ class FixPack(BaseModel):
 
 
 class FixPacksOutput(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     fix_packs: List[FixPack]
 
 
 class NonFP0FixPacks(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     fix_packs: List[FixPack]
 
 
@@ -160,14 +178,49 @@ class FixPackGenerationResult:
 # --- Helper functions ---
 
 
+def _iter_json_objects(text: str) -> Iterable[Dict[str, Any]]:
+    """Yield JSON objects discovered with tolerant scanning."""
+    decoder = json.JSONDecoder()
+    length = len(text)
+    index = 0
+    while index < length:
+        char = text[index]
+        if char == '{':
+            try:
+                obj, end_index = decoder.raw_decode(text, index)
+            except json.JSONDecodeError:
+                index += 1
+                continue
+            if isinstance(obj, dict):
+                yield obj
+            index = end_index
+        else:
+            index += 1
+
+
+def _find_json_with_keys(text: str, required_keys: Sequence[str]) -> Dict[str, Any]:
+    """Return the first JSON object within *text* containing all *required_keys*."""
+    for candidate in _iter_json_objects(text):
+        if all(key in candidate for key in required_keys):
+            return candidate
+    raise ValueError(
+        "Could not locate a JSON object containing keys: " + ", ".join(required_keys)
+    )
+
+
 def _status_by_pillar(pillars: Sequence[PillarItem]) -> Dict[str, str]:
-    return {item.pillar: item.status for item in pillars}
+    mapping: Dict[str, str] = {}
+    for item in pillars:
+        pillar_name = item.pillar.value if isinstance(item.pillar, Enum) else str(item.pillar)
+        status_value = item.status.value if isinstance(item.status, Enum) else str(item.status)
+        mapping[pillar_name] = status_value
+    return mapping
 
 
 def _select_fp0_blockers(
     blockers: Sequence[Blocker],
     status_map: Dict[str, str],
-    must_fix_codes: Sequence[str],
+    must_fix_codes: Iterable[str],
 ) -> List[str]:
     must_fix_set = set(must_fix_codes)
     fp0_ids: List[str] = []
@@ -189,7 +242,7 @@ def _build_user_prompt(
 ) -> str:
     payload = {
         "status_by_pillar": status_map,
-        "must_fix_reason_codes": list(must_fix_codes),
+        "must_fix_reason_codes": sorted(set(must_fix_codes)),
         "fp0_blocker_ids": list(fp0_blocker_ids),
         "blockers": [
             {
@@ -261,50 +314,68 @@ def _validate_fix_packs(
 
 class FixPackGenerator:
     @classmethod
-    def execute(
-        cls,
-        llm: LLM,
-        pillars_json: str,
-        blockers_json: str,
-        fp0_title: str = "Pre-Commit Gate",
-        fp0_priority: FixPackPriorityEnum = FixPackPriorityEnum.IMMEDIATE,
-    ) -> FixPackGenerationResult:
+    def execute(cls, llm: LLM, user_prompt: str) -> FixPackGenerationResult:
+        """Generate fix packs using the aggregated pipeline context string."""
         if not isinstance(llm, LLM):
             raise ValueError("Invalid LLM instance.")
+        if not isinstance(user_prompt, str):
+            raise ValueError("Invalid user_prompt.")
+
+        raw_context = user_prompt
+        try:
+            context_payload = json.loads(user_prompt)
+        except json.JSONDecodeError:
+            context_payload = None
+
+        if isinstance(context_payload, dict):
+            pillars_payload = context_payload.get("pillars") or context_payload.get("pillars_output")
+            blockers_payload = context_payload.get("blockers") or context_payload.get("blockers_output")
+            if isinstance(pillars_payload, str):
+                try:
+                    pillars_payload = json.loads(pillars_payload)
+                except json.JSONDecodeError:
+                    pillars_payload = None
+            if isinstance(blockers_payload, str):
+                try:
+                    blockers_payload = json.loads(blockers_payload)
+                except json.JSONDecodeError:
+                    blockers_payload = None
+        else:
+            pillars_payload = None
+            blockers_payload = None
+
+        if not isinstance(pillars_payload, dict):
+            pillars_payload = _find_json_with_keys(raw_context, ["pillars"])
+        if not isinstance(blockers_payload, dict):
+            blockers_payload = _find_json_with_keys(raw_context, ["blockers"])
 
         try:
-            pillars_input = PillarsInput.model_validate_json(pillars_json)
-        except (ValidationError, json.JSONDecodeError) as exc:
-            raise ValueError("Invalid JSON payload for pillars.") from exc
+            pillars_input = PillarsInput.model_validate({"pillars": pillars_payload["pillars"]})
+        except (ValidationError, KeyError) as exc:
+            raise ValueError("Pillars data is missing or malformed for Fix Pack generation.") from exc
 
         try:
-            blockers_output = BlockersOutput.model_validate_json(blockers_json)
-        except (ValidationError, json.JSONDecodeError) as exc:
-            raise ValueError("Invalid JSON payload for blockers.") from exc
-
-        if not blockers_output.blockers:
-            response = FixPacksOutput(fix_packs=[]).model_dump()
-            metadata = {
-                "status": "No blockers provided.",
-                "llm_invoked": False,
-            }
-            return FixPackGenerationResult(
-                system_prompt=FIX_PACK_SYSTEM_PROMPT,
-                user_prompt=json.dumps({}, indent=2),
-                response=response,
-                metadata=metadata,
+            blockers_output = BlockersOutput.model_validate(
+                {
+                    "source_pillars": blockers_payload.get("source_pillars", []),
+                    "blockers": blockers_payload["blockers"],
+                }
             )
+        except (ValidationError, KeyError) as exc:
+            raise ValueError("Blockers data is missing or malformed for Fix Pack generation.") from exc
 
         status_map = _status_by_pillar(pillars_input.pillars)
         fp0_blocker_ids = _select_fp0_blockers(
-            blockers_output.blockers, status_map, MUST_FIX_REASON_CODES
+            blockers_output.blockers,
+            status_map,
+            MUST_FIX_REASON_CODES,
         )
 
         remaining_blockers = [
             blocker for blocker in blockers_output.blockers if blocker.id not in fp0_blocker_ids
         ]
 
-        user_prompt = _build_user_prompt(
+        llm_payload = _build_user_prompt(
             remaining_blockers,
             status_map,
             MUST_FIX_REASON_CODES,
@@ -317,12 +388,21 @@ class FixPackGenerator:
             "llm_classname": None,
             "duration": 0,
             "response_byte_count": 0,
+            "raw_context_bytes": len(raw_context.encode("utf-8")),
+            "fp0_blocker_ids": fp0_blocker_ids,
+            "remaining_blocker_ids": [blocker.id for blocker in remaining_blockers],
+            "fp0_title": FP0_TITLE,
         }
+
+        if not blockers_output.blockers:
+            llm_metadata["status"] = "No blockers provided."
+        elif not remaining_blockers:
+            llm_metadata["status"] = "All blockers assigned to FP0; no clustering required."
 
         if remaining_blockers:
             chat_messages = [
                 ChatMessage(role=MessageRole.SYSTEM, content=FIX_PACK_SYSTEM_PROMPT),
-                ChatMessage(role=MessageRole.USER, content=user_prompt),
+                ChatMessage(role=MessageRole.USER, content=llm_payload),
             ]
 
             structured_llm = llm.as_structured_llm(NonFP0FixPacks)
@@ -351,9 +431,9 @@ class FixPackGenerator:
             fix_packs.append(
                 FixPack(
                     id="FP0",
-                    title=fp0_title,
+                    title=FP0_TITLE,
                     blocker_ids=fp0_blocker_ids,
-                    priority=fp0_priority,
+                    priority=FixPackPriorityEnum.IMMEDIATE,
                 )
             )
 
@@ -366,13 +446,12 @@ class FixPackGenerator:
         )
 
         response_model = FixPacksOutput(fix_packs=fix_packs)
-        result = FixPackGenerationResult(
+        return FixPackGenerationResult(
             system_prompt=FIX_PACK_SYSTEM_PROMPT,
-            user_prompt=user_prompt,
+            user_prompt=llm_payload,
             response=response_model.model_dump(),
             metadata=llm_metadata,
         )
-        return result
 
 
 if __name__ == "__main__":
@@ -460,10 +539,12 @@ if __name__ == "__main__":
     model_name = "ollama-llama3.1"
     llm = get_llm(model_name)
 
-    pillars_json = json.dumps(pillars_example)
-    blockers_json = json.dumps(blockers_example)
+    prompt = (
+        "File '029-1-pillars_assessment_raw.json':\n"
+        f"{json.dumps(pillars_example, indent=2)}\n\n"
+        "File '029-3-blockers_raw.json':\n"
+        f"{json.dumps(blockers_example, indent=2)}"
+    )
 
-    result = FixPackGenerator.execute(llm, pillars_json, blockers_json)
+    result = FixPackGenerator.execute(llm, prompt)
     print(json.dumps(result.response, indent=2))
-    print("\nMetadata:")
-    print(json.dumps(result.metadata, indent=2))
