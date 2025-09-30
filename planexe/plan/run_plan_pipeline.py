@@ -74,6 +74,7 @@ from planexe.team.enrich_team_members_with_environment_info import EnrichTeamMem
 from planexe.team.team_markdown_document import TeamMarkdownDocumentBuilder
 from planexe.team.review_team import ReviewTeam
 from planexe.viability.pillars_assessment import PillarsAssessment
+from planexe.viability.blockers2 import Blockers
 from planexe.wbs.wbs_task import WBSTask, WBSProject
 from planexe.wbs.wbs_populate import WBSPopulate
 from planexe.wbs.wbs_task_tooltip import WBSTaskTooltip
@@ -3653,6 +3654,95 @@ class PillarsAssessmentTask(PlanTask):
         markdown_path = self.output()['markdown'].path
         pillars_assessment.save_markdown(markdown_path)
 
+class BlockersTask(PlanTask):
+    def output(self):
+        return {
+            'raw': self.local_target(FilenameEnum.BLOCKERS_RAW),
+            'markdown': self.local_target(FilenameEnum.BLOCKERS_MARKDOWN)
+        }
+    
+    def requires(self):
+        return {
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'team_markdown': self.clone(TeamMarkdownTask),
+            'related_resources': self.clone(RelatedResourcesTask),
+            'consolidate_governance': self.clone(ConsolidateGovernanceTask),
+            'swot_analysis': self.clone(SWOTAnalysisTask),
+            'pitch_markdown': self.clone(ConvertPitchToMarkdownTask),
+            'data_collection': self.clone(DataCollectionTask),
+            'documents_to_create_and_find': self.clone(MarkdownWithDocumentsToCreateAndFindTask),
+            'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task),
+            'expert_review': self.clone(ExpertReviewTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'review_plan': self.clone(ReviewPlanTask),
+            'questions_and_answers': self.clone(QuestionsAndAnswersTask),
+            'premortem': self.clone(PremortemTask),
+            'pillars_assessment': self.clone(PillarsAssessmentTask)
+        }
+    
+    def run_with_llm(self, llm: LLM) -> None:
+        # Read inputs from required tasks.
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+            assumptions_markdown = f.read()
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
+        with self.input()['data_collection']['markdown'].open("r") as f:
+            data_collection_markdown = f.read()
+        with self.input()['related_resources']['markdown'].open("r") as f:
+            related_resources_markdown = f.read()
+        with self.input()['swot_analysis']['markdown'].open("r") as f:
+            swot_analysis_markdown = f.read()
+        with self.input()['team_markdown'].open("r") as f:
+            team_markdown = f.read()
+        with self.input()['pitch_markdown']['markdown'].open("r") as f:
+            pitch_markdown = f.read()
+        with self.input()['expert_review'].open("r") as f:
+            expert_review = f.read()
+        with self.input()['wbs_project123']['csv'].open("r") as f:
+            wbs_project_csv = f.read()
+        with self.input()['review_plan']['markdown'].open("r") as f:
+            review_plan_markdown = f.read()
+        with self.input()['questions_and_answers']['markdown'].open("r") as f:
+            questions_and_answers_markdown = f.read()
+        with self.input()['premortem']['markdown'].open("r") as f:
+            premortem_markdown = f.read()
+        with self.input()['pillars_assessment']['markdown'].open("r") as f:
+            pillars_assessment_markdown = f.read()
+
+        # Build the query.
+        query = (
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+            f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
+            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
+            f"File 'data-collection.md':\n{data_collection_markdown}\n\n"
+            f"File 'related-resources.md':\n{related_resources_markdown}\n\n"
+            f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
+            f"File 'team.md':\n{team_markdown}\n\n"
+            f"File 'pitch.md':\n{pitch_markdown}\n\n"
+            f"File 'expert-review.md':\n{expert_review}\n\n"
+            f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}\n\n"
+            f"File 'review-plan.md':\n{review_plan_markdown}\n\n"
+            f"File 'questions-and-answers.md':\n{questions_and_answers_markdown}\n\n"
+            f"File 'premortem.md':\n{premortem_markdown}\n\n"
+            f"File 'pillars-assessment.md':\n{pillars_assessment_markdown}"
+        )
+
+        # Invoke the LLM
+        blockers = Blockers.execute(llm, query)
+
+        # Save the results.
+        json_path = self.output()['raw'].path
+        blockers.save_raw(json_path)
+        markdown_path = self.output()['markdown'].path
+        blockers.save_markdown(markdown_path)
+
 class ReportTask(PlanTask):
     """
     Generate a report html document.
@@ -3684,7 +3774,8 @@ class ReportTask(PlanTask):
             'create_schedule': self.clone(CreateScheduleTask),
             'questions_and_answers': self.clone(QuestionsAndAnswersTask),
             'premortem': self.clone(PremortemTask),
-            'pillars_assessment': self.clone(PillarsAssessmentTask)
+            'pillars_assessment': self.clone(PillarsAssessmentTask),
+            'blockers': self.clone(BlockersTask)
         }
     
     def run_inner(self):
@@ -3713,6 +3804,7 @@ class ReportTask(PlanTask):
         rg.append_html('Questions & Answers', self.input()['questions_and_answers']['html'].path)
         rg.append_markdown_with_tables('Premortem', self.input()['premortem']['markdown'].path)
         rg.append_markdown_with_tables('Pillars Assessment', self.input()['pillars_assessment']['markdown'].path)
+        rg.append_markdown('Blockers', self.input()['blockers']['markdown'].path)
         rg.append_initial_prompt_vetted(
             document_title='Initial Prompt Vetted', 
             initial_prompt_file_path=self.input()['setup'].path, 
@@ -3785,6 +3877,7 @@ class FullPlanPipeline(PlanTask):
             'questions_and_answers': self.clone(QuestionsAndAnswersTask),
             'premortem': self.clone(PremortemTask),
             'pillars_assessment': self.clone(PillarsAssessmentTask),
+            'blockers': self.clone(BlockersTask),
             'report': self.clone(ReportTask),
         }
 
