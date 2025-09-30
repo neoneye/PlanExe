@@ -30,7 +30,7 @@
    - `team-governance-stage-lead` (team building, governance phases).
    - `reporting-stage-lead` (pitch, executive summary, final report, exporters).
 3. **Sub-Agents**: For dense phases (e.g., WBS pipeline) define sub-agents like `wbs-generator`, `schedule-exporter`, `risk-manager`, etc., to encapsulate specific task clusters.
-4. **Shared Utilities**: Reference external Codebuff agents (`codebuff/file-explorer@0.0.6`, etc.) for research support.
+4. **Shared Utilities**: Reference external Codebuff agents (`codebuff/file-explorer@0.0.6`, etc.) for research support.  THIS IS NOT POSSIBLE!!!
 5. **Communication Protocol**: Each agent will summarize status, required hand-offs, and spawn sub-agents when dependencies resolved.
 
 ## Next Steps

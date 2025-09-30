@@ -1,9 +1,9 @@
-/**
- * Author: Codex using GPT-5
- * Date: 2025-09-30T02:15:00Z
- * PURPOSE: Load llm_config.json with optional PLANEXE_LLM_CONFIG_JSON override for Railway builds
- * SRP and DRY check: Pass - Centralizes LLM configuration loading and env substitution logic
- */
+#
+# Author: Codex using GPT-5
+# Date: 2025-09-30 02:15:00Z
+# PURPOSE: Load llm_config.json with optional PLANEXE_LLM_CONFIG_JSON override for Railway builds
+# SRP and DRY check: Pass - Centralizes LLM configuration loading and env substitution logic
+#
 """
 Load PlanExe's llm_config.json file, containing LLM configurations
 
