@@ -696,8 +696,8 @@ const definition: SecretAgentDefinition = {
 
 You cannot use any other tools beyond the ones provided to you. (No ability to read files, write files, or run terminal commands, etc.)
 
-${PLACEHOLDER.FILE_TREE_PROMPT}
-${PLACEHOLDER.KNOWLEDGE_FILES_CONTENTS}\`,
+\${PLACEHOLDER.FILE_TREE_PROMPT}
+\${PLACEHOLDER.KNOWLEDGE_FILES_CONTENTS}\`,
 
   instructionsPrompt: \`Instructions:
 Take as many steps as you need to gather information first:
@@ -749,8 +749,8 @@ const definition: SecretAgentDefinition = {
   systemPrompt: \`You are an expert programmer, architect, researcher, and general problem solver.
 You spawn agents to help you gather information, and then describe a full change to the codebase that will accomplish the task.
 
-${PLACEHOLDER.FILE_TREE_PROMPT}
-${PLACEHOLDER.KNOWLEDGE_FILES_CONTENTS}\`,
+\${PLACEHOLDER.FILE_TREE_PROMPT}
+\${PLACEHOLDER.KNOWLEDGE_FILES_CONTENTS}\`,
 
   instructionsPrompt: \`Instructions:
 - Spawn file-explorer twice to find all the relevant parts of the codebase. Use different prompts for each file-explorer to ensure you get all the relevant parts of the codebase. In parallel as part of the same spawn_agents tool call, you may also spawn a web-researcher or docs-researcher to search the web or technical documentation for relevant information.
@@ -841,7 +841,7 @@ Your task is to analyze multiple implementations and select the best one based o
 5. **Maintainability** - How well will this approach work long-term?
 6. **Risk** - What are the potential downsides or failure points?
 
-${PLACEHOLDER.KNOWLEDGE_FILES_CONTENTS}\`,
+\${PLACEHOLDER.KNOWLEDGE_FILES_CONTENTS}\`,
 
   instructionsPrompt: \`Analyze all the provided plans and select the best one.
 
