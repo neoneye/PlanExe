@@ -8,7 +8,7 @@ Based on ViabilityAssessor Step 2: Emit Blockers.
 - Helps prioritize fixes: Each blocker has verifiable tests, required artifacts, owner, and ROM estimate.
 - Provides execution clarity: Bundles risks into crisp, testable items for Fix Packs.
 
-PROMPT> python -m planexe.viability.blockers2
+PROMPT> python -u -m planexe.viability.blockers2 | tee output2.txt
 """
 import os
 import json

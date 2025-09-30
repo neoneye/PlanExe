@@ -5,7 +5,7 @@ Converts non-green pillars from Step 1 into ≤5 actionable blockers with
 acceptance tests, artifacts, owners, and ROM estimates. Structured to work with
 LLMs that support schema-constrained outputs.
 
-PROMPT> python -m planexe.viability.blockers3
+PROMPT> python -u -m planexe.viability.blockers3 | tee output3.txt
 """
 from __future__ import annotations
 

@@ -5,7 +5,7 @@ Transforms weak pillars from Step 1 into ≤5 concrete blockers with
 acceptance tests, artifacts, owners, and ROM estimates. Mirrors the
 structured LLM orchestration style used in `planexe.plan.executive_summary`.
 
-PROMPT> python -m planexe.viability.blockers4
+PROMPT> python -u -m planexe.viability.blockers4 | tee output4.txt
 """
 from __future__ import annotations
 
