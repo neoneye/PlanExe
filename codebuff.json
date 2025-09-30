@@ -3,6 +3,10 @@
     "harsh/generate-landing-page@1.0.1",
     "mark-barney/*",
     "mark-barney/edgar-the-engineer@0.0.1",
-    "mark-barney/mark@0.0.5"
+    
+    "mark-barney/mark@0.2.7",
+    "mark-barney/benny@0.0.5",
+    "mark-barney/edgar-the-engineer@0.0.4",
+    "mark-barney/mark"
   ]
 }
