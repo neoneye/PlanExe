@@ -3,7 +3,7 @@ Pillars assessment
 
 Auto-repair that enforces status/score bands, evidence gating, and reason-code whitelists.
 
-IDEA: The "score" is untrustworthy. I want to change from the range 0-100 to multiple parameters in the range 1-5, so that the score can be fact checked.
+IDEA: Scoring transparency. The "score" is currently untrustworthy. I want to change from the range 0-100 to multiple parameters in the range 1-5, so that the score can be fact checked.
 
 IDEA: Extract the REASON_CODES_BY_PILLAR, DEFAULT_EVIDENCE_BY_PILLAR, EVIDENCE_TEMPLATES into a JSON file.
 
