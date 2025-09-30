@@ -189,22 +189,22 @@ class Blockers:
         rows.append("")
         rows.append("## Blockers")
         for blocker in blockers_output.blockers:
-            rows.append(f"### {blocker.id}: {blocker.title}")
-            rows.append(f"**Pillar:** {blocker.pillar}")
+            rows.append(f"### {blocker.id}: {blocker.title}\n")
+            rows.append(f"**Pillar:** {blocker.pillar}\n")
             if blocker.reason_codes:
-                rows.append(f"**Reason Codes:** {', '.join(blocker.reason_codes)}")
+                rows.append(f"\n**Reason Codes:** {', '.join(blocker.reason_codes)}\n")
             if blocker.acceptance_tests:
-                rows.append("**Acceptance Tests:**")
+                rows.append("\n**Acceptance Tests:**\n")
                 for test in blocker.acceptance_tests:
                     rows.append(f"  - {test}")
             if blocker.artifacts_required:
-                rows.append("**Artifacts Required:**")
+                rows.append("\n**Artifacts Required:**\n")
                 for artifact in blocker.artifacts_required:
                     rows.append(f"  - {artifact}")
             if blocker.owner:
-                rows.append(f"**Owner:** {blocker.owner}")
+                rows.append(f"\n**Owner:** {blocker.owner}\n")
             if blocker.rom:
-                rows.append(f"**ROM:** {blocker.rom['cost_band']} cost, {blocker.rom['eta_days']} days")
+                rows.append(f"\n**ROM:** {blocker.rom['cost_band']} cost, {blocker.rom['eta_days']} days\n")
             rows.append("")
         markdown = "\n".join(rows)
         markdown = fix_bullet_lists(markdown)
