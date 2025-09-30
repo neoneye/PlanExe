@@ -1,163 +1,26 @@
 {
-    "ollama-microsoft-phi4": {
-        "comment": "This runs on your own computer. It's free. It's slower than llama3.1",
-        "class": "Ollama",
-        "arguments": {
-            "model": "phi4:latest",
-            "temperature": 0.5,
-            "request_timeout": 120.0,
-            "is_function_calling_model": false
-        }
+    "gpt-5-mini-2025-08-07": {
+        "comment": "Latest GPT-5 Nano model - primary choice",
+        "priority": 1,
+        "provider": "openai",
+        "model": "gpt-5-nano-2025-08-07"
     },
-    "ollama-huggingface-unsloth-Llama-3.1-Tulu-3-8B-GGUF-Q4_K_M": {
-        "comment": "This runs on your own computer. It's free. It uses a model from Hugging Face.",
-        "class": "Ollama",
-        "arguments": {
-            "model": "hf.co/unsloth/Llama-3.1-Tulu-3-8B-GGUF:Q4_K_M",
-            "temperature": 0.5,
-            "request_timeout": 120.0,
-            "is_function_calling_model": false
-        }
+    "gpt-4.1-nano-2025-04-14": {
+        "comment": "GPT-4.1 Nano model - fast and efficient",
+        "priority": 2,
+        "provider": "openai",
+        "model": "gpt-4.1-nano-2025-04-14"
     },
-    "openrouter-paid-openai-gpt-41-nano": {
-        "comment": "This is medium fast. It's paid, so check the pricing before use.",
-        "class": "OpenRouter",
-        "arguments": {
-            "model": "openai/gpt-4.1-nano",
-            "api_key": "${OPENROUTER_API_KEY}",
-            "temperature": 0.1,
-            "timeout": 60.0,
-            "is_function_calling_model": false,
-            "is_chat_model": true,
-            "max_tokens": 8192,
-            "max_retries": 5
-        }
+    "google/gemini-2.0-flash-001": {
+        "comment": "Gemini 2.0 Flash via OpenRouter - fallback 1",
+        "priority": 3,
+        "provider": "openrouter",
+        "model": "google/gemini-2.0-flash-001"
     },
-    "openai-paid-o1": {
-        "comment": "This is paid. Possible free to use for a limited time. Check the pricing before use.",
-        "class": "OpenAI",
-        "arguments": {
-            "model": "o1",
-            "api_key": "${OPENAI_API_KEY}",
-            "api_base": "https://api.openai.com/v1",
-            "temperature": 1.0,
-            "timeout": 60.0,
-            "is_function_calling_model": false,
-            "is_chat_model": true,
-            "max_completion_tokens": 10000,
-            "max_retries": 5
-        }
-    },
-    "openai-paid-gpt-4o": {
-        "comment": "This is paid. Possible free to use for a limited time. Check the pricing before use.",
-        "class": "OpenAI",
-        "arguments": {
-            "model": "gpt-4o",
-            "api_key": "${OPENAI_API_KEY}",
-            "api_base": "https://api.openai.com/v1",
-            "temperature": 1.0,
-            "timeout": 60.0,
-            "is_function_calling_model": true,
-            "is_chat_model": true,
-            "max_tokens": 4096,
-            "max_retries": 5
-        }
-    },
-    "mistral-paid-large": {
-        "comment": "This is paid. Possible free to use for a limited time. Check the pricing before use.",
-        "class": "MistralAI",
-        "arguments": {
-            "model": "mistral-large-latest",
-            "api_key": "${MISTRAL_API_KEY}",
-            "temperature": 1.0,
-            "timeout": 60.0,
-            "max_tokens": 8192,
-            "max_retries": 5
-        }
-    },
-    "openrouter-free-qwen-qwq-32b": {
-        "comment": "This is slow and free.",
-        "class": "OpenRouter",
-        "arguments": {
-            "model": "qwen/qwq-32b:free",
-            "api_key": "${OPENROUTER_API_KEY}",
-            "temperature": 0.1,
-            "timeout": 60.0,
-            "is_function_calling_model": false,
-            "is_chat_model": true,
-            "max_tokens": 8192,
-            "max_retries": 5
-        }
-    },
-    "openrouter-paid-qwen-turbo": {
-        "comment": "This is somewhat working. It's paid, so check the pricing before use.",
-        "class": "OpenRouter",
-        "arguments": {
-            "model": "qwen/qwen-turbo",
-            "api_key": "${OPENROUTER_API_KEY}",
-            "temperature": 0.1,
-            "timeout": 60.0,
-            "is_function_calling_model": false,
-            "is_chat_model": true,
-            "max_tokens": 8192,
-            "max_retries": 5
-        }
-    },
-    "openrouter-paid-mistral-small-24b-instruct-2501": {
-        "comment": "This is somewhat working. It's paid, so check the pricing before use.",
-        "class": "OpenRouter",
-        "arguments": {
-            "model": "mistralai/mistral-small-24b-instruct-2501",
-            "api_key": "${OPENROUTER_API_KEY}",
-            "temperature": 0.1,
-            "timeout": 60.0,
-            "is_function_calling_model": false,
-            "is_chat_model": true,
-            "max_tokens": 8192,
-            "max_retries": 5
-        }
-    },
-    "openrouter-paid-amazon-nova-lite-v1": {
-        "comment": "This is medium fast. It's paid, so check the pricing before use.",
-        "class": "OpenRouter",
-        "arguments": {
-            "model": "amazon/nova-lite-v1",
-            "api_key": "${OPENROUTER_API_KEY}",
-            "temperature": 0.1,
-            "timeout": 60.0,
-            "is_function_calling_model": false,
-            "is_chat_model": true,
-            "max_tokens": 8192,
-            "max_retries": 5
-        }
-    },
-    "openrouter-paid-deepseek-chat": {
-        "comment": "This is slow. It's paid, so check the pricing before use.",
-        "class": "OpenRouter",
-        "arguments": {
-            "model": "deepseek/deepseek-chat",
-            "api_key": "${OPENROUTER_API_KEY}",
-            "temperature": 0.1,
-            "timeout": 60.0,
-            "is_function_calling_model": false,
-            "is_chat_model": true,
-            "max_tokens": 8192,
-            "max_retries": 5
-        }
-    },
-    "deepseek-chat": {
-        "comment": "This used to be fast, but is now slow. It's cheap.",
-        "class": "OpenAILike",
-        "arguments": {
-            "model": "deepseek-chat",
-            "api_key": "${DEEPSEEK_API_KEY}",
-            "api_base": "https://api.deepseek.com/v1",
-            "temperature": 0.1,
-            "timeout": 60.0,
-            "is_function_calling_model": false,
-            "is_chat_model": true,
-            "max_tokens": 4096,
-            "max_retries": 5
-        }
+    "google/gemini-2.5-flash": {
+        "comment": "Gemini 2.5 Flash via OpenRouter - fallback 2",
+        "priority": 4,
+        "provider": "openrouter",
+        "model": "google/gemini-2.5-flash"
     }
 }
