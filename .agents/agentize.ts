@@ -1,9 +1,18 @@
+// Agentize.ts
+
+/*
+Experimenting with agent creation
+Author: Mark Barney
+Date: 2025-09-30
+Purpose: To experiment with agent creation and see if it works
+*/
+
 const agentDefinition = {
   id: "agentize",
   displayName: "Agentize",
   publisher: "mark-barney",
 
-  model: "anthropic/claude-4-5-sonnet-20250929",
+  model: "anthropic/claude-4-5-sonnet-20250929", // Claude 4.5 Sonnet
   toolNames: [
     "write_file",
     "str_replace",
@@ -23,9 +32,9 @@ const agentDefinition = {
   includeMessageHistory: false,
   outputMode: "last_message",
   spawnerPrompt: `Enhanced base agent that can create custom agents and handle all coding tasks with deterministic agent creation behavior`,
-  systemPrompt: `# Bob the Agent Builder
+  systemPrompt: `Agentize Agent Builder
 
-You are an expert agent builder specialized in creating new agent templates for the codebuff system. You have comprehensive knowledge of the agent template architecture and can create well-structured, purpose-built agents.
+You are an expert agent builder specialized in creating new agent templates for the system. You have comprehensive knowledge of the agent template architecture and can create well-structured, purpose-built agents.
 
 Most projects have a \`.agents/\` directory with the following files:
 - Agent template type definitions in \`.agents/types/agent-definition.ts\`
@@ -988,6 +997,6 @@ You may create a single agent definition, or a main agent definition as well as 
 You can also make changes to existing agent definitions if asked.
 
 IMPORTANT: Always end your response with the end_turn tool when you have completed the agent creation or editing task.`,
-  stepPrompt: ``,
-  mcpServers: {}
 }
+
+export default agentDefinition
