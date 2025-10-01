@@ -7,7 +7,7 @@ SRP and DRY check: Pass - Single responsibility of data persistence layer, DRY d
 import os
 from datetime import datetime
 from typing import Optional, List
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, JSON, Float, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, JSON, Float, Boolean, Index
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.dialects.postgresql import UUID
@@ -145,15 +145,23 @@ class PlanMetrics(Base):
 
 
 class PlanContent(Base):
-    """Database model for storing actual plan file contents (Option 3 fix)"""
+    """Database model for storing actual plan file contents (Option 1 implementation)"""
     __tablename__ = "plan_content"
+    __table_args__ = (
+        # Composite index for fast filename lookups within a plan
+        # This is critical for performance when Luigi tasks query existing content
+        Index('idx_plan_content_plan_id_filename', 'plan_id', 'filename'),
+        # Stage-based filtering index (useful for debugging specific pipeline stages)
+        Index('idx_plan_content_stage', 'stage'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
-    plan_id = Column(String(255), index=True, nullable=False)
+    # plan_id index defined via __table_args__ composite indexes
+    plan_id = Column(String(255), nullable=False)
 
     # File identification
     filename = Column(String(255), nullable=False)  # e.g., "018-wbs_level1.json"
-    stage = Column(String(100), nullable=True)  # e.g., "wbs_level1"
+    stage = Column(String(100), nullable=True, index=True)  # e.g., "wbs_level1"
     content_type = Column(String(50), nullable=False)  # json, markdown, html, csv, txt
 
     # Actual content (stored in database for persistence)
@@ -162,9 +170,6 @@ class PlanContent(Base):
 
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow)
-    
-    # Index for efficient retrieval
-    # Composite index on (plan_id, filename) for fast lookups
 
 
 # Database service functions
