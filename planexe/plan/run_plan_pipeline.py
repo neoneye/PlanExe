@@ -3558,44 +3558,49 @@ class DataCollectionTask(PlanTask):
         }
     
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            assumptions_markdown = f.read()
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        with self.input()['related_resources']['markdown'].open("r") as f:
-            related_resources_markdown = f.read()
-        with self.input()['swot_analysis']['markdown'].open("r") as f:
-            swot_analysis_markdown = f.read()
-        with self.input()['team_markdown'].open("r") as f:
-            team_markdown = f.read()
-        with self.input()['expert_review'].open("r") as f:
-            expert_review = f.read()
-
-        # Build the query.
-        query = (
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
-            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'related-resources.md':\n{related_resources_markdown}\n\n"
-            f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
-            f"File 'team.md':\n{team_markdown}\n\n"
-            f"File 'expert-review.md':\n{expert_review}"
-        )
-
-        # Invoke the LLM.
-        data_collection = DataCollection.execute(llm, query)
-
-        # Save the results.
-        json_path = self.output()['raw'].path
-        data_collection.save_raw(json_path)
-        markdown_path = self.output()['markdown'].path
-        data_collection.save_markdown(markdown_path)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                assumptions_markdown = f.read()
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['related_resources']['markdown'].open("r") as f:
+                related_resources_markdown = f.read()
+            with self.input()['swot_analysis']['markdown'].open("r") as f:
+                swot_analysis_markdown = f.read()
+            with self.input()['team_markdown'].open("r") as f:
+                team_markdown = f.read()
+            with self.input()['expert_review'].open("r") as f:
+                expert_review = f.read()
+            query = (f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\nFile 'scenarios.md':\n{scenarios_markdown}\n\nFile 'assumptions.md':\n{assumptions_markdown}\n\nFile 'project-plan.md':\n{project_plan_markdown}\n\nFile 'related-resources.md':\n{related_resources_markdown}\n\nFile 'swot-analysis.md':\n{swot_analysis_markdown}\n\nFile 'team.md':\n{team_markdown}\n\nFile 'expert-review.md':\n{expert_review}")
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "data_collection", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
+            data_collection = DataCollection.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            raw_dict = data_collection.to_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(raw_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            raw_content = json.dumps(raw_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.DATA_COLLECTION_RAW.value, "stage": "data_collection", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            markdown_content = data_collection.to_markdown()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.DATA_COLLECTION_MARKDOWN.value, "stage": "data_collection", "content_type": "markdown", "content": markdown_content, "content_size_bytes": len(markdown_content.encode('utf-8'))})
+            data_collection.save_raw(self.output()['raw'].path)
+            data_collection.save_markdown(self.output()['markdown'].path)
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class IdentifyDocumentsTask(PlanTask):
     """
@@ -3623,50 +3628,57 @@ class IdentifyDocumentsTask(PlanTask):
         }
     
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['identify_purpose']['raw'].open("r") as f:
-            identify_purpose_dict = json.load(f)
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            assumptions_markdown = f.read()
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        with self.input()['related_resources']['markdown'].open("r") as f:
-            related_resources_markdown = f.read()
-        with self.input()['swot_analysis']['markdown'].open("r") as f:
-            swot_analysis_markdown = f.read()
-        with self.input()['team_markdown'].open("r") as f:
-            team_markdown = f.read()
-        with self.input()['expert_review'].open("r") as f:
-            expert_review = f.read()
-
-        # Build the query.
-        query = (
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
-            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'related-resources.md':\n{related_resources_markdown}\n\n"
-            f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
-            f"File 'team.md':\n{team_markdown}\n\n"
-            f"File 'expert-review.md':\n{expert_review}"
-        )
-
-        # Invoke the LLM.
-        identify_documents = IdentifyDocuments.execute(
-            llm=llm,
-            user_prompt=query,
-            identify_purpose_dict=identify_purpose_dict
-        )
-
-        # Save the results.
-        identify_documents.save_raw(self.output()["raw"].path)
-        identify_documents.save_markdown(self.output()["markdown"].path)
-        identify_documents.save_json_documents_to_find(self.output()["documents_to_find"].path)
-        identify_documents.save_json_documents_to_create(self.output()["documents_to_create"].path)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            with self.input()['identify_purpose']['raw'].open("r") as f:
+                identify_purpose_dict = json.load(f)
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                assumptions_markdown = f.read()
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['related_resources']['markdown'].open("r") as f:
+                related_resources_markdown = f.read()
+            with self.input()['swot_analysis']['markdown'].open("r") as f:
+                swot_analysis_markdown = f.read()
+            with self.input()['team_markdown'].open("r") as f:
+                team_markdown = f.read()
+            with self.input()['expert_review'].open("r") as f:
+                expert_review = f.read()
+            query = (f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\nFile 'scenarios.md':\n{scenarios_markdown}\n\nFile 'assumptions.md':\n{assumptions_markdown}\n\nFile 'project-plan.md':\n{project_plan_markdown}\n\nFile 'related-resources.md':\n{related_resources_markdown}\n\nFile 'swot-analysis.md':\n{swot_analysis_markdown}\n\nFile 'team.md':\n{team_markdown}\n\nFile 'expert-review.md':\n{expert_review}")
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "identify_documents", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
+            identify_documents = IdentifyDocuments.execute(llm=llm, user_prompt=query, identify_purpose_dict=identify_purpose_dict)
+            duration_seconds = time.time() - start_time
+            raw_dict = identify_documents.to_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(raw_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            raw_content = json.dumps(raw_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.IDENTIFIED_DOCUMENTS_RAW.value, "stage": "identify_documents", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            markdown_content = identify_documents.to_markdown()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.IDENTIFIED_DOCUMENTS_MARKDOWN.value, "stage": "identify_documents", "content_type": "markdown", "content": markdown_content, "content_size_bytes": len(markdown_content.encode('utf-8'))})
+            docs_to_find = identify_documents.to_json_documents_to_find()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.IDENTIFIED_DOCUMENTS_TO_FIND_JSON.value, "stage": "identify_documents", "content_type": "json", "content": docs_to_find, "content_size_bytes": len(docs_to_find.encode('utf-8'))})
+            docs_to_create = identify_documents.to_json_documents_to_create()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.IDENTIFIED_DOCUMENTS_TO_CREATE_JSON.value, "stage": "identify_documents", "content_type": "json", "content": docs_to_create, "content_size_bytes": len(docs_to_create.encode('utf-8'))})
+            identify_documents.save_raw(self.output()["raw"].path)
+            identify_documents.save_markdown(self.output()["markdown"].path)
+            identify_documents.save_json_documents_to_find(self.output()["documents_to_find"].path)
+            identify_documents.save_json_documents_to_create(self.output()["documents_to_create"].path)
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class FilterDocumentsToFindTask(PlanTask):
     """
