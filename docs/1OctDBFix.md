@@ -11,9 +11,9 @@
 
 **Problem**: Luigi pipeline writes all outputs to ephemeral filesystem. Files lost on Railway restart.
 
-**Current State (Option 3)**: Files synced to database AFTER pipeline completion (band-aid fix).
+**Current State**: Files synced to database AFTER pipeline completion (band-aid fix).
 
-**Target State (Option 1)**: Every Luigi task writes to database DURING execution (proper fix).
+**Target State**: Every Luigi task writes to database DURING execution (proper fix).
 
 **Estimated Effort**: 40-60 hours (8-12 days at 5 hours/day)
 
