@@ -58,8 +58,9 @@ COPY --from=frontend-builder /app/frontend/out /app/ui_static
 # Verify static files were copied
 RUN ls -la /app/ui_static/ && echo "Static UI files copied successfully"
 
-# Create run directory for plan outputs
-RUN mkdir -p /app/run && chmod 755 /app/run
+# Create run directory for plan outputs (using /tmp for ephemeral storage)
+# Since database-first architecture persists all content, /tmp is sufficient
+RUN mkdir -p /tmp/planexe_run && chmod 755 /tmp/planexe_run
 
 # Set cloud mode environment variable for PlanExe configuration system
 ENV PLANEXE_CLOUD_MODE=true
@@ -69,7 +70,7 @@ RUN test -f /app/llm_config.json || echo '{}' > /app/llm_config.json
 
 # Set environment variables
 ENV PYTHONPATH=/app
-ENV PLANEXE_RUN_DIR=/app/run
+ENV PLANEXE_RUN_DIR=/tmp/planexe_run
 ENV PYTHONUNBUFFERED=1
 
 # Railway provides PORT environment variable - expose 8080 externally
