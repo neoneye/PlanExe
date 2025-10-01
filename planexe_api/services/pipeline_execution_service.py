@@ -353,10 +353,14 @@ class PipelineExecutionService:
                 except Exception as e:
                     print(f"WebSocket success broadcast failed for plan {plan_id}: {e}")
 
-                # Index all generated files
+                # Index all generated files AND persist content to database (Option 3 fix)
                 files = list(run_id_dir.iterdir())
+                files_synced = 0
+                content_bytes_synced = 0
+                
                 for file_path in files:
                     if file_path.is_file():
+                        # Create file metadata record
                         db_service.create_plan_file({
                             "plan_id": plan_id,
                             "filename": file_path.name,
@@ -365,11 +369,54 @@ class PipelineExecutionService:
                             "file_path": str(file_path),
                             "generated_by_stage": "pipeline_complete"
                         })
+                        
+                        # CRITICAL: Persist actual file content to database (Option 3 fix)
+                        try:
+                            content = file_path.read_text(encoding='utf-8')
+                            content_size = len(content.encode('utf-8'))
+                            
+                            # Determine content type from extension
+                            ext = file_path.suffix.lstrip('.')
+                            content_type_map = {
+                                'json': 'json',
+                                'md': 'markdown',
+                                'html': 'html',
+                                'csv': 'csv',
+                                'txt': 'txt',
+                                '': 'txt'
+                            }
+                            content_type = content_type_map.get(ext, 'unknown')
+                            
+                            # Extract stage from filename (e.g., "018-wbs_level1.json" -> "wbs_level1")
+                            stage = None
+                            if '-' in file_path.stem:
+                                parts = file_path.stem.split('-', 1)
+                                if len(parts) == 2:
+                                    stage = parts[1]
+                            
+                            db_service.create_plan_content({
+                                "plan_id": plan_id,
+                                "filename": file_path.name,
+                                "stage": stage,
+                                "content_type": content_type,
+                                "content": content,
+                                "content_size_bytes": content_size
+                            })
+                            
+                            files_synced += 1
+                            content_bytes_synced += content_size
+                            print(f"DEBUG: Synced {file_path.name} to database ({content_size} bytes)")
+                            
+                        except Exception as e:
+                            print(f"WARNING: Could not sync {file_path.name} to database: {e}")
+                            # Continue with other files even if one fails
+
+                print(f"DEBUG: Synced {files_synced} files to database ({content_bytes_synced} bytes total)")
 
                 db_service.update_plan(plan_id, {
                     "status": PlanStatus.completed.value,
                     "progress_percentage": 100,
-                    "progress_message": "Plan generation completed successfully!",
+                    "progress_message": f"Plan generation completed! {files_synced} files persisted to database.",
                     "completed_at": datetime.utcnow()
                 })
             else:

@@ -429,6 +429,47 @@ async def websocket_plan_progress(websocket: WebSocket, plan_id: str):
             print(f"WebSocket disconnected: plan_id={plan_id}, client_id={client_id}")
 
 
+# Plan content endpoint (Option 3: retrieve from database)
+@app.get("/api/plans/{plan_id}/content/{filename}")
+async def get_plan_content_file(plan_id: str, filename: str, db: DatabaseService = Depends(get_database)):
+    """Get specific plan file content from database (Option 3 fix)"""
+    try:
+        plan = db.get_plan(plan_id)
+        if not plan:
+            raise HTTPException(status_code=404, detail="Plan not found")
+
+        # Try to get content from database first (persistent)
+        content_record = db.get_plan_content_by_filename(plan_id, filename)
+        if content_record:
+            # Return content from database
+            content_type_map = {
+                'json': 'application/json',
+                'markdown': 'text/markdown',
+                'html': 'text/html',
+                'csv': 'text/csv',
+                'txt': 'text/plain',
+                'unknown': 'application/octet-stream'
+            }
+            media_type = content_type_map.get(content_record.content_type, 'text/plain')
+            
+            return Response(
+                content=content_record.content,
+                media_type=media_type,
+                headers={"Content-Disposition": f'inline; filename="{filename}"'}
+            )
+        
+        # Fallback: try filesystem (ephemeral, may not exist after restart)
+        file_path = Path(plan.output_dir) / filename
+        if file_path.exists():
+            return FileResponse(file_path)
+        
+        raise HTTPException(status_code=404, detail="File not found in database or filesystem")
+        
+    except Exception as e:
+        print(f"Error retrieving plan content: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Plan files endpoint
 @app.get("/api/plans/{plan_id}/files", response_model=PlanFilesResponse)
 async def get_plan_files(plan_id: str, db: DatabaseService = Depends(get_database)):
@@ -443,9 +484,14 @@ async def get_plan_files(plan_id: str, db: DatabaseService = Depends(get_databas
         # Extract just the filenames as simple strings
         filenames = [f.filename for f in files]
 
-        # Check if HTML report exists
-        report_path = Path(plan.output_dir) / "999-final-report.html"
-        has_report = report_path.exists()
+        # Check if HTML report exists (try database first, then filesystem)
+        content_record = db.get_plan_content_by_filename(plan_id, "999-final-report.html")
+        has_report = content_record is not None
+        
+        if not has_report:
+            # Fallback to filesystem check
+            report_path = Path(plan.output_dir) / "999-final-report.html"
+            has_report = report_path.exists()
 
         return PlanFilesResponse(
             plan_id=plan_id,

@@ -144,6 +144,29 @@ class PlanMetrics(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class PlanContent(Base):
+    """Database model for storing actual plan file contents (Option 3 fix)"""
+    __tablename__ = "plan_content"
+
+    id = Column(Integer, primary_key=True, index=True)
+    plan_id = Column(String(255), index=True, nullable=False)
+
+    # File identification
+    filename = Column(String(255), nullable=False)  # e.g., "018-wbs_level1.json"
+    stage = Column(String(100), nullable=True)  # e.g., "wbs_level1"
+    content_type = Column(String(50), nullable=False)  # json, markdown, html, csv, txt
+
+    # Actual content (stored in database for persistence)
+    content = Column(Text, nullable=False)  # The actual file content
+    content_size_bytes = Column(Integer, nullable=True)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Index for efficient retrieval
+    # Composite index on (plan_id, filename) for fast lookups
+
+
 # Database service functions
 class DatabaseService:
     """Service class for database operations"""
@@ -234,12 +257,35 @@ class DatabaseService:
             self.db.query(LLMInteraction).filter(LLMInteraction.plan_id == plan_id).delete()
             self.db.query(PlanFile).filter(PlanFile.plan_id == plan_id).delete()
             self.db.query(PlanMetrics).filter(PlanMetrics.plan_id == plan_id).delete()
+            self.db.query(PlanContent).filter(PlanContent.plan_id == plan_id).delete()
             
             # Delete the plan itself
             self.db.delete(plan)
             self.db.commit()
             return True
         return False
+
+    def create_plan_content(self, content_data: dict) -> PlanContent:
+        """Create plan content record (Option 3: persist file contents to DB)"""
+        plan_content = PlanContent(**content_data)
+        self.db.add(plan_content)
+        self.db.commit()
+        self.db.refresh(plan_content)
+        return plan_content
+
+    def get_plan_content(self, plan_id: str, filename: Optional[str] = None) -> List[PlanContent]:
+        """Get plan content records, optionally filtered by filename"""
+        query = self.db.query(PlanContent).filter(PlanContent.plan_id == plan_id)
+        if filename:
+            query = query.filter(PlanContent.filename == filename)
+        return query.order_by(PlanContent.filename).all()
+
+    def get_plan_content_by_filename(self, plan_id: str, filename: str) -> Optional[PlanContent]:
+        """Get specific plan content by filename"""
+        return self.db.query(PlanContent).filter(
+            PlanContent.plan_id == plan_id,
+            PlanContent.filename == filename
+        ).first()
 
     def close(self):
         """Close database session"""
