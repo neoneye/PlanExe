@@ -11,7 +11,7 @@ const definition: AgentDefinition = {
   id: 'luigi-master-orchestrator',
   displayName: 'Luigi Master Orchestrator',
   model: 'openai/gpt-5',
-  toolNames: ['spawn_agents', 'read_files', 'think_deeply', 'set_output', 'end_turn'],
+  toolNames: ['spawn_agents', 'read_files', 'think_deeply', '', 'end_turn'],
   spawnableAgents: [
     'analysis-stage-lead',
     'strategy-stage-lead',

@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@types/node": "^24.6.1",
+    "zod": "^4.1.11"
+  }
+}
