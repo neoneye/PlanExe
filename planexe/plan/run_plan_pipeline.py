@@ -87,6 +87,12 @@ from planexe.format_json_for_use_in_query import format_json_for_use_in_query
 from planexe.report.report_generator import ReportGenerator
 from planexe.luigi_util.obtain_output_files import ObtainOutputFiles
 from planexe.plan.pipeline_environment import PipelineEnvironment
+# Import database service for Option 1 database-first architecture
+import sys
+import os
+# Add parent directory to path to import planexe_api
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+from planexe_api.database import DatabaseService, get_database_service
 
 logger = logging.getLogger(__name__)
 DEFAULT_LLM_MODEL = "gpt-5-mini-2025-08-07"  # Updated from ollama-llama3.1 (no longer in config)
@@ -118,6 +124,46 @@ class PlanTask(luigi.Task):
     
     def local_target(self, filename: FilenameEnum) -> luigi.LocalTarget:
         return luigi.LocalTarget(self.file_path(filename))
+
+    def get_plan_id(self) -> str:
+        """
+        Extract plan_id from run_id_dir.
+        Example: run/PlanExe_20250216_150332 -> PlanExe_20250216_150332
+
+        Returns:
+            str: The plan ID (directory name)
+        """
+        # run_id_dir is a Path object like: Path('run/PlanExe_20250216_150332')
+        # We want just the directory name: 'PlanExe_20250216_150332'
+        return self.run_id_dir.name
+
+    def get_database_service(self) -> DatabaseService:
+        """
+        Get DatabaseService instance for persisting content to database.
+
+        This method creates a new database session for the current task.
+        The caller is responsible for calling db_service.close() when done.
+
+        Returns:
+            DatabaseService: Database service instance with active session
+
+        Raises:
+            Exception: If database connection fails
+
+        Example usage in task:
+            db_service = self.get_database_service()
+            try:
+                db_service.create_plan_content({...})
+            except Exception as e:
+                logger.error(f"Database write failed: {e}")
+            finally:
+                db_service.close()
+        """
+        try:
+            return get_database_service()
+        except Exception as e:
+            logger.error(f"Failed to get database service: {e}")
+            raise Exception(f"Database connection failed for plan_id: {self.get_plan_id()}") from e
 
     def create_llm_executor(self) -> LLMExecutor:
         """
