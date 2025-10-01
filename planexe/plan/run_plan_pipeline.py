@@ -5273,8 +5273,8 @@ class ExecutePipeline:
         logger.info(f"Saved {len(self.all_expected_filenames)} expected filenames to {expected_filenames_path}")
 
         # DIAGNOSTIC: Log before Luigi build starts
-        logger.error(f"🔥 About to call luigi.build() with workers=0 (SYNCHRONOUS)")
-        print(f"🔥 About to call luigi.build() with workers=0 (SYNCHRONOUS)")
+        logger.error(f"🔥 About to call luigi.build() with workers=1 (SINGLE WORKER)")
+        print(f"🔥 About to call luigi.build() with workers=1 (SINGLE WORKER)")
         print(f"🔥 Luigi will build task: {self.full_plan_pipeline_task}")
         print(f"🔥 Task parameters: run_id_dir={self.run_id_dir}, speedvsdetail={self.speedvsdetail}, llm_models={self.llm_models}")
 
@@ -5288,11 +5288,11 @@ class ExecutePipeline:
         # CRITICAL FIX: workers=0 for synchronous execution (Railway subprocess compatibility)
         # workers=1 fails to spawn worker thread in Railway's subprocess environment
         try:
-            print(f"🔥 Calling luigi.build() NOW with workers=0 (synchronous)...")
+            print(f"🔥 Calling luigi.build() NOW with workers=1 (single worker)...")
             self.luigi_build_return_value = luigi.build(
                 [self.full_plan_pipeline_task],
                 local_scheduler=True,
-                workers=0,  # FIXED: Changed from workers=1 to workers=0 for synchronous execution
+                workers=1,  # FIXED: workers=0 means NO workers (hangs), workers=1 means single synchronous worker
                 log_level='INFO',  # Enable Luigi's own verbose logging
                 detailed_summary=True  # Show detailed task summary
             )
