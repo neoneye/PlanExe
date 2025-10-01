@@ -1058,6 +1058,7 @@ class FocusOnVitalFewLeversTask(PlanTask):
 class StrategicDecisionsMarkdownTask(PlanTask):
     """
     Human readable markdown with the levers.
+    DATABASE INTEGRATION: Option 1 (No LLM - data transformation only)
     """
     def requires(self):
         return {
@@ -1071,21 +1072,39 @@ class StrategicDecisionsMarkdownTask(PlanTask):
         }
 
     def run(self):
-        with self.input()['enriched_levers']['raw'].open("r") as f:
-            enrich_lever_list = json.load(f)["characterized_levers"]
-        with self.input()['levers_vital_few']['raw'].open("r") as f:
-            vital_data = json.load(f)
-            vital_lever_list = vital_data["levers"]
-            lever_assessments_list = vital_data.get("response", {}).get("lever_assessments", [])
-            vital_levers_summary = vital_data.get("response", {}).get("summary", "")
-
-        result = StrategicDecisionsMarkdown(enrich_lever_list, vital_lever_list, vital_levers_summary, lever_assessments_list)
-        result.save_markdown(self.output()['markdown'].path)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            with self.input()['enriched_levers']['raw'].open("r") as f:
+                enrich_lever_list = json.load(f)["characterized_levers"]
+            with self.input()['levers_vital_few']['raw'].open("r") as f:
+                vital_data = json.load(f)
+                vital_lever_list = vital_data["levers"]
+                lever_assessments_list = vital_data.get("response", {}).get("lever_assessments", [])
+                vital_levers_summary = vital_data.get("response", {}).get("summary", "")
+            result = StrategicDecisionsMarkdown(enrich_lever_list, vital_lever_list, vital_levers_summary, lever_assessments_list)
+            markdown_content = result.to_markdown()
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.STRATEGIC_DECISIONS_MARKDOWN.value,
+                "stage": "strategic_decisions",
+                "content_type": "markdown",
+                "content": markdown_content,
+                "content_size_bytes": len(markdown_content.encode('utf-8'))
+            })
+            result.save_markdown(self.output()['markdown'].path)
+        except Exception as e:
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class CandidateScenariosTask(PlanTask):
     """
     Combinations of the vital few levers.
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
     """
     def requires(self):
         return {
@@ -1102,40 +1121,84 @@ class CandidateScenariosTask(PlanTask):
         }
 
     def run_inner(self):
-        llm_executor: LLMExecutor = self.create_llm_executor()
-
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['identify_purpose']['markdown'].open("r") as f:
-            identify_purpose_markdown = f.read()
-        with self.input()['plan_type']['markdown'].open("r") as f:
-            plan_type_markdown = f.read()
-        with self.input()['levers_vital_few']['raw'].open("r") as f:
-            lever_item_list = json.load(f)["levers"]
-
-        query = (
-            f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
-            f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
-        )
-
-        scenarios = CandidateScenarios.execute(
-            llm_executor=llm_executor,
-            project_context=query,
-            raw_vital_levers=lever_item_list
-        )
-
-        # Write the result to disk.
-        output_raw_path = self.output()['raw'].path
-        scenarios.save_raw(str(output_raw_path))
-        output_clean_path = self.output()['clean'].path
-        scenarios.save_clean(str(output_clean_path))
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            llm_executor: LLMExecutor = self.create_llm_executor()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['identify_purpose']['markdown'].open("r") as f:
+                identify_purpose_markdown = f.read()
+            with self.input()['plan_type']['markdown'].open("r") as f:
+                plan_type_markdown = f.read()
+            with self.input()['levers_vital_few']['raw'].open("r") as f:
+                lever_item_list = json.load(f)["levers"]
+            query = (
+                f"File 'plan.txt':\n{plan_prompt}\n\n"
+                f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+                f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
+            )
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "candidate_scenarios",
+                "prompt_text": query,
+                "status": "pending"
+            }).id
+            import time
+            start_time = time.time()
+            scenarios = CandidateScenarios.execute(
+                llm_executor=llm_executor,
+                project_context=query,
+                raw_vital_levers=lever_item_list
+            )
+            duration_seconds = time.time() - start_time
+            response_dict = scenarios.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds
+            })
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.CANDIDATE_SCENARIOS_RAW.value,
+                "stage": "candidate_scenarios",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+            clean_content = scenarios.to_clean_json()
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.CANDIDATE_SCENARIOS_CLEAN.value,
+                "stage": "candidate_scenarios",
+                "content_type": "json",
+                "content": clean_content,
+                "content_size_bytes": len(clean_content.encode('utf-8'))
+            })
+            output_raw_path = self.output()['raw'].path
+            scenarios.save_raw(str(output_raw_path))
+            output_clean_path = self.output()['clean'].path
+            scenarios.save_clean(str(output_clean_path))
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class SelectScenarioTask(PlanTask):
     """
     Pick the best fitting scenario to make a plan for.
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
     """
     def requires(self):
         return {
@@ -1153,44 +1216,88 @@ class SelectScenarioTask(PlanTask):
         }
 
     def run_inner(self):
-        llm_executor: LLMExecutor = self.create_llm_executor()
-
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['identify_purpose']['markdown'].open("r") as f:
-            identify_purpose_markdown = f.read()
-        with self.input()['plan_type']['markdown'].open("r") as f:
-            plan_type_markdown = f.read()
-        with self.input()['levers_vital_few']['raw'].open("r") as f:
-            lever_item_list = json.load(f)["levers"]
-        with self.input()['candidate_scenarios']['clean'].open("r") as f:
-            scenarios_list = json.load(f).get('scenarios', [])
-
-        query = (
-            f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
-            f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
-            f"File 'levers_vital_few.json':\n{format_json_for_use_in_query(lever_item_list)}\n\n"
-            f"File 'candidate_scenarios.json':\n{format_json_for_use_in_query(scenarios_list)}"
-        )
-
-        select_scenario = SelectScenario.execute(
-            llm_executor=llm_executor,
-            project_context=query,
-            scenarios=scenarios_list
-        )
-
-        # Write the result to disk.
-        output_raw_path = self.output()['raw'].path
-        select_scenario.save_raw(str(output_raw_path))
-        output_clean_path = self.output()['clean'].path
-        select_scenario.save_clean(str(output_clean_path))
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            llm_executor: LLMExecutor = self.create_llm_executor()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['identify_purpose']['markdown'].open("r") as f:
+                identify_purpose_markdown = f.read()
+            with self.input()['plan_type']['markdown'].open("r") as f:
+                plan_type_markdown = f.read()
+            with self.input()['levers_vital_few']['raw'].open("r") as f:
+                lever_item_list = json.load(f)["levers"]
+            with self.input()['candidate_scenarios']['clean'].open("r") as f:
+                scenarios_list = json.load(f).get('scenarios', [])
+            query = (
+                f"File 'plan.txt':\n{plan_prompt}\n\n"
+                f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+                f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
+                f"File 'levers_vital_few.json':\n{format_json_for_use_in_query(lever_item_list)}\n\n"
+                f"File 'candidate_scenarios.json':\n{format_json_for_use_in_query(scenarios_list)}"
+            )
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "select_scenario",
+                "prompt_text": query,
+                "status": "pending"
+            }).id
+            import time
+            start_time = time.time()
+            select_scenario = SelectScenario.execute(
+                llm_executor=llm_executor,
+                project_context=query,
+                scenarios=scenarios_list
+            )
+            duration_seconds = time.time() - start_time
+            response_dict = select_scenario.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds
+            })
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.SELECTED_SCENARIO_RAW.value,
+                "stage": "select_scenario",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+            clean_content = select_scenario.to_clean_json()
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.SELECTED_SCENARIO_CLEAN.value,
+                "stage": "select_scenario",
+                "content_type": "json",
+                "content": clean_content,
+                "content_size_bytes": len(clean_content.encode('utf-8'))
+            })
+            output_raw_path = self.output()['raw'].path
+            select_scenario.save_raw(str(output_raw_path))
+            output_clean_path = self.output()['clean'].path
+            select_scenario.save_clean(str(output_clean_path))
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class ScenariosMarkdownTask(PlanTask):
     """
     Present the scenarios in a human readable format.
+    DATABASE INTEGRATION: Option 1 (No LLM - data transformation only)
     """
     def requires(self):
         return {
@@ -1204,18 +1311,33 @@ class ScenariosMarkdownTask(PlanTask):
         }
 
     def run(self):
-        with self.input()['candidate_scenarios']['clean'].open("r") as f:
-            scenarios_list = json.load(f).get('scenarios', [])
-        with self.input()['selected_scenario']['clean'].open("r") as f:
-            selected_scenario_dict = json.load(f)
-
-        # Extract the required data from the selected scenario
-        plan_characteristics = selected_scenario_dict.get('plan_characteristics', {})
-        scenario_assessments = selected_scenario_dict.get('scenario_assessments', [])
-        final_choice = selected_scenario_dict.get('final_choice', {})
-
-        result = ScenariosMarkdown(scenarios_list, plan_characteristics, scenario_assessments, final_choice)
-        result.save_markdown(self.output()['markdown'].path)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            with self.input()['candidate_scenarios']['clean'].open("r") as f:
+                scenarios_list = json.load(f).get('scenarios', [])
+            with self.input()['selected_scenario']['clean'].open("r") as f:
+                selected_scenario_dict = json.load(f)
+            plan_characteristics = selected_scenario_dict.get('plan_characteristics', {})
+            scenario_assessments = selected_scenario_dict.get('scenario_assessments', [])
+            final_choice = selected_scenario_dict.get('final_choice', {})
+            result = ScenariosMarkdown(scenarios_list, plan_characteristics, scenario_assessments, final_choice)
+            markdown_content = result.to_markdown()
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.SCENARIOS_MARKDOWN.value,
+                "stage": "scenarios",
+                "content_type": "markdown",
+                "content": markdown_content,
+                "content_size_bytes": len(markdown_content.encode('utf-8'))
+            })
+            result.save_markdown(self.output()['markdown'].path)
+        except Exception as e:
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class PhysicalLocationsTask(PlanTask):
