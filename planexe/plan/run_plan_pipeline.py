@@ -1343,6 +1343,7 @@ class ScenariosMarkdownTask(PlanTask):
 class PhysicalLocationsTask(PlanTask):
     """
     Identify/suggest physical locations for the plan.
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
     """
     def requires(self):
         return {
@@ -1360,50 +1361,138 @@ class PhysicalLocationsTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        logger.info("Identify/suggest physical locations for the plan...")
+        db_service = None
+        plan_id = self.get_plan_id()
 
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['identify_purpose']['markdown'].open("r") as f:
-            identify_purpose_markdown = f.read()
-        with self.input()['plan_type']['raw'].open("r") as f:
-            plan_type_dict = json.load(f)
-        with self.input()['plan_type']['markdown'].open("r") as f:
-            plan_type_markdown = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
+        try:
+            db_service = self.get_database_service()
+            logger.info("Identify/suggest physical locations for the plan...")
 
-        output_raw_path = self.output()['raw'].path
-        output_markdown_path = self.output()['markdown'].path
+            # Read inputs from required tasks.
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['identify_purpose']['markdown'].open("r") as f:
+                identify_purpose_markdown = f.read()
+            with self.input()['plan_type']['raw'].open("r") as f:
+                plan_type_dict = json.load(f)
+            with self.input()['plan_type']['markdown'].open("r") as f:
+                plan_type_markdown = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
 
-        plan_type = plan_type_dict.get("plan_type")
-        if plan_type == "physical":
-            query = (
-                f"File 'plan.txt':\n{plan_prompt}\n\n"
-                f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
-                f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
-                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-                f"File 'scenarios.md':\n{scenarios_markdown}"
-            )
+            output_raw_path = self.output()['raw'].path
+            output_markdown_path = self.output()['markdown'].path
 
-            physical_locations = PhysicalLocations.execute(llm, query)
+            plan_type = plan_type_dict.get("plan_type")
+            if plan_type == "physical":
+                query = (
+                    f"File 'plan.txt':\n{plan_prompt}\n\n"
+                    f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+                    f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
+                    f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                    f"File 'scenarios.md':\n{scenarios_markdown}"
+                )
 
-            # Write the physical locations to disk.
-            physical_locations.save_raw(str(output_raw_path))
-            physical_locations.save_markdown(str(output_markdown_path))
-        else:
-            # Write an empty file to indicate that there are no physical locations.
-            data = {
-                "comment": "The plan is purely digital, without any physical locations."
-            }
-            with open(output_raw_path, "w") as f:
-                json.dump(data, f, indent=2)
-            
-            with open(output_markdown_path, "w", encoding='utf-8') as f:
-                f.write("The plan is purely digital, without any physical locations.")
+                # Track LLM interaction START
+                interaction_id = db_service.create_llm_interaction({
+                    "plan_id": plan_id,
+                    "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                    "stage": "physical_locations",
+                    "prompt_text": query,
+                    "status": "pending"
+                }).id
+
+                # Execute LLM call with timing
+                import time
+                start_time = time.time()
+                physical_locations = PhysicalLocations.execute(llm, query)
+                duration_seconds = time.time() - start_time
+
+                # Update LLM interaction COMPLETE
+                response_dict = physical_locations.to_dict()
+                db_service.update_llm_interaction(interaction_id, {
+                    "status": "completed",
+                    "response_text": json.dumps(response_dict),
+                    "completed_at": datetime.utcnow(),
+                    "duration_seconds": duration_seconds
+                })
+
+                # Persist RAW to database
+                raw_content = json.dumps(response_dict, indent=2)
+                db_service.create_plan_content({
+                    "plan_id": plan_id,
+                    "filename": FilenameEnum.PHYSICAL_LOCATIONS_RAW.value,
+                    "stage": "physical_locations",
+                    "content_type": "json",
+                    "content": raw_content,
+                    "content_size_bytes": len(raw_content.encode('utf-8'))
+                })
+
+                # Persist MARKDOWN to database
+                markdown_content = physical_locations.markdown
+                db_service.create_plan_content({
+                    "plan_id": plan_id,
+                    "filename": FilenameEnum.PHYSICAL_LOCATIONS_MARKDOWN.value,
+                    "stage": "physical_locations",
+                    "content_type": "markdown",
+                    "content": markdown_content,
+                    "content_size_bytes": len(markdown_content.encode('utf-8'))
+                })
+
+                # Write the physical locations to disk (Luigi tracking)
+                physical_locations.save_raw(str(output_raw_path))
+                physical_locations.save_markdown(str(output_markdown_path))
+            else:
+                # Digital plan - no LLM call needed, but still persist to database
+                data = {
+                    "comment": "The plan is purely digital, without any physical locations."
+                }
+                digital_message = "The plan is purely digital, without any physical locations."
+
+                # Persist RAW to database
+                raw_content = json.dumps(data, indent=2)
+                db_service.create_plan_content({
+                    "plan_id": plan_id,
+                    "filename": FilenameEnum.PHYSICAL_LOCATIONS_RAW.value,
+                    "stage": "physical_locations",
+                    "content_type": "json",
+                    "content": raw_content,
+                    "content_size_bytes": len(raw_content.encode('utf-8'))
+                })
+
+                # Persist MARKDOWN to database
+                db_service.create_plan_content({
+                    "plan_id": plan_id,
+                    "filename": FilenameEnum.PHYSICAL_LOCATIONS_MARKDOWN.value,
+                    "stage": "physical_locations",
+                    "content_type": "markdown",
+                    "content": digital_message,
+                    "content_size_bytes": len(digital_message.encode('utf-8'))
+                })
+
+                # Write to filesystem (Luigi tracking)
+                with open(output_raw_path, "w") as f:
+                    json.dump(data, f, indent=2)
+
+                with open(output_markdown_path, "w", encoding='utf-8') as f:
+                    f.write(digital_message)
+
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {
+                        "status": "failed",
+                        "error_message": str(e),
+                        "completed_at": datetime.utcnow()
+                    })
+                except Exception as db_error:
+                    logger.error(f"Failed to update interaction status: {db_error}")
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class CurrencyStrategyTask(PlanTask):
     """
