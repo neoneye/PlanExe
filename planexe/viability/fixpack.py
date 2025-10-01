@@ -177,7 +177,7 @@ class FixPack:
 
         for fix_pack in fix_packs_output.fix_packs:
             rows.append(f"### {fix_pack.id}: {fix_pack.title}")
-            rows.append(f"- Priority: {fix_pack.priority}")
+            rows.append(f"- Priority: {fix_pack.priority.value}")
             rows.append("- Blockers:")
             for blocker_id in fix_pack.blocker_ids:
                 rows.append(f"  - {blocker_id}")
@@ -415,28 +415,28 @@ if __name__ == "__main__":
     pillars_example = {
         "pillars": [
             {
-                "pillar": "HumanStability",
+                "pillar": PillarEnum.HumanStability.value,
                 "status": "YELLOW",
                 "score": 55,
                 "reason_codes": ["STAFF_AVERSION"],
                 "evidence_todo": ["Stakeholder interviews"]
             },
             {
-                "pillar": "EconomicResilience",
+                "pillar": PillarEnum.EconomicResilience.value,
                 "status": "GRAY",
                 "score": None,
                 "reason_codes": ["CONTINGENCY_LOW"],
                 "evidence_todo": ["Budget scenario analysis"]
             },
             {
-                "pillar": "EcologicalIntegrity",
+                "pillar": PillarEnum.EcologicalIntegrity.value,
                 "status": "YELLOW",
                 "score": 60,
                 "reason_codes": ["WATER_STRESS"],
                 "evidence_todo": ["Water sourcing assessment"]
             },
             {
-                "pillar": "Rights_Legality",
+                "pillar": PillarEnum.Rights_Legality.value,
                 "status": "RED",
                 "score": 25,
                 "reason_codes": ["DPIA_GAPS", "ETHICS_VAGUE"],
@@ -446,11 +446,11 @@ if __name__ == "__main__":
     }
 
     blockers_example = {
-        "source_pillars": ["EconomicResilience", "Rights_Legality", "HumanStability"],
+        "source_pillars": [PillarEnum.EconomicResilience.value, PillarEnum.Rights_Legality.value, PillarEnum.HumanStability.value],
         "blockers": [
             {
                 "id": "B1",
-                "pillar": "EconomicResilience",
+                "pillar": PillarEnum.EconomicResilience.value,
                 "title": "Budget contingency below policy floor",
                 "reason_codes": ["CONTINGENCY_LOW"],
                 "acceptance_tests": ["15% contingency approved"],
@@ -460,7 +460,7 @@ if __name__ == "__main__":
             },
             {
                 "id": "B2",
-                "pillar": "Rights_Legality",
+                "pillar": PillarEnum.Rights_Legality.value,
                 "title": "DPIA not initiated for launch regions",
                 "reason_codes": ["DPIA_GAPS"],
                 "acceptance_tests": ["DPIA submitted for all regions"],
@@ -470,7 +470,7 @@ if __name__ == "__main__":
             },
             {
                 "id": "B3",
-                "pillar": "HumanStability",
+                "pillar": PillarEnum.HumanStability.value,
                 "title": "Stakeholder readiness unclear",
                 "reason_codes": ["STAFF_AVERSION"],
                 "acceptance_tests": ["Stakeholder survey ≥70% positive"],
@@ -480,7 +480,7 @@ if __name__ == "__main__":
             },
             {
                 "id": "B4",
-                "pillar": "EcologicalIntegrity",
+                "pillar": PillarEnum.EcologicalIntegrity.value,
                 "title": "Water sourcing plan incomplete",
                 "reason_codes": ["WATER_STRESS"],
                 "acceptance_tests": ["Signed water supply MOU"],
