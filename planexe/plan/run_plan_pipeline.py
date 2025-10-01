@@ -5273,8 +5273,8 @@ class ExecutePipeline:
         logger.info(f"Saved {len(self.all_expected_filenames)} expected filenames to {expected_filenames_path}")
 
         # DIAGNOSTIC: Log before Luigi build starts
-        logger.error(f"🔥 About to call luigi.build() with workers=1")
-        print(f"🔥 About to call luigi.build() with workers=1")
+        logger.error(f"🔥 About to call luigi.build() with workers=0 (SYNCHRONOUS)")
+        print(f"🔥 About to call luigi.build() with workers=0 (SYNCHRONOUS)")
         print(f"🔥 Luigi will build task: {self.full_plan_pipeline_task}")
         print(f"🔥 Task parameters: run_id_dir={self.run_id_dir}, speedvsdetail={self.speedvsdetail}, llm_models={self.llm_models}")
 
