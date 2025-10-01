@@ -794,6 +794,7 @@ class PotentialLeversTask(PlanTask):
 class DeduplicateLeversTask(PlanTask):
     """
     The potential levers usually have some redundant levers.
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
     """
     def requires(self):
         return {
@@ -809,37 +810,91 @@ class DeduplicateLeversTask(PlanTask):
         }
 
     def run_inner(self):
-        llm_executor: LLMExecutor = self.create_llm_executor()
+        db_service = None
+        plan_id = self.get_plan_id()
 
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['identify_purpose']['markdown'].open("r") as f:
-            identify_purpose_markdown = f.read()
-        with self.input()['plan_type']['markdown'].open("r") as f:
-            plan_type_markdown = f.read()
-        with self.input()['potential_levers']['clean'].open("r") as f:
-            lever_item_list = json.load(f)
+        try:
+            db_service = self.get_database_service()
+            llm_executor: LLMExecutor = self.create_llm_executor()
 
-        query = (
-            f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
-            f"File 'plan_type.md':\n{plan_type_markdown}"
-        )
+            # Read inputs
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['identify_purpose']['markdown'].open("r") as f:
+                identify_purpose_markdown = f.read()
+            with self.input()['plan_type']['markdown'].open("r") as f:
+                plan_type_markdown = f.read()
+            with self.input()['potential_levers']['clean'].open("r") as f:
+                lever_item_list = json.load(f)
 
-        deduplicate_levers = DeduplicateLevers.execute(
-            llm_executor,
-            project_context=query,
-            raw_levers_list=lever_item_list
-        )
+            query = (
+                f"File 'plan.txt':\n{plan_prompt}\n\n"
+                f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+                f"File 'plan_type.md':\n{plan_type_markdown}"
+            )
 
-        # Write the result to disk.
-        output_raw_path = self.output()['raw'].path
-        deduplicate_levers.save_raw(str(output_raw_path))
+            # Track LLM interaction START
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "deduplicate_levers",
+                "prompt_text": query,
+                "status": "pending"
+            }).id
+
+            # Execute LLM call
+            import time
+            start_time = time.time()
+            deduplicate_levers = DeduplicateLevers.execute(
+                llm_executor,
+                project_context=query,
+                raw_levers_list=lever_item_list
+            )
+            duration_seconds = time.time() - start_time
+
+            # Update LLM interaction COMPLETE
+            response_dict = deduplicate_levers.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds
+            })
+
+            # Persist RAW to database
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.DEDUPLICATED_LEVERS_RAW.value,
+                "stage": "deduplicate_levers",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+
+            # Write to filesystem (Luigi tracking)
+            output_raw_path = self.output()['raw'].path
+            deduplicate_levers.save_raw(str(output_raw_path))
+
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {
+                        "status": "failed",
+                        "error_message": str(e),
+                        "completed_at": datetime.utcnow()
+                    })
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class EnrichLeversTask(PlanTask):
     """
     Enrich potential levers with more information.
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
     """
     def requires(self):
         return {
@@ -855,38 +910,73 @@ class EnrichLeversTask(PlanTask):
         }
 
     def run_inner(self):
-        llm_executor: LLMExecutor = self.create_llm_executor()
-
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['identify_purpose']['markdown'].open("r") as f:
-            identify_purpose_markdown = f.read()
-        with self.input()['plan_type']['markdown'].open("r") as f:
-            plan_type_markdown = f.read()
-        with self.input()['deduplicate_levers']['raw'].open("r") as f:
-            json_dict = json.load(f)
-            lever_item_list = json_dict["deduplicated_levers"]
-
-        query = (
-            f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
-            f"File 'plan_type.md':\n{plan_type_markdown}"
-        )
-
-        enrich_potential_levers = EnrichPotentialLevers.execute(
-            llm_executor,
-            project_context=query,
-            raw_levers_list=lever_item_list
-        )
-
-        # Write the result to disk.
-        output_raw_path = self.output()['raw'].path
-        enrich_potential_levers.save_raw(str(output_raw_path))
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            llm_executor: LLMExecutor = self.create_llm_executor()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['identify_purpose']['markdown'].open("r") as f:
+                identify_purpose_markdown = f.read()
+            with self.input()['plan_type']['markdown'].open("r") as f:
+                plan_type_markdown = f.read()
+            with self.input()['deduplicate_levers']['raw'].open("r") as f:
+                json_dict = json.load(f)
+                lever_item_list = json_dict["deduplicated_levers"]
+            query = (
+                f"File 'plan.txt':\n{plan_prompt}\n\n"
+                f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+                f"File 'plan_type.md':\n{plan_type_markdown}"
+            )
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "enrich_levers",
+                "prompt_text": query,
+                "status": "pending"
+            }).id
+            import time
+            start_time = time.time()
+            enrich_potential_levers = EnrichPotentialLevers.execute(
+                llm_executor,
+                project_context=query,
+                raw_levers_list=lever_item_list
+            )
+            duration_seconds = time.time() - start_time
+            response_dict = enrich_potential_levers.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds
+            })
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.ENRICHED_LEVERS_RAW.value,
+                "stage": "enrich_levers",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+            output_raw_path = self.output()['raw'].path
+            enrich_potential_levers.save_raw(str(output_raw_path))
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class FocusOnVitalFewLeversTask(PlanTask):
     """
     Apply the 80/20 principle to the levers.
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
     """
     def requires(self):
         return {
@@ -902,33 +992,67 @@ class FocusOnVitalFewLeversTask(PlanTask):
         }
 
     def run_inner(self):
-        llm_executor: LLMExecutor = self.create_llm_executor()
-
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['identify_purpose']['markdown'].open("r") as f:
-            identify_purpose_markdown = f.read()
-        with self.input()['plan_type']['markdown'].open("r") as f:
-            plan_type_markdown = f.read()
-        with self.input()['enriched_levers']['raw'].open("r") as f:
-            lever_item_list = json.load(f)["characterized_levers"]
-
-        query = (
-            f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
-            f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
-        )
-
-        focus_on_vital_few_levers = FocusOnVitalFewLevers.execute(
-            llm_executor,
-            project_context=query,
-            raw_levers_list=lever_item_list
-        )
-
-        # Write the result to disk.
-        output_raw_path = self.output()['raw'].path
-        focus_on_vital_few_levers.save_raw(str(output_raw_path))
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            llm_executor: LLMExecutor = self.create_llm_executor()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['identify_purpose']['markdown'].open("r") as f:
+                identify_purpose_markdown = f.read()
+            with self.input()['plan_type']['markdown'].open("r") as f:
+                plan_type_markdown = f.read()
+            with self.input()['enriched_levers']['raw'].open("r") as f:
+                lever_item_list = json.load(f)["characterized_levers"]
+            query = (
+                f"File 'plan.txt':\n{plan_prompt}\n\n"
+                f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+                f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
+            )
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "vital_few_levers",
+                "prompt_text": query,
+                "status": "pending"
+            }).id
+            import time
+            start_time = time.time()
+            focus_on_vital_few_levers = FocusOnVitalFewLevers.execute(
+                llm_executor,
+                project_context=query,
+                raw_levers_list=lever_item_list
+            )
+            duration_seconds = time.time() - start_time
+            response_dict = focus_on_vital_few_levers.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds
+            })
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.VITAL_FEW_LEVERS_RAW.value,
+                "stage": "vital_few_levers",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+            output_raw_path = self.output()['raw'].path
+            focus_on_vital_few_levers.save_raw(str(output_raw_path))
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class StrategicDecisionsMarkdownTask(PlanTask):
