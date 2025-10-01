@@ -396,6 +396,9 @@ class RedlineGateTask(PlanTask):
 
 
 class PremiseAttackTask(PlanTask):
+    """
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
+    """
     def requires(self):
         return self.clone(SetupTask)
 
@@ -406,24 +409,89 @@ class PremiseAttackTask(PlanTask):
         }
 
     def run_inner(self):
-        llm_executor: LLMExecutor = self.create_llm_executor()
+        db_service = None
+        plan_id = self.get_plan_id()
 
-        # Read inputs from required tasks.
-        with self.input().open("r") as f:
-            plan_prompt = f.read()
+        try:
+            db_service = self.get_database_service()
+            llm_executor: LLMExecutor = self.create_llm_executor()
 
-        premise_attack = PremiseAttack.execute(llm_executor, plan_prompt)
+            # Read inputs
+            with self.input().open("r") as f:
+                plan_prompt = f.read()
 
-        # Write the result to disk.
-        output_raw_path = self.output()['raw'].path
-        premise_attack.save_raw(output_raw_path)
-        output_markdown_path = self.output()['markdown'].path
-        premise_attack.save_markdown(output_markdown_path)
+            # Track LLM interaction START
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "premise_attack",
+                "prompt_text": plan_prompt,
+                "status": "pending"
+            }).id
+
+            # Execute LLM call
+            import time
+            start_time = time.time()
+            premise_attack = PremiseAttack.execute(llm_executor, plan_prompt)
+            duration_seconds = time.time() - start_time
+
+            # Update LLM interaction COMPLETE
+            response_dict = premise_attack.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds
+            })
+
+            # Persist RAW to database
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.PREMISE_ATTACK_RAW.value,
+                "stage": "premise_attack",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+
+            # Persist MARKDOWN to database
+            markdown_content = premise_attack.markdown
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.PREMISE_ATTACK_MARKDOWN.value,
+                "stage": "premise_attack",
+                "content_type": "markdown",
+                "content": markdown_content,
+                "content_size_bytes": len(markdown_content.encode('utf-8'))
+            })
+
+            # Write to filesystem (Luigi tracking)
+            output_raw_path = self.output()['raw'].path
+            premise_attack.save_raw(output_raw_path)
+            output_markdown_path = self.output()['markdown'].path
+            premise_attack.save_markdown(output_markdown_path)
+
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {
+                        "status": "failed",
+                        "error_message": str(e),
+                        "completed_at": datetime.utcnow()
+                    })
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class IdentifyPurposeTask(PlanTask):
     """
     Determine if this is this going to be a business/personal/other plan.
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
     """
     def requires(self):
         return self.clone(SetupTask)
@@ -435,22 +503,88 @@ class IdentifyPurposeTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input().open("r") as f:
-            plan_prompt = f.read()
+        db_service = None
+        plan_id = self.get_plan_id()
 
-        identify_purpose = IdentifyPurpose.execute(llm, plan_prompt)
+        try:
+            db_service = self.get_database_service()
 
-        # Write the result to disk.
-        output_raw_path = self.output()['raw'].path
-        identify_purpose.save_raw(output_raw_path)
-        output_markdown_path = self.output()['markdown'].path
-        identify_purpose.save_markdown(output_markdown_path)
+            # Read inputs
+            with self.input().open("r") as f:
+                plan_prompt = f.read()
+
+            # Track LLM interaction START
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "identify_purpose",
+                "prompt_text": plan_prompt,
+                "status": "pending"
+            }).id
+
+            # Execute LLM call
+            import time
+            start_time = time.time()
+            identify_purpose = IdentifyPurpose.execute(llm, plan_prompt)
+            duration_seconds = time.time() - start_time
+
+            # Update LLM interaction COMPLETE
+            response_dict = identify_purpose.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds
+            })
+
+            # Persist RAW to database
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.IDENTIFY_PURPOSE_RAW.value,
+                "stage": "identify_purpose",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+
+            # Persist MARKDOWN to database
+            markdown_content = identify_purpose.markdown
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.IDENTIFY_PURPOSE_MARKDOWN.value,
+                "stage": "identify_purpose",
+                "content_type": "markdown",
+                "content": markdown_content,
+                "content_size_bytes": len(markdown_content.encode('utf-8'))
+            })
+
+            # Write to filesystem (Luigi tracking)
+            output_raw_path = self.output()['raw'].path
+            identify_purpose.save_raw(output_raw_path)
+            output_markdown_path = self.output()['markdown'].path
+            identify_purpose.save_markdown(output_markdown_path)
+
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {
+                        "status": "failed",
+                        "error_message": str(e),
+                        "completed_at": datetime.utcnow()
+                    })
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class PlanTypeTask(PlanTask):
     """
     Determine if the plan is purely digital or requires physical locations.
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
     """
     def requires(self):
         return {
@@ -465,24 +599,89 @@ class PlanTypeTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['identify_purpose']['markdown'].open("r") as f:
-            identify_purpose_markdown = f.read()
+        db_service = None
+        plan_id = self.get_plan_id()
 
-        query = (
-            f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.md':\n{identify_purpose_markdown}"
-        )
+        try:
+            db_service = self.get_database_service()
 
-        identify_plan_type = IdentifyPlanType.execute(llm, query)
+            # Read inputs from required tasks
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['identify_purpose']['markdown'].open("r") as f:
+                identify_purpose_markdown = f.read()
 
-        # Write the result to disk.
-        output_raw_path = self.output()['raw'].path
-        identify_plan_type.save_raw(str(output_raw_path))
-        output_markdown_path = self.output()['markdown'].path
-        identify_plan_type.save_markdown(str(output_markdown_path))
+            query = (
+                f"File 'plan.txt':\n{plan_prompt}\n\n"
+                f"File 'purpose.md':\n{identify_purpose_markdown}"
+            )
+
+            # Track LLM interaction START
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "plan_type",
+                "prompt_text": query,
+                "status": "pending"
+            }).id
+
+            # Execute LLM call
+            import time
+            start_time = time.time()
+            identify_plan_type = IdentifyPlanType.execute(llm, query)
+            duration_seconds = time.time() - start_time
+
+            # Update LLM interaction COMPLETE
+            response_dict = identify_plan_type.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds
+            })
+
+            # Persist RAW to database
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.PLAN_TYPE_RAW.value,
+                "stage": "plan_type",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+
+            # Persist MARKDOWN to database
+            markdown_content = identify_plan_type.markdown
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.PLAN_TYPE_MARKDOWN.value,
+                "stage": "plan_type",
+                "content_type": "markdown",
+                "content": markdown_content,
+                "content_size_bytes": len(markdown_content.encode('utf-8'))
+            })
+
+            # Write to filesystem (Luigi tracking)
+            output_raw_path = self.output()['raw'].path
+            identify_plan_type.save_raw(str(output_raw_path))
+            output_markdown_path = self.output()['markdown'].path
+            identify_plan_type.save_markdown(str(output_markdown_path))
+
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {
+                        "status": "failed",
+                        "error_message": str(e),
+                        "completed_at": datetime.utcnow()
+                    })
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class PotentialLeversTask(PlanTask):
     """
