@@ -3061,49 +3061,50 @@ class FindTeamMembersTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            consolidate_assumptions_markdown = f.read()
-        with self.input()['preproject']['clean'].open("r") as f:
-            pre_project_assessment_dict = json.load(f)
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        with self.input()['related_resources']['markdown'].open("r") as f:
-            related_resources_markdown = f.read()
-
-        # Build the query.
-        query = (
-            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
-            f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'related-resources.md':\n{related_resources_markdown}"
-        )
-
-        # Execute.
+        db_service = None
+        plan_id = self.get_plan_id()
         try:
+            db_service = self.get_database_service()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                consolidate_assumptions_markdown = f.read()
+            with self.input()['preproject']['clean'].open("r") as f:
+                pre_project_assessment_dict = json.load(f)
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['related_resources']['markdown'].open("r") as f:
+                related_resources_markdown = f.read()
+            query = (f"File 'initial-plan.txt':\n{plan_prompt}\n\nFile 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\nFile 'scenarios.md':\n{scenarios_markdown}\n\nFile 'assumptions.md':\n{consolidate_assumptions_markdown}\n\nFile 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\nFile 'project-plan.md':\n{project_plan_markdown}\n\nFile 'related-resources.md':\n{related_resources_markdown}")
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "find_team_members", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
             find_team_members = FindTeamMembers.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            raw_dict = find_team_members.to_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(raw_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            raw_content = json.dumps(raw_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.FIND_TEAM_MEMBERS_RAW.value, "stage": "find_team_members", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            team_member_list = find_team_members.team_member_list
+            clean_content = json.dumps(team_member_list, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.FIND_TEAM_MEMBERS_CLEAN.value, "stage": "find_team_members", "content_type": "json", "content": clean_content, "content_size_bytes": len(clean_content.encode('utf-8'))})
+            with self.output()['raw'].open("w") as f:
+                json.dump(raw_dict, f, indent=2)
+            with self.output()['clean'].open("w") as f:
+                json.dump(team_member_list, f, indent=2)
         except Exception as e:
-            logger.error("FindTeamMembers failed: %s", e)
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
             raise
-
-        # Save the raw output.
-        raw_dict = find_team_members.to_dict()
-        with self.output()['raw'].open("w") as f:
-            json.dump(raw_dict, f, indent=2)
-
-        # Save the cleaned up result.
-        team_member_list = find_team_members.team_member_list
-        with self.output()['clean'].open("w") as f:
-            json.dump(team_member_list, f, indent=2)
+        finally:
+            if db_service:
+                db_service.close()
 
 class EnrichTeamMembersWithContractTypeTask(PlanTask):
     def requires(self):
@@ -3125,52 +3126,52 @@ class EnrichTeamMembersWithContractTypeTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            consolidate_assumptions_markdown = f.read()
-        with self.input()['preproject']['clean'].open("r") as f:
-            pre_project_assessment_dict = json.load(f)
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        with self.input()['find_team_members']['clean'].open("r") as f:
-            team_member_list = json.load(f)
-        with self.input()['related_resources']['markdown'].open("r") as f:
-            related_resources_markdown = f.read()
-
-        # Build the query.
-        query = (
-            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
-            f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\n"
-            f"File 'related-resources.md':\n{related_resources_markdown}"
-        )
-
-        # Execute.
+        db_service = None
+        plan_id = self.get_plan_id()
         try:
+            db_service = self.get_database_service()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                consolidate_assumptions_markdown = f.read()
+            with self.input()['preproject']['clean'].open("r") as f:
+                pre_project_assessment_dict = json.load(f)
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['find_team_members']['clean'].open("r") as f:
+                team_member_list = json.load(f)
+            with self.input()['related_resources']['markdown'].open("r") as f:
+                related_resources_markdown = f.read()
+            query = (f"File 'initial-plan.txt':\n{plan_prompt}\n\nFile 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\nFile 'scenarios.md':\n{scenarios_markdown}\n\nFile 'assumptions.md':\n{consolidate_assumptions_markdown}\n\nFile 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\nFile 'project-plan.md':\n{project_plan_markdown}\n\nFile 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\nFile 'related-resources.md':\n{related_resources_markdown}")
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "enrich_team_contract_type", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
             enrich_team_members_with_contract_type = EnrichTeamMembersWithContractType.execute(llm, query, team_member_list)
+            duration_seconds = time.time() - start_time
+            raw_dict = enrich_team_members_with_contract_type.to_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(raw_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            raw_content = json.dumps(raw_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.ENRICH_TEAM_MEMBERS_CONTRACT_TYPE_RAW.value, "stage": "enrich_team_contract_type", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            team_member_list = enrich_team_members_with_contract_type.team_member_list
+            clean_content = json.dumps(team_member_list, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.ENRICH_TEAM_MEMBERS_CONTRACT_TYPE_CLEAN.value, "stage": "enrich_team_contract_type", "content_type": "json", "content": clean_content, "content_size_bytes": len(clean_content.encode('utf-8'))})
+            with self.output()['raw'].open("w") as f:
+                json.dump(raw_dict, f, indent=2)
+            with self.output()['clean'].open("w") as f:
+                json.dump(team_member_list, f, indent=2)
         except Exception as e:
-            logger.error("EnrichTeamMembersWithContractType failed: %s", e)
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
             raise
-
-        # Save the raw output.
-        raw_dict = enrich_team_members_with_contract_type.to_dict()
-        with self.output()['raw'].open("w") as f:
-            json.dump(raw_dict, f, indent=2)
-
-        # Save the cleaned up result.
-        team_member_list = enrich_team_members_with_contract_type.team_member_list
-        with self.output()['clean'].open("w") as f:
-            json.dump(team_member_list, f, indent=2)
+        finally:
+            if db_service:
+                db_service.close()
 
 class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
     def requires(self):
@@ -3192,52 +3193,52 @@ class EnrichTeamMembersWithBackgroundStoryTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            consolidate_assumptions_markdown = f.read()
-        with self.input()['preproject']['clean'].open("r") as f:
-            pre_project_assessment_dict = json.load(f)
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        with self.input()['enrich_team_members_with_contract_type']['clean'].open("r") as f:
-            team_member_list = json.load(f)
-        with self.input()['related_resources']['markdown'].open("r") as f:
-            related_resources_markdown = f.read()
-
-        # Build the query.
-        query = (
-            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
-            f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\n"
-            f"File 'related-resources.md':\n{related_resources_markdown}"
-        )
-
-        # Execute.
+        db_service = None
+        plan_id = self.get_plan_id()
         try:
+            db_service = self.get_database_service()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                consolidate_assumptions_markdown = f.read()
+            with self.input()['preproject']['clean'].open("r") as f:
+                pre_project_assessment_dict = json.load(f)
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['enrich_team_members_with_contract_type']['clean'].open("r") as f:
+                team_member_list = json.load(f)
+            with self.input()['related_resources']['markdown'].open("r") as f:
+                related_resources_markdown = f.read()
+            query = (f"File 'initial-plan.txt':\n{plan_prompt}\n\nFile 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\nFile 'scenarios.md':\n{scenarios_markdown}\n\nFile 'assumptions.md':\n{consolidate_assumptions_markdown}\n\nFile 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\nFile 'project-plan.md':\n{project_plan_markdown}\n\nFile 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\nFile 'related-resources.md':\n{related_resources_markdown}")
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "enrich_team_background", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
             enrich_team_members_with_background_story = EnrichTeamMembersWithBackgroundStory.execute(llm, query, team_member_list)
+            duration_seconds = time.time() - start_time
+            raw_dict = enrich_team_members_with_background_story.to_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(raw_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            raw_content = json.dumps(raw_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.ENRICH_TEAM_MEMBERS_BACKGROUND_STORY_RAW.value, "stage": "enrich_team_background", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            team_member_list = enrich_team_members_with_background_story.team_member_list
+            clean_content = json.dumps(team_member_list, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.ENRICH_TEAM_MEMBERS_BACKGROUND_STORY_CLEAN.value, "stage": "enrich_team_background", "content_type": "json", "content": clean_content, "content_size_bytes": len(clean_content.encode('utf-8'))})
+            with self.output()['raw'].open("w") as f:
+                json.dump(raw_dict, f, indent=2)
+            with self.output()['clean'].open("w") as f:
+                json.dump(team_member_list, f, indent=2)
         except Exception as e:
-            logger.error("EnrichTeamMembersWithBackgroundStory failed: %s", e)
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
             raise
-
-        # Save the raw output.
-        raw_dict = enrich_team_members_with_background_story.to_dict()
-        with self.output()['raw'].open("w") as f:
-            json.dump(raw_dict, f, indent=2)
-
-        # Save the cleaned up result.
-        team_member_list = enrich_team_members_with_background_story.team_member_list
-        with self.output()['clean'].open("w") as f:
-            json.dump(team_member_list, f, indent=2)
+        finally:
+            if db_service:
+                db_service.close()
 
 class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
     def requires(self):
@@ -3259,52 +3260,52 @@ class EnrichTeamMembersWithEnvironmentInfoTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            consolidate_assumptions_markdown = f.read()
-        with self.input()['preproject']['clean'].open("r") as f:
-            pre_project_assessment_dict = json.load(f)
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        with self.input()['enrich_team_members_with_background_story']['clean'].open("r") as f:
-            team_member_list = json.load(f)
-        with self.input()['related_resources']['markdown'].open("r") as f:
-            related_resources_markdown = f.read()
-
-        # Build the query.
-        query = (
-            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
-            f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\n"
-            f"File 'related-resources.md':\n{related_resources_markdown}"
-        )
-
-        # Execute.
+        db_service = None
+        plan_id = self.get_plan_id()
         try:
+            db_service = self.get_database_service()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                consolidate_assumptions_markdown = f.read()
+            with self.input()['preproject']['clean'].open("r") as f:
+                pre_project_assessment_dict = json.load(f)
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['enrich_team_members_with_background_story']['clean'].open("r") as f:
+                team_member_list = json.load(f)
+            with self.input()['related_resources']['markdown'].open("r") as f:
+                related_resources_markdown = f.read()
+            query = (f"File 'initial-plan.txt':\n{plan_prompt}\n\nFile 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\nFile 'scenarios.md':\n{scenarios_markdown}\n\nFile 'assumptions.md':\n{consolidate_assumptions_markdown}\n\nFile 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\nFile 'project-plan.md':\n{project_plan_markdown}\n\nFile 'team-members-that-needs-to-be-enriched.json':\n{format_json_for_use_in_query(team_member_list)}\n\nFile 'related-resources.md':\n{related_resources_markdown}")
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "enrich_team_environment", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
             enrich_team_members_with_background_story = EnrichTeamMembersWithEnvironmentInfo.execute(llm, query, team_member_list)
+            duration_seconds = time.time() - start_time
+            raw_dict = enrich_team_members_with_background_story.to_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(raw_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            raw_content = json.dumps(raw_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_RAW.value, "stage": "enrich_team_environment", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            team_member_list = enrich_team_members_with_background_story.team_member_list
+            clean_content = json.dumps(team_member_list, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.ENRICH_TEAM_MEMBERS_ENVIRONMENT_INFO_CLEAN.value, "stage": "enrich_team_environment", "content_type": "json", "content": clean_content, "content_size_bytes": len(clean_content.encode('utf-8'))})
+            with self.output()['raw'].open("w") as f:
+                json.dump(raw_dict, f, indent=2)
+            with self.output()['clean'].open("w") as f:
+                json.dump(team_member_list, f, indent=2)
         except Exception as e:
-            logger.error("EnrichTeamMembersWithEnvironmentInfo failed: %s", e)
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
             raise
-
-        # Save the raw output.
-        raw_dict = enrich_team_members_with_background_story.to_dict()
-        with self.output()['raw'].open("w") as f:
-            json.dump(raw_dict, f, indent=2)
-
-        # Save the cleaned up result.
-        team_member_list = enrich_team_members_with_background_story.team_member_list
-        with self.output()['clean'].open("w") as f:
-            json.dump(team_member_list, f, indent=2)
+        finally:
+            if db_service:
+                db_service.close()
 
 class ReviewTeamTask(PlanTask):
     def requires(self):
