@@ -87,13 +87,22 @@ class LLMModelWithInstance(LLMModelBase):
 
 @dataclass
 class LLMAttempt:
-    """Stores the result of a single LLM attempt."""
+    """
+    Stores the result of a single LLM attempt.
+
+    Includes token usage tracking for cost analysis and monitoring.
+    Token counts are optional and may not be available for all LLM providers.
+    """
     stage: str
     llm_model: LLMModelBase
     success: bool
     duration: float
     result: Optional[Any] = None
     exception: Optional[Exception] = None
+    # Token usage tracking (optional, for cost analysis)
+    input_tokens: Optional[int] = None
+    output_tokens: Optional[int] = None
+    total_tokens: Optional[int] = None
 
 @dataclass
 class ShouldStopCallbackParameters:
@@ -131,6 +140,51 @@ class LLMExecutor:
     @property
     def attempt_count(self) -> int:
         return len(self.attempts)
+
+    def get_last_attempt(self) -> Optional[LLMAttempt]:
+        """
+        Get the last attempt metadata.
+
+        Returns:
+            The last LLMAttempt or None if no attempts have been made yet.
+        """
+        return self.attempts[-1] if self.attempts else None
+
+    def set_last_attempt_tokens(self, input_tokens: int, output_tokens: int, total_tokens: Optional[int] = None) -> None:
+        """
+        Update token counts for the last successful attempt.
+
+        This method should be called after execute_function completes when token
+        information is available from the LLM response.
+
+        Args:
+            input_tokens: Number of input tokens consumed
+            output_tokens: Number of output tokens generated
+            total_tokens: Total tokens (defaults to input + output if not provided)
+
+        Example:
+            llm_executor = self.create_llm_executor()
+            result = llm_executor.run(lambda llm: MyTask.execute(llm, prompt))
+            # Extract token counts from result if available
+            if hasattr(result, 'token_usage'):
+                llm_executor.set_last_attempt_tokens(
+                    result.token_usage.input_tokens,
+                    result.token_usage.output_tokens
+                )
+        """
+        if not self.attempts:
+            logger.warning("set_last_attempt_tokens: No attempts recorded yet")
+            return
+
+        last_attempt = self.attempts[-1]
+        if not last_attempt.success:
+            logger.warning(f"set_last_attempt_tokens: Last attempt was not successful (stage={last_attempt.stage})")
+            return
+
+        last_attempt.input_tokens = input_tokens
+        last_attempt.output_tokens = output_tokens
+        last_attempt.total_tokens = total_tokens if total_tokens is not None else (input_tokens + output_tokens)
+        logger.debug(f"Token usage recorded: input={input_tokens}, output={output_tokens}, total={last_attempt.total_tokens}")
 
     def run(self, execute_function: Callable[[LLM], Any]):
         self._validate_execute_function(execute_function)
