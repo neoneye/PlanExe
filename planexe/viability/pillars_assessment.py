@@ -7,7 +7,7 @@ IDEA: Scoring transparency. The "score" is currently untrustworthy. I want to ch
 
 IDEA: Extract the REASON_CODES_BY_PILLAR, DEFAULT_EVIDENCE_BY_PILLAR, EVIDENCE_TEMPLATES into a JSON file.
 
-PROMPT> python -u -m planexe.viability.pillars_assessment | tee output_a.txt
+PROMPT> python -u -m planexe.viability.pillars_assessment | tee output.txt
 """
 from __future__ import annotations
 
@@ -25,15 +25,13 @@ from pydantic import BaseModel, Field
 
 from planexe.markdown_util.fix_bullet_lists import fix_bullet_lists
 from planexe.viability.pillars_prompt import make_pillars_system_prompt
+from planexe.viability.model_status import StatusEnum
 
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Constants & enums
 # ---------------------------------------------------------------------------
-
-# IDEA: Replace with class PillarStatusEnum(str, Enum) and share it with the other files.
-STATUS_ENUM: List[str] = ["GREEN", "YELLOW", "RED", "GRAY"]
 
 PILLAR_ORDER: List[str] = [
     "HumanStability",
@@ -120,16 +118,16 @@ DEFAULT_EVIDENCE_BY_PILLAR = {
 }
 
 STATUS_TO_SCORE = {
-    "GREEN": (70, 100),
-    "YELLOW": (40, 69),
-    "RED": (0, 39),
-    "GRAY": None,
+    StatusEnum.GREEN.value: (70, 100),
+    StatusEnum.YELLOW.value: (40, 69),
+    StatusEnum.RED.value: (0, 39),
+    StatusEnum.GRAY.value: None,
 }
 
 STATUS_MIDPOINT = {
-    "GREEN": 85,
-    "YELLOW": 55,
-    "RED": 20,
+    StatusEnum.GREEN.value: 85,
+    StatusEnum.YELLOW.value: 55,
+    StatusEnum.RED.value: 20,
 }
 
 DEFAULT_EVIDENCE_ITEM = "Gather evidence for assessment"
@@ -351,7 +349,7 @@ def _score_in_band(score: int, status: str) -> bool:
 
 
 def _sanitize_score(status: str, score: Optional[int]) -> Optional[int]:
-    if status == "GRAY":
+    if status == StatusEnum.GRAY.value:
         return None
     if score is None:
         return STATUS_MIDPOINT[status]
@@ -376,23 +374,23 @@ def _sanitize_reason_codes(pillar: str, reason_codes: Optional[Iterable[str]]) -
 
 def _sanitize_evidence(status: str, evidence: Optional[Iterable[str]]) -> List[str]:
     sanitized = _ensure_list(evidence)
-    if status == "GRAY" and not sanitized:
+    if status == StatusEnum.GRAY.value and not sanitized:
         return [DEFAULT_EVIDENCE_ITEM]
-    if status != "GREEN":
+    if status != StatusEnum.GREEN.value:
         return sanitized
     # GREEN cannot carry evidence tasks – force empty list
     return []
 
 
 def _enforce_status_rules(pillar: str, status: str, reason_codes: List[str], evidence: List[str]) -> str:
-    if status not in STATUS_ENUM:
-        status = "GRAY"
-    if status == "GREEN" and evidence:
-        status = "YELLOW"
-    if status == "GREEN" and any(code in NEGATIVE_REASON_CODES for code in reason_codes):
-        status = "YELLOW"
-    if status in {"YELLOW", "RED"} and not reason_codes and not evidence:
-        status = "GRAY"
+    if status not in [s.value for s in StatusEnum]:
+        status = StatusEnum.GRAY.value
+    if status == StatusEnum.GREEN.value and evidence:
+        status = StatusEnum.YELLOW.value
+    if status == StatusEnum.GREEN.value and any(code in NEGATIVE_REASON_CODES for code in reason_codes):
+        status = StatusEnum.YELLOW.value
+    if status in {StatusEnum.YELLOW.value, StatusEnum.RED.value} and not reason_codes and not evidence:
+        status = StatusEnum.GRAY.value
     return status
 
 
@@ -401,9 +399,9 @@ def _sanitize_pillar(raw: Dict[str, Any]) -> Dict[str, Any]:
     if pillar not in PILLAR_ORDER:
         pillar = "Rights_Legality"
 
-    status = raw.get("status", "GRAY")
-    if status not in STATUS_ENUM:
-        status = "GRAY"
+    status = raw.get("status", StatusEnum.GRAY.value)
+    if status not in [s.value for s in StatusEnum]:
+        status = StatusEnum.GRAY.value
 
     reason_codes = _sanitize_reason_codes(pillar, raw.get("reason_codes"))
     evidence = _sanitize_evidence(status, raw.get("evidence_todo"))
@@ -424,7 +422,7 @@ def _sanitize_pillar(raw: Dict[str, Any]) -> Dict[str, Any]:
 def _default_pillar(pillar: str) -> Dict[str, Any]:
     return {
         "pillar": pillar,
-        "status": "GRAY",
+        "status": StatusEnum.GRAY.value,
         "score": None,
         "reason_codes": [],
         "evidence_todo": [DEFAULT_EVIDENCE_ITEM],
@@ -441,7 +439,7 @@ def enforce_gray_evidence(
     GENERIC_FALLBACK: List[str] = ["Baseline note v1 (scope, metrics)"]
 
     for it in items:
-        if it.get("status") == "GRAY":
+        if it.get("status") == StatusEnum.GRAY.value:
             raw_ev = it.get("evidence_todo") or []
             ev: List[str] = [e for e in raw_ev if isinstance(e, str) and e.strip()]
             if not ev:
@@ -461,7 +459,7 @@ def enforce_colored_evidence(
 
     for it in items:
         status = it.get("status")
-        if status in {"YELLOW", "RED"}:
+        if status in {StatusEnum.YELLOW.value, StatusEnum.RED.value}:
             raw_ev = it.get("evidence_todo") or []
             ev: List[str] = [e for e in raw_ev if isinstance(e, str) and e.strip()]
             if not ev:
@@ -477,7 +475,7 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     for p in pillars:
         pillar_name = p.get("pillar", "Rights_Legality")
-        status_raw = p.get("status", "GRAY")
+        status_raw = p.get("status", StatusEnum.GRAY.value)
         score = p.get("score")
 
         reason_codes = [rc for rc in (p.get("reason_codes") or []) if isinstance(rc, str)]
@@ -485,32 +483,32 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
         strength_rationale = p.get("strength_rationale")
 
         # Normalize status
-        status_enum = status_raw if status_raw in STATUS_TO_SCORE or status_raw == "GRAY" else "GRAY"
+        status_enum = status_raw if status_raw in STATUS_TO_SCORE or status_raw == StatusEnum.GRAY.value else StatusEnum.GRAY.value
 
         # Evidence gate: GREEN with evidence -> downgrade
-        if status_enum == "GREEN" and evidence_todo:
-            status_enum = "YELLOW"
+        if status_enum == StatusEnum.GREEN.value and evidence_todo:
+            status_enum = StatusEnum.YELLOW.value
             score = None  # will snap later
 
         # Reason code gate: GREEN with negative reason codes -> downgrade
-        if status_enum == "GREEN" and any(rc in NEGATIVE_REASON_CODES for rc in reason_codes):
-            status_enum = "YELLOW"
+        if status_enum == StatusEnum.GREEN.value and any(rc in NEGATIVE_REASON_CODES for rc in reason_codes):
+            status_enum = StatusEnum.YELLOW.value
             score = None  # will snap later
 
         # Strength gate for GREEN
-        if status_enum == "GREEN":
+        if status_enum == StatusEnum.GREEN.value:
             has_strength = any(rc in STRENGTH_REASON_CODES for rc in reason_codes)
             has_rationale = isinstance(strength_rationale, str) and strength_rationale.strip()
             if not (has_strength or has_rationale):
-                status_enum = "YELLOW"
+                status_enum = StatusEnum.YELLOW.value
                 score = None
 
         # Canonicalize evidence BEFORE checking GRAY fallback
         evidence_todo = _canonicalize_evidence(pillar_name, reason_codes, evidence_todo)
 
         # If YELLOW/RED but no reason codes AND no evidence → GRAY
-        if status_enum in ("YELLOW", "RED") and not reason_codes and not evidence_todo:
-            status_enum = "GRAY"
+        if status_enum in (StatusEnum.YELLOW.value, StatusEnum.RED.value) and not reason_codes and not evidence_todo:
+            status_enum = StatusEnum.GRAY.value
             score = None
 
         # Snap score to band midpoint if missing
@@ -523,7 +521,7 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
             score = max(lo, min(hi, int(score)))
 
         # Keep rationale only for final GREEN with non-empty text
-        if not (status_enum == "GREEN" and isinstance(strength_rationale, str) and strength_rationale.strip()):
+        if not (status_enum == StatusEnum.GREEN.value and isinstance(strength_rationale, str) and strength_rationale.strip()):
             strength_rationale = None
 
         validated.append({
@@ -551,9 +549,9 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 def convert_to_markdown(data: Dict[str, Any]) -> str:
     pillars = data.get("pillars", [])
-    status_counts = {status: 0 for status in STATUS_ENUM}
+    status_counts = {status.value: 0 for status in StatusEnum}
     for pillar in pillars:
-        status = pillar.get("status", "GRAY")
+        status = pillar.get("status", StatusEnum.GRAY.value)
         if status in status_counts:
             status_counts[status] += 1
 
@@ -572,7 +570,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
     for pillar in pillars:
         name = pillar.get("pillar", "Unknown")
         display_name = PILLAR_DISPLAY_NAMES.get(name, name)
-        status = pillar.get("status", "GRAY")
+        status = pillar.get("status", StatusEnum.GRAY.value)
         score = pillar.get("score", None)
         reason_codes = pillar.get("reason_codes", []) or []
         evidence = pillar.get("evidence_todo", []) or []
@@ -581,11 +579,11 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         rows.append(f"### {display_name}\n")
         rows.append(f"**Status**: {status} ({score if score is not None else '—'})\n")
 
-        if status == "GREEN":
+        if status == StatusEnum.GREEN.value:
             # GREEN pillars should not show evidence; optionally render the rationale if provided.
             if strength_rationale:
                 rows.append(f"_Why green:_ {strength_rationale}\n")
-        elif status in ("YELLOW", "RED"):
+        elif status in (StatusEnum.YELLOW.value, StatusEnum.RED.value):
             if reason_codes:
                 rows.append("**Issues:** " + ", ".join(reason_codes) + "\n")
             if evidence:

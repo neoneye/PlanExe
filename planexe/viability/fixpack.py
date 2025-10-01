@@ -23,6 +23,8 @@ from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, conlist
 
+from planexe.viability.model_status import StatusEnum
+
 logger = logging.getLogger(__name__)
 
 # --- Enums mirroring viability/README.md ---
@@ -32,13 +34,6 @@ class PillarEnum(str, Enum):
     EconomicResilience = "EconomicResilience"
     EcologicalIntegrity = "EcologicalIntegrity"
     Rights_Legality = "Rights_Legality"
-
-
-class StatusEnum(str, Enum):
-    GREEN = "GREEN"
-    YELLOW = "YELLOW"
-    RED = "RED"
-    GRAY = "GRAY"
 
 
 class CostBandEnum(str, Enum):
