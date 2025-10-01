@@ -1,9 +1,9 @@
-/**
+
  * Author: Cascade using Claude 3.5 Sonnet  
  * Date: 2025-09-30T21:47:29-04:00
  * PURPOSE: Detailed checklist for refactoring all 61 Luigi tasks to write to database
  * SRP and DRY check: Pass - Single responsibility for tracking Luigi task refactor progress
- */
+
 
 # Luigi Task Database Integration Checklist
 
