@@ -75,7 +75,7 @@ from planexe.team.team_markdown_document import TeamMarkdownDocumentBuilder
 from planexe.team.review_team import ReviewTeam
 from planexe.viability.overall_summary1 import OverallSummary
 from planexe.viability.pillars_assessment import PillarsAssessment
-from planexe.viability.blockers2 import Blockers
+from planexe.viability.blockers import Blockers
 from planexe.viability.fixpack1 import FixPack
 from planexe.wbs.wbs_task import WBSTask, WBSProject
 from planexe.wbs.wbs_populate import WBSPopulate

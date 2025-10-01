@@ -11,7 +11,7 @@ Based on ViabilityAssessor Step 2: Emit Blockers.
 IDEA: Acceptance tests are too soft. eg
 B4 (DPIA): include threat model, data flows, access controls, and red-team results. Evidence: DPIA_v1.pdf.
 
-PROMPT> python -u -m planexe.viability.blockers2 | tee output2.txt
+PROMPT> python -u -m planexe.viability.blockers | tee output.txt
 """
 import os
 import json
