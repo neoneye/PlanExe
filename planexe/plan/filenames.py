@@ -121,6 +121,8 @@ class FilenameEnum(str, Enum):
     BLOCKERS_MARKDOWN = "029-4-blockers.md"
     FIX_PACKS_RAW = "029-5-fix_packs_raw.json"
     FIX_PACKS_MARKDOWN = "029-6-fix_packs_markdown.md"
+    VIABILITY_OVERALL_SUMMARY_RAW = "029-7-viability_overall_summary_raw.json"
+    VIABILITY_OVERALL_SUMMARY_MARKDOWN = "029-8-viability_overall_summary.md"
     REPORT = "030-report.html"
     PIPELINE_COMPLETE = "999-pipeline_complete.txt"
 

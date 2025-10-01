@@ -73,6 +73,7 @@ from planexe.team.enrich_team_members_with_background_story import EnrichTeamMem
 from planexe.team.enrich_team_members_with_environment_info import EnrichTeamMembersWithEnvironmentInfo
 from planexe.team.team_markdown_document import TeamMarkdownDocumentBuilder
 from planexe.team.review_team import ReviewTeam
+from planexe.viability.overall_summary1 import OverallSummary
 from planexe.viability.pillars_assessment import PillarsAssessment
 from planexe.viability.blockers2 import Blockers
 from planexe.viability.fixpack1 import FixPack
@@ -3846,6 +3847,41 @@ class FixPacksTask(PlanTask):
         markdown_path = self.output()['markdown'].path
         fix_packs.save_markdown(markdown_path)
 
+class ViabilityOverallSummaryTask(PlanTask):
+    def output(self):
+        return {
+            'raw': self.local_target(FilenameEnum.VIABILITY_OVERALL_SUMMARY_RAW),
+            'markdown': self.local_target(FilenameEnum.VIABILITY_OVERALL_SUMMARY_MARKDOWN)
+        }
+    
+    def requires(self):
+        return {
+            'pillars_assessment': self.clone(PillarsAssessmentTask),
+            'blockers': self.clone(BlockersTask),
+            'fix_packs': self.clone(FixPacksTask)
+        }
+    
+    def run_with_llm(self, llm: LLM) -> None:
+        # Read inputs from required tasks.
+        with self.input()['pillars_assessment']['raw'].open("r") as f:
+            pillars_assessment_raw = f.read()
+        with self.input()['blockers']['raw'].open("r") as f:
+            blockers_raw = f.read()
+        with self.input()['fix_packs']['raw'].open("r") as f:
+            fix_packs_raw = f.read()
+
+        summary = OverallSummary.execute(
+            pillars_payload=pillars_assessment_raw,
+            blockers_payload=blockers_raw,
+            fix_packs_payload=fix_packs_raw,
+        )
+
+        # Save the results.
+        json_path = self.output()['raw'].path
+        summary.save_raw(json_path)
+        markdown_path = self.output()['markdown'].path
+        summary.save_markdown(markdown_path)
+
 class ReportTask(PlanTask):
     """
     Generate a report html document.
@@ -3879,7 +3915,8 @@ class ReportTask(PlanTask):
             'premortem': self.clone(PremortemTask),
             'pillars_assessment': self.clone(PillarsAssessmentTask),
             'blockers': self.clone(BlockersTask),
-            'fix_packs': self.clone(FixPacksTask)
+            'fix_packs': self.clone(FixPacksTask),
+            'viability_overall_summary': self.clone(ViabilityOverallSummaryTask)
         }
     
     def run_inner(self):
@@ -3910,6 +3947,7 @@ class ReportTask(PlanTask):
         rg.append_markdown_with_tables('Pillars Assessment', self.input()['pillars_assessment']['markdown'].path)
         rg.append_markdown('Blockers', self.input()['blockers']['markdown'].path)
         rg.append_markdown('Fix Packs', self.input()['fix_packs']['markdown'].path)
+        rg.append_markdown('Viability Overall Summary', self.input()['viability_overall_summary']['markdown'].path)
         rg.append_initial_prompt_vetted(
             document_title='Initial Prompt Vetted', 
             initial_prompt_file_path=self.input()['setup'].path, 
@@ -3984,6 +4022,7 @@ class FullPlanPipeline(PlanTask):
             'pillars_assessment': self.clone(PillarsAssessmentTask),
             'blockers': self.clone(BlockersTask),
             'fix_packs': self.clone(FixPacksTask),
+            'viability_overall_summary': self.clone(ViabilityOverallSummaryTask),
             'report': self.clone(ReportTask),
         }
 
