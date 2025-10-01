@@ -1497,6 +1497,7 @@ class PhysicalLocationsTask(PlanTask):
 class CurrencyStrategyTask(PlanTask):
     """
     Identify/suggest what currency to use for the plan, depending on the physical locations.
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
     """
     def requires(self):
         return {
@@ -1515,41 +1516,107 @@ class CurrencyStrategyTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['identify_purpose']['markdown'].open("r") as f:
-            identify_purpose_markdown = f.read()
-        with self.input()['plan_type']['markdown'].open("r") as f:
-            plan_type_markdown = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['physical_locations']['markdown'].open("r") as f:
-            physical_locations_markdown = f.read()
+        db_service = None
+        plan_id = self.get_plan_id()
 
-        query = (
-            f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
-            f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'physical_locations.md':\n{physical_locations_markdown}"
-        )
+        try:
+            db_service = self.get_database_service()
 
-        currency_strategy = CurrencyStrategy.execute(llm, query)
+            # Read inputs from required tasks.
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['identify_purpose']['markdown'].open("r") as f:
+                identify_purpose_markdown = f.read()
+            with self.input()['plan_type']['markdown'].open("r") as f:
+                plan_type_markdown = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['physical_locations']['markdown'].open("r") as f:
+                physical_locations_markdown = f.read()
 
-        # Write the result to disk.
-        output_raw_path = self.output()['raw'].path
-        currency_strategy.save_raw(str(output_raw_path))
-        output_markdown_path = self.output()['markdown'].path
-        currency_strategy.save_markdown(str(output_markdown_path))
+            query = (
+                f"File 'plan.txt':\n{plan_prompt}\n\n"
+                f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+                f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
+                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+                f"File 'physical_locations.md':\n{physical_locations_markdown}"
+            )
+
+            # Track LLM interaction START
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "currency_strategy",
+                "prompt_text": query,
+                "status": "pending"
+            }).id
+
+            # Execute LLM call with timing
+            import time
+            start_time = time.time()
+            currency_strategy = CurrencyStrategy.execute(llm, query)
+            duration_seconds = time.time() - start_time
+
+            # Update LLM interaction COMPLETE
+            response_dict = currency_strategy.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds
+            })
+
+            # Persist RAW to database
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.CURRENCY_STRATEGY_RAW.value,
+                "stage": "currency_strategy",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+
+            # Persist MARKDOWN to database
+            markdown_content = currency_strategy.markdown
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.CURRENCY_STRATEGY_MARKDOWN.value,
+                "stage": "currency_strategy",
+                "content_type": "markdown",
+                "content": markdown_content,
+                "content_size_bytes": len(markdown_content.encode('utf-8'))
+            })
+
+            # Write to filesystem (Luigi tracking)
+            output_raw_path = self.output()['raw'].path
+            currency_strategy.save_raw(str(output_raw_path))
+            output_markdown_path = self.output()['markdown'].path
+            currency_strategy.save_markdown(str(output_markdown_path))
+
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {
+                        "status": "failed",
+                        "error_message": str(e),
+                        "completed_at": datetime.utcnow()
+                    })
+                except Exception as db_error:
+                    logger.error(f"Failed to update interaction status: {db_error}")
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class IdentifyRisksTask(PlanTask):
     """
     Identify risks for the plan, depending on the physical locations.
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
     """
     def requires(self):
         return {
@@ -1569,39 +1636,104 @@ class IdentifyRisksTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['identify_purpose']['markdown'].open("r") as f:
-            identify_purpose_markdown = f.read()
-        with self.input()['plan_type']['markdown'].open("r") as f:
-            plan_type_markdown = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['physical_locations']['markdown'].open("r") as f:
-            physical_locations_markdown = f.read()
-        with self.input()['currency_strategy']['markdown'].open("r") as f:
-            currency_strategy_markdown = f.read()
+        db_service = None
+        plan_id = self.get_plan_id()
 
-        query = (
-            f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
-            f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'physical_locations.md':\n{physical_locations_markdown}\n\n"
-            f"File 'currency_strategy.md':\n{currency_strategy_markdown}"
-        )
+        try:
+            db_service = self.get_database_service()
 
-        identify_risks = IdentifyRisks.execute(llm, query)
+            # Read inputs from required tasks.
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['identify_purpose']['markdown'].open("r") as f:
+                identify_purpose_markdown = f.read()
+            with self.input()['plan_type']['markdown'].open("r") as f:
+                plan_type_markdown = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['physical_locations']['markdown'].open("r") as f:
+                physical_locations_markdown = f.read()
+            with self.input()['currency_strategy']['markdown'].open("r") as f:
+                currency_strategy_markdown = f.read()
 
-        # Write the result to disk.
-        output_raw_path = self.output()['raw'].path
-        identify_risks.save_raw(str(output_raw_path))
-        output_markdown_path = self.output()['markdown'].path
-        identify_risks.save_markdown(str(output_markdown_path))
+            query = (
+                f"File 'plan.txt':\n{plan_prompt}\n\n"
+                f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+                f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
+                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+                f"File 'physical_locations.md':\n{physical_locations_markdown}\n\n"
+                f"File 'currency_strategy.md':\n{currency_strategy_markdown}"
+            )
+
+            # Track LLM interaction START
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "identify_risks",
+                "prompt_text": query,
+                "status": "pending"
+            }).id
+
+            # Execute LLM call with timing
+            import time
+            start_time = time.time()
+            identify_risks = IdentifyRisks.execute(llm, query)
+            duration_seconds = time.time() - start_time
+
+            # Update LLM interaction COMPLETE
+            response_dict = identify_risks.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds
+            })
+
+            # Persist RAW to database
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.IDENTIFY_RISKS_RAW.value,
+                "stage": "identify_risks",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+
+            # Persist MARKDOWN to database
+            markdown_content = identify_risks.markdown
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.IDENTIFY_RISKS_MARKDOWN.value,
+                "stage": "identify_risks",
+                "content_type": "markdown",
+                "content": markdown_content,
+                "content_size_bytes": len(markdown_content.encode('utf-8'))
+            })
+
+            # Write to filesystem (Luigi tracking)
+            output_raw_path = self.output()['raw'].path
+            identify_risks.save_raw(str(output_raw_path))
+            output_markdown_path = self.output()['markdown'].path
+            identify_risks.save_markdown(str(output_markdown_path))
+
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {
+                        "status": "failed",
+                        "error_message": str(e),
+                        "completed_at": datetime.utcnow()
+                    })
+                except Exception as db_error:
+                    logger.error(f"Failed to update interaction status: {db_error}")
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class MakeAssumptionsTask(PlanTask):
