@@ -227,7 +227,21 @@ class PlanTask(luigi.Task):
 
 
 class StartTimeTask(PlanTask):
-    """The timestamp when the pipeline was started."""
+    """
+    The timestamp when the pipeline was started.
+
+    DATABASE INTEGRATION EXEMPTION (Option 1 Refactor):
+    This task does NOT need database integration because it is pre-created by
+    the FastAPI server before the Luigi pipeline starts. The file is written
+    in pipeline_execution_service.py:_write_pipeline_inputs() (line 195-198).
+
+    The FastAPI server already writes this file to the filesystem, and it's
+    a simple timestamp - no LLM interaction, no complex content generation.
+    Adding database persistence here would be redundant.
+
+    Luigi uses this file's existence to track task completion, so the file
+    must exist on the filesystem regardless of database integration.
+    """
     def output(self):
         return self.local_target(FilenameEnum.START_TIME)
 
@@ -238,7 +252,22 @@ class StartTimeTask(PlanTask):
 
 
 class SetupTask(PlanTask):
-    """The plan prompt text provided by the user."""
+    """
+    The plan prompt text provided by the user.
+
+    DATABASE INTEGRATION EXEMPTION (Option 1 Refactor):
+    This task does NOT need database integration because it is pre-created by
+    the FastAPI server before the Luigi pipeline starts. The file is written
+    in pipeline_execution_service.py:_write_pipeline_inputs() (line 200-203).
+
+    The FastAPI server already writes the user's prompt to the filesystem, and
+    it's stored in the database via the Plans table (plans.prompt column).
+    The prompt is simple text - no LLM interaction, no processing required.
+    Adding database persistence here would duplicate the Plans table.
+
+    Luigi uses this file's existence to track task completion, so the file
+    must exist on the filesystem regardless of database integration.
+    """
     def output(self):
         return self.local_target(FilenameEnum.INITIAL_PLAN)
 
