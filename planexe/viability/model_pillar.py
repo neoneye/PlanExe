@@ -51,3 +51,12 @@ class PillarEnum(str, Enum):
     def value_list(cls) -> list[str]:
         """Ordered list of all pillar values."""
         return [m.value for m in cls]
+    
+    @classmethod
+    def get_display_name(cls, pillar_name: str) -> str:
+        """Get display name for a pillar string value."""
+        try:
+            pillar_enum = cls(pillar_name)
+            return pillar_enum.display_name
+        except ValueError:
+            return pillar_name  # Fallback to original name if not found

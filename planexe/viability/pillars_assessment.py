@@ -36,14 +36,6 @@ logger = logging.getLogger(__name__)
 
 PILLAR_ORDER: List[str] = PillarEnum.value_list()
 
-def get_pillar_display_name(pillar_name: str) -> str:
-    """Get display name for a pillar string value."""
-    try:
-        pillar_enum = PillarEnum(pillar_name)
-        return pillar_enum.display_name
-    except ValueError:
-        return pillar_name  # Fallback to original name if not found
-
 # This list is not exhaustive, more items are likely to be added over time.
 REASON_CODES_BY_PILLAR: Dict[str, List[str]] = {
     PillarEnum.HumanStability.value: [
@@ -566,7 +558,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
 
     for pillar in pillars:
         name = pillar.get("pillar", "Unknown")
-        display_name = get_pillar_display_name(name)
+        display_name = PillarEnum.get_display_name(name)
         status = pillar.get("status", StatusEnum.GRAY.value)
         score = pillar.get("score", None)
         reason_codes = pillar.get("reason_codes", []) or []

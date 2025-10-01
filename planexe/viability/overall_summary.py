@@ -18,6 +18,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from planexe.viability.model_pillar import PillarEnum
 from planexe.viability.model_status import StatusEnum
 
 # ---------------------------------------------------------------------------
@@ -108,13 +109,6 @@ STATUS_UPGRADE_MAP = {
     StatusEnum.GRAY.value: StatusEnum.YELLOW.value,
     StatusEnum.YELLOW.value: StatusEnum.GREEN.value,
     StatusEnum.GREEN.value: StatusEnum.GREEN.value,
-}
-
-PILLAR_DISPLAY_NAMES = {
-    "HumanStability": "Human Stability",
-    "EconomicResilience": "Economic Resilience",
-    "EcologicalIntegrity": "Ecological Integrity",
-    "Rights_Legality": "Rights & Legality",
 }
 
 RECOMMENDATION_GO = "GO"
@@ -445,7 +439,7 @@ def _build_why_list(*, pillars: Sequence[PillarItem], max_items: int) -> List[st
         if status == StatusEnum.GREEN.value:
             continue
 
-        display = PILLAR_DISPLAY_NAMES.get(pillar.pillar, pillar.pillar)
+        display = PillarEnum.get_display_name(pillar.pillar)
         score_fragment = f"score {int(pillar.score)}" if pillar.score is not None else "no score"
         reason_fragment = _pillar_focus_reason(pillar)
 
@@ -505,25 +499,25 @@ if __name__ == "__main__":
     example_pillars = {
         "pillars": [
             {
-                "pillar": "HumanStability",
+                "pillar": PillarEnum.HumanStability.value,
                 "status": StatusEnum.YELLOW.value,
                 "score": 60,
                 "reason_codes": ["STAFF_AVERSION"],
                 "evidence_todo": ["Stakeholder survey"]
             },
             {
-                "pillar": "EconomicResilience",
+                "pillar": PillarEnum.EconomicResilience.value,
                 "status": StatusEnum.RED.value,
                 "score": 30,
                 "reason_codes": ["CONTINGENCY_LOW"]
             },
             {
-                "pillar": "EcologicalIntegrity",
+                "pillar": PillarEnum.EcologicalIntegrity.value,
                 "status": StatusEnum.GREEN.value,
                 "score": 80
             },
             {
-                "pillar": "Rights_Legality",
+                "pillar": PillarEnum.Rights_Legality.value,
                 "status": StatusEnum.GRAY.value,
                 "score": None,
                 "evidence_todo": ["DPIA"]
@@ -535,17 +529,17 @@ if __name__ == "__main__":
         "blockers": [
             {
                 "id": "B1",
-                "pillar": "EconomicResilience",
+                "pillar": PillarEnum.EconomicResilience.value,
                 "acceptance_tests": [">=10% contingency approved"]
             },
             {
                 "id": "B2",
-                "pillar": "Rights_Legality",
+                "pillar": PillarEnum.Rights_Legality.value,
                 "acceptance_tests": ["Finalize DPIA"]
             },
             {
                 "id": "B3",
-                "pillar": "HumanStability",
+                "pillar": PillarEnum.HumanStability.value,
                 "acceptance_tests": ["Stakeholder plan signed"]
             },
         ]
