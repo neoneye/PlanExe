@@ -31,12 +31,7 @@ to be viable:
 from enum import Enum
 
 class PillarEnum(str, Enum):
-    """
-    The four CAS pillars for viability assessment.
-    
-    Each pillar represents a critical dimension that must be evaluated
-    to determine if a project can succeed in a complex adaptive system.
-    """
+    """Canonical set of pillars for viability assessment."""
     HumanStability = "HumanStability"
     EconomicResilience = "EconomicResilience"
     EcologicalIntegrity = "EcologicalIntegrity"
@@ -44,11 +39,10 @@ class PillarEnum(str, Enum):
     
     @property
     def display_name(self) -> str:
-        """Return human-readable display name for the pillar."""
-        display_names = {
-            "HumanStability": "Human Stability",
-            "EconomicResilience": "Economic Resilience", 
-            "EcologicalIntegrity": "Ecological Integrity",
-            "Rights_Legality": "Rights & Legality",
-        }
-        return display_names[self.value]
+        """Human-readable title for UI."""
+        return {
+            PillarEnum.HumanStability: "Human Stability",
+            PillarEnum.EconomicResilience: "Economic Resilience",
+            PillarEnum.EcologicalIntegrity: "Ecological Integrity",
+            PillarEnum.Rights_Legality: "Rights & Legality",
+        }[self]
