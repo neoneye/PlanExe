@@ -1,9 +1,9 @@
-/**
- * Author: Codex using GPT-5
- * Date: 2025-09-30T02:15:00Z
- * PURPOSE: Railway single-service Docker build exporting llm_config.json for runtime consumption
- * SRP and DRY check: Pass - Single deployment recipe for combined API/UI service
- */
+#
+# Author: Codex using GPT-5
+# Date: 2025-09-30T02:15:00Z
+# PURPOSE: Railway single-service Docker build exporting llm_config.json for runtime consumption
+#SRP and DRY check: Pass - Single deployment recipe for combined API/UI service
+
 # Author: Claude Code using Sonnet 4
 # Date: 2025-01-27
 # PURPOSE: Single-service Railway Dockerfile - builds Next.js static export AND runs FastAPI on port 8080
