@@ -2241,6 +2241,9 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
 
 
 class PreProjectAssessmentTask(PlanTask):
+    """
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
+    """
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
@@ -2256,41 +2259,105 @@ class PreProjectAssessmentTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        logger.info("Conducting pre-project assessment...")
+        db_service = None
+        plan_id = self.get_plan_id()
 
-        # Read the plan prompt from the SetupTask's output.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
+        try:
+            db_service = self.get_database_service()
+            logger.info("Conducting pre-project assessment...")
 
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
+            # Read the plan prompt from the SetupTask's output.
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
 
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            consolidate_assumptions_markdown = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
 
-        # Build the query.
-        query = (
-            f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}"
-        )
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                consolidate_assumptions_markdown = f.read()
 
-        # Execute the pre-project assessment.
-        pre_project_assessment = PreProjectAssessment.execute(llm, query)
+            # Build the query.
+            query = (
+                f"File 'plan.txt':\n{plan_prompt}\n\n"
+                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+                f"File 'assumptions.md':\n{consolidate_assumptions_markdown}"
+            )
 
-        # Save raw output.
-        raw_path = self.file_path(FilenameEnum.PRE_PROJECT_ASSESSMENT_RAW)
-        pre_project_assessment.save_raw(str(raw_path))
+            # Track LLM interaction START
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "pre_project_assessment",
+                "prompt_text": query[:10000],  # Truncate for storage
+                "status": "pending"
+            }).id
 
-        # Save cleaned pre-project assessment.
-        clean_path = self.file_path(FilenameEnum.PRE_PROJECT_ASSESSMENT)
-        pre_project_assessment.save_preproject_assessment(str(clean_path))
+            # Execute LLM call with timing
+            import time
+            start_time = time.time()
+            pre_project_assessment = PreProjectAssessment.execute(llm, query)
+            duration_seconds = time.time() - start_time
+
+            # Update LLM interaction COMPLETE
+            response_dict = pre_project_assessment.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds
+            })
+
+            # Persist RAW to database
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.PRE_PROJECT_ASSESSMENT_RAW.value,
+                "stage": "pre_project_assessment",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+
+            # Persist CLEAN to database
+            clean_content = pre_project_assessment.to_clean_json()
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.PRE_PROJECT_ASSESSMENT.value,
+                "stage": "pre_project_assessment",
+                "content_type": "json",
+                "content": clean_content,
+                "content_size_bytes": len(clean_content.encode('utf-8'))
+            })
+
+            # Write to filesystem (Luigi tracking)
+            raw_path = self.file_path(FilenameEnum.PRE_PROJECT_ASSESSMENT_RAW)
+            pre_project_assessment.save_raw(str(raw_path))
+            clean_path = self.file_path(FilenameEnum.PRE_PROJECT_ASSESSMENT)
+            pre_project_assessment.save_preproject_assessment(str(clean_path))
+
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {
+                        "status": "failed",
+                        "error_message": str(e),
+                        "completed_at": datetime.utcnow()
+                    })
+                except Exception as db_error:
+                    logger.error(f"Failed to update interaction status: {db_error}")
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class ProjectPlanTask(PlanTask):
+    """
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
+    """
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
@@ -2307,46 +2374,107 @@ class ProjectPlanTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        logger.info("Creating plan...")
+        db_service = None
+        plan_id = self.get_plan_id()
 
-        # Read the plan prompt from SetupTask's output.
-        setup_target = self.input()['setup']
-        with setup_target.open("r") as f:
-            plan_prompt = f.read()
+        try:
+            db_service = self.get_database_service()
+            logger.info("Creating plan...")
 
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
+            # Read the plan prompt from SetupTask's output.
+            setup_target = self.input()['setup']
+            with setup_target.open("r") as f:
+                plan_prompt = f.read()
 
-        # Load the consolidated assumptions.
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            consolidate_assumptions_markdown = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
 
-        # Read the pre-project assessment from its file.
-        pre_project_assessment_file = self.input()['preproject']['clean']
-        with pre_project_assessment_file.open("r") as f:
-            pre_project_assessment_dict = json.load(f)
+            # Load the consolidated assumptions.
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                consolidate_assumptions_markdown = f.read()
 
-        # Build the query.
-        query = (
-            f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
-            f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}"
-        )
+            # Read the pre-project assessment from its file.
+            pre_project_assessment_file = self.input()['preproject']['clean']
+            with pre_project_assessment_file.open("r") as f:
+                pre_project_assessment_dict = json.load(f)
 
-        # Execute the plan creation.
-        project_plan = ProjectPlan.execute(llm, query)
-        
-        # Save raw output
-        project_plan.save_raw(self.output()['raw'].path)
-        
-        # Save markdown output
-        project_plan.save_markdown(self.output()['markdown'].path)
+            # Build the query.
+            query = (
+                f"File 'plan.txt':\n{plan_prompt}\n\n"
+                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+                f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
+                f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}"
+            )
 
-        logger.info("Project plan created and saved")
+            # Track LLM interaction START
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "project_plan",
+                "prompt_text": query[:10000],  # Truncate for storage
+                "status": "pending"
+            }).id
+
+            # Execute LLM call with timing
+            import time
+            start_time = time.time()
+            project_plan = ProjectPlan.execute(llm, query)
+            duration_seconds = time.time() - start_time
+
+            # Update LLM interaction COMPLETE
+            response_dict = project_plan.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds
+            })
+
+            # Persist RAW to database
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.PROJECT_PLAN_RAW.value,
+                "stage": "project_plan",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+
+            # Persist MARKDOWN to database
+            markdown_content = project_plan.markdown
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.PROJECT_PLAN_MARKDOWN.value,
+                "stage": "project_plan",
+                "content_type": "markdown",
+                "content": markdown_content,
+                "content_size_bytes": len(markdown_content.encode('utf-8'))
+            })
+
+            # Write to filesystem (Luigi tracking)
+            project_plan.save_raw(self.output()['raw'].path)
+            project_plan.save_markdown(self.output()['markdown'].path)
+
+            logger.info("Project plan created and saved")
+
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {
+                        "status": "failed",
+                        "error_message": str(e),
+                        "completed_at": datetime.utcnow()
+                    })
+                except Exception as db_error:
+                    logger.error(f"Failed to update interaction status: {db_error}")
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class GovernancePhase1AuditTask(PlanTask):
