@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field
 
 from planexe.markdown_util.fix_bullet_lists import fix_bullet_lists
 from planexe.viability.pillars_prompt import make_pillars_system_prompt
+from planexe.viability.model_pillar import PillarEnum
 from planexe.viability.model_status import StatusEnum
 
 logger = logging.getLogger(__name__)
@@ -33,23 +34,21 @@ logger = logging.getLogger(__name__)
 # Constants & enums
 # ---------------------------------------------------------------------------
 
-PILLAR_ORDER: List[str] = [
-    "HumanStability",
-    "EconomicResilience",
-    "EcologicalIntegrity",
-    "Rights_Legality",
-]
+PILLAR_ORDER: List[str] = [pillar.value for pillar in PillarEnum]
 
-PILLAR_DISPLAY_NAMES: Dict[str, str] = {
-    "HumanStability": "Human Stability",
-    "EconomicResilience": "Economic Resilience",
-    "EcologicalIntegrity": "Ecological Integrity",
-    "Rights_Legality": "Rights & Legality",
-}
+# Display names are now available via PillarEnum.display_name property
+
+def get_pillar_display_name(pillar_name: str) -> str:
+    """Get display name for a pillar string value."""
+    try:
+        pillar_enum = PillarEnum(pillar_name)
+        return pillar_enum.display_name
+    except ValueError:
+        return pillar_name  # Fallback to original name if not found
 
 # This list is not exhaustive, more items are likely to be added over time.
 REASON_CODES_BY_PILLAR: Dict[str, List[str]] = {
-    "HumanStability": [
+    PillarEnum.HumanStability.value: [
         "TALENT_UNKNOWN",
         "STAFF_AVERSION",
         "GOVERNANCE_WEAK",
@@ -58,7 +57,7 @@ REASON_CODES_BY_PILLAR: Dict[str, List[str]] = {
         "STAKEHOLDER_CONFLICT",
         "SAFETY_CULTURE_WEAK",
     ],
-    "EconomicResilience": [
+    PillarEnum.EconomicResilience.value: [
         "CONTINGENCY_LOW",
         "SINGLE_CUSTOMER",
         "ALT_COST_UNKNOWN",
@@ -70,7 +69,7 @@ REASON_CODES_BY_PILLAR: Dict[str, List[str]] = {
         "BIA_MISSING",
         "DR_TEST_GAPS",
     ],
-    "EcologicalIntegrity": [
+    PillarEnum.EcologicalIntegrity.value: [
         "CLOUD_CARBON_UNKNOWN",
         "CLIMATE_UNQUANTIFIED",
         "WATER_STRESS",
@@ -79,7 +78,7 @@ REASON_CODES_BY_PILLAR: Dict[str, List[str]] = {
         "WASTE_MANAGEMENT_GAPS",
         "WATER_PERMIT_RISK",
     ],
-    "Rights_Legality": [
+    PillarEnum.Rights_Legality.value: [
         "DPIA_GAPS",
         "LICENSE_GAPS",
         "ABS_UNDEFINED",
@@ -99,19 +98,19 @@ NEGATIVE_REASON_CODES: List[str] = sorted(
 )
 
 DEFAULT_EVIDENCE_BY_PILLAR = {
-    "HumanStability": [
+    PillarEnum.HumanStability.value: [
         "Stakeholder map + skills gap snapshot",
         "Change plan v1 (communications, training, adoption KPIs)",
     ],
-    "EconomicResilience": [
+    PillarEnum.EconomicResilience.value: [
         "Assumption ledger v1 + sensitivity table",
         "Cost model v2 (on-prem vs cloud TCO)",
     ],
-    "EcologicalIntegrity": [
+    PillarEnum.EcologicalIntegrity.value: [
         "Environmental baseline note (scope, metrics)",
         "Cloud carbon estimate v1 (regions/services)",
     ],
-    "Rights_Legality": [
+    PillarEnum.Rights_Legality.value: [
         "Regulatory mapping v1 + open questions list",
         "Licenses & permits inventory + gaps list",
     ],
@@ -279,7 +278,7 @@ def _canonicalize_evidence(pillar: str, reason_codes: List[str], evidence_todo: 
 # ---------------------------------------------------------------------------
 
 class PillarItemSchema(BaseModel):
-    pillar: str = Field(..., description="Pillar name from PILLAR_ORDER")
+    pillar: str = Field(..., description="Pillar name from PillarEnum")
     status: str = Field(..., description="Status indicator")
     score: Optional[int] = Field(None, description="Score 0-100 matching the status band")
     reason_codes: Optional[List[str]] = Field(default=None)
@@ -396,8 +395,8 @@ def _enforce_status_rules(pillar: str, status: str, reason_codes: List[str], evi
 
 def _sanitize_pillar(raw: Dict[str, Any]) -> Dict[str, Any]:
     pillar = raw.get("pillar")
-    if pillar not in PILLAR_ORDER:
-        pillar = "Rights_Legality"
+    if pillar not in [p.value for p in PillarEnum]:
+        pillar = PillarEnum.Rights_Legality.value
 
     status = raw.get("status", StatusEnum.GRAY.value)
     if status not in [s.value for s in StatusEnum]:
@@ -569,7 +568,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
 
     for pillar in pillars:
         name = pillar.get("pillar", "Unknown")
-        display_name = PILLAR_DISPLAY_NAMES.get(name, name)
+        display_name = get_pillar_display_name(name)
         status = pillar.get("status", StatusEnum.GRAY.value)
         score = pillar.get("score", None)
         reason_codes = pillar.get("reason_codes", []) or []
