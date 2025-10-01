@@ -5285,12 +5285,14 @@ class ExecutePipeline:
         print(f"🔥 Enabled Luigi INFO logging")
 
         # Call luigi.build() with detailed logging
+        # CRITICAL FIX: workers=0 for synchronous execution (Railway subprocess compatibility)
+        # workers=1 fails to spawn worker thread in Railway's subprocess environment
         try:
-            print(f"🔥 Calling luigi.build() NOW...")
+            print(f"🔥 Calling luigi.build() NOW with workers=0 (synchronous)...")
             self.luigi_build_return_value = luigi.build(
                 [self.full_plan_pipeline_task],
                 local_scheduler=True,
-                workers=1,
+                workers=0,  # FIXED: Changed from workers=1 to workers=0 for synchronous execution
                 log_level='INFO',  # Enable Luigi's own verbose logging
                 detailed_summary=True  # Show detailed task summary
             )
