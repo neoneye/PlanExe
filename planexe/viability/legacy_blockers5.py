@@ -10,7 +10,7 @@ Revisions addressing spec alignment:
 - Output: JSON + Markdown.
 - Input: JSON str/dict; full non-GREEN coverage.
 
-PROMPT> python -u -m planexe.viability.blockers5 | tee output5.txt
+PROMPT> python -u -m planexe.viability.legacy_blockers5 | tee output5.txt
 """
 import os
 import json

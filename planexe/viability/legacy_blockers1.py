@@ -6,7 +6,7 @@ to generate a list of actionable blockers for all pillars that are not in a 'GRE
 The output is a structured JSON object containing a list of blockers, each with
 acceptance tests, required artifacts, an owner, and a Rough Order of Magnitude (ROM) estimate.
 
-PROMPT> python -u -m planexe.viability.blockers1 | tee output1.txt
+PROMPT> python -u -m planexe.viability.legacy_blockers1 | tee output1.txt
 """
 import os
 import json

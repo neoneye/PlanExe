@@ -1,11 +1,11 @@
 """
 Emit Blockers (ViabilityAssessor Step 2).
 
-Transforms weak pillars from Step 1 into ≤5 concrete blockers with
-acceptance tests, artifacts, owners, and ROM estimates. Mirrors the
-structured LLM orchestration style used in `planexe.plan.executive_summary`.
+Converts non-green pillars from Step 1 into ≤5 actionable blockers with
+acceptance tests, artifacts, owners, and ROM estimates. Structured to work with
+LLMs that support schema-constrained outputs.
 
-PROMPT> python -u -m planexe.viability.blockers4 | tee output4.txt
+PROMPT> python -u -m planexe.viability.legacy_blockers3 | tee output3.txt
 """
 from __future__ import annotations
 
@@ -30,8 +30,25 @@ PILLAR_ENUM: Sequence[str] = (
     "EcologicalIntegrity",
     "Rights_Legality",
 )
-STATUS_ENUM: Sequence[str] = ("GREEN", "YELLOW", "RED", "GRAY")
-NON_GREEN_STATUSES = {status for status in STATUS_ENUM if status != "GREEN"}
+REASON_CODE_ENUM: Sequence[str] = (
+    "CONTINGENCY_LOW",
+    "SINGLE_CUSTOMER",
+    "ALT_COST_UNKNOWN",
+    "DPIA_GAPS",
+    "LICENSE_GAPS",
+    "ABS_UNDEFINED",
+    "PERMIT_COMPLEXITY",
+    "LEGACY_IT",
+    "INTEGRATION_RISK",
+    "TALENT_UNKNOWN",
+    "STAFF_AVERSION",
+    "CLOUD_CARBON_UNKNOWN",
+    "CLIMATE_UNQUANTIFIED",
+    "WATER_STRESS",
+    "BIOSECURITY_GAPS",
+    "ETHICS_VAGUE",
+)
+NON_GREEN_STATUSES = {"YELLOW", "RED", "GRAY"}
 COST_BAND_ENUM: Sequence[str] = ("LOW", "MEDIUM", "HIGH")
 DEFAULT_ROM = {"cost_band": "LOW", "eta_days": 14}
 
@@ -57,47 +74,44 @@ class BlockerItem(BaseModel):
     id: str
     pillar: str
     title: str
-    rationale: Optional[str] = None
     reason_codes: List[str] = Field(default_factory=list)
     acceptance_tests: conlist(str, min_length=1, max_length=3)
     artifacts_required: conlist(str, min_length=1, max_length=3)
     owner: Optional[str] = None
-    due_by: Optional[str] = None
     rom: Optional[ROM] = None
 
 
 class BlockersPayload(BaseModel):
+    source_pillars: List[str]
     blockers: conlist(BlockerItem, max_length=5)
 
 
 BLOCKERS_SYSTEM_PROMPT = f"""
 You are a viability risk analyst creating Step 2 blockers. Return JSON only with
-`blockers`. Respect this schema:
+`source_pillars` and `blockers` fields. Respect this schema:
 {{
+  "source_pillars": ["HumanStability"],
   "blockers": [
     {{
       "id": "B1",
       "pillar": "HumanStability",
       "title": "Title",
-      "rationale": "Short justification of why this is blocking execution.",
       "reason_codes": ["STAFF_AVERSION"],
       "acceptance_tests": ["Specific, verifiable test"],
       "artifacts_required": ["Artifact name"],
-      "owner": "Role or team",
-      "due_by": "2025-03-31",
+      "owner": "Role",
       "rom": {{"cost_band": "LOW", "eta_days": 14}}
     }}
   ]
 }}
 Rules:
 - Derive blockers only from input pillars with status RED, YELLOW, or GRAY.
-- Cap the total number of blockers at five; focus on the highest leverage fixes.
-- Use sequential IDs (B1..B5) and canonical pillar names from {{{', '.join(PILLAR_ENUM)}}}.
-- `reason_codes` must be a subset of the pillar's reason codes.
-- Provide 1-3 crisp acceptance tests and required artifacts per blocker.
-- Always include a ROM with `cost_band` in {{{', '.join(COST_BAND_ENUM)}}} and realistic `eta_days`.
-- If there are no non-green pillars, return an empty blockers array.
-Output JSON only.
+- Cap the total number of blockers at five.
+- Use IDs sequentially (B1..B5) and reuse pillar names from {{{', '.join(PILLAR_ENUM)}}}.
+- `reason_codes` must be a subset of the pillar's reason codes; prefer enums like {{{', '.join(REASON_CODE_ENUM)}}}.
+- Write crisp acceptance tests (≤3) and concrete artifacts (≤3).
+- Always include ROM with `cost_band` in {{{', '.join(COST_BAND_ENUM)}}} and realistic `eta_days`.
+- If no non-green pillars are provided, return empty arrays.
 """
 
 
@@ -115,10 +129,10 @@ class BlockerAssessment:
             raise ValueError("Invalid LLM instance.")
 
         validated_pillars = _load_pillars_payload(pillars_payload)
-        non_green = [pillar for pillar in validated_pillars.pillars if pillar.status in NON_GREEN_STATUSES]
+        non_green = [p for p in validated_pillars.pillars if p.status in NON_GREEN_STATUSES]
 
         if not non_green:
-            empty_output = BlockersPayload(blockers=[]).model_dump()
+            empty_output = BlockersPayload(source_pillars=[], blockers=[]).model_dump()
             metadata = dict(llm.metadata)
             metadata.update({"llm_classname": llm.class_name(), "duration": 0, "response_byte_count": 0})
             return cls(
@@ -144,7 +158,8 @@ class BlockerAssessment:
         end = time.perf_counter()
 
         duration = int(ceil(end - start))
-        sanitized = _enforce_guardrails(chat_response.raw, non_green)
+        raw_payload = chat_response.raw
+        sanitized = _enforce_guardrails(raw_payload, non_green)
 
         metadata = dict(llm.metadata)
         metadata.update(
@@ -170,14 +185,12 @@ class BlockerAssessment:
         if not blockers_output.blockers:
             return "## Blockers\n\n- None identified"
 
-        rows: List[str] = ["## Blockers"]
+        rows: List[str] = ["## Source Pillars", f"- {', '.join(blockers_output.source_pillars)}", "", "## Blockers"]
         for blocker in blockers_output.blockers:
             rows.append(f"### {blocker.id}: {blocker.title}")
             rows.append(f"**Pillar:** {blocker.pillar}")
             if blocker.reason_codes:
                 rows.append(f"**Reason Codes:** {', '.join(blocker.reason_codes)}")
-            if blocker.rationale:
-                rows.append(f"**Rationale:** {blocker.rationale}")
             if blocker.acceptance_tests:
                 rows.append("**Acceptance Tests:**")
                 for test in blocker.acceptance_tests:
@@ -188,8 +201,6 @@ class BlockerAssessment:
                     rows.append(f"- {artifact}")
             if blocker.owner:
                 rows.append(f"**Owner:** {blocker.owner}")
-            if blocker.due_by:
-                rows.append(f"**Due By:** {blocker.due_by}")
             if blocker.rom:
                 rows.append(f"**ROM:** {blocker.rom.cost_band} cost, {blocker.rom.eta_days} days")
             rows.append("")
@@ -257,57 +268,35 @@ def _build_user_payload(pillars: Sequence[PillarItem]) -> Dict[str, Any]:
     }
 
 
-def _enforce_guardrails(blockers_output: BlockersPayload, pillars: Sequence[PillarItem]) -> BlockersPayload:
+def _enforce_guardrails(
+    blockers_output: BlockersPayload, pillars: Sequence[PillarItem]
+) -> BlockersPayload:
     allowed_pillars = {pillar.pillar: pillar for pillar in pillars}
     canonical_order = {pillar: index for index, pillar in enumerate(PILLAR_ENUM)}
     sanitized_blockers: List[Dict[str, Any]] = []
 
-    for candidate in blockers_output.blockers:
-        if candidate.pillar not in allowed_pillars:
+    for blocker in blockers_output.blockers:
+        if blocker.pillar not in allowed_pillars:
             continue
 
-        pillar_reason_codes = set(allowed_pillars[candidate.pillar].reason_codes)
-        blocker_data = candidate.model_dump()
+        pillar_reason_codes = set(allowed_pillars[blocker.pillar].reason_codes)
+        blocker_data = blocker.model_dump()
         blocker_data["id"] = f"B{len(sanitized_blockers) + 1}"
-
         blocker_data["reason_codes"] = [
             code for code in blocker_data.get("reason_codes", []) if code in pillar_reason_codes
         ]
-
-        acceptance_tests = [
-            test.strip()
-            for test in (blocker_data.get("acceptance_tests") or [])
-            if isinstance(test, str) and test.strip()
-        ][:3]
+        acceptance_tests = (blocker_data.get("acceptance_tests") or [])[:3]
         if not acceptance_tests:
             continue
         blocker_data["acceptance_tests"] = acceptance_tests
 
-        artifacts_required = [
-            artifact.strip()
-            for artifact in (blocker_data.get("artifacts_required") or [])
-            if isinstance(artifact, str) and artifact.strip()
-        ][:3]
+        artifacts_required = (blocker_data.get("artifacts_required") or [])[:3]
         if not artifacts_required:
             continue
         blocker_data["artifacts_required"] = artifacts_required
 
-        rationale = blocker_data.get("rationale")
-        if isinstance(rationale, str):
-            blocker_data["rationale"] = rationale.strip() or None
-        else:
-            blocker_data["rationale"] = None
-
-        owner_value = blocker_data.get("owner")
-        blocker_data["owner"] = owner_value.strip() if isinstance(owner_value, str) and owner_value.strip() else None
-
-        due_by_value = blocker_data.get("due_by")
-        blocker_data["due_by"] = due_by_value.strip() if isinstance(due_by_value, str) and due_by_value.strip() else None
-
         rom_payload = blocker_data.get("rom") or {}
-        cost_band = rom_payload.get("cost_band")
-        if cost_band not in COST_BAND_ENUM:
-            cost_band = DEFAULT_ROM["cost_band"]
+        cost_band = rom_payload.get("cost_band") if rom_payload.get("cost_band") in COST_BAND_ENUM else DEFAULT_ROM["cost_band"]
         eta_days = rom_payload.get("eta_days")
         if not isinstance(eta_days, int) or eta_days < 0:
             eta_days = DEFAULT_ROM["eta_days"]
@@ -317,18 +306,15 @@ def _enforce_guardrails(blockers_output: BlockersPayload, pillars: Sequence[Pill
         if len(sanitized_blockers) == 5:
             break
 
-    sanitized_blockers = sorted(
-        sanitized_blockers,
-        key=lambda item: (
-            canonical_order.get(item["pillar"], len(PILLAR_ENUM)),
-            item["id"],
-        ),
+    if sanitized_blockers:
+        source_candidates = {blocker["pillar"] for blocker in sanitized_blockers}
+    else:
+        source_candidates = {pillar.pillar for pillar in pillars}
+
+    ordered_sources = sorted(
+        source_candidates, key=lambda value: canonical_order.get(value, len(PILLAR_ENUM))
     )
-
-    for index, blocker in enumerate(sanitized_blockers, start=1):
-        blocker["id"] = f"B{index}"
-
-    sanitized_payload = {"blockers": sanitized_blockers}
+    sanitized_payload = {"source_pillars": ordered_sources, "blockers": sanitized_blockers}
     return BlockersPayload.model_validate(sanitized_payload)
 
 
@@ -341,21 +327,28 @@ if __name__ == "__main__":
                 "pillar": "HumanStability",
                 "status": "RED",
                 "score": 20,
-                "reason_codes": ["STAFF_AVERSION", "TALENT_UNKNOWN"],
-                "evidence_todo": ["Stakeholder survey baseline"],
+                "reason_codes": ["GOVERNANCE_WEAK", "STAKEHOLDER_CONFLICT", "CHANGE_MGMT_GAPS"],
+                "evidence_todo": ["Social unrest mitigation plan v1", "Resident mental health support plan v2"],
             },
             {
                 "pillar": "EconomicResilience",
                 "status": "YELLOW",
                 "score": 55,
-                "reason_codes": ["CONTINGENCY_LOW", "ALT_COST_UNKNOWN"],
-                "evidence_todo": ["Update unit economics model"],
+                "reason_codes": ["CONTINGENCY_LOW", "UNIT_ECON_UNKNOWN"],
+                "evidence_todo": ["Contingency budget v2", "Unit economics model v3 + sensitivity table"],
             },
             {
                 "pillar": "EcologicalIntegrity",
+                "status": "RED",
+                "score": 20,
+                "reason_codes": ["EIA_MISSING", "BIODIVERSITY_RISK_UNSET", "WASTE_MANAGEMENT_GAPS"],
+                "evidence_todo": ["Ecosystem risk mitigation plan v1", "Waste management plan v2"],
+            },
+            {
+                "pillar": "Rights_Legality",
                 "status": "GREEN",
                 "score": 85,
-                "reason_codes": ["EIA_COMPLETE"],
+                "reason_codes": ["STAKEHOLDER_ALIGNMENT"],
                 "evidence_todo": [],
             },
         ]

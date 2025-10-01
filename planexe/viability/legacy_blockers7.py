@@ -14,7 +14,7 @@ When run as a script:
 - Reads big concatenated input from PLANEXE_QUERY or stdin (no CLI args).
 - Prints strict JSON only.
 
-PROMPT> python -u -m planexe.viability.blockers7 | tee output7.txt
+PROMPT> python -u -m planexe.viability.legacy_blockers7 | tee output7.txt
 """
 
 from __future__ import annotations

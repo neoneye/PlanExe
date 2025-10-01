@@ -8,7 +8,7 @@ This is a strengthened, more robust version of the script. It incorporates:
     (e.g., missing reason codes or tests) instead of silently discarding them,
     making the process more resilient to minor LLM errors.
 
-PROMPT> python -u -m planexe.viability.blockers6 | tee output6.txt
+PROMPT> python -u -m planexe.viability.legacy_blockers6 | tee output6.txt
 """
 from __future__ import annotations
 
