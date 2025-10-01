@@ -23,18 +23,12 @@ from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, conlist
 
+from planexe.viability.model_pillar import PillarEnum
 from planexe.viability.model_status import StatusEnum
 
 logger = logging.getLogger(__name__)
 
 # --- Enums mirroring viability/README.md ---
-
-class PillarEnum(str, Enum):
-    HumanStability = "HumanStability"
-    EconomicResilience = "EconomicResilience"
-    EcologicalIntegrity = "EcologicalIntegrity"
-    Rights_Legality = "Rights_Legality"
-
 
 class CostBandEnum(str, Enum):
     LOW = "LOW"
