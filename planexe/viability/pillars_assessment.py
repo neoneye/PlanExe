@@ -297,117 +297,6 @@ PILLARS_SYSTEM_PROMPT = make_pillars_system_prompt(PILLAR_ORDER, REASON_CODES_BY
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-
-def _extract_json_from_text(text: str) -> Dict[str, Any]:
-    text = text.strip()
-    if not text:
-        return {"pillars": []}
-
-    if text.startswith("{"):
-        try:
-            return json.loads(text)
-        except json.JSONDecodeError:
-            pass
-
-    starts = [m.start() for m in re.finditer(r"\{", text)]
-    ends = [m.start() for m in re.finditer(r"\}", text)]
-    for start in starts:
-        for end in reversed(ends):
-            if end <= start:
-                continue
-            chunk = text[start : end + 1]
-            try:
-                return json.loads(chunk)
-            except json.JSONDecodeError:
-                continue
-    return {"pillars": []}
-
-
-def _ensure_list(value: Optional[Iterable[str]]) -> List[str]:
-    if not value:
-        return []
-    return [str(item).strip() for item in value if str(item).strip()]
-
-
-def _score_in_band(score: int, status: str) -> bool:
-    band = STATUS_TO_SCORE.get(status)
-    if band is None:
-        return True
-    lower, upper = band
-    return lower <= score <= upper
-
-
-def _sanitize_score(status: str, score: Optional[int]) -> Optional[int]:
-    if status == StatusEnum.GRAY.value:
-        return None
-    if score is None:
-        return STATUS_MIDPOINT[status]
-    if not isinstance(score, int):
-        try:
-            score = int(score)
-        except (TypeError, ValueError):
-            return STATUS_MIDPOINT[status]
-    if _score_in_band(score, status):
-        return score
-    return STATUS_MIDPOINT[status]
-
-
-def _sanitize_reason_codes(pillar: str, reason_codes: Optional[Iterable[str]]) -> List[str]:
-    allowed = set(REASON_CODES_BY_PILLAR.get(pillar, []))
-    sanitized = []
-    for code in _ensure_list(reason_codes):
-        if code in allowed:
-            sanitized.append(code)
-    return sanitized
-
-
-def _sanitize_evidence(status: str, evidence: Optional[Iterable[str]]) -> List[str]:
-    sanitized = _ensure_list(evidence)
-    if status == StatusEnum.GRAY.value and not sanitized:
-        return [DEFAULT_EVIDENCE_ITEM]
-    if status != StatusEnum.GREEN.value:
-        return sanitized
-    # GREEN cannot carry evidence tasks – force empty list
-    return []
-
-
-def _enforce_status_rules(pillar: str, status: str, reason_codes: List[str], evidence: List[str]) -> str:
-    if status not in [s.value for s in StatusEnum]:
-        status = StatusEnum.GRAY.value
-    if status == StatusEnum.GREEN.value and evidence:
-        status = StatusEnum.YELLOW.value
-    if status == StatusEnum.GREEN.value and any(code in NEGATIVE_REASON_CODES for code in reason_codes):
-        status = StatusEnum.YELLOW.value
-    if status in {StatusEnum.YELLOW.value, StatusEnum.RED.value} and not reason_codes and not evidence:
-        status = StatusEnum.GRAY.value
-    return status
-
-
-def _sanitize_pillar(raw: Dict[str, Any]) -> Dict[str, Any]:
-    pillar = raw.get("pillar")
-    if pillar not in [p.value for p in PillarEnum]:
-        pillar = PillarEnum.Rights_Legality.value
-
-    status = raw.get("status", StatusEnum.GRAY.value)
-    if status not in [s.value for s in StatusEnum]:
-        status = StatusEnum.GRAY.value
-
-    reason_codes = _sanitize_reason_codes(pillar, raw.get("reason_codes"))
-    evidence = _sanitize_evidence(status, raw.get("evidence_todo"))
-    status = _enforce_status_rules(pillar, status, reason_codes, evidence)
-    evidence = _sanitize_evidence(status, evidence)
-
-    score = _sanitize_score(status, raw.get("score"))
-
-    return {
-        "pillar": pillar,
-        "status": status,
-        "score": score,
-        "reason_codes": reason_codes,
-        "evidence_todo": evidence,
-    }
-
-
 def _default_pillar(pillar: str) -> Dict[str, Any]:
     return {
         "pillar": pillar,
@@ -619,20 +508,11 @@ class PillarsAssessment:
         raw_text = ""
         used_structured = False
 
-        try:
-            structured_llm = llm.as_structured_llm(PillarsSchema)
-            chat_response = structured_llm.chat(messages)
-            used_structured = True
-            raw_payload = chat_response.raw.model_dump()
-            raw_text = chat_response.message.content or json.dumps(raw_payload)
-        except Exception as exc:  # pragma: no cover - depends on model support
-            logger.info("Structured output failed, falling back to plain JSON parse: %s", exc)
-            try:
-                chat_response = llm.chat(messages)
-            except Exception as chat_exc:  # pragma: no cover - unexpected transport failure
-                raise RuntimeError("LLM chat interaction failed") from chat_exc
-            raw_text = chat_response.message.content or ""
-            raw_payload = _extract_json_from_text(raw_text)
+        sllm = llm.as_structured_llm(PillarsSchema)
+        chat_response = sllm.chat(messages)
+        used_structured = True
+        raw_payload = chat_response.raw.model_dump()
+        raw_text = chat_response.message.content or json.dumps(raw_payload)
 
         duration = time.perf_counter() - start_time
         response_byte_count = len(raw_text.encode("utf-8")) if raw_text else len(json.dumps(raw_payload).encode("utf-8"))
