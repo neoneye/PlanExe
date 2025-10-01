@@ -1,9 +1,4 @@
-/**
- * Author: Codex using GPT-5
- * Date: 2025-09-30T15:30:00Z
- * PURPOSE: Records release notes; updated to capture Luigi agentization work and provides metadata for future edits.
- * SRP and DRY check: Pass. CHANGELOG centralizes history; header adds missing metadata without duplicating elsewhere.
- */
+
 
 ## [0.2.5] - 2025-09-30 - Luigi Pipeline Agentization
 
