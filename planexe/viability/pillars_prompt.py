@@ -1,3 +1,9 @@
+"""
+IDEA: Get rid of the hardcoded "RED"/"YELLOW"/"GREEN" strings and use the StatusEnum instead.
+However before doing so, I want to rework the scoring system. Currently it is value 0-100. 
+I want to change it to a multiple parameters in the range 1-5, so that the score can be fact checked.
+Then it make sense to get rid of the hardcoded "RED"/"YELLOW"/"GREEN" strings and use the StatusEnum instead.
+"""
 import json
 from typing import Dict, List, Optional, Tuple
 
