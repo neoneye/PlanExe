@@ -4421,97 +4421,79 @@ class CreateWBSLevel3Task(PlanTask):
         }
     
     def run_inner(self):
-        llm_executor: LLMExecutor = self.create_llm_executor()
-
-        logger.info("Creating Work Breakdown Structure (WBS) Level 3...")
-        
-        # Read inputs from required tasks.
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
-
-        with self.input()['wbs_project'].open("r") as f:
-            wbs_project_dict = json.load(f)
-        wbs_project = WBSProject.from_dict(wbs_project_dict)
-
-        with self.input()['data_collection']['markdown'].open("r") as f:
-            data_collection_markdown = f.read()
-
-        # Load the estimated task durations.
-        task_duration_list_path = self.input()['task_durations'].path
-        WBSPopulate.extend_project_with_durations_json(wbs_project, task_duration_list_path)
-
-        # for each task in the wbs_project, find the task that has no children
-        tasks_with_no_children = []
-        def visit_task(task):
-            if len(task.task_children) == 0:
-                tasks_with_no_children.append(task)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            llm_executor: LLMExecutor = self.create_llm_executor()
+            logger.info("Creating Work Breakdown Structure (WBS) Level 3...")
+            with self.input()['project_plan']['raw'].open("r") as f:
+                project_plan_dict = json.load(f)
+            with self.input()['wbs_project'].open("r") as f:
+                wbs_project_dict = json.load(f)
+            wbs_project = WBSProject.from_dict(wbs_project_dict)
+            with self.input()['data_collection']['markdown'].open("r") as f:
+                data_collection_markdown = f.read()
+            task_duration_list_path = self.input()['task_durations'].path
+            WBSPopulate.extend_project_with_durations_json(wbs_project, task_duration_list_path)
+            tasks_with_no_children = []
+            def visit_task(task):
+                if len(task.task_children) == 0:
+                    tasks_with_no_children.append(task)
+                else:
+                    for child in task.task_children:
+                        visit_task(child)
+            visit_task(wbs_project.root_task)
+            decompose_task_id_list = []
+            for task in tasks_with_no_children:
+                decompose_task_id_list.append(task.id)
+            logger.info("There are %d tasks to be decomposed.", len(decompose_task_id_list))
+            logger.info(f"CreateWBSLevel3Task.speedvsdetail: {self.speedvsdetail}")
+            if self.speedvsdetail == SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS:
+                logger.info("FAST_BUT_SKIP_DETAILS mode, truncating to 2 chunks for testing.")
+                decompose_task_id_list = decompose_task_id_list[:2]
             else:
-                for child in task.task_children:
-                    visit_task(child)
-        visit_task(wbs_project.root_task)
-
-        # for each task with no children, extract the task_id
-        decompose_task_id_list = []
-        for task in tasks_with_no_children:
-            decompose_task_id_list.append(task.id)
-        
-        logger.info("There are %d tasks to be decomposed.", len(decompose_task_id_list))
-
-        # In production mode, all chunks are processed.
-        # In developer mode, truncate to only 2 chunks for fast turnaround cycle. Otherwise LOTS of tasks are to be decomposed.
-        logger.info(f"CreateWBSLevel3Task.speedvsdetail: {self.speedvsdetail}")
-        if self.speedvsdetail == SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS:
-            logger.info("FAST_BUT_SKIP_DETAILS mode, truncating to 2 chunks for testing.")
-            decompose_task_id_list = decompose_task_id_list[:2]
-        else:
-            logger.info("Processing all chunks.")
-        
-        project_plan_str = format_json_for_use_in_query(project_plan_dict)
-        wbs_project_str = format_json_for_use_in_query(wbs_project.to_dict())
-
-        # Loop over each task ID.
-        wbs_level3_result_accumulated = []
-        total_tasks = len(decompose_task_id_list)
-        for index, task_id in enumerate(decompose_task_id_list, start=1):
-            logger.info("Decomposing task %d of %d", index, total_tasks)
-            
-            query = (
-                f"The project plan:\n{project_plan_str}\n\n"
-                f"Data collection:\n{data_collection_markdown}\n\n"
-                f"Work breakdown structure:\n{wbs_project_str}\n\n"
-                f"Only decompose this task:\n\"{task_id}\""
-            )
-
-            # IDEA: If the chunk file already exist, then there is no need to run the LLM again.
-            def execute_create_wbs_level3(llm: LLM) -> CreateWBSLevel3:
-                return CreateWBSLevel3.execute(llm, query, task_id)
-
-            try:
-                create_wbs_level3 = llm_executor.run(execute_create_wbs_level3)
-            except PipelineStopRequested:
-                # Re-raise PipelineStopRequested without wrapping it
-                raise
-            except Exception as e:
-                logger.error(f"WBS Level 3 task {index} LLM interaction failed.", exc_info=True)
-                raise ValueError(f"WBS Level 3 task {index} LLM interaction failed.") from e
-
-            wbs_level3_raw_dict = create_wbs_level3.raw_response_dict()
-            
-            # Write the raw JSON for this task using the FilenameEnum template.
-            raw_filename = FilenameEnum.WBS_LEVEL3_RAW_TEMPLATE.value.format(index)
-            raw_chunk_path = self.run_id_dir / raw_filename
-            with open(raw_chunk_path, 'w') as f:
-                json.dump(wbs_level3_raw_dict, f, indent=2)
-            
-            # Accumulate the decomposed tasks.
-            wbs_level3_result_accumulated.extend(create_wbs_level3.tasks)
-        
-        # Write the aggregated WBS Level 3 result.
-        aggregated_path = self.file_path(FilenameEnum.WBS_LEVEL3)
-        with open(aggregated_path, 'w') as f:
-            json.dump(wbs_level3_result_accumulated, f, indent=2)
-        
-        logger.info("WBS Level 3 created and aggregated results written to %s", aggregated_path)
+                logger.info("Processing all chunks.")
+            project_plan_str = format_json_for_use_in_query(project_plan_dict)
+            wbs_project_str = format_json_for_use_in_query(wbs_project.to_dict())
+            wbs_level3_result_accumulated = []
+            total_tasks = len(decompose_task_id_list)
+            for index, task_id in enumerate(decompose_task_id_list, start=1):
+                logger.info("Decomposing task %d of %d", index, total_tasks)
+                query = (f"The project plan:\n{project_plan_str}\n\n" f"Data collection:\n{data_collection_markdown}\n\n" f"Work breakdown structure:\n{wbs_project_str}\n\n" f"Only decompose this task:\n\"{task_id}\"")
+                interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": f"wbs_level3_{index}", "prompt_text": query[:10000], "status": "pending"}).id
+                def execute_create_wbs_level3(llm: LLM) -> CreateWBSLevel3:
+                    return CreateWBSLevel3.execute(llm, query, task_id)
+                start_time = time.time()
+                try:
+                    create_wbs_level3 = llm_executor.run(execute_create_wbs_level3)
+                    duration_seconds = time.time() - start_time
+                    wbs_level3_raw_dict = create_wbs_level3.raw_response_dict()
+                    db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(wbs_level3_raw_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+                    raw_content = json.dumps(wbs_level3_raw_dict, indent=2)
+                    raw_filename = FilenameEnum.WBS_LEVEL3_RAW_TEMPLATE.value.format(index)
+                    db_service.create_plan_content({"plan_id": plan_id, "filename": raw_filename, "stage": f"wbs_level3_{index}", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+                    raw_chunk_path = self.run_id_dir / raw_filename
+                    with open(raw_chunk_path, 'w') as f:
+                        json.dump(wbs_level3_raw_dict, f, indent=2)
+                    wbs_level3_result_accumulated.extend(create_wbs_level3.tasks)
+                except PipelineStopRequested:
+                    raise
+                except Exception as e:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                    logger.error(f"WBS Level 3 task {index} LLM interaction failed.", exc_info=True)
+                    raise ValueError(f"WBS Level 3 task {index} LLM interaction failed.") from e
+            aggregated_content = json.dumps(wbs_level3_result_accumulated, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.WBS_LEVEL3.value, "stage": "wbs_level3_aggregated", "content_type": "json", "content": aggregated_content, "content_size_bytes": len(aggregated_content.encode('utf-8'))})
+            aggregated_path = self.file_path(FilenameEnum.WBS_LEVEL3)
+            with open(aggregated_path, 'w') as f:
+                json.dump(wbs_level3_result_accumulated, f, indent=2)
+            logger.info("WBS Level 3 created and aggregated results written to %s", aggregated_path)
+        except Exception as e:
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
     """
@@ -4534,21 +4516,29 @@ class WBSProjectLevel1AndLevel2AndLevel3Task(PlanTask):
         }
     
     def run_inner(self):
-        wbs_project_path = self.input()['wbs_project12'].path
-        with open(wbs_project_path, "r") as f:
-            wbs_project_dict = json.load(f)
-        wbs_project = WBSProject.from_dict(wbs_project_dict)
-
-        wbs_level3_path = self.input()['wbs_level3'].path
-        WBSPopulate.extend_project_with_decomposed_tasks_json(wbs_project, wbs_level3_path)
-
-        json_representation = json.dumps(wbs_project.to_dict(), indent=2)
-        with self.output()['full'].open("w") as f:
-            f.write(json_representation)
-        
-        csv_representation = wbs_project.to_csv_string()
-        with self.output()['csv'].open("w") as f:
-            f.write(csv_representation)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            wbs_project_path = self.input()['wbs_project12'].path
+            with open(wbs_project_path, "r") as f:
+                wbs_project_dict = json.load(f)
+            wbs_project = WBSProject.from_dict(wbs_project_dict)
+            wbs_level3_path = self.input()['wbs_level3'].path
+            WBSPopulate.extend_project_with_decomposed_tasks_json(wbs_project, wbs_level3_path)
+            json_representation = json.dumps(wbs_project.to_dict(), indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_FULL.value, "stage": "wbs_project_full", "content_type": "json", "content": json_representation, "content_size_bytes": len(json_representation.encode('utf-8'))})
+            with self.output()['full'].open("w") as f:
+                f.write(json_representation)
+            csv_representation = wbs_project.to_csv_string()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2_AND_LEVEL3_CSV.value, "stage": "wbs_project_full", "content_type": "csv", "content": csv_representation, "content_size_bytes": len(csv_representation.encode('utf-8'))})
+            with self.output()['csv'].open("w") as f:
+                f.write(csv_representation)
+        except Exception as e:
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class CreateScheduleTask(PlanTask):
     def output(self):
@@ -4568,88 +4558,49 @@ class CreateScheduleTask(PlanTask):
         }
     
     def run_inner(self):
-        # For the report title, use the 'project_title' of the WBS Level 1 result.
-        with self.input()['wbs_level1']['project_title'].open("r") as f:
-            title = f.read()
-        with self.input()['dependencies'].open("r") as f:
-            dependencies_dict = json.load(f)
-        with self.input()['durations'].open("r") as f:
-            duration_list: list[dict[str, Any]] = json.load(f)
-        wbs_project_path = self.input()['wbs_project123']['full'].path
-        with open(wbs_project_path, "r") as f:
-            wbs_project_dict = json.load(f)
-        wbs_project = WBSProject.from_dict(wbs_project_dict)
-
-        # Read the start time from the StartTimeTask to get the actual pipeline start date
-        with self.input()['start_time'].open("r") as f:
-            start_time_dict = json.load(f)
-
-        # The start_time.server_iso_utc is in format "YYYY-MM-DDTHH:MM:SSZ"
-        utc_timestamp = start_time_dict['server_iso_utc']
-        # The 'Z' suffix for UTC is not supported by fromisoformat() in Python < 3.11. Replace, ensures compatibility.
-        project_start_dt: datetime = datetime.fromisoformat(utc_timestamp.replace('Z', '+00:00'))
-        project_start: date = project_start_dt.date()
-
-        # logger.debug(f"dependencies_dict {dependencies_dict}")
-        # logger.debug(f"duration_list {duration_list}")
-        # logger.debug(f"wbs_project {wbs_project.to_dict()}")
-
-        # Tooltips with a detailed description of each task.
-        task_id_to_html_tooltip_dict: dict[str, str] = WBSTaskTooltip.html_tooltips(wbs_project)
-        task_id_to_text_tooltip_dict: dict[str, str] = WBSTaskTooltip.text_tooltips(wbs_project)
-
-        project_schedule: ProjectSchedule = ProjectSchedulePopulator.populate(
-            wbs_project=wbs_project,
-            duration_list=duration_list
-        )
-
-        # Export the Gantt chart to CSV.
-        # Always run the CSV export so that the code gets exercised, otherwise the code will rot.
-        csv_data: str = ExportGanttCSV.to_gantt_csv(
-            project_schedule=project_schedule, 
-            project_start=project_start,
-            task_id_to_tooltip_dict=task_id_to_text_tooltip_dict
-        )
-        if PIPELINE_CONFIG.enable_csv_export == False:
-            # When disabled, then hide the "Export to CSV" button and don't embed the CSV data in the html report.
-            csv_data = None
-
-        ExportGanttCSV.save(
-            project_schedule=project_schedule, 
-            path=self.output()['machai_csv'].path,
-            project_start=project_start,
-            task_id_to_tooltip_dict=task_id_to_text_tooltip_dict
-        )
-
-        # Identify the tasks that should be treated as project activities.
-        task_ids_to_treat_as_project_activities = wbs_project.task_ids_with_one_or_more_children()
-
-        # Export the Gantt chart to Frappe.
-        # I'm disappointed by Frappe, it lacks a lot of features that are present in DHTMLX.
-        # ExportGanttFrappe.save(
-        #     project_schedule=project_schedule, 
-        #     path=self.output()['frappe_html'].path, 
-        #     project_start=project_start,
-        #     task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities
-        # )
-
-        # Export the Gantt chart to Mermaid.
-        ExportGanttMermaid.save(
-            project_schedule=project_schedule, 
-            path=self.output()['mermaid_html'].path, 
-            project_start=project_start
-        )
-
-        # Export the Gantt chart to DHTMLX.
-        ExportGanttDHTMLX.save(
-            project_schedule=project_schedule, 
-            path=self.output()['dhtmlx_html'].path, 
-            project_start=project_start,
-            task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities,
-            task_id_to_tooltip_dict=task_id_to_html_tooltip_dict,
-            title=title,
-            csv_data=csv_data
-        )
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            with self.input()['wbs_level1']['project_title'].open("r") as f:
+                title = f.read()
+            with self.input()['dependencies'].open("r") as f:
+                dependencies_dict = json.load(f)
+            with self.input()['durations'].open("r") as f:
+                duration_list: list[dict[str, Any]] = json.load(f)
+            wbs_project_path = self.input()['wbs_project123']['full'].path
+            with open(wbs_project_path, "r") as f:
+                wbs_project_dict = json.load(f)
+            wbs_project = WBSProject.from_dict(wbs_project_dict)
+            with self.input()['start_time'].open("r") as f:
+                start_time_dict = json.load(f)
+            utc_timestamp = start_time_dict['server_iso_utc']
+            project_start_dt: datetime = datetime.fromisoformat(utc_timestamp.replace('Z', '+00:00'))
+            project_start: date = project_start_dt.date()
+            task_id_to_html_tooltip_dict: dict[str, str] = WBSTaskTooltip.html_tooltips(wbs_project)
+            task_id_to_text_tooltip_dict: dict[str, str] = WBSTaskTooltip.text_tooltips(wbs_project)
+            project_schedule: ProjectSchedule = ProjectSchedulePopulator.populate(wbs_project=wbs_project, duration_list=duration_list)
+            csv_data: str = ExportGanttCSV.to_gantt_csv(project_schedule=project_schedule, project_start=project_start, task_id_to_tooltip_dict=task_id_to_text_tooltip_dict)
+            if PIPELINE_CONFIG.enable_csv_export == False:
+                csv_data = None
+            ExportGanttCSV.save(project_schedule=project_schedule, path=self.output()['machai_csv'].path, project_start=project_start, task_id_to_tooltip_dict=task_id_to_text_tooltip_dict)
+            with open(self.output()['machai_csv'].path, "r") as f:
+                csv_content = f.read()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.SCHEDULE_GANTT_MACHAI_CSV.value, "stage": "schedule", "content_type": "csv", "content": csv_content, "content_size_bytes": len(csv_content.encode('utf-8'))})
+            task_ids_to_treat_as_project_activities = wbs_project.task_ids_with_one_or_more_children()
+            ExportGanttMermaid.save(project_schedule=project_schedule, path=self.output()['mermaid_html'].path, project_start=project_start)
+            with open(self.output()['mermaid_html'].path, "r") as f:
+                mermaid_html = f.read()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.SCHEDULE_GANTT_MERMAID_HTML.value, "stage": "schedule", "content_type": "html", "content": mermaid_html, "content_size_bytes": len(mermaid_html.encode('utf-8'))})
+            ExportGanttDHTMLX.save(project_schedule=project_schedule, path=self.output()['dhtmlx_html'].path, project_start=project_start, task_ids_to_treat_as_project_activities=task_ids_to_treat_as_project_activities, task_id_to_tooltip_dict=task_id_to_html_tooltip_dict, title=title, csv_data=csv_data)
+            with open(self.output()['dhtmlx_html'].path, "r") as f:
+                dhtmlx_html = f.read()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.SCHEDULE_GANTT_DHTMLX_HTML.value, "stage": "schedule", "content_type": "html", "content": dhtmlx_html, "content_size_bytes": len(dhtmlx_html.encode('utf-8'))})
+        except Exception as e:
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class ReviewPlanTask(PlanTask):
     """
@@ -4677,55 +4628,61 @@ class ReviewPlanTask(PlanTask):
         }
     
     def run_inner(self):
-        llm_executor: LLMExecutor = self.create_llm_executor()
-
-        # Read inputs from required tasks.
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            assumptions_markdown = f.read()
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        with self.input()['data_collection']['markdown'].open("r") as f:
-            data_collection_markdown = f.read()
-        with self.input()['related_resources']['markdown'].open("r") as f:
-            related_resources_markdown = f.read()
-        with self.input()['swot_analysis']['markdown'].open("r") as f:
-            swot_analysis_markdown = f.read()
-        with self.input()['team_markdown'].open("r") as f:
-            team_markdown = f.read()
-        with self.input()['pitch_markdown']['markdown'].open("r") as f:
-            pitch_markdown = f.read()
-        with self.input()['expert_review'].open("r") as f:
-            expert_review = f.read()
-        with self.input()['wbs_project123']['csv'].open("r") as f:
-            wbs_project_csv = f.read()
-
-        # Build the query.
-        query = (
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
-            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'data-collection.md':\n{data_collection_markdown}\n\n"
-            f"File 'related-resources.md':\n{related_resources_markdown}\n\n"
-            f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
-            f"File 'team.md':\n{team_markdown}\n\n"
-            f"File 'pitch.md':\n{pitch_markdown}\n\n"
-            f"File 'expert-review.md':\n{expert_review}\n\n"
-            f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}"
-        )
-
-        # Perform the review.
-        review_plan = ReviewPlan.execute(llm_executor=llm_executor, document=query, speed_vs_detail=self.speedvsdetail)
-
-        # Save the results.
-        json_path = self.output()['raw'].path
-        review_plan.save_raw(json_path)
-        markdown_path = self.output()['markdown'].path
-        review_plan.save_markdown(markdown_path)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            llm_executor: LLMExecutor = self.create_llm_executor()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                assumptions_markdown = f.read()
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['data_collection']['markdown'].open("r") as f:
+                data_collection_markdown = f.read()
+            with self.input()['related_resources']['markdown'].open("r") as f:
+                related_resources_markdown = f.read()
+            with self.input()['swot_analysis']['markdown'].open("r") as f:
+                swot_analysis_markdown = f.read()
+            with self.input()['team_markdown'].open("r") as f:
+                team_markdown = f.read()
+            with self.input()['pitch_markdown']['markdown'].open("r") as f:
+                pitch_markdown = f.read()
+            with self.input()['expert_review'].open("r") as f:
+                expert_review = f.read()
+            with self.input()['wbs_project123']['csv'].open("r") as f:
+                wbs_project_csv = f.read()
+            query = (f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n" f"File 'scenarios.md':\n{scenarios_markdown}\n\n" f"File 'assumptions.md':\n{assumptions_markdown}\n\n" f"File 'project-plan.md':\n{project_plan_markdown}\n\n" f"File 'data-collection.md':\n{data_collection_markdown}\n\n" f"File 'related-resources.md':\n{related_resources_markdown}\n\n" f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n" f"File 'team.md':\n{team_markdown}\n\n" f"File 'pitch.md':\n{pitch_markdown}\n\n" f"File 'expert-review.md':\n{expert_review}\n\n" f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}")
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "review_plan", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
+            review_plan = ReviewPlan.execute(llm_executor=llm_executor, document=query, speed_vs_detail=self.speedvsdetail)
+            duration_seconds = time.time() - start_time
+            last_attempt = llm_executor.get_last_attempt()
+            response_text = last_attempt.get('response_text', '') if last_attempt else ''
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": response_text[:10000], "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            json_path = self.output()['raw'].path
+            review_plan.save_raw(json_path)
+            with open(json_path, "r") as f:
+                raw_content = f.read()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.REVIEW_PLAN_RAW.value, "stage": "review_plan", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            markdown_path = self.output()['markdown'].path
+            review_plan.save_markdown(markdown_path)
+            with open(markdown_path, "r") as f:
+                markdown_content = f.read()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.REVIEW_PLAN_MARKDOWN.value, "stage": "review_plan", "content_type": "markdown", "content": markdown_content, "content_size_bytes": len(markdown_content.encode('utf-8'))})
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class ExecutiveSummaryTask(PlanTask):
@@ -4755,56 +4712,60 @@ class ExecutiveSummaryTask(PlanTask):
         }
     
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            assumptions_markdown = f.read()
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        with self.input()['data_collection']['markdown'].open("r") as f:
-            data_collection_markdown = f.read()
-        with self.input()['related_resources']['markdown'].open("r") as f:
-            related_resources_markdown = f.read()
-        with self.input()['swot_analysis']['markdown'].open("r") as f:
-            swot_analysis_markdown = f.read()
-        with self.input()['team_markdown'].open("r") as f:
-            team_markdown = f.read()
-        with self.input()['pitch_markdown']['markdown'].open("r") as f:
-            pitch_markdown = f.read()
-        with self.input()['expert_review'].open("r") as f:
-            expert_review = f.read()
-        with self.input()['wbs_project123']['csv'].open("r") as f:
-            wbs_project_csv = f.read()
-        with self.input()['review_plan']['markdown'].open("r") as f:
-            review_plan_markdown = f.read()
-
-        # Build the query.
-        query = (
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
-            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'data-collection.md':\n{data_collection_markdown}\n\n"
-            f"File 'related-resources.md':\n{related_resources_markdown}\n\n"
-            f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
-            f"File 'team.md':\n{team_markdown}\n\n"
-            f"File 'pitch.md':\n{pitch_markdown}\n\n"
-            f"File 'expert-review.md':\n{expert_review}\n\n"
-            f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}\n\n"
-            f"File 'review-plan.md':\n{review_plan_markdown}"
-        )
-
-        # Create the executive summary.
-        executive_summary = ExecutiveSummary.execute(llm, query)
-
-        # Save the results.
-        json_path = self.output()['raw'].path
-        executive_summary.save_raw(json_path)
-        markdown_path = self.output()['markdown'].path
-        executive_summary.save_markdown(markdown_path)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                assumptions_markdown = f.read()
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['data_collection']['markdown'].open("r") as f:
+                data_collection_markdown = f.read()
+            with self.input()['related_resources']['markdown'].open("r") as f:
+                related_resources_markdown = f.read()
+            with self.input()['swot_analysis']['markdown'].open("r") as f:
+                swot_analysis_markdown = f.read()
+            with self.input()['team_markdown'].open("r") as f:
+                team_markdown = f.read()
+            with self.input()['pitch_markdown']['markdown'].open("r") as f:
+                pitch_markdown = f.read()
+            with self.input()['expert_review'].open("r") as f:
+                expert_review = f.read()
+            with self.input()['wbs_project123']['csv'].open("r") as f:
+                wbs_project_csv = f.read()
+            with self.input()['review_plan']['markdown'].open("r") as f:
+                review_plan_markdown = f.read()
+            query = (f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n" f"File 'scenarios.md':\n{scenarios_markdown}\n\n" f"File 'assumptions.md':\n{assumptions_markdown}\n\n" f"File 'project-plan.md':\n{project_plan_markdown}\n\n" f"File 'data-collection.md':\n{data_collection_markdown}\n\n" f"File 'related-resources.md':\n{related_resources_markdown}\n\n" f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n" f"File 'team.md':\n{team_markdown}\n\n" f"File 'pitch.md':\n{pitch_markdown}\n\n" f"File 'expert-review.md':\n{expert_review}\n\n" f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}\n\n" f"File 'review-plan.md':\n{review_plan_markdown}")
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "executive_summary", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
+            executive_summary = ExecutiveSummary.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            summary_dict = executive_summary.to_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(summary_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            json_path = self.output()['raw'].path
+            executive_summary.save_raw(json_path)
+            raw_content = json.dumps(summary_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.EXECUTIVE_SUMMARY_RAW.value, "stage": "executive_summary", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            markdown_path = self.output()['markdown'].path
+            executive_summary.save_markdown(markdown_path)
+            with open(markdown_path, "r") as f:
+                markdown_content = f.read()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.EXECUTIVE_SUMMARY_MARKDOWN.value, "stage": "executive_summary", "content_type": "markdown", "content": markdown_content, "content_size_bytes": len(markdown_content.encode('utf-8'))})
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class QuestionsAndAnswersTask(PlanTask):
@@ -4834,58 +4795,65 @@ class QuestionsAndAnswersTask(PlanTask):
         }
     
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            assumptions_markdown = f.read()
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        with self.input()['data_collection']['markdown'].open("r") as f:
-            data_collection_markdown = f.read()
-        with self.input()['related_resources']['markdown'].open("r") as f:
-            related_resources_markdown = f.read()
-        with self.input()['swot_analysis']['markdown'].open("r") as f:
-            swot_analysis_markdown = f.read()
-        with self.input()['team_markdown'].open("r") as f:
-            team_markdown = f.read()
-        with self.input()['pitch_markdown']['markdown'].open("r") as f:
-            pitch_markdown = f.read()
-        with self.input()['expert_review'].open("r") as f:
-            expert_review = f.read()
-        with self.input()['wbs_project123']['csv'].open("r") as f:
-            wbs_project_csv = f.read()
-        with self.input()['review_plan']['markdown'].open("r") as f:
-            review_plan_markdown = f.read()
-
-        # Build the query.
-        query = (
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
-            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'data-collection.md':\n{data_collection_markdown}\n\n"
-            f"File 'related-resources.md':\n{related_resources_markdown}\n\n"
-            f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
-            f"File 'team.md':\n{team_markdown}\n\n"
-            f"File 'pitch.md':\n{pitch_markdown}\n\n"
-            f"File 'expert-review.md':\n{expert_review}\n\n"
-            f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}\n\n"
-            f"File 'review-plan.md':\n{review_plan_markdown}"
-        )
-
-        # Invoke the LLM
-        question_answers = QuestionsAnswers.execute(llm, query)
-
-        # Save the results.
-        json_path = self.output()['raw'].path
-        question_answers.save_raw(json_path)
-        markdown_path = self.output()['markdown'].path
-        question_answers.save_markdown(markdown_path)
-        html_path = self.output()['html'].path
-        question_answers.save_html(html_path)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                assumptions_markdown = f.read()
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['data_collection']['markdown'].open("r") as f:
+                data_collection_markdown = f.read()
+            with self.input()['related_resources']['markdown'].open("r") as f:
+                related_resources_markdown = f.read()
+            with self.input()['swot_analysis']['markdown'].open("r") as f:
+                swot_analysis_markdown = f.read()
+            with self.input()['team_markdown'].open("r") as f:
+                team_markdown = f.read()
+            with self.input()['pitch_markdown']['markdown'].open("r") as f:
+                pitch_markdown = f.read()
+            with self.input()['expert_review'].open("r") as f:
+                expert_review = f.read()
+            with self.input()['wbs_project123']['csv'].open("r") as f:
+                wbs_project_csv = f.read()
+            with self.input()['review_plan']['markdown'].open("r") as f:
+                review_plan_markdown = f.read()
+            query = (f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n" f"File 'scenarios.md':\n{scenarios_markdown}\n\n" f"File 'assumptions.md':\n{assumptions_markdown}\n\n" f"File 'project-plan.md':\n{project_plan_markdown}\n\n" f"File 'data-collection.md':\n{data_collection_markdown}\n\n" f"File 'related-resources.md':\n{related_resources_markdown}\n\n" f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n" f"File 'team.md':\n{team_markdown}\n\n" f"File 'pitch.md':\n{pitch_markdown}\n\n" f"File 'expert-review.md':\n{expert_review}\n\n" f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}\n\n" f"File 'review-plan.md':\n{review_plan_markdown}")
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "questions_answers", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
+            question_answers = QuestionsAnswers.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            qa_dict = question_answers.to_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(qa_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            json_path = self.output()['raw'].path
+            question_answers.save_raw(json_path)
+            raw_content = json.dumps(qa_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.QUESTIONS_AND_ANSWERS_RAW.value, "stage": "questions_answers", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            markdown_path = self.output()['markdown'].path
+            question_answers.save_markdown(markdown_path)
+            with open(markdown_path, "r") as f:
+                markdown_content = f.read()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.QUESTIONS_AND_ANSWERS_MARKDOWN.value, "stage": "questions_answers", "content_type": "markdown", "content": markdown_content, "content_size_bytes": len(markdown_content.encode('utf-8'))})
+            html_path = self.output()['html'].path
+            question_answers.save_html(html_path)
+            with open(html_path, "r") as f:
+                html_content = f.read()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.QUESTIONS_AND_ANSWERS_HTML.value, "stage": "questions_answers", "content_type": "html", "content": html_content, "content_size_bytes": len(html_content.encode('utf-8'))})
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class PremortemTask(PlanTask):
     def output(self):
@@ -4914,61 +4882,65 @@ class PremortemTask(PlanTask):
         }
     
     def run_inner(self):
-        llm_executor: LLMExecutor = self.create_llm_executor()
-
-        # Read inputs from required tasks.
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            assumptions_markdown = f.read()
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        with self.input()['data_collection']['markdown'].open("r") as f:
-            data_collection_markdown = f.read()
-        with self.input()['related_resources']['markdown'].open("r") as f:
-            related_resources_markdown = f.read()
-        with self.input()['swot_analysis']['markdown'].open("r") as f:
-            swot_analysis_markdown = f.read()
-        with self.input()['team_markdown'].open("r") as f:
-            team_markdown = f.read()
-        with self.input()['pitch_markdown']['markdown'].open("r") as f:
-            pitch_markdown = f.read()
-        with self.input()['expert_review'].open("r") as f:
-            expert_review = f.read()
-        with self.input()['wbs_project123']['csv'].open("r") as f:
-            wbs_project_csv = f.read()
-        with self.input()['review_plan']['markdown'].open("r") as f:
-            review_plan_markdown = f.read()
-        with self.input()['questions_and_answers']['markdown'].open("r") as f:
-            questions_and_answers_markdown = f.read()
-
-        # Build the query.
-        query = (
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
-            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'data-collection.md':\n{data_collection_markdown}\n\n"
-            f"File 'related-resources.md':\n{related_resources_markdown}\n\n"
-            f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
-            f"File 'team.md':\n{team_markdown}\n\n"
-            f"File 'pitch.md':\n{pitch_markdown}\n\n"
-            f"File 'expert-review.md':\n{expert_review}\n\n"
-            f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}\n\n"
-            f"File 'review-plan.md':\n{review_plan_markdown}\n\n"
-            f"File 'questions-and-answers.md':\n{questions_and_answers_markdown}"
-        )
-
-        # Invoke the LLM
-        premortem = Premortem.execute(llm_executor=llm_executor, speed_vs_detail=self.speedvsdetail, user_prompt=query)
-
-        # Save the results.
-        json_path = self.output()['raw'].path
-        premortem.save_raw(json_path)
-        markdown_path = self.output()['markdown'].path
-        premortem.save_markdown(markdown_path)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            llm_executor: LLMExecutor = self.create_llm_executor()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                assumptions_markdown = f.read()
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['data_collection']['markdown'].open("r") as f:
+                data_collection_markdown = f.read()
+            with self.input()['related_resources']['markdown'].open("r") as f:
+                related_resources_markdown = f.read()
+            with self.input()['swot_analysis']['markdown'].open("r") as f:
+                swot_analysis_markdown = f.read()
+            with self.input()['team_markdown'].open("r") as f:
+                team_markdown = f.read()
+            with self.input()['pitch_markdown']['markdown'].open("r") as f:
+                pitch_markdown = f.read()
+            with self.input()['expert_review'].open("r") as f:
+                expert_review = f.read()
+            with self.input()['wbs_project123']['csv'].open("r") as f:
+                wbs_project_csv = f.read()
+            with self.input()['review_plan']['markdown'].open("r") as f:
+                review_plan_markdown = f.read()
+            with self.input()['questions_and_answers']['markdown'].open("r") as f:
+                questions_and_answers_markdown = f.read()
+            query = (f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n" f"File 'scenarios.md':\n{scenarios_markdown}\n\n" f"File 'assumptions.md':\n{assumptions_markdown}\n\n" f"File 'project-plan.md':\n{project_plan_markdown}\n\n" f"File 'data-collection.md':\n{data_collection_markdown}\n\n" f"File 'related-resources.md':\n{related_resources_markdown}\n\n" f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n" f"File 'team.md':\n{team_markdown}\n\n" f"File 'pitch.md':\n{pitch_markdown}\n\n" f"File 'expert-review.md':\n{expert_review}\n\n" f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}\n\n" f"File 'review-plan.md':\n{review_plan_markdown}\n\n" f"File 'questions-and-answers.md':\n{questions_and_answers_markdown}")
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "premortem", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
+            premortem = Premortem.execute(llm_executor=llm_executor, speed_vs_detail=self.speedvsdetail, user_prompt=query)
+            duration_seconds = time.time() - start_time
+            last_attempt = llm_executor.get_last_attempt()
+            response_text = last_attempt.get('response_text', '') if last_attempt else ''
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": response_text[:10000], "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            json_path = self.output()['raw'].path
+            premortem.save_raw(json_path)
+            with open(json_path, "r") as f:
+                raw_content = f.read()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.PREMORTEM_RAW.value, "stage": "premortem", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            markdown_path = self.output()['markdown'].path
+            premortem.save_markdown(markdown_path)
+            with open(markdown_path, "r") as f:
+                markdown_content = f.read()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.PREMORTEM_MARKDOWN.value, "stage": "premortem", "content_type": "markdown", "content": markdown_content, "content_size_bytes": len(markdown_content.encode('utf-8'))})
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class ReportTask(PlanTask):
     """
@@ -5004,37 +4976,42 @@ class ReportTask(PlanTask):
         }
     
     def run_inner(self):
-        # For the report title, use the 'project_title' of the WBS Level 1 result.
-        with self.input()['wbs_level1']['project_title'].open("r") as f:
-            title = f.read()
-
-        rg = ReportGenerator()
-        rg.append_markdown('Executive Summary', self.input()['executive_summary']['markdown'].path)
-        rg.append_html('Gantt Overview', self.input()['create_schedule']['mermaid_html'].path)
-        rg.append_html('Gantt Interactive', self.input()['create_schedule']['dhtmlx_html'].path)
-        rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
-        rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
-        rg.append_markdown('Strategic Decisions', self.input()['strategic_decisions_markdown']['markdown'].path)
-        rg.append_markdown('Scenarios', self.input()['scenarios_markdown']['markdown'].path)
-        rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown']['full'].path)
-        rg.append_markdown('Governance', self.input()['consolidate_governance'].path)
-        rg.append_markdown('Related Resources', self.input()['related_resources']['markdown'].path)
-        rg.append_markdown('Data Collection', self.input()['data_collection']['markdown'].path)
-        rg.append_markdown('Documents to Create and Find', self.input()['documents_to_create_and_find'].path)
-        rg.append_markdown('SWOT Analysis', self.input()['swot_analysis']['markdown'].path)
-        rg.append_markdown('Team', self.input()['team_markdown'].path)
-        rg.append_markdown('Expert Criticism', self.input()['expert_review'].path)
-        rg.append_csv('Work Breakdown Structure', self.input()['wbs_project123']['csv'].path)
-        rg.append_markdown('Review Plan', self.input()['review_plan']['markdown'].path)
-        rg.append_html('Questions & Answers', self.input()['questions_and_answers']['html'].path)
-        rg.append_markdown_with_tables('Premortem', self.input()['premortem']['markdown'].path)
-        rg.append_initial_prompt_vetted(
-            document_title='Initial Prompt Vetted', 
-            initial_prompt_file_path=self.input()['setup'].path, 
-            redline_gate_markdown_file_path=self.input()['redline_gate']['markdown'].path, 
-            premise_attack_markdown_file_path=self.input()['premise_attack']['markdown'].path
-        )
-        rg.save_report(self.output().path, title=title, execute_plan_section_hidden=REPORT_EXECUTE_PLAN_SECTION_HIDDEN)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            with self.input()['wbs_level1']['project_title'].open("r") as f:
+                title = f.read()
+            rg = ReportGenerator()
+            rg.append_markdown('Executive Summary', self.input()['executive_summary']['markdown'].path)
+            rg.append_html('Gantt Overview', self.input()['create_schedule']['mermaid_html'].path)
+            rg.append_html('Gantt Interactive', self.input()['create_schedule']['dhtmlx_html'].path)
+            rg.append_markdown('Pitch', self.input()['pitch_markdown']['markdown'].path)
+            rg.append_markdown('Project Plan', self.input()['project_plan']['markdown'].path)
+            rg.append_markdown('Strategic Decisions', self.input()['strategic_decisions_markdown']['markdown'].path)
+            rg.append_markdown('Scenarios', self.input()['scenarios_markdown']['markdown'].path)
+            rg.append_markdown('Assumptions', self.input()['consolidate_assumptions_markdown']['full'].path)
+            rg.append_markdown('Governance', self.input()['consolidate_governance'].path)
+            rg.append_markdown('Related Resources', self.input()['related_resources']['markdown'].path)
+            rg.append_markdown('Data Collection', self.input()['data_collection']['markdown'].path)
+            rg.append_markdown('Documents to Create and Find', self.input()['documents_to_create_and_find'].path)
+            rg.append_markdown('SWOT Analysis', self.input()['swot_analysis']['markdown'].path)
+            rg.append_markdown('Team', self.input()['team_markdown'].path)
+            rg.append_markdown('Expert Criticism', self.input()['expert_review'].path)
+            rg.append_csv('Work Breakdown Structure', self.input()['wbs_project123']['csv'].path)
+            rg.append_markdown('Review Plan', self.input()['review_plan']['markdown'].path)
+            rg.append_html('Questions & Answers', self.input()['questions_and_answers']['html'].path)
+            rg.append_markdown_with_tables('Premortem', self.input()['premortem']['markdown'].path)
+            rg.append_initial_prompt_vetted(document_title='Initial Prompt Vetted', initial_prompt_file_path=self.input()['setup'].path, redline_gate_markdown_file_path=self.input()['redline_gate']['markdown'].path, premise_attack_markdown_file_path=self.input()['premise_attack']['markdown'].path)
+            rg.save_report(self.output().path, title=title, execute_plan_section_hidden=REPORT_EXECUTE_PLAN_SECTION_HIDDEN)
+            with open(self.output().path, "r") as f:
+                report_html = f.read()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.REPORT.value, "stage": "report", "content_type": "html", "content": report_html, "content_size_bytes": len(report_html.encode('utf-8'))})
+        except Exception as e:
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class FullPlanPipeline(PlanTask):
     def requires(self):
