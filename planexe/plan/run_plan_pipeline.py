@@ -686,6 +686,7 @@ class PlanTypeTask(PlanTask):
 class PotentialLeversTask(PlanTask):
     """
     Identify potential levers that can be adjusted.
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
     """
     def requires(self):
         return {
@@ -701,29 +702,93 @@ class PotentialLeversTask(PlanTask):
         }
 
     def run_inner(self):
-        llm_executor: LLMExecutor = self.create_llm_executor()
+        db_service = None
+        plan_id = self.get_plan_id()
 
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['identify_purpose']['markdown'].open("r") as f:
-            identify_purpose_markdown = f.read()
-        with self.input()['plan_type']['markdown'].open("r") as f:
-            plan_type_markdown = f.read()
+        try:
+            db_service = self.get_database_service()
+            llm_executor: LLMExecutor = self.create_llm_executor()
 
-        query = (
-            f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
-            f"File 'plan_type.md':\n{plan_type_markdown}"
-        )
+            # Read inputs
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['identify_purpose']['markdown'].open("r") as f:
+                identify_purpose_markdown = f.read()
+            with self.input()['plan_type']['markdown'].open("r") as f:
+                plan_type_markdown = f.read()
 
-        identify_potential_levers = IdentifyPotentialLevers.execute(llm_executor, query)
+            query = (
+                f"File 'plan.txt':\n{plan_prompt}\n\n"
+                f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+                f"File 'plan_type.md':\n{plan_type_markdown}"
+            )
 
-        # Write the result to disk.
-        output_raw_path = self.output()['raw'].path
-        identify_potential_levers.save_raw(str(output_raw_path))
-        output_clean_path = self.output()['clean'].path
-        identify_potential_levers.save_clean(str(output_clean_path))
+            # Track LLM interaction START
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "potential_levers",
+                "prompt_text": query,
+                "status": "pending"
+            }).id
+
+            # Execute LLM call
+            import time
+            start_time = time.time()
+            identify_potential_levers = IdentifyPotentialLevers.execute(llm_executor, query)
+            duration_seconds = time.time() - start_time
+
+            # Update LLM interaction COMPLETE
+            response_dict = identify_potential_levers.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds
+            })
+
+            # Persist RAW to database
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.POTENTIAL_LEVERS_RAW.value,
+                "stage": "potential_levers",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+
+            # Persist CLEAN to database
+            clean_content = identify_potential_levers.to_clean_json()
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.POTENTIAL_LEVERS_CLEAN.value,
+                "stage": "potential_levers",
+                "content_type": "json",
+                "content": clean_content,
+                "content_size_bytes": len(clean_content.encode('utf-8'))
+            })
+
+            # Write to filesystem (Luigi tracking)
+            output_raw_path = self.output()['raw'].path
+            identify_potential_levers.save_raw(str(output_raw_path))
+            output_clean_path = self.output()['clean'].path
+            identify_potential_levers.save_clean(str(output_clean_path))
+
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {
+                        "status": "failed",
+                        "error_message": str(e),
+                        "completed_at": datetime.utcnow()
+                    })
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class DeduplicateLeversTask(PlanTask):
