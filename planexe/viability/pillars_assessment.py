@@ -34,9 +34,7 @@ logger = logging.getLogger(__name__)
 # Constants & enums
 # ---------------------------------------------------------------------------
 
-PILLAR_ORDER: List[str] = [pillar.value for pillar in PillarEnum]
-
-# Display names are now available via PillarEnum.display_name property
+PILLAR_ORDER: List[str] = PillarEnum.value_list()
 
 def get_pillar_display_name(pillar_name: str) -> str:
     """Get display name for a pillar string value."""

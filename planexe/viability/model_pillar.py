@@ -46,3 +46,8 @@ class PillarEnum(str, Enum):
             PillarEnum.EcologicalIntegrity: "Ecological Integrity",
             PillarEnum.Rights_Legality: "Rights & Legality",
         }[self]
+
+    @classmethod
+    def value_list(cls) -> list[str]:
+        """Ordered list of all pillar values."""
+        return [m.value for m in cls]
