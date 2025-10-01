@@ -5273,8 +5273,13 @@ class ExecutePipeline:
         logger.info(f"Saved {len(self.all_expected_filenames)} expected filenames to {expected_filenames_path}")
 
         # DIAGNOSTIC: Log before Luigi build starts
-        logger.error(f"🔥 About to call luigi.build() with workers=1 (SINGLE WORKER)")
-        print(f"🔥 About to call luigi.build() with workers=1 (SINGLE WORKER)")
+        workers_env = os.environ.get('LUIGI_WORKERS')
+        try:
+            workers = max(1, int(workers_env)) if workers_env else 1
+        except Exception:
+            workers = 1
+        logger.error(f"🔥 About to call luigi.build() with workers={workers}")
+        print(f"🔥 About to call luigi.build() with workers={workers}")
         print(f"🔥 Luigi will build task: {self.full_plan_pipeline_task}")
         print(f"🔥 Task parameters: run_id_dir={self.run_id_dir}, speedvsdetail={self.speedvsdetail}, llm_models={self.llm_models}")
 
@@ -5285,18 +5290,51 @@ class ExecutePipeline:
         print(f"🔥 Enabled Luigi INFO logging")
 
         # Call luigi.build() with detailed logging
-        # CRITICAL FIX: workers=0 for synchronous execution (Railway subprocess compatibility)
-        # workers=1 fails to spawn worker thread in Railway's subprocess environment
+        # INVESTIGATION: Try different Luigi execution strategies
         try:
-            print(f"🔥 Calling luigi.build() NOW with workers=1 (single worker)...")
+            print(f"🔥 Calling luigi.build() NOW with workers={workers}...")
+            print(f"🔥 Active threads before luigi.build(): {threading.active_count()}")
+            
+            # Monitor worker thread activity
+            import threading
+            import time
+            
+            def monitor_threads():
+                time.sleep(2)  # Wait for Luigi to spawn workers
+                threads = threading.enumerate()
+                print(f"🔥 THREAD MONITOR: {len(threads)} active threads:")
+                for t in threads:
+                    print(f"  - {t.name}: alive={t.is_alive()}, daemon={t.daemon}")
+            
+            monitor_thread = threading.Thread(target=monitor_threads, name="ThreadMonitor", daemon=True)
+            monitor_thread.start()
+            
+            # Add timeout monitoring - if luigi.build() hangs for >30s, log warning
+            build_start = time.time()
+            
+            def timeout_monitor():
+                time.sleep(30)  # Wait 30 seconds
+                if self.luigi_build_return_value is None:
+                    elapsed = time.time() - build_start
+                    print(f"🔥 WARNING: luigi.build() has been running for {elapsed:.1f}s without completing!")
+                    print(f"🔥 This suggests worker threads are not executing tasks")
+                    threads = threading.enumerate()
+                    print(f"🔥 Current threads: {[t.name for t in threads]}")
+            
+            timeout_thread = threading.Thread(target=timeout_monitor, name="TimeoutMonitor", daemon=True)
+            timeout_thread.start()
+            
             self.luigi_build_return_value = luigi.build(
                 [self.full_plan_pipeline_task],
                 local_scheduler=True,
-                workers=1,  # FIXED: workers=0 means NO workers (hangs), workers=1 means single synchronous worker
-                log_level='INFO',  # Enable Luigi's own verbose logging
-                detailed_summary=True  # Show detailed task summary
+                workers=workers,  # workers from LUIGI_WORKERS env (>=1), default 1 for reliability
+                log_level='DEBUG',  # Changed to DEBUG for more visibility
+                detailed_summary=True,  # Show detailed task summary
+                worker_timeout=60  # Kill stuck workers after 60s
             )
             print(f"🔥 luigi.build() returned!")
+            print(f"🔥 Active threads after luigi.build(): {threading.active_count()}")
+            print(f"🔥 Total build time: {time.time() - build_start:.1f}s")
         except Exception as e:
             logger.error(f"🔥 luigi.build() raised exception: {type(e).__name__}: {e}")
             print(f"🔥 luigi.build() raised exception: {type(e).__name__}: {e}")
