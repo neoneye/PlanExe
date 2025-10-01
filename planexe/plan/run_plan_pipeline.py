@@ -3897,73 +3897,60 @@ class DraftDocumentsToCreateTask(PlanTask):
         }
     
     def run_inner(self):
-        llm_executor: LLMExecutor = self.create_llm_executor()
-
-        # Read inputs from required tasks.
-        with self.input()['identify_purpose']['raw'].open("r") as f:
-            identify_purpose_dict = json.load(f)
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            assumptions_markdown = f.read()
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        with self.input()['filter_documents_to_create']['clean'].open("r") as f:
-            documents_to_create = json.load(f)
-
-        accumulated_documents = documents_to_create.copy()
-
-        logger.info(f"DraftDocumentsToCreateTask.speedvsdetail: {self.speedvsdetail}")
-        if self.speedvsdetail == SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS:
-            logger.info("FAST_BUT_SKIP_DETAILS mode, truncating to 2 chunks for testing.")
-            documents_to_create = documents_to_create[:2]
-        else:
-            logger.info("Processing all chunks.")
-
-        for index, document in enumerate(documents_to_create):
-            logger.info(f"Document-to-create: Drafting document {index+1} of {len(documents_to_create)}...")
-
-            # Build the query.
-            query = (
-                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-                f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-                f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
-                f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-                f"File 'document.json':\n{document}"
-            )
-
-            # IDEA: If the document already exist, then there is no need to run the LLM again.
-            def execute_draft_document_to_create(llm: LLM) -> DraftDocumentToCreate:
-                return DraftDocumentToCreate.execute(llm=llm, user_prompt=query, identify_purpose_dict=identify_purpose_dict)
-
-            try:
-                draft_document = llm_executor.run(execute_draft_document_to_create)
-            except PipelineStopRequested:
-                # Re-raise PipelineStopRequested without wrapping it
-                raise
-            except Exception as e:
-                logger.error(f"Document-to-create {index+1} LLM interaction failed.", exc_info=True)
-                raise ValueError(f"Document-to-create {index+1} LLM interaction failed.") from e
-
-            json_response = draft_document.to_dict()
-
-            # Write the raw JSON for this document using the FilenameEnum template.
-            raw_filename = FilenameEnum.DRAFT_DOCUMENTS_TO_CREATE_RAW_TEMPLATE.value.format(index+1)
-            raw_chunk_path = self.run_id_dir / raw_filename
-            with open(raw_chunk_path, 'w') as f:
-                json.dump(json_response, f, indent=2)
-
-            # Merge the draft document into the original document.
-            document_updated = document.copy()
-            for key in draft_document.response.keys():
-                document_updated[key] = draft_document.response[key]
-            accumulated_documents[index] = document_updated
-
-        # Write the accumulated documents to the output file.
-        with self.output().open("w") as f:
-            json.dump(accumulated_documents, f, indent=2)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            llm_executor: LLMExecutor = self.create_llm_executor()
+            with self.input()['identify_purpose']['raw'].open("r") as f:
+                identify_purpose_dict = json.load(f)
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                assumptions_markdown = f.read()
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['filter_documents_to_create']['clean'].open("r") as f:
+                documents_to_create = json.load(f)
+            accumulated_documents = documents_to_create.copy()
+            if self.speedvsdetail == SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS:
+                documents_to_create = documents_to_create[:2]
+            for index, document in enumerate(documents_to_create):
+                query = (f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\nFile 'scenarios.md':\n{scenarios_markdown}\n\nFile 'assumptions.md':\n{assumptions_markdown}\n\nFile 'project-plan.md':\n{project_plan_markdown}\n\nFile 'document.json':\n{document}")
+                interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": f"draft_docs_create_{index+1}", "prompt_text": query[:10000], "status": "pending"}).id
+                def execute_draft_document_to_create(llm: LLM) -> DraftDocumentToCreate:
+                    return DraftDocumentToCreate.execute(llm=llm, user_prompt=query, identify_purpose_dict=identify_purpose_dict)
+                start_time = time.time()
+                try:
+                    draft_document = llm_executor.run(execute_draft_document_to_create)
+                    duration_seconds = time.time() - start_time
+                    json_response = draft_document.to_dict()
+                    db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(json_response), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+                    raw_content = json.dumps(json_response, indent=2)
+                    raw_filename = FilenameEnum.DRAFT_DOCUMENTS_TO_CREATE_RAW_TEMPLATE.value.format(index+1)
+                    db_service.create_plan_content({"plan_id": plan_id, "filename": raw_filename, "stage": f"draft_docs_create_{index+1}", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+                    with open(self.run_id_dir / raw_filename, 'w') as f:
+                        json.dump(json_response, f, indent=2)
+                    document_updated = document.copy()
+                    for key in draft_document.response.keys():
+                        document_updated[key] = draft_document.response[key]
+                    accumulated_documents[index] = document_updated
+                except PipelineStopRequested:
+                    raise
+                except Exception as e:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                    raise ValueError(f"Document-to-create {index+1} LLM interaction failed.") from e
+            consolidated_content = json.dumps(accumulated_documents, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.DRAFT_DOCUMENTS_TO_CREATE_CONSOLIDATED.value, "stage": "draft_docs_create_consolidated", "content_type": "json", "content": consolidated_content, "content_size_bytes": len(consolidated_content.encode('utf-8'))})
+            with self.output().open("w") as f:
+                json.dump(accumulated_documents, f, indent=2)
+        except Exception as e:
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class MarkdownWithDocumentsToCreateAndFindTask(PlanTask):
     """
@@ -3979,29 +3966,32 @@ class MarkdownWithDocumentsToCreateAndFindTask(PlanTask):
         }
     
     def run_inner(self):
-        # Read inputs from required tasks.
-        with self.input()['draft_documents_to_create'].open("r") as f:
-            documents_to_create = json.load(f)
-        with self.input()['draft_documents_to_find'].open("r") as f:
-            documents_to_find = json.load(f)
-
-        accumulated_rows = []
-        accumulated_rows.append("# Documents to Create")
-        for index, document in enumerate(documents_to_create, start=1):
-            rows = markdown_rows_with_document_to_create(index, document)
-            accumulated_rows.extend(rows)
-
-        accumulated_rows.append("\n\n# Documents to Find")
-        for index, document in enumerate(documents_to_find, start=1):
-            rows = markdown_rows_with_document_to_find(index, document)
-            accumulated_rows.extend(rows)
-
-        markdown_representation = "\n".join(accumulated_rows)
-
-        # Write the markdown to the output file.
-        output_file_path = self.output().path
-        with open(output_file_path, 'w', encoding='utf-8') as f:
-            f.write(markdown_representation)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            with self.input()['draft_documents_to_create'].open("r") as f:
+                documents_to_create = json.load(f)
+            with self.input()['draft_documents_to_find'].open("r") as f:
+                documents_to_find = json.load(f)
+            accumulated_rows = []
+            accumulated_rows.append("# Documents to Create")
+            for index, document in enumerate(documents_to_create, start=1):
+                rows = markdown_rows_with_document_to_create(index, document)
+                accumulated_rows.extend(rows)
+            accumulated_rows.append("\n\n# Documents to Find")
+            for index, document in enumerate(documents_to_find, start=1):
+                rows = markdown_rows_with_document_to_find(index, document)
+                accumulated_rows.extend(rows)
+            markdown_representation = "\n".join(accumulated_rows)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.DOCUMENTS_TO_CREATE_AND_FIND_MARKDOWN.value, "stage": "documents_markdown", "content_type": "markdown", "content": markdown_representation, "content_size_bytes": len(markdown_representation.encode('utf-8'))})
+            with open(self.output().path, 'w', encoding='utf-8') as f:
+                f.write(markdown_representation)
+        except Exception as e:
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class CreateWBSLevel1Task(PlanTask):
     """
@@ -4025,33 +4015,42 @@ class CreateWBSLevel1Task(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        logger.info("Creating Work Breakdown Structure (WBS) Level 1...")
-        
-        # Read the project plan JSON from the dependency.
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
-        
-        # Build the query using the project plan.
-        query = format_json_for_use_in_query(project_plan_dict)
-        
-        # Execute the WBS Level 1 creation.
-        create_wbs_level1 = CreateWBSLevel1.execute(llm, query)
-        
-        # Save the raw output.
-        wbs_level1_raw_dict = create_wbs_level1.raw_response_dict()
-        with self.output()['raw'].open("w") as f:
-            json.dump(wbs_level1_raw_dict, f, indent=2)
-        
-        # Save the cleaned up result.
-        wbs_level1_result_json = create_wbs_level1.cleanedup_dict()
-        with self.output()['clean'].open("w") as f:
-            json.dump(wbs_level1_result_json, f, indent=2)
-
-        # Save the project title.
-        with self.output()['project_title'].open("w") as f:
-            f.write(create_wbs_level1.project_title)
-        
-        logger.info("WBS Level 1 created successfully.")
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            with self.input()['project_plan']['raw'].open("r") as f:
+                project_plan_dict = json.load(f)
+            query = format_json_for_use_in_query(project_plan_dict)
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "wbs_level1", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
+            create_wbs_level1 = CreateWBSLevel1.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            wbs_level1_raw_dict = create_wbs_level1.raw_response_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(wbs_level1_raw_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            raw_content = json.dumps(wbs_level1_raw_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.WBS_LEVEL1_RAW.value, "stage": "wbs_level1", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            wbs_level1_result_json = create_wbs_level1.cleanedup_dict()
+            clean_content = json.dumps(wbs_level1_result_json, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.WBS_LEVEL1.value, "stage": "wbs_level1", "content_type": "json", "content": clean_content, "content_size_bytes": len(clean_content.encode('utf-8'))})
+            project_title = create_wbs_level1.project_title
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.WBS_LEVEL1_PROJECT_TITLE.value, "stage": "wbs_level1", "content_type": "txt", "content": project_title, "content_size_bytes": len(project_title.encode('utf-8'))})
+            with self.output()['raw'].open("w") as f:
+                json.dump(wbs_level1_raw_dict, f, indent=2)
+            with self.output()['clean'].open("w") as f:
+                json.dump(wbs_level1_result_json, f, indent=2)
+            with self.output()['project_title'].open("w") as f:
+                f.write(project_title)
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class CreateWBSLevel2Task(PlanTask):
     """
