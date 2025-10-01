@@ -200,9 +200,9 @@ class ReportGenerator:
         <h2>Initial Prompt</h2>
         <p>{initial_prompt_html}</p>
         <h2>Redline Gate</h2>
-        <p>{redline_gate_html}</p>
+        {redline_gate_html}
         <h2>Premise Attack</h2>
-        <p>{premise_attack_html}</p>
+        {premise_attack_html}
         """
         self.report_item_list.append(ReportDocumentItem(document_title, html, css_classes=css_classes))
 
