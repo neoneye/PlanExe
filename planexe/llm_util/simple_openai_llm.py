@@ -25,7 +25,6 @@ class SimpleOpenAILLM(LLM):
     def __init__(self, model: str, provider: str, **kwargs):
         """
         Initialize the LLM with OpenAI client.
-
         Args:
             model: The model name (e.g., "gpt-5-mini-2025-08-07", "google/gemini-2.0-flash-001")
             provider: Either "openai" or "openrouter"
@@ -34,11 +33,34 @@ class SimpleOpenAILLM(LLM):
         super().__init__(model=model, provider=provider, **kwargs)
 
         if provider == "openai":
-            self._client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                error_msg = (
+                    "OPENAI_API_KEY environment variable not set! "
+                    "Cannot create OpenAI client. "
+                    "Check Railway environment variables."
+                )
+                print(f"ERROR LLM: {error_msg}")
+                raise ValueError(error_msg)
+            
+            print(f"DEBUG LLM: Creating OpenAI client (key length: {len(api_key)})")
+            self._client = OpenAI(api_key=api_key)
+            
         elif provider == "openrouter":
+            api_key = os.getenv("OPENROUTER_API_KEY")
+            if not api_key:
+                error_msg = (
+                    "OPENROUTER_API_KEY environment variable not set! "
+                    "Cannot create OpenRouter client. "
+                    "Check Railway environment variables."
+                )
+                print(f"ERROR LLM: {error_msg}")
+                raise ValueError(error_msg)
+            
+            print(f"DEBUG LLM: Creating OpenRouter client (key length: {len(api_key)})")
             self._client = OpenAI(
                 base_url="https://openrouter.ai/api/v1",
-                api_key=os.getenv("OPENROUTER_API_KEY")
+                api_key=api_key
             )
         else:
             raise ValueError(f"Unsupported provider: {provider}")
@@ -46,6 +68,7 @@ class SimpleOpenAILLM(LLM):
     def complete(self, prompt: str, **kwargs) -> str:
         """
         Complete a prompt using the configured model.
+{{ ... }}
         Maintains LlamaIndex LLM interface compatibility.
         Uses standard chat completions API for all models (simpler).
 

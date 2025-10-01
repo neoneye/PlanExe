@@ -9,64 +9,58 @@
 
 ## **Quick Summary**
 
+**REVISED BASED ON USER EVIDENCE** - Original analysis was incorrect about `/app/run`
+
 Two critical bugs prevent Railway deployment:
-1. **Read-only filesystem** - FastAPI tries to create directories in `/app/run` (read-only)
+1. **SDK cache directory writes** - OpenAI/Luigi SDKs try to write to `$HOME` (undefined/read-only on Railway)
 2. **Environment variable validation** - No fail-fast checks for missing API keys
 
-**Estimated time**: 2 hours total
+**Evidence**: FastAPI successfully creates `/app/run/PlanExe_xxx/` directories. Crash happens later during Luigi subprocess initialization when SDKs try to write cache files.
+
+**Estimated time**: 1.5 hours total
 
 ---
 
 ## 📋 **Step-by-Step Implementation**
 
-### **Step 1: Fix Read-Only Filesystem Issue** (30 minutes)
+### **Step 1: Fix SDK Cache Directory Issue** (15 minutes)
 
 **Priority**: CRITICAL - This must be fixed first
 
-**File**: `planexe_api/api.py`
+**File**: `planexe_api/services/pipeline_execution_service.py`
 
-**Location**: Around line 73
-
-**Change**:
-```python
-# BEFORE:
-RUN_DIR = "run"
-
-# AFTER:
-# Use writable path on Railway, local path for development
-if IS_DEVELOPMENT:
-    RUN_DIR = Path("run")
-else:
-    # Railway: Use /tmp for writable storage
-    RUN_DIR = Path("/tmp/planexe/run")
-    RUN_DIR.mkdir(parents=True, exist_ok=True)
-    print(f"Railway mode: Using writable run directory: {RUN_DIR}")
-```
-
-**Location**: Around line 270-272
+**Location**: Around line 138-139 (inside `_setup_environment` method)
 
 **Change**:
 ```python
 # BEFORE:
-run_id_dir = run_dir / plan_id
-run_id_dir.mkdir(parents=True, exist_ok=True)
+# Copy environment and add pipeline-specific variables
+environment = os.environ.copy()
+environment[PipelineEnvironmentEnum.RUN_ID_DIR.value] = str(run_id_dir)
 
 # AFTER:
-run_id_dir = RUN_DIR / plan_id
-try:
-    run_id_dir.mkdir(parents=True, exist_ok=True)
-    print(f"DEBUG: Created run directory: {run_id_dir}")
-except PermissionError as e:
-    print(f"ERROR: Cannot create run directory: {e}")
-    raise HTTPException(
-        status_code=500,
-        detail=f"Cannot create plan directory - filesystem is read-only. Path: {run_id_dir}"
-    )
+# Copy environment and add pipeline-specific variables
+environment = os.environ.copy()
+
+# CRITICAL: Force SDK cache directories to writable /tmp location
+# Railway's $HOME is undefined or read-only, causing OpenAI/Luigi SDK crashes
+environment['HOME'] = '/tmp'
+environment['OPENAI_CACHE_DIR'] = '/tmp/.cache/openai'
+environment['LUIGI_CONFIG_PATH'] = '/tmp/.luigi'
+print(f"DEBUG ENV: Set HOME=/tmp for SDK cache writes")
+
+environment[PipelineEnvironmentEnum.RUN_ID_DIR.value] = str(run_id_dir)
 ```
+
+**Why this works**:
+- `/app/run` is already writable (proven by successful directory creation)
+- The crash happens when OpenAI SDK tries to write to `~/.cache/openai/`
+- Luigi tries to write scheduler state to `~/.luigi/`
+- Setting `HOME=/tmp` redirects all SDK cache writes to writable location
 
 **Test locally**:
 ```powershell
-# Should still work with local run/ directory
+# Should still work - /tmp exists on Windows too
 cd planexe-frontend
 npm run go
 # Submit a test plan
@@ -184,31 +178,13 @@ elif provider == "openrouter":
 
 ---
 
-### **Step 4: Update Dockerfile** (15 minutes)
+### **Step 4: Update Dockerfile** (OPTIONAL - Skip This)
 
-**Priority**: OPTIONAL - For documentation clarity
+**Priority**: NOT NEEDED - `/app/run` is already writable
 
-**File**: `docker/Dockerfile.railway.single`
+**Reason**: User evidence proves `/app/run` works fine. The issue is SDK cache directories, not the run directory.
 
-**Location**: Line 72
-
-**Change**:
-```dockerfile
-# BEFORE:
-ENV PLANEXE_RUN_DIR=/app/run
-
-# AFTER:
-ENV PLANEXE_RUN_DIR=/tmp/planexe/run
-```
-
-**Location**: Lines 61-62
-
-**Add comment**:
-```dockerfile
-# NOTE: /app is read-only at runtime on Railway
-# The application uses /tmp/planexe/run for writable storage (see api.py)
-RUN mkdir -p /app/run && chmod 755 /app/run
-```
+**No changes needed to Dockerfile.**
 
 ---
 
@@ -228,7 +204,8 @@ curl -X POST http://localhost:8080/api/plans \
 
 **Expected output**:
 - ✅ Plan directory created in `run/PlanExe_xxx`
-- ✅ No permission errors
+- ✅ `HOME=/tmp` set in subprocess environment
+- ✅ No SDK cache write errors
 - ✅ Luigi subprocess starts
 - ✅ API keys validated successfully
 
@@ -241,33 +218,38 @@ curl -X POST http://localhost:8080/api/plans \
 cd d:\1Projects\PlanExe
 
 # Stage all changes
-git add planexe_api/api.py
 git add planexe_api/services/pipeline_execution_service.py
 git add planexe/llm_util/simple_openai_llm.py
-git add docker/Dockerfile.railway.single
 git add docs/RAILWAY_BREAKTHROUGH_ANALYSIS.md
 git add docs/RAILWAY_FIX_IMPLEMENTATION_PLAN.md
 
 # Commit with detailed message
-git commit -m "Fix Railway deployment: writable filesystem + env var validation
+git commit -m "Fix Railway deployment: SDK cache directories + env var validation
 
 CRITICAL FIXES:
-1. Use /tmp/planexe/run for writable storage on Railway (fixes read-only /app)
+1. Set HOME=/tmp to redirect SDK cache writes to writable location
 2. Add fail-fast API key validation in pipeline_execution_service
 3. Add fail-fast API key validation in SimpleOpenAILLM
 4. Explicitly re-inject API keys into subprocess environment
 
-ISSUE: Railway mounts /app as read-only, causing mkdir() to fail.
-Luigi subprocess also wasn't getting environment variables reliably.
+ISSUE: OpenAI/Luigi SDKs try to write to ~/.cache and ~/.luigi
+Railway's \$HOME is undefined or read-only, causing SDK initialization crashes
 
 SOLUTION: 
-- Detect Railway environment and use /tmp for runtime file creation
+- Force HOME=/tmp in subprocess environment for SDK cache writes
+- Set OPENAI_CACHE_DIR=/tmp/.cache/openai explicitly
+- Set LUIGI_CONFIG_PATH=/tmp/.luigi explicitly
 - Validate API keys exist before subprocess creation
-- Explicitly pass API keys to subprocess environment
 - Fail fast with clear error messages instead of silent failures
 
+EVIDENCE:
+- /app/run IS writable (directory creation succeeds)
+- Crash happens during Luigi subprocess initialization
+- Log cuts off at 'pipeline_environment: PipelineEnvironment...'
+- This matches SDK cache write failure pattern
+
 TESTING:
-- Local: Verified run/ directory still works
+- Local: Verified /tmp works on Windows too
 - Railway: Will test after deployment
 
 See docs/RAILWAY_BREAKTHROUGH_ANALYSIS.md for full analysis."
@@ -292,7 +274,6 @@ git push origin main
 1. Click on "Logs" tab
 2. Look for startup messages:
    ```
-   Railway mode: Using writable run directory: /tmp/planexe/run
    ✅ OPENAI_API_KEY: Available (length: 164)
    ✅ OPENROUTER_API_KEY: Available (length: 89)
    ```
@@ -302,10 +283,12 @@ git push origin main
 2. Submit a test plan
 3. Watch Railway logs for:
    ```
-   DEBUG: Created run directory: /tmp/planexe/run/PlanExe_xxx
+   DEBUG: Created run directory: /app/run/PlanExe_xxx
+   DEBUG ENV: Set HOME=/tmp for SDK cache writes
    DEBUG ENV: Explicitly set OPENAI_API_KEY in subprocess environment
    DEBUG: Subprocess started with PID: xxxx
    DEBUG LLM: Creating OpenAI client (key length: 164)
+   Luigi: INFO - pipeline_environment: PipelineEnvironment(run_id_dir='/app/run/PlanExe_xxx'...)
    Luigi: INFO - Using the specified LLM model: 'gpt-4.1-nano-2025-04-14'
    ```
 
@@ -325,12 +308,14 @@ git push origin main
 - [ ] Docker build succeeds
 - [ ] Container starts without errors
 - [ ] Health check passes
-- [ ] Startup logs show writable directory path
 - [ ] Startup logs show API keys available
+- [ ] Startup logs show `HOME=/tmp` set
 - [ ] Plan creation succeeds
-- [ ] Files created in `/tmp/planexe/run/`
+- [ ] Files created in `/app/run/PlanExe_xxx/`
 - [ ] Luigi subprocess starts
+- [ ] Luigi logs show full `pipeline_environment` line (no crash)
 - [ ] Environment variables reach subprocess
+- [ ] SDK cache writes succeed to `/tmp/`
 - [ ] API calls reach OpenAI
 - [ ] First task completes successfully
 - [ ] WebSocket shows progress updates
@@ -362,8 +347,9 @@ git push origin main
 - **Fix**: Add `OPENAI_API_KEY` and `OPENROUTER_API_KEY`
 
 **Error**: Still getting permission denied
-- **Check**: Railway logs for actual path being used
-- **Fix**: Verify `/tmp/planexe/run` is being created
+- **Check**: Railway logs for SDK cache write errors
+- **Fix**: Verify `HOME=/tmp` is set in subprocess environment
+- **Debug**: Check if OpenAI SDK is trying to write elsewhere
 
 **Error**: Luigi subprocess still crashes
 - **Check**: Railway logs for "DEBUG ENV" and "DEBUG LLM" messages
@@ -375,15 +361,15 @@ git push origin main
 
 | Step | Duration | Cumulative |
 |------|----------|------------|
-| 1. Fix filesystem | 30 min | 30 min |
-| 2. Add env validation | 30 min | 60 min |
-| 3. Add LLM validation | 30 min | 90 min |
-| 4. Update Dockerfile | 15 min | 105 min |
-| 5. Test locally | 15 min | 120 min |
-| 6. Commit & deploy | 15 min | 135 min |
-| 7. Monitor Railway | 15 min | 150 min |
+| 1. Fix SDK cache dirs | 15 min | 15 min |
+| 2. Add env validation | 30 min | 45 min |
+| 3. Add LLM validation | 30 min | 75 min |
+| 4. Update Dockerfile | SKIP | 75 min |
+| 5. Test locally | 15 min | 90 min |
+| 6. Commit & deploy | 15 min | 105 min |
+| 7. Monitor Railway | 15 min | 120 min |
 
-**Total**: ~2.5 hours
+**Total**: ~2 hours (revised down from 2.5 hours)
 
 ---
 

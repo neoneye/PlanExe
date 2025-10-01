@@ -124,6 +124,26 @@ class PipelineExecutionService:
         """Set up environment variables for Luigi pipeline execution"""
         print(f"DEBUG ENV: Starting environment setup for plan {plan_id}")
 
+        # CRITICAL: Validate required API keys BEFORE subprocess creation
+        required_keys = {
+            "OPENAI_API_KEY": "OpenAI API calls",
+            "OPENROUTER_API_KEY": "OpenRouter API calls"
+        }
+        
+        missing_keys = []
+        for key, purpose in required_keys.items():
+            value = os.environ.get(key)
+            if not value:
+                missing_keys.append(f"{key} (needed for {purpose})")
+                print(f"  ❌ {key}: NOT FOUND in os.environ")
+            else:
+                print(f"  ✅ {key}: Available (length: {len(value)})")
+        
+        if missing_keys:
+            error_msg = f"Missing required API keys: {', '.join(missing_keys)}"
+            print(f"ERROR ENV: {error_msg}")
+            raise ValueError(error_msg)
+
         # Check API keys in current environment
         api_keys_to_check = ["OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"]
         print("DEBUG ENV: API keys in os.environ:")
@@ -136,6 +156,14 @@ class PipelineExecutionService:
 
         # Copy environment and add pipeline-specific variables
         environment = os.environ.copy()
+        
+        # CRITICAL: Force SDK cache directories to writable /tmp location
+        # Railway's $HOME is undefined or read-only, causing OpenAI/Luigi SDK crashes
+        environment['HOME'] = '/tmp'
+        environment['OPENAI_CACHE_DIR'] = '/tmp/.cache/openai'
+        environment['LUIGI_CONFIG_PATH'] = '/tmp/.luigi'
+        print(f"DEBUG ENV: Set HOME=/tmp for SDK cache writes")
+        
         environment[PipelineEnvironmentEnum.RUN_ID_DIR.value] = str(run_id_dir)
 
         # Map API enum values to Luigi pipeline enum values (Source of Truth: planexe/plan/speedvsdetail.py)
@@ -151,6 +179,13 @@ class PipelineExecutionService:
             request.speed_vs_detail.value, "all_details_but_slow"  # Default to detailed mode
         )
         environment[PipelineEnvironmentEnum.LLM_MODEL.value] = request.llm_model
+        
+        # EXPLICIT: Re-add API keys to ensure they're in subprocess env
+        for key in required_keys.keys():
+            value = os.environ.get(key)
+            if value:
+                environment[key] = value
+                print(f"DEBUG ENV: Explicitly set {key} in subprocess environment")
 
         print(f"DEBUG ENV: Pipeline environment configured with {len(environment)} variables")
         return environment
