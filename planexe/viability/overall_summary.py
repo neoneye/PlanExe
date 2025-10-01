@@ -18,6 +18,8 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from planexe.viability.model_status import StatusEnum
+
 # ---------------------------------------------------------------------------
 # Pydantic payload models (lenient: accept extra fields)
 # ---------------------------------------------------------------------------
@@ -95,17 +97,17 @@ class OverallSummaryPayload(BaseModel):
 # ---------------------------------------------------------------------------
 
 STATUS_SEVERITY = {
-    "RED": 3,
-    "GRAY": 2,
-    "YELLOW": 1,
-    "GREEN": 0,
+    StatusEnum.RED.value: 3,
+    StatusEnum.GRAY.value: 2,
+    StatusEnum.YELLOW.value: 1,
+    StatusEnum.GREEN.value: 0,
 }
 
 STATUS_UPGRADE_MAP = {
-    "RED": "YELLOW",
-    "GRAY": "YELLOW",
-    "YELLOW": "GREEN",
-    "GREEN": "GREEN",
+    StatusEnum.RED.value: StatusEnum.YELLOW.value,
+    StatusEnum.GRAY.value: StatusEnum.YELLOW.value,
+    StatusEnum.YELLOW.value: StatusEnum.GREEN.value,
+    StatusEnum.GREEN.value: StatusEnum.GREEN.value,
 }
 
 PILLAR_DISPLAY_NAMES = {
@@ -172,7 +174,7 @@ def _worst_status(statuses: Iterable[str]) -> Optional[str]:
     worst: Tuple[int, Optional[str]] = (-1, None)
     for status in statuses:
         normalized = status.upper()
-        severity = STATUS_SEVERITY.get(normalized, STATUS_SEVERITY["GRAY"])
+        severity = STATUS_SEVERITY.get(normalized, STATUS_SEVERITY[StatusEnum.GRAY.value])
         if severity > worst[0]:
             worst = (severity, normalized)
     return worst[1]
@@ -180,11 +182,11 @@ def _worst_status(statuses: Iterable[str]) -> Optional[str]:
 
 def _confidence_from_statuses(statuses: Sequence[str]) -> str:
     normalized = [status.upper() for status in statuses]
-    if any(status == "RED" for status in normalized):
+    if any(status == StatusEnum.RED.value for status in normalized):
         return "Low"
-    if any(status == "GRAY" for status in normalized):
+    if any(status == StatusEnum.GRAY.value for status in normalized):
         return "Low"
-    if any(status == "YELLOW" for status in normalized):
+    if any(status == StatusEnum.YELLOW.value for status in normalized):
         return "Medium"
     return "High"
 
@@ -283,7 +285,7 @@ class OverallSummary:
 
         statuses: List[str] = list(status_by_pillar.values())
         worst_status = _worst_status(statuses)
-        worst_status = worst_status or "GRAY"
+        worst_status = worst_status or StatusEnum.GRAY.value
 
         fp0_blocker_ids = set(_collect_fp0_ids(fix_packs_model.fix_packs))
 
@@ -292,12 +294,12 @@ class OverallSummary:
 
         for blocker in blockers_model.blockers:
             pillar_status = status_by_pillar.get(blocker.pillar)
-            if pillar_status in {"RED", "GRAY"}:
+            if pillar_status in {StatusEnum.RED.value, StatusEnum.GRAY.value}:
                 red_gray_blockers.add(blocker.id)
             elif pillar_status is None:
                 unmatched_blockers.add(blocker.id)
 
-        has_red_or_gray_pillar = any(status in {"RED", "GRAY"} for status in statuses)
+        has_red_or_gray_pillar = any(status in {StatusEnum.RED.value, StatusEnum.GRAY.value} for status in statuses)
         red_gray_covered = (
             has_red_or_gray_pillar
             and not unmatched_blockers
@@ -425,8 +427,8 @@ def _determine_recommendation(
     red_gray_covered: bool,
 ) -> str:
     normalized = [status.upper() for status in statuses]
-    has_red = any(status == "RED" for status in normalized)
-    has_gray = any(status == "GRAY" for status in normalized)
+    has_red = any(status == StatusEnum.RED.value for status in normalized)
+    has_gray = any(status == StatusEnum.GRAY.value for status in normalized)
 
     if has_red or has_gray:
         if red_gray_covered:
@@ -440,7 +442,7 @@ def _build_why_list(*, pillars: Sequence[PillarItem], max_items: int) -> List[st
     reasons: List[Tuple[int, str]] = []
     for pillar in pillars:
         status = pillar.status.upper()
-        if status == "GREEN":
+        if status == StatusEnum.GREEN.value:
             continue
 
         display = PILLAR_DISPLAY_NAMES.get(pillar.pillar, pillar.pillar)
@@ -450,7 +452,7 @@ def _build_why_list(*, pillars: Sequence[PillarItem], max_items: int) -> List[st
         base_text = f"{display} {status} ({score_fragment})"
         text = f"{base_text}: {reason_fragment}" if reason_fragment else base_text
 
-        reasons.append((STATUS_SEVERITY.get(status, STATUS_SEVERITY["GRAY"]), text))
+        reasons.append((STATUS_SEVERITY.get(status, STATUS_SEVERITY[StatusEnum.GRAY.value]), text))
 
     if not reasons:
         return []
@@ -504,25 +506,25 @@ if __name__ == "__main__":
         "pillars": [
             {
                 "pillar": "HumanStability",
-                "status": "YELLOW",
+                "status": StatusEnum.YELLOW.value,
                 "score": 60,
                 "reason_codes": ["STAFF_AVERSION"],
                 "evidence_todo": ["Stakeholder survey"]
             },
             {
                 "pillar": "EconomicResilience",
-                "status": "RED",
+                "status": StatusEnum.RED.value,
                 "score": 30,
                 "reason_codes": ["CONTINGENCY_LOW"]
             },
             {
                 "pillar": "EcologicalIntegrity",
-                "status": "GREEN",
+                "status": StatusEnum.GREEN.value,
                 "score": 80
             },
             {
                 "pillar": "Rights_Legality",
-                "status": "GRAY",
+                "status": StatusEnum.GRAY.value,
                 "score": None,
                 "evidence_todo": ["DPIA"]
             },
