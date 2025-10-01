@@ -200,15 +200,30 @@ class PipelineExecutionService:
 
     def _write_pipeline_inputs(self, run_id_dir: Path, request: CreatePlanRequest) -> None:
         """Write input files required by Luigi pipeline"""
+        # DIAGNOSTIC: Check run directory exists and is empty (except for expected files)
+        import os as os_module
+        if run_id_dir.exists():
+            existing_files = list(run_id_dir.iterdir())
+            print(f"🔥 Run directory exists with {len(existing_files)} files: {[f.name for f in existing_files[:10]]}")
+        else:
+            print(f"🔥 Creating run directory: {run_id_dir}")
+            run_id_dir.mkdir(parents=True, exist_ok=True)
+
         # Write start time
         start_time_file = run_id_dir / FilenameEnum.START_TIME.value
         with open(start_time_file, "w", encoding="utf-8") as f:
             f.write(datetime.utcnow().isoformat())
+        print(f"🔥 Created {start_time_file.name}")
 
         # Write initial plan prompt
         initial_plan_file = run_id_dir / FilenameEnum.INITIAL_PLAN.value
         with open(initial_plan_file, "w", encoding="utf-8") as f:
             f.write(request.prompt)
+        print(f"🔥 Created {initial_plan_file.name}")
+
+        # DIAGNOSTIC: Verify only expected files exist
+        all_files = list(run_id_dir.iterdir())
+        print(f"🔥 Run directory now contains {len(all_files)} files: {[f.name for f in all_files]}")
 
     def _start_luigi_subprocess(self, plan_id: str, environment: Dict[str, str], db_service: DatabaseService) -> Optional[subprocess.Popen]:
         """Start Luigi pipeline subprocess"""

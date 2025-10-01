@@ -295,18 +295,32 @@ class RedlineGateTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
+        # DIAGNOSTIC: Log that this method is actually being called
+        logger.error(f"🔥 RedlineGateTask.run_with_llm() CALLED - Luigi IS executing tasks!")
+        print(f"🔥 RedlineGateTask.run_with_llm() CALLED - Luigi IS executing tasks!")
+
         # Get database service and plan ID (Phase 1.1)
         db_service = None
         plan_id = self.get_plan_id()
+        logger.error(f"🔥 RedlineGateTask: plan_id = {plan_id}")
+        print(f"🔥 RedlineGateTask: plan_id = {plan_id}")
 
         try:
+            logger.error(f"🔥 RedlineGateTask: About to get database service...")
+            print(f"🔥 RedlineGateTask: About to get database service...")
             db_service = self.get_database_service()
+            logger.error(f"🔥 RedlineGateTask: Database service obtained successfully")
+            print(f"🔥 RedlineGateTask: Database service obtained successfully")
 
             # Read inputs from required tasks
             with self.input().open("r") as f:
                 plan_prompt = f.read()
+            logger.error(f"🔥 RedlineGateTask: Read plan prompt ({len(plan_prompt)} chars)")
+            print(f"🔥 RedlineGateTask: Read plan prompt ({len(plan_prompt)} chars)")
 
             # Track LLM interaction START (Phase 1.2)
+            logger.error(f"🔥 RedlineGateTask: About to create LLM interaction in database...")
+            print(f"🔥 RedlineGateTask: About to create LLM interaction in database...")
             interaction_id = db_service.create_llm_interaction({
                 "plan_id": plan_id,
                 "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
@@ -316,12 +330,18 @@ class RedlineGateTask(PlanTask):
             }).id
 
             logger.info(f"RedlineGateTask: Created LLM interaction {interaction_id} for plan {plan_id}")
+            logger.error(f"🔥 RedlineGateTask: LLM interaction {interaction_id} created successfully")
+            print(f"🔥 RedlineGateTask: LLM interaction {interaction_id} created successfully")
 
             # Execute LLM call
             import time
+            logger.error(f"🔥 RedlineGateTask: About to call RedlineGate.execute() with LLM...")
+            print(f"🔥 RedlineGateTask: About to call RedlineGate.execute() with LLM: {type(llm).__name__}")
             start_time = time.time()
             redline_gate = RedlineGate.execute(llm, plan_prompt)
             duration_seconds = time.time() - start_time
+            logger.error(f"🔥 RedlineGateTask: RedlineGate.execute() completed in {duration_seconds:.2f}s")
+            print(f"🔥 RedlineGateTask: RedlineGate.execute() completed in {duration_seconds:.2f}s")
 
             # Update LLM interaction COMPLETE (Phase 1.2)
             response_dict = redline_gate.to_dict()
@@ -5246,7 +5266,15 @@ class ExecutePipeline:
             json.dump(self.all_expected_filenames, f, indent=2)
         logger.info(f"Saved {len(self.all_expected_filenames)} expected filenames to {expected_filenames_path}")
 
+        # DIAGNOSTIC: Log before Luigi build starts
+        logger.error(f"🔥 About to call luigi.build() with workers=1")
+        print(f"🔥 About to call luigi.build() with workers=1")
+
         self.luigi_build_return_value = luigi.build([self.full_plan_pipeline_task], local_scheduler=True, workers=1)
+
+        # DIAGNOSTIC: Log Luigi build completion
+        logger.error(f"🔥 luigi.build() COMPLETED with return value: {self.luigi_build_return_value}")
+        print(f"🔥 luigi.build() COMPLETED with return value: {self.luigi_build_return_value}")
 
         # After the pipeline finishes (or fails), check for the stop flag.
         if self.has_stop_flag_file:
@@ -5273,9 +5301,16 @@ if __name__ == '__main__':
     from llama_index.core.instrumentation import get_dispatcher
     from planexe.llm_util.track_activity import TrackActivity
 
+    # DIAGNOSTIC: Verify DATABASE_URL is set in subprocess environment
+    print(f"🔥 LUIGI SUBPROCESS STARTED 🔥")
+    print(f"🔥 DATABASE_URL in subprocess: {os.environ.get('DATABASE_URL', 'NOT SET')[:60]}...")
+    print(f"🔥 OPENAI_API_KEY in subprocess: {os.environ.get('OPENAI_API_KEY', 'NOT SET')[:20]}...")
+    print(f"🔥 Total environment variables: {len(os.environ)}")
+
     pipeline_environment = PipelineEnvironment.from_env()
     try:
         run_id_dir: Path = pipeline_environment.get_run_id_dir()
+        print(f"🔥 RUN_ID_DIR: {run_id_dir}")
     except ValueError as e:
         msg = f"RUN_ID_DIR is not set or invalid. Error getting run_id_dir: {e!r}"
         logger.error(msg)
@@ -5284,6 +5319,9 @@ if __name__ == '__main__':
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
+
+    # DIAGNOSTIC: Log that logger is configured
+    print(f"🔥 Logger configured, about to start Luigi pipeline...")
 
     # Log messages on the console
     colored_formatter = colorlog.ColoredFormatter(
