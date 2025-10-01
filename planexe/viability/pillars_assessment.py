@@ -561,8 +561,6 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         return "pillar" if n == 1 else "pillars"
 
     rows: List[str] = []
-    rows.append("# Pillars Assessment")
-    rows.append("")
     rows.append("## Summary")
     rows.append(f"- **GREEN**: {status_counts['GREEN']} {_pillars_label(status_counts['GREEN'])}")
     rows.append(f"- **YELLOW**: {status_counts['YELLOW']} {_pillars_label(status_counts['YELLOW'])}")

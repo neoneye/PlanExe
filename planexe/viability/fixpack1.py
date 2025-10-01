@@ -180,7 +180,7 @@ class FixPack:
 
     @staticmethod
     def convert_to_markdown(fix_packs_output: FixPacksOutput) -> str:
-        rows: List[str] = ["## Fix Packs"]
+        rows: List[str] = []
 
         if not fix_packs_output.fix_packs:
             rows.append("No fix packs generated. All blockers were placed into FP0.")

@@ -366,7 +366,6 @@ class OverallSummary:
     @staticmethod
     def convert_to_markdown(payload: OverallSummaryPayload) -> str:
         lines: List[str] = []
-        lines.append("## Overall Viability")
         lines.append(f"- Status: {payload.overall.status}")
         score_value = payload.overall.score
         lines.append(f"- Score: {score_value if score_value is not None else 'N/A'}")

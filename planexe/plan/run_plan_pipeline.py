@@ -3944,10 +3944,13 @@ class ReportTask(PlanTask):
         rg.append_markdown('Review Plan', self.input()['review_plan']['markdown'].path)
         rg.append_html('Questions & Answers', self.input()['questions_and_answers']['html'].path)
         rg.append_markdown_with_tables('Premortem', self.input()['premortem']['markdown'].path)
-        rg.append_markdown_with_tables('Pillars Assessment', self.input()['pillars_assessment']['markdown'].path)
-        rg.append_markdown('Blockers', self.input()['blockers']['markdown'].path)
-        rg.append_markdown('Fix Packs', self.input()['fix_packs']['markdown'].path)
-        rg.append_markdown('Viability Overall Summary', self.input()['viability_overall_summary']['markdown'].path)
+        rg.append_viability(
+            document_title='Viability',
+            pillars_markdown_file_path=Path(self.input()['pillars_assessment']['markdown'].path),
+            blockers_markdown_file_path=Path(self.input()['blockers']['markdown'].path),
+            fixpack_markdown_file_path=Path(self.input()['fix_packs']['markdown'].path),
+            overall_markdown_file_path=Path(self.input()['viability_overall_summary']['markdown'].path),
+        )
         rg.append_initial_prompt_vetted(
             document_title='Initial Prompt Vetted', 
             initial_prompt_file_path=self.input()['setup'].path, 
