@@ -3324,54 +3324,50 @@ class ReviewTeamTask(PlanTask):
         return self.local_target(FilenameEnum.REVIEW_TEAM_RAW)
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            consolidate_assumptions_markdown = f.read()
-        with self.input()['preproject']['clean'].open("r") as f:
-            pre_project_assessment_dict = json.load(f)
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        with self.input()['enrich_team_members_with_environment_info']['clean'].open("r") as f:
-            team_member_list = json.load(f)
-        with self.input()['related_resources']['markdown'].open("r") as f:
-            related_resources_markdown = f.read()
-
-        # Convert the team members to a Markdown document.
-        builder = TeamMarkdownDocumentBuilder()
-        builder.append_roles(team_member_list, title=None)
-        team_document_markdown = builder.to_string()
-
-        # Build the query.
-        query = (
-            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
-            f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'team-members.md':\n{team_document_markdown}\n\n"
-            f"File 'related-resources.md':\n{related_resources_markdown}"
-        )
-
-        # Execute.
+        db_service = None
+        plan_id = self.get_plan_id()
         try:
+            db_service = self.get_database_service()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                consolidate_assumptions_markdown = f.read()
+            with self.input()['preproject']['clean'].open("r") as f:
+                pre_project_assessment_dict = json.load(f)
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['enrich_team_members_with_environment_info']['clean'].open("r") as f:
+                team_member_list = json.load(f)
+            with self.input()['related_resources']['markdown'].open("r") as f:
+                related_resources_markdown = f.read()
+            builder = TeamMarkdownDocumentBuilder()
+            builder.append_roles(team_member_list, title=None)
+            team_document_markdown = builder.to_string()
+            query = (f"File 'initial-plan.txt':\n{plan_prompt}\n\nFile 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\nFile 'scenarios.md':\n{scenarios_markdown}\n\nFile 'assumptions.md':\n{consolidate_assumptions_markdown}\n\nFile 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\nFile 'project-plan.md':\n{project_plan_markdown}\n\nFile 'team-members.md':\n{team_document_markdown}\n\nFile 'related-resources.md':\n{related_resources_markdown}")
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "review_team", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
             review_team = ReviewTeam.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            raw_dict = review_team.to_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(raw_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            raw_content = json.dumps(raw_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.REVIEW_TEAM_RAW.value, "stage": "review_team", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            with self.output().open("w") as f:
+                json.dump(raw_dict, f, indent=2)
         except Exception as e:
-            logger.error("ReviewTeam failed: %s", e)
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
             raise
-
-        # Save the raw output.
-        raw_dict = review_team.to_dict()
-        with self.output().open("w") as f:
-            json.dump(raw_dict, f, indent=2)
-
-        logger.info("ReviewTeamTask complete.")
+        finally:
+            if db_service:
+                db_service.close()
 
 class TeamMarkdownTask(PlanTask):
     def requires(self):
@@ -3384,26 +3380,26 @@ class TeamMarkdownTask(PlanTask):
         return self.local_target(FilenameEnum.TEAM_MARKDOWN)
 
     def run_inner(self):
-        logger.info("TeamMarkdownTask. Loading files...")
-
-        # 1. Read the team_member_list from EnrichTeamMembersWithEnvironmentInfoTask.
-        with self.input()['enrich_team_members_with_environment_info']['clean'].open("r") as f:
-            team_member_list = json.load(f)
-
-        # 2. Read the json from ReviewTeamTask.
-        with self.input()['review_team'].open("r") as f:
-            review_team_json = json.load(f)
-
-        logger.info("TeamMarkdownTask. All files are now ready. Processing...")
-
-        # Combine the team members and the review into a Markdown document.
-        builder = TeamMarkdownDocumentBuilder()
-        builder.append_roles(team_member_list)
-        builder.append_separator()
-        builder.append_full_review(review_team_json)
-        builder.write_to_file(self.output().path)
-
-        logger.info("TeamMarkdownTask complete.")
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            with self.input()['enrich_team_members_with_environment_info']['clean'].open("r") as f:
+                team_member_list = json.load(f)
+            with self.input()['review_team'].open("r") as f:
+                review_team_json = json.load(f)
+            builder = TeamMarkdownDocumentBuilder()
+            builder.append_roles(team_member_list)
+            builder.append_separator()
+            builder.append_full_review(review_team_json)
+            markdown_content = builder.to_string()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.TEAM_MARKDOWN.value, "stage": "team_markdown", "content_type": "markdown", "content": markdown_content, "content_size_bytes": len(markdown_content.encode('utf-8'))})
+            builder.write_to_file(self.output().path)
+        except Exception as e:
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class SWOTAnalysisTask(PlanTask):
     def requires(self):
@@ -3425,55 +3421,51 @@ class SWOTAnalysisTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['identify_purpose']['raw'].open("r") as f:
-            identify_purpose_dict = json.load(f)
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            consolidate_assumptions_markdown = f.read()
-        with self.input()['preproject']['clean'].open("r") as f:
-            pre_project_assessment_dict = json.load(f)
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        with self.input()['related_resources']['markdown'].open("r") as f:
-            related_resources_markdown = f.read()
-
-        # Build the query for SWOT analysis.
-        query = (
-            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
-            f"File 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'related-resources.md':\n{related_resources_markdown}"
-        )
-
-        # Execute the SWOT analysis.
-        # Send the identify_purpose_dict to SWOTAnalysis, and use business/personal/other to select the system prompt
+        db_service = None
+        plan_id = self.get_plan_id()
         try:
+            db_service = self.get_database_service()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['identify_purpose']['raw'].open("r") as f:
+                identify_purpose_dict = json.load(f)
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                consolidate_assumptions_markdown = f.read()
+            with self.input()['preproject']['clean'].open("r") as f:
+                pre_project_assessment_dict = json.load(f)
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['related_resources']['markdown'].open("r") as f:
+                related_resources_markdown = f.read()
+            query = (f"File 'initial-plan.txt':\n{plan_prompt}\n\nFile 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\nFile 'scenarios.md':\n{scenarios_markdown}\n\nFile 'assumptions.md':\n{consolidate_assumptions_markdown}\n\nFile 'pre-project-assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\nFile 'project-plan.md':\n{project_plan_markdown}\n\nFile 'related-resources.md':\n{related_resources_markdown}")
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "swot_analysis", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
             swot_analysis = SWOTAnalysis.execute(llm=llm, query=query, identify_purpose_dict=identify_purpose_dict)
+            duration_seconds = time.time() - start_time
+            swot_raw_dict = swot_analysis.to_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(swot_raw_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            raw_content = json.dumps(swot_raw_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.SWOT_RAW.value, "stage": "swot_analysis", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            swot_markdown = swot_analysis.to_markdown(include_metadata=False, include_purpose=False)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.SWOT_MARKDOWN.value, "stage": "swot_analysis", "content_type": "markdown", "content": swot_markdown, "content_size_bytes": len(swot_markdown.encode('utf-8'))})
+            with self.output()['raw'].open("w") as f:
+                json.dump(swot_raw_dict, f, indent=2)
+            with open(self.output()['markdown'].path, "w", encoding="utf-8") as f:
+                f.write(swot_markdown)
         except Exception as e:
-            logger.error("SWOT analysis failed: %s", e)
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
             raise
-
-        # Convert the SWOT analysis to a dict and markdown.
-        swot_raw_dict = swot_analysis.to_dict()
-        swot_markdown = swot_analysis.to_markdown(include_metadata=False, include_purpose=False)
-
-        # Write the raw SWOT JSON.
-        with self.output()['raw'].open("w") as f:
-            json.dump(swot_raw_dict, f, indent=2)
-
-        # Write the SWOT analysis as Markdown.
-        markdown_path = self.output()['markdown'].path
-        with open(markdown_path, "w", encoding="utf-8") as f:
-            f.write(swot_markdown)
+        finally:
+            if db_service:
+                db_service.close()
 
 class ExpertReviewTask(PlanTask):
     """
@@ -3493,58 +3485,54 @@ class ExpertReviewTask(PlanTask):
         return self.local_target(FilenameEnum.EXPERT_CRITICISM_MARKDOWN)
 
     def run_inner(self):
-        llm_executor: LLMExecutor = self.create_llm_executor()
-
-        logger.info("Finding experts to review the SWOT analysis, and having them provide criticism...")
-
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['preproject']['clean'].open("r") as f:
-            pre_project_assessment_dict = json.load(f)
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        swot_markdown_path = self.input()['swot_analysis']['markdown'].path
-        with open(swot_markdown_path, "r", encoding="utf-8") as f:
-            swot_markdown = f.read()
-
-        # Build the query.
-        query = (
-            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'pre-project assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\n"
-            f"File 'project_plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'SWOT Analysis.md':\n{swot_markdown}"
-        )
-
-        # Define callback functions.
-        def phase1_post_callback(expert_finder: ExpertFinder) -> None:
-            raw_path = self.run_id_dir / FilenameEnum.EXPERTS_RAW.value
-            cleaned_path = self.run_id_dir / FilenameEnum.EXPERTS_CLEAN.value
-            expert_finder.save_raw(str(raw_path))
-            expert_finder.save_cleanedup(str(cleaned_path))
-
-        def phase2_post_callback(expert_criticism: ExpertCriticism, expert_index: int) -> None:
-            file_path = self.run_id_dir / FilenameEnum.EXPERT_CRITICISM_RAW_TEMPLATE.format(expert_index + 1)
-            expert_criticism.save_raw(str(file_path))
-
-        # Execute the expert orchestration.
-        expert_orchestrator = ExpertOrchestrator()
-        # IDEA: max_expert_count. don't truncate to 2 experts. Interview them all in production mode.
-        # IDEA: If the expert file for expert_index already exist, then there is no need to run the LLM again.
-        expert_orchestrator.phase1_post_callback = phase1_post_callback
-        expert_orchestrator.phase2_post_callback = phase2_post_callback
-        expert_orchestrator.execute(llm_executor, query)
-
-        # Write final expert criticism markdown.
-        expert_criticism_markdown_file = self.file_path(FilenameEnum.EXPERT_CRITICISM_MARKDOWN)
-        with expert_criticism_markdown_file.open("w") as f:
-            f.write(expert_orchestrator.to_markdown())
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            llm_executor: LLMExecutor = self.create_llm_executor()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['preproject']['clean'].open("r") as f:
+                pre_project_assessment_dict = json.load(f)
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with open(self.input()['swot_analysis']['markdown'].path, "r", encoding="utf-8") as f:
+                swot_markdown = f.read()
+            query = (f"File 'initial-plan.txt':\n{plan_prompt}\n\nFile 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\nFile 'scenarios.md':\n{scenarios_markdown}\n\nFile 'pre-project assessment.json':\n{format_json_for_use_in_query(pre_project_assessment_dict)}\n\nFile 'project_plan.md':\n{project_plan_markdown}\n\nFile 'SWOT Analysis.md':\n{swot_markdown}")
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "expert_review", "prompt_text": query[:10000], "status": "pending"}).id
+            def phase1_post_callback(expert_finder: ExpertFinder) -> None:
+                raw_path = self.run_id_dir / FilenameEnum.EXPERTS_RAW.value
+                cleaned_path = self.run_id_dir / FilenameEnum.EXPERTS_CLEAN.value
+                expert_finder.save_raw(str(raw_path))
+                expert_finder.save_cleanedup(str(cleaned_path))
+            def phase2_post_callback(expert_criticism: ExpertCriticism, expert_index: int) -> None:
+                file_path = self.run_id_dir / FilenameEnum.EXPERT_CRITICISM_RAW_TEMPLATE.format(expert_index + 1)
+                expert_criticism.save_raw(str(file_path))
+            start_time = time.time()
+            expert_orchestrator = ExpertOrchestrator()
+            expert_orchestrator.phase1_post_callback = phase1_post_callback
+            expert_orchestrator.phase2_post_callback = phase2_post_callback
+            expert_orchestrator.execute(llm_executor, query)
+            duration_seconds = time.time() - start_time
+            expert_markdown = expert_orchestrator.to_markdown()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": expert_markdown[:10000], "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.EXPERT_CRITICISM_MARKDOWN.value, "stage": "expert_review", "content_type": "markdown", "content": expert_markdown, "content_size_bytes": len(expert_markdown.encode('utf-8'))})
+            with self.file_path(FilenameEnum.EXPERT_CRITICISM_MARKDOWN).open("w") as f:
+                f.write(expert_markdown)
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class DataCollectionTask(PlanTask):
