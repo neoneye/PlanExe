@@ -2478,6 +2478,7 @@ class ProjectPlanTask(PlanTask):
 
 
 class GovernancePhase1AuditTask(PlanTask):
+    """DATABASE INTEGRATION: Option 1 (Database-First Architecture)"""
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
@@ -2494,40 +2495,68 @@ class GovernancePhase1AuditTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            consolidate_assumptions_markdown = f.read()
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-
-        # Build the query.
-        query = (
-            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
-            f"File 'project-plan.md':\n{project_plan_markdown}"
-        )
-
-        # Execute.
+        db_service = None
+        plan_id = self.get_plan_id()
         try:
+            db_service = self.get_database_service()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                consolidate_assumptions_markdown = f.read()
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            query = (
+                f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+                f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
+                f"File 'project-plan.md':\n{project_plan_markdown}"
+            )
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "governance_phase1", "prompt_text": query[:10000], "status": "pending"
+            }).id
+            import time
+            start_time = time.time()
             governance_phase1_audit = GovernancePhase1Audit.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            response_dict = governance_phase1_audit.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed", "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds
+            })
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id, "filename": FilenameEnum.GOVERNANCE_PHASE1_AUDIT_RAW.value,
+                "stage": "governance_phase1", "content_type": "json", "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+            markdown_content = governance_phase1_audit.markdown
+            db_service.create_plan_content({
+                "plan_id": plan_id, "filename": FilenameEnum.GOVERNANCE_PHASE1_AUDIT_MARKDOWN.value,
+                "stage": "governance_phase1", "content_type": "markdown", "content": markdown_content,
+                "content_size_bytes": len(markdown_content.encode('utf-8'))
+            })
+            governance_phase1_audit.save_raw(self.output()['raw'].path)
+            governance_phase1_audit.save_markdown(self.output()['markdown'].path)
         except Exception as e:
-            logger.error("GovernancePhase1Audit failed: %s", e)
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception as db_error:
+                    logger.error(f"Failed to update interaction status: {db_error}")
             raise
-
-        # Save the results.
-        governance_phase1_audit.save_raw(self.output()['raw'].path)
-        governance_phase1_audit.save_markdown(self.output()['markdown'].path)
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class GovernancePhase2BodiesTask(PlanTask):
+    """DATABASE INTEGRATION: Option 1 (Database-First Architecture)"""
     def requires(self):
         return {
             'setup': self.clone(SetupTask),
@@ -2545,40 +2574,67 @@ class GovernancePhase2BodiesTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            consolidate_assumptions_markdown = f.read()
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        with self.input()['governance_phase1_audit']['markdown'].open("r") as f:
-            governance_phase1_audit_markdown = f.read()
-
-        # Build the query.
-        query = (
-            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
-            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'governance-phase1-audit.md':\n{governance_phase1_audit_markdown}"
-        )
-
-        # Execute.
+        db_service = None
+        plan_id = self.get_plan_id()
         try:
+            db_service = self.get_database_service()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                consolidate_assumptions_markdown = f.read()
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['governance_phase1_audit']['markdown'].open("r") as f:
+                governance_phase1_audit_markdown = f.read()
+            query = (
+                f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+                f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
+                f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
+                f"File 'governance-phase1-audit.md':\n{governance_phase1_audit_markdown}"
+            )
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "governance_phase2", "prompt_text": query[:10000], "status": "pending"
+            }).id
+            import time
+            start_time = time.time()
             governance_phase2_bodies = GovernancePhase2Bodies.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            response_dict = governance_phase2_bodies.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed", "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds
+            })
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id, "filename": FilenameEnum.GOVERNANCE_PHASE2_BODIES_RAW.value,
+                "stage": "governance_phase2", "content_type": "json", "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+            markdown_content = governance_phase2_bodies.markdown
+            db_service.create_plan_content({
+                "plan_id": plan_id, "filename": FilenameEnum.GOVERNANCE_PHASE2_BODIES_MARKDOWN.value,
+                "stage": "governance_phase2", "content_type": "markdown", "content": markdown_content,
+                "content_size_bytes": len(markdown_content.encode('utf-8'))
+            })
+            governance_phase2_bodies.save_raw(self.output()['raw'].path)
+            governance_phase2_bodies.save_markdown(self.output()['markdown'].path)
         except Exception as e:
-            logger.error("GovernancePhase2Bodies failed: %s", e)
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception as db_error:
+                    logger.error(f"Failed to update interaction status: {db_error}")
             raise
-
-        # Save the results.
-        governance_phase2_bodies.save_raw(self.output()['raw'].path)
-        governance_phase2_bodies.save_markdown(self.output()['markdown'].path)
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class GovernancePhase3ImplPlanTask(PlanTask):
@@ -2599,40 +2655,55 @@ class GovernancePhase3ImplPlanTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.  
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            consolidate_assumptions_markdown = f.read()
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
-        with self.input()['governance_phase2_bodies']['raw'].open("r") as f:
-            governance_phase2_bodies_dict = json.load(f)
-
-        # Build the query.
-        query = (
-            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
-            f"File 'governance-phase2-bodies.json':\n{format_json_for_use_in_query(governance_phase2_bodies_dict)}"
-        )
-
-        # Execute.
+        """DATABASE INTEGRATION: Option 1 (Database-First Architecture)"""
+        db_service = None
+        plan_id = self.get_plan_id()
         try:
+            db_service = self.get_database_service()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                consolidate_assumptions_markdown = f.read()
+            with self.input()['project_plan']['raw'].open("r") as f:
+                project_plan_dict = json.load(f)
+            with self.input()['governance_phase2_bodies']['raw'].open("r") as f:
+                governance_phase2_bodies_dict = json.load(f)
+            query = (
+                f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+                f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
+                f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+                f"File 'governance-phase2-bodies.json':\n{format_json_for_use_in_query(governance_phase2_bodies_dict)}"
+            )
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "governance_phase3", "prompt_text": query[:10000], "status": "pending"}).id
+            import time
+            start_time = time.time()
             governance_phase3_impl_plan = GovernancePhase3ImplPlan.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            response_dict = governance_phase3_impl_plan.to_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(response_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.GOVERNANCE_PHASE3_IMPL_PLAN_RAW.value, "stage": "governance_phase3", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            markdown_content = governance_phase3_impl_plan.markdown
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.GOVERNANCE_PHASE3_IMPL_PLAN_MARKDOWN.value, "stage": "governance_phase3", "content_type": "markdown", "content": markdown_content, "content_size_bytes": len(markdown_content.encode('utf-8'))})
+            governance_phase3_impl_plan.save_raw(self.output()['raw'].path)
+            governance_phase3_impl_plan.save_markdown(self.output()['markdown'].path)
         except Exception as e:
             logger.error("GovernancePhase3ImplPlan failed: %s", e)
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception as db_error:
+                    logger.error(f"Failed to update interaction status: {db_error}")
             raise
-
-        # Save the results.
-        governance_phase3_impl_plan.save_raw(self.output()['raw'].path)
-        governance_phase3_impl_plan.save_markdown(self.output()['markdown'].path)
+        finally:
+            if db_service:
+                db_service.close()
 
 class GovernancePhase4DecisionEscalationMatrixTask(PlanTask):
     def requires(self):
@@ -2653,43 +2724,56 @@ class GovernancePhase4DecisionEscalationMatrixTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.  
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            consolidate_assumptions_markdown = f.read()
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
-        with self.input()['governance_phase2_bodies']['raw'].open("r") as f:
-            governance_phase2_bodies_dict = json.load(f)
-        with self.input()['governance_phase3_impl_plan']['raw'].open("r") as f:
-            governance_phase3_impl_plan_dict = json.load(f)
-
-        # Build the query.
-        query = (
-            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
-            f"File 'governance-phase2-bodies.json':\n{format_json_for_use_in_query(governance_phase2_bodies_dict)}\n\n"
-            f"File 'governance-phase3-impl-plan.json':\n{format_json_for_use_in_query(governance_phase3_impl_plan_dict)}"
-        )
-
-        # Execute.
+        db_service = None
+        plan_id = self.get_plan_id()
         try:
+            db_service = self.get_database_service()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                consolidate_assumptions_markdown = f.read()
+            with self.input()['project_plan']['raw'].open("r") as f:
+                project_plan_dict = json.load(f)
+            with self.input()['governance_phase2_bodies']['raw'].open("r") as f:
+                governance_phase2_bodies_dict = json.load(f)
+            with self.input()['governance_phase3_impl_plan']['raw'].open("r") as f:
+                governance_phase3_impl_plan_dict = json.load(f)
+            query = (
+                f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+                f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
+                f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+                f"File 'governance-phase2-bodies.json':\n{format_json_for_use_in_query(governance_phase2_bodies_dict)}\n\n"
+                f"File 'governance-phase3-impl-plan.json':\n{format_json_for_use_in_query(governance_phase3_impl_plan_dict)}"
+            )
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "governance_phase4", "prompt_text": query[:10000], "status": "pending"}).id
+            import time
+            start_time = time.time()
             governance_phase4_decision_escalation_matrix = GovernancePhase4DecisionEscalationMatrix.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            response_dict = governance_phase4_decision_escalation_matrix.to_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(response_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.GOVERNANCE_PHASE4_DECISION_ESCALATION_MATRIX_RAW.value, "stage": "governance_phase4", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            markdown_content = governance_phase4_decision_escalation_matrix.markdown
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.GOVERNANCE_PHASE4_DECISION_ESCALATION_MATRIX_MARKDOWN.value, "stage": "governance_phase4", "content_type": "markdown", "content": markdown_content, "content_size_bytes": len(markdown_content.encode('utf-8'))})
+            governance_phase4_decision_escalation_matrix.save_raw(self.output()['raw'].path)
+            governance_phase4_decision_escalation_matrix.save_markdown(self.output()['markdown'].path)
         except Exception as e:
-            logger.error("GovernancePhase4DecisionEscalationMatrix failed: %s", e)
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception as db_error:
+                    logger.error(f"Failed to update interaction status: {db_error}")
             raise
-
-        # Save the results.
-        governance_phase4_decision_escalation_matrix.save_raw(self.output()['raw'].path)
-        governance_phase4_decision_escalation_matrix.save_markdown(self.output()['markdown'].path)
+        finally:
+            if db_service:
+                db_service.close()
 
 class GovernancePhase5MonitoringProgressTask(PlanTask):
     def requires(self):
@@ -2711,46 +2795,59 @@ class GovernancePhase5MonitoringProgressTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.  
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            consolidate_assumptions_markdown = f.read()
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
-        with self.input()['governance_phase2_bodies']['raw'].open("r") as f:
-            governance_phase2_bodies_dict = json.load(f)
-        with self.input()['governance_phase3_impl_plan']['raw'].open("r") as f:
-            governance_phase3_impl_plan_dict = json.load(f)
-        with self.input()['governance_phase4_decision_escalation_matrix']['raw'].open("r") as f:
-            governance_phase4_decision_escalation_matrix_dict = json.load(f)
-        
-        # Build the query.
-        query = (
-            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
-            f"File 'governance-phase2-bodies.json':\n{format_json_for_use_in_query(governance_phase2_bodies_dict)}\n\n"
-            f"File 'governance-phase3-impl-plan.json':\n{format_json_for_use_in_query(governance_phase3_impl_plan_dict)}\n\n"
-            f"File 'governance-phase4-decision-escalation-matrix.json':\n{format_json_for_use_in_query(governance_phase4_decision_escalation_matrix_dict)}"
-        )
-
-        # Execute.
+        db_service = None
+        plan_id = self.get_plan_id()
         try:
+            db_service = self.get_database_service()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                consolidate_assumptions_markdown = f.read()
+            with self.input()['project_plan']['raw'].open("r") as f:
+                project_plan_dict = json.load(f)
+            with self.input()['governance_phase2_bodies']['raw'].open("r") as f:
+                governance_phase2_bodies_dict = json.load(f)
+            with self.input()['governance_phase3_impl_plan']['raw'].open("r") as f:
+                governance_phase3_impl_plan_dict = json.load(f)
+            with self.input()['governance_phase4_decision_escalation_matrix']['raw'].open("r") as f:
+                governance_phase4_decision_escalation_matrix_dict = json.load(f)
+            query = (
+                f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+                f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
+                f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+                f"File 'governance-phase2-bodies.json':\n{format_json_for_use_in_query(governance_phase2_bodies_dict)}\n\n"
+                f"File 'governance-phase3-impl-plan.json':\n{format_json_for_use_in_query(governance_phase3_impl_plan_dict)}\n\n"
+                f"File 'governance-phase4-decision-escalation-matrix.json':\n{format_json_for_use_in_query(governance_phase4_decision_escalation_matrix_dict)}"
+            )
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "governance_phase5", "prompt_text": query[:10000], "status": "pending"}).id
+            import time
+            start_time = time.time()
             governance_phase5_monitoring_progress = GovernancePhase5MonitoringProgress.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            response_dict = governance_phase5_monitoring_progress.to_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(response_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.GOVERNANCE_PHASE5_MONITORING_PROGRESS_RAW.value, "stage": "governance_phase5", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            markdown_content = governance_phase5_monitoring_progress.markdown
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.GOVERNANCE_PHASE5_MONITORING_PROGRESS_MARKDOWN.value, "stage": "governance_phase5", "content_type": "markdown", "content": markdown_content, "content_size_bytes": len(markdown_content.encode('utf-8'))})
+            governance_phase5_monitoring_progress.save_raw(self.output()['raw'].path)
+            governance_phase5_monitoring_progress.save_markdown(self.output()['markdown'].path)
         except Exception as e:
-            logger.error("GovernancePhase5MonitoringProgress failed: %s", e)
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception as db_error:
+                    logger.error(f"Failed to update interaction status: {db_error}")
             raise
-
-        # Save the results.
-        governance_phase5_monitoring_progress.save_raw(self.output()['raw'].path)
-        governance_phase5_monitoring_progress.save_markdown(self.output()['markdown'].path)
+        finally:
+            if db_service:
+                db_service.close()
 
 class GovernancePhase6ExtraTask(PlanTask):
     def requires(self):
@@ -2774,52 +2871,65 @@ class GovernancePhase6ExtraTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            consolidate_assumptions_markdown = f.read()
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
-        with self.input()['governance_phase1_audit']['raw'].open("r") as f:
-            governance_phase1_audit_dict = json.load(f)
-        with self.input()['governance_phase2_bodies']['raw'].open("r") as f:
-            governance_phase2_bodies_dict = json.load(f)
-        with self.input()['governance_phase3_impl_plan']['raw'].open("r") as f:
-            governance_phase3_impl_plan_dict = json.load(f)
-        with self.input()['governance_phase4_decision_escalation_matrix']['raw'].open("r") as f:
-            governance_phase4_decision_escalation_matrix_dict = json.load(f)
-        with self.input()['governance_phase5_monitoring_progress']['raw'].open("r") as f:
-            governance_phase5_monitoring_progress_dict = json.load(f)
-
-        # Build the query.
-        query = (
-            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
-            f"File 'governance-phase1-audit.json':\n{format_json_for_use_in_query(governance_phase1_audit_dict)}\n\n"
-            f"File 'governance-phase2-bodies.json':\n{format_json_for_use_in_query(governance_phase2_bodies_dict)}\n\n"
-            f"File 'governance-phase3-impl-plan.json':\n{format_json_for_use_in_query(governance_phase3_impl_plan_dict)}\n\n"
-            f"File 'governance-phase4-decision-escalation-matrix.json':\n{format_json_for_use_in_query(governance_phase4_decision_escalation_matrix_dict)}\n\n"
-            f"File 'governance-phase5-monitoring-progress.json':\n{format_json_for_use_in_query(governance_phase5_monitoring_progress_dict)}"
-        )
-
-        # Execute.
+        db_service = None
+        plan_id = self.get_plan_id()
         try:
+            db_service = self.get_database_service()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                consolidate_assumptions_markdown = f.read()
+            with self.input()['project_plan']['raw'].open("r") as f:
+                project_plan_dict = json.load(f)
+            with self.input()['governance_phase1_audit']['raw'].open("r") as f:
+                governance_phase1_audit_dict = json.load(f)
+            with self.input()['governance_phase2_bodies']['raw'].open("r") as f:
+                governance_phase2_bodies_dict = json.load(f)
+            with self.input()['governance_phase3_impl_plan']['raw'].open("r") as f:
+                governance_phase3_impl_plan_dict = json.load(f)
+            with self.input()['governance_phase4_decision_escalation_matrix']['raw'].open("r") as f:
+                governance_phase4_decision_escalation_matrix_dict = json.load(f)
+            with self.input()['governance_phase5_monitoring_progress']['raw'].open("r") as f:
+                governance_phase5_monitoring_progress_dict = json.load(f)
+            query = (
+                f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+                f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
+                f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}\n\n"
+                f"File 'governance-phase1-audit.json':\n{format_json_for_use_in_query(governance_phase1_audit_dict)}\n\n"
+                f"File 'governance-phase2-bodies.json':\n{format_json_for_use_in_query(governance_phase2_bodies_dict)}\n\n"
+                f"File 'governance-phase3-impl-plan.json':\n{format_json_for_use_in_query(governance_phase3_impl_plan_dict)}\n\n"
+                f"File 'governance-phase4-decision-escalation-matrix.json':\n{format_json_for_use_in_query(governance_phase4_decision_escalation_matrix_dict)}\n\n"
+                f"File 'governance-phase5-monitoring-progress.json':\n{format_json_for_use_in_query(governance_phase5_monitoring_progress_dict)}"
+            )
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "governance_phase6", "prompt_text": query[:10000], "status": "pending"}).id
+            import time
+            start_time = time.time()
             governance_phase6_extra = GovernancePhase6Extra.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            response_dict = governance_phase6_extra.to_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(response_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.GOVERNANCE_PHASE6_EXTRA_RAW.value, "stage": "governance_phase6", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            markdown_content = governance_phase6_extra.markdown
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.GOVERNANCE_PHASE6_EXTRA_MARKDOWN.value, "stage": "governance_phase6", "content_type": "markdown", "content": markdown_content, "content_size_bytes": len(markdown_content.encode('utf-8'))})
+            governance_phase6_extra.save_raw(self.output()['raw'].path)
+            governance_phase6_extra.save_markdown(self.output()['markdown'].path)
         except Exception as e:
-            logger.error("GovernancePhase6Extra failed: %s", e)
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception as db_error:
+                    logger.error(f"Failed to update interaction status: {db_error}")
             raise
-
-        # Save the results.
-        governance_phase6_extra.save_raw(self.output()['raw'].path)
-        governance_phase6_extra.save_markdown(self.output()['markdown'].path)
+        finally:
+            if db_service:
+                db_service.close()
 
 class ConsolidateGovernanceTask(PlanTask):
     def requires(self):
@@ -2836,33 +2946,39 @@ class ConsolidateGovernanceTask(PlanTask):
         return self.local_target(FilenameEnum.CONSOLIDATE_GOVERNANCE_MARKDOWN)
 
     def run_inner(self):
-        # Read inputs from required tasks.
-        with self.input()['governance_phase1_audit']['markdown'].open("r") as f:
-            governance_phase1_audit_markdown = f.read()
-        with self.input()['governance_phase2_bodies']['markdown'].open("r") as f:
-            governance_phase2_bodies_markdown = f.read()
-        with self.input()['governance_phase3_impl_plan']['markdown'].open("r") as f:
-            governance_phase3_impl_plan_markdown = f.read()
-        with self.input()['governance_phase4_decision_escalation_matrix']['markdown'].open("r") as f:
-            governance_phase4_decision_escalation_matrix_markdown = f.read()
-        with self.input()['governance_phase5_monitoring_progress']['markdown'].open("r") as f:
-            governance_phase5_monitoring_progress_markdown = f.read()
-        with self.input()['governance_phase6_extra']['markdown'].open("r") as f:
-            governance_phase6_extra_markdown = f.read()
-
-        # Build the document.
-        markdown = []
-        markdown.append(f"# Governance Audit\n\n{governance_phase1_audit_markdown}")
-        markdown.append(f"# Internal Governance Bodies\n\n{governance_phase2_bodies_markdown}")
-        markdown.append(f"# Governance Implementation Plan\n\n{governance_phase3_impl_plan_markdown}")
-        markdown.append(f"# Decision Escalation Matrix\n\n{governance_phase4_decision_escalation_matrix_markdown}")
-        markdown.append(f"# Monitoring Progress\n\n{governance_phase5_monitoring_progress_markdown}")
-        markdown.append(f"# Governance Extra\n\n{governance_phase6_extra_markdown}")
-
-        content = "\n\n".join(markdown)
-
-        with self.output().open("w") as f:
-            f.write(content)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            with self.input()['governance_phase1_audit']['markdown'].open("r") as f:
+                governance_phase1_audit_markdown = f.read()
+            with self.input()['governance_phase2_bodies']['markdown'].open("r") as f:
+                governance_phase2_bodies_markdown = f.read()
+            with self.input()['governance_phase3_impl_plan']['markdown'].open("r") as f:
+                governance_phase3_impl_plan_markdown = f.read()
+            with self.input()['governance_phase4_decision_escalation_matrix']['markdown'].open("r") as f:
+                governance_phase4_decision_escalation_matrix_markdown = f.read()
+            with self.input()['governance_phase5_monitoring_progress']['markdown'].open("r") as f:
+                governance_phase5_monitoring_progress_markdown = f.read()
+            with self.input()['governance_phase6_extra']['markdown'].open("r") as f:
+                governance_phase6_extra_markdown = f.read()
+            markdown = []
+            markdown.append(f"# Governance Audit\n\n{governance_phase1_audit_markdown}")
+            markdown.append(f"# Internal Governance Bodies\n\n{governance_phase2_bodies_markdown}")
+            markdown.append(f"# Governance Implementation Plan\n\n{governance_phase3_impl_plan_markdown}")
+            markdown.append(f"# Decision Escalation Matrix\n\n{governance_phase4_decision_escalation_matrix_markdown}")
+            markdown.append(f"# Monitoring Progress\n\n{governance_phase5_monitoring_progress_markdown}")
+            markdown.append(f"# Governance Extra\n\n{governance_phase6_extra_markdown}")
+            content = "\n\n".join(markdown)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.CONSOLIDATE_GOVERNANCE_MARKDOWN.value, "stage": "consolidate_governance", "content_type": "markdown", "content": content, "content_size_bytes": len(content.encode('utf-8'))})
+            with self.output().open("w") as f:
+                f.write(content)
+        except Exception as e:
+            logger.error(f"Error in ConsolidateGovernanceTask: {e}")
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class RelatedResourcesTask(PlanTask):
     def requires(self):
