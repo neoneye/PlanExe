@@ -1739,6 +1739,7 @@ class IdentifyRisksTask(PlanTask):
 class MakeAssumptionsTask(PlanTask):
     """
     Make assumptions about the plan.
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
     """
     def requires(self):
         return {
@@ -1760,49 +1761,126 @@ class MakeAssumptionsTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['identify_purpose']['markdown'].open("r") as f:
-            identify_purpose_markdown = f.read()
-        with self.input()['plan_type']['markdown'].open("r") as f:
-            plan_type_markdown = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['physical_locations']['markdown'].open("r") as f:
-            physical_locations_markdown = f.read()
-        with self.input()['currency_strategy']['markdown'].open("r") as f:
-            currency_strategy_markdown = f.read()
-        with self.input()['identify_risks']['markdown'].open("r") as f:
-            identify_risks_markdown = f.read()
+        db_service = None
+        plan_id = self.get_plan_id()
 
-        query = (
-            f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
-            f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'physical_locations.md':\n{physical_locations_markdown}\n\n"
-            f"File 'currency_strategy.md':\n{currency_strategy_markdown}\n\n"
-            f"File 'identify_risks.md':\n{identify_risks_markdown}"
-        )
+        try:
+            db_service = self.get_database_service()
 
-        make_assumptions = MakeAssumptions.execute(llm, query)
+            # Read inputs from required tasks.
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['identify_purpose']['markdown'].open("r") as f:
+                identify_purpose_markdown = f.read()
+            with self.input()['plan_type']['markdown'].open("r") as f:
+                plan_type_markdown = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['physical_locations']['markdown'].open("r") as f:
+                physical_locations_markdown = f.read()
+            with self.input()['currency_strategy']['markdown'].open("r") as f:
+                currency_strategy_markdown = f.read()
+            with self.input()['identify_risks']['markdown'].open("r") as f:
+                identify_risks_markdown = f.read()
 
-        # Write the result to disk.
-        output_raw_path = self.output()['raw'].path
-        make_assumptions.save_raw(str(output_raw_path))
-        output_clean_path = self.output()['clean'].path
-        make_assumptions.save_assumptions(str(output_clean_path))
-        output_markdown_path = self.output()['markdown'].path
-        make_assumptions.save_markdown(str(output_markdown_path))
+            query = (
+                f"File 'plan.txt':\n{plan_prompt}\n\n"
+                f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+                f"File 'plan_type.md':\n{plan_type_markdown}\n\n"
+                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+                f"File 'physical_locations.md':\n{physical_locations_markdown}\n\n"
+                f"File 'currency_strategy.md':\n{currency_strategy_markdown}\n\n"
+                f"File 'identify_risks.md':\n{identify_risks_markdown}"
+            )
+
+            # Track LLM interaction START
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "make_assumptions",
+                "prompt_text": query,
+                "status": "pending"
+            }).id
+
+            # Execute LLM call with timing
+            import time
+            start_time = time.time()
+            make_assumptions = MakeAssumptions.execute(llm, query)
+            duration_seconds = time.time() - start_time
+
+            # Update LLM interaction COMPLETE
+            response_dict = make_assumptions.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds
+            })
+
+            # Persist RAW to database
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.MAKE_ASSUMPTIONS_RAW.value,
+                "stage": "make_assumptions",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+
+            # Persist CLEAN to database
+            clean_content = make_assumptions.to_clean_json()
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.MAKE_ASSUMPTIONS_CLEAN.value,
+                "stage": "make_assumptions",
+                "content_type": "json",
+                "content": clean_content,
+                "content_size_bytes": len(clean_content.encode('utf-8'))
+            })
+
+            # Persist MARKDOWN to database
+            markdown_content = make_assumptions.markdown
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.MAKE_ASSUMPTIONS_MARKDOWN.value,
+                "stage": "make_assumptions",
+                "content_type": "markdown",
+                "content": markdown_content,
+                "content_size_bytes": len(markdown_content.encode('utf-8'))
+            })
+
+            # Write to filesystem (Luigi tracking)
+            output_raw_path = self.output()['raw'].path
+            make_assumptions.save_raw(str(output_raw_path))
+            output_clean_path = self.output()['clean'].path
+            make_assumptions.save_assumptions(str(output_clean_path))
+            output_markdown_path = self.output()['markdown'].path
+            make_assumptions.save_markdown(str(output_markdown_path))
+
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {
+                        "status": "failed",
+                        "error_message": str(e),
+                        "completed_at": datetime.utcnow()
+                    })
+                except Exception as db_error:
+                    logger.error(f"Failed to update interaction status: {db_error}")
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class DistillAssumptionsTask(PlanTask):
     """
     Distill raw assumption data.
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
     """
     def requires(self):
         return {
@@ -1820,39 +1898,105 @@ class DistillAssumptionsTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['identify_purpose']['markdown'].open("r") as f:
-            identify_purpose_markdown = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        make_assumptions_target = self.input()['make_assumptions']['clean']
-        with make_assumptions_target.open("r") as f:
-            assumptions_raw_data = json.load(f)
+        db_service = None
+        plan_id = self.get_plan_id()
 
-        query = (
-            f"File 'plan.txt':\n{plan_prompt}\n\n"
-            f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.json':\n{format_json_for_use_in_query(assumptions_raw_data)}"
-        )
+        try:
+            db_service = self.get_database_service()
 
-        distill_assumptions = DistillAssumptions.execute(llm, query)
+            # Read inputs from required tasks.
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['identify_purpose']['markdown'].open("r") as f:
+                identify_purpose_markdown = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            make_assumptions_target = self.input()['make_assumptions']['clean']
+            with make_assumptions_target.open("r") as f:
+                assumptions_raw_data = json.load(f)
 
-        # Write the result to disk.
-        output_raw_path = self.output()['raw'].path
-        distill_assumptions.save_raw(str(output_raw_path))
-        output_markdown_path = self.output()['markdown'].path
-        distill_assumptions.save_markdown(str(output_markdown_path))
+            query = (
+                f"File 'plan.txt':\n{plan_prompt}\n\n"
+                f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
+                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+                f"File 'assumptions.json':\n{format_json_for_use_in_query(assumptions_raw_data)}"
+            )
+
+            # Track LLM interaction START
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "distill_assumptions",
+                "prompt_text": query,
+                "status": "pending"
+            }).id
+
+            # Execute LLM call with timing
+            import time
+            start_time = time.time()
+            distill_assumptions = DistillAssumptions.execute(llm, query)
+            duration_seconds = time.time() - start_time
+
+            # Update LLM interaction COMPLETE
+            response_dict = distill_assumptions.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds
+            })
+
+            # Persist RAW to database
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.DISTILL_ASSUMPTIONS_RAW.value,
+                "stage": "distill_assumptions",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+
+            # Persist MARKDOWN to database
+            markdown_content = distill_assumptions.markdown
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.DISTILL_ASSUMPTIONS_MARKDOWN.value,
+                "stage": "distill_assumptions",
+                "content_type": "markdown",
+                "content": markdown_content,
+                "content_size_bytes": len(markdown_content.encode('utf-8'))
+            })
+
+            # Write to filesystem (Luigi tracking)
+            output_raw_path = self.output()['raw'].path
+            distill_assumptions.save_raw(str(output_raw_path))
+            output_markdown_path = self.output()['markdown'].path
+            distill_assumptions.save_markdown(str(output_markdown_path))
+
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {
+                        "status": "failed",
+                        "error_message": str(e),
+                        "completed_at": datetime.utcnow()
+                    })
+                except Exception as db_error:
+                    logger.error(f"Failed to update interaction status: {db_error}")
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class ReviewAssumptionsTask(PlanTask):
     """
     Find issues with the assumptions.
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
     """
     def requires(self):
         return {
@@ -1874,48 +2018,114 @@ class ReviewAssumptionsTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Define the list of (title, path) tuples
-        title_path_list = [
-            ('Purpose', self.input()['identify_purpose']['markdown'].path),
-            ('Plan Type', self.input()['plan_type']['markdown'].path),
-            ('Strategic Decisions', self.input()['strategic_decisions_markdown']['markdown'].path),
-            ('Scenarios', self.input()['scenarios_markdown']['markdown'].path),
-            ('Physical Locations', self.input()['physical_locations']['markdown'].path),
-            ('Currency Strategy', self.input()['currency_strategy']['markdown'].path),
-            ('Identify Risks', self.input()['identify_risks']['markdown'].path),
-            ('Make Assumptions', self.input()['make_assumptions']['markdown'].path),
-            ('Distill Assumptions', self.input()['distill_assumptions']['markdown'].path)
-        ]
+        db_service = None
+        plan_id = self.get_plan_id()
 
-        # Read the files and handle exceptions
-        markdown_chunks = []
-        for title, path in title_path_list:
-            try:
-                with open(path, 'r', encoding='utf-8') as f:
-                    markdown_chunk = f.read()
-                markdown_chunks.append(f"# {title}\n\n{markdown_chunk}")
-            except FileNotFoundError:
-                logger.warning(f"Markdown file not found: {path} (from {title})")
-                markdown_chunks.append(f"**Problem with document:** '{title}'\n\nFile not found.")
-            except Exception as e:
-                logger.error(f"Error reading markdown file {path} (from {title}): {e}")
-                markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError reading markdown file.")
+        try:
+            db_service = self.get_database_service()
 
-        # Combine the markdown chunks
-        full_markdown = "\n\n".join(markdown_chunks)
+            # Define the list of (title, path) tuples
+            title_path_list = [
+                ('Purpose', self.input()['identify_purpose']['markdown'].path),
+                ('Plan Type', self.input()['plan_type']['markdown'].path),
+                ('Strategic Decisions', self.input()['strategic_decisions_markdown']['markdown'].path),
+                ('Scenarios', self.input()['scenarios_markdown']['markdown'].path),
+                ('Physical Locations', self.input()['physical_locations']['markdown'].path),
+                ('Currency Strategy', self.input()['currency_strategy']['markdown'].path),
+                ('Identify Risks', self.input()['identify_risks']['markdown'].path),
+                ('Make Assumptions', self.input()['make_assumptions']['markdown'].path),
+                ('Distill Assumptions', self.input()['distill_assumptions']['markdown'].path)
+            ]
 
-        review_assumptions = ReviewAssumptions.execute(llm, full_markdown)
+            # Read the files and handle exceptions
+            markdown_chunks = []
+            for title, path in title_path_list:
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        markdown_chunk = f.read()
+                    markdown_chunks.append(f"# {title}\n\n{markdown_chunk}")
+                except FileNotFoundError:
+                    logger.warning(f"Markdown file not found: {path} (from {title})")
+                    markdown_chunks.append(f"**Problem with document:** '{title}'\n\nFile not found.")
+                except Exception as e:
+                    logger.error(f"Error reading markdown file {path} (from {title}): {e}")
+                    markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError reading markdown file.")
 
-        # Write the result to disk.
-        output_raw_path = self.output()['raw'].path
-        review_assumptions.save_raw(str(output_raw_path))
-        output_markdown_path = self.output()['markdown'].path
-        review_assumptions.save_markdown(str(output_markdown_path))
+            # Combine the markdown chunks
+            full_markdown = "\n\n".join(markdown_chunks)
+
+            # Track LLM interaction START
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "review_assumptions",
+                "prompt_text": full_markdown[:10000],  # Truncate for storage
+                "status": "pending"
+            }).id
+
+            # Execute LLM call with timing
+            import time
+            start_time = time.time()
+            review_assumptions = ReviewAssumptions.execute(llm, full_markdown)
+            duration_seconds = time.time() - start_time
+
+            # Update LLM interaction COMPLETE
+            response_dict = review_assumptions.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds
+            })
+
+            # Persist RAW to database
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.REVIEW_ASSUMPTIONS_RAW.value,
+                "stage": "review_assumptions",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+
+            # Persist MARKDOWN to database
+            markdown_content = review_assumptions.markdown
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.REVIEW_ASSUMPTIONS_MARKDOWN.value,
+                "stage": "review_assumptions",
+                "content_type": "markdown",
+                "content": markdown_content,
+                "content_size_bytes": len(markdown_content.encode('utf-8'))
+            })
+
+            # Write to filesystem (Luigi tracking)
+            output_raw_path = self.output()['raw'].path
+            review_assumptions.save_raw(str(output_raw_path))
+            output_markdown_path = self.output()['markdown'].path
+            review_assumptions.save_markdown(str(output_markdown_path))
+
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {
+                        "status": "failed",
+                        "error_message": str(e),
+                        "completed_at": datetime.utcnow()
+                    })
+                except Exception as db_error:
+                    logger.error(f"Failed to update interaction status: {db_error}")
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class ConsolidateAssumptionsMarkdownTask(PlanTask):
     """
     Combines multiple small markdown documents into a single big document.
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
     """
     def requires(self):
         return {
@@ -1936,66 +2146,98 @@ class ConsolidateAssumptionsMarkdownTask(PlanTask):
         }
 
     def run_inner(self):
-        llm_executor: LLMExecutor = self.create_llm_executor()
+        db_service = None
+        plan_id = self.get_plan_id()
 
-        # Define the list of (title, path) tuples
-        title_path_list = [
-            ('Purpose', self.input()['identify_purpose']['markdown'].path),
-            ('Plan Type', self.input()['plan_type']['markdown'].path),
-            ('Physical Locations', self.input()['physical_locations']['markdown'].path),
-            ('Currency Strategy', self.input()['currency_strategy']['markdown'].path),
-            ('Identify Risks', self.input()['identify_risks']['markdown'].path),
-            ('Make Assumptions', self.input()['make_assumptions']['markdown'].path),
-            ('Distill Assumptions', self.input()['distill_assumptions']['markdown'].path),
-            ('Review Assumptions', self.input()['review_assumptions']['markdown'].path)
-        ]
+        try:
+            db_service = self.get_database_service()
+            llm_executor: LLMExecutor = self.create_llm_executor()
 
-        # Read the files and handle exceptions
-        full_markdown_chunks = []
-        short_markdown_chunks = []
-        for title, path in title_path_list:
-            try:
-                with open(path, 'r', encoding='utf-8') as f:
-                    markdown_chunk = f.read()
-                full_markdown_chunks.append(f"# {title}\n\n{markdown_chunk}")
-            except FileNotFoundError:
-                logger.warning(f"Markdown file not found: {path} (from {title})")
-                full_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nFile not found.")
-                short_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nFile not found.")
-                continue
-            except Exception as e:
-                logger.error(f"Error reading markdown file {path} (from {title}): {e}")
-                full_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError reading markdown file.")
-                short_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError reading markdown file.")
-                continue
+            # Define the list of (title, path) tuples
+            title_path_list = [
+                ('Purpose', self.input()['identify_purpose']['markdown'].path),
+                ('Plan Type', self.input()['plan_type']['markdown'].path),
+                ('Physical Locations', self.input()['physical_locations']['markdown'].path),
+                ('Currency Strategy', self.input()['currency_strategy']['markdown'].path),
+                ('Identify Risks', self.input()['identify_risks']['markdown'].path),
+                ('Make Assumptions', self.input()['make_assumptions']['markdown'].path),
+                ('Distill Assumptions', self.input()['distill_assumptions']['markdown'].path),
+                ('Review Assumptions', self.input()['review_assumptions']['markdown'].path)
+            ]
 
-            # IDEA: If the chunk file already exist, then there is no need to run the LLM again.
-            def execute_shorten_markdown(llm: LLM) -> ShortenMarkdown:
-                return ShortenMarkdown.execute(llm, markdown_chunk)
+            # Read the files and handle exceptions
+            full_markdown_chunks = []
+            short_markdown_chunks = []
+            for title, path in title_path_list:
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        markdown_chunk = f.read()
+                    full_markdown_chunks.append(f"# {title}\n\n{markdown_chunk}")
+                except FileNotFoundError:
+                    logger.warning(f"Markdown file not found: {path} (from {title})")
+                    full_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nFile not found.")
+                    short_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nFile not found.")
+                    continue
+                except Exception as e:
+                    logger.error(f"Error reading markdown file {path} (from {title}): {e}")
+                    full_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError reading markdown file.")
+                    short_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError reading markdown file.")
+                    continue
 
-            try:
-                shorten_markdown = llm_executor.run(execute_shorten_markdown)
-                short_markdown_chunks.append(f"# {title}\n{shorten_markdown.markdown}")
-            except PipelineStopRequested:
-                # Re-raise PipelineStopRequested without wrapping it
-                raise
-            except Exception as e:
-                logger.error(f"Error shortening markdown file {path} (from {title}): {e}")
-                short_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError shortening markdown file.")
-                continue
-            
-        # Combine the markdown chunks
-        full_markdown = "\n\n".join(full_markdown_chunks)
-        short_markdown = "\n\n".join(short_markdown_chunks)
+                # IDEA: If the chunk file already exist, then there is no need to run the LLM again.
+                def execute_shorten_markdown(llm: LLM) -> ShortenMarkdown:
+                    return ShortenMarkdown.execute(llm, markdown_chunk)
 
-        # Write the result to disk.
-        output_full_markdown_path = self.output()['full'].path
-        with open(output_full_markdown_path, "w", encoding="utf-8") as f:
-            f.write(full_markdown)
+                try:
+                    shorten_markdown = llm_executor.run(execute_shorten_markdown)
+                    short_markdown_chunks.append(f"# {title}\n{shorten_markdown.markdown}")
+                except PipelineStopRequested:
+                    # Re-raise PipelineStopRequested without wrapping it
+                    raise
+                except Exception as e:
+                    logger.error(f"Error shortening markdown file {path} (from {title}): {e}")
+                    short_markdown_chunks.append(f"**Problem with document:** '{title}'\n\nError shortening markdown file.")
+                    continue
 
-        output_short_markdown_path = self.output()['short'].path
-        with open(output_short_markdown_path, "w", encoding="utf-8") as f:
-            f.write(short_markdown)
+            # Combine the markdown chunks
+            full_markdown = "\n\n".join(full_markdown_chunks)
+            short_markdown = "\n\n".join(short_markdown_chunks)
+
+            # Persist FULL MARKDOWN to database
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.CONSOLIDATE_ASSUMPTIONS_FULL_MARKDOWN.value,
+                "stage": "consolidate_assumptions",
+                "content_type": "markdown",
+                "content": full_markdown,
+                "content_size_bytes": len(full_markdown.encode('utf-8'))
+            })
+
+            # Persist SHORT MARKDOWN to database
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.CONSOLIDATE_ASSUMPTIONS_SHORT_MARKDOWN.value,
+                "stage": "consolidate_assumptions",
+                "content_type": "markdown",
+                "content": short_markdown,
+                "content_size_bytes": len(short_markdown.encode('utf-8'))
+            })
+
+            # Write to filesystem (Luigi tracking)
+            output_full_markdown_path = self.output()['full'].path
+            with open(output_full_markdown_path, "w", encoding="utf-8") as f:
+                f.write(full_markdown)
+
+            output_short_markdown_path = self.output()['short'].path
+            with open(output_short_markdown_path, "w", encoding="utf-8") as f:
+                f.write(short_markdown)
+
+        except Exception as e:
+            logger.error(f"Error in ConsolidateAssumptionsMarkdownTask: {e}")
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class PreProjectAssessmentTask(PlanTask):
