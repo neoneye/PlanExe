@@ -120,14 +120,51 @@ RECOMMENDATION_GO_IF_FP0 = "GO_IF_FP0"
 RECOMMENDATION_PROCEED = "PROCEED_WITH_CAUTION"
 
 
-def _parse_model(model: type[BaseModel], payload: Any, *, field_name: str) -> BaseModel:
+def _coerce_payload_dict(payload: Any, *, expected_field: str, context: str) -> Dict[str, Any]:
+    """Best-effort conversion of various payload shapes into a dict containing `expected_field`."""
+
     try:
-        if isinstance(payload, model):
-            return payload
-        if isinstance(payload, str):
-            return model.model_validate_json(payload)
-        return model.model_validate(payload)
-    except (ValidationError, json.JSONDecodeError) as exc:  # pragma: no cover - json error handled by ValidationError
+        if isinstance(payload, BaseModel):
+            data = payload.model_dump()
+        elif isinstance(payload, (bytes, bytearray)):
+            data = json.loads(payload.decode("utf-8"))
+        elif isinstance(payload, str):
+            stripped = payload.strip()
+            if not stripped:
+                raise ValueError("empty string")
+            data = json.loads(stripped)
+        elif isinstance(payload, dict):
+            data = payload
+        else:
+            raise TypeError(f"Unsupported payload type: {type(payload)!r}")
+    except (TypeError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise ValueError(f"Failed to parse {context} payload as JSON.") from exc
+
+    # Some writers (older steps) may nest the useful content under a `response` key.
+    if expected_field not in data:
+        nested = data.get("response")
+        if isinstance(nested, dict) and expected_field in nested:
+            data = nested
+
+    if expected_field not in data:
+        raise ValueError(f"{context} payload missing '{expected_field}' field.")
+
+    return data
+
+
+def _parse_model(
+    model: type[BaseModel],
+    payload: Any,
+    *,
+    field_name: str,
+    expected_field: str,
+) -> BaseModel:
+    if isinstance(payload, model):
+        return payload
+    data = _coerce_payload_dict(payload, expected_field=expected_field, context=field_name)
+    try:
+        return model.model_validate(data)
+    except ValidationError as exc:
         raise ValueError(f"Invalid {field_name} payload for overall summary.") from exc
 
 
@@ -217,9 +254,24 @@ class OverallSummary:
     ) -> "OverallSummary":
         """Compute the viability roll-up using the deterministic Step 4 rules."""
 
-        pillars_model = _parse_model(PillarsPayload, pillars_payload, field_name="pillars")
-        blockers_model = _parse_model(BlockersPayload, blockers_payload, field_name="blockers")
-        fix_packs_model = _parse_model(FixPacksPayload, fix_packs_payload, field_name="fix_packs")
+        pillars_model = _parse_model(
+            PillarsPayload,
+            pillars_payload,
+            field_name="pillars",
+            expected_field="pillars",
+        )
+        blockers_model = _parse_model(
+            BlockersPayload,
+            blockers_payload,
+            field_name="blockers",
+            expected_field="blockers",
+        )
+        fix_packs_model = _parse_model(
+            FixPacksPayload,
+            fix_packs_payload,
+            field_name="fix_packs",
+            expected_field="fix_packs",
+        )
 
         if not pillars_model.pillars:
             raise ValueError("Pillars payload must include at least one pillar entry.")
