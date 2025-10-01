@@ -2997,37 +2997,50 @@ class RelatedResourcesTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input()['setup'].open("r") as f:
-            plan_prompt = f.read()
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
-            consolidate_assumptions_markdown = f.read()
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
-
-        # Build the query.
-        query = (
-            f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
-            f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}"
-        )
-
-        # Execute.
+        db_service = None
+        plan_id = self.get_plan_id()
         try:
+            db_service = self.get_database_service()
+            with self.input()['setup'].open("r") as f:
+                plan_prompt = f.read()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+                consolidate_assumptions_markdown = f.read()
+            with self.input()['project_plan']['raw'].open("r") as f:
+                project_plan_dict = json.load(f)
+            query = (
+                f"File 'initial-plan.txt':\n{plan_prompt}\n\n"
+                f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+                f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+                f"File 'assumptions.md':\n{consolidate_assumptions_markdown}\n\n"
+                f"File 'project-plan.json':\n{format_json_for_use_in_query(project_plan_dict)}"
+            )
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "related_resources", "prompt_text": query[:10000], "status": "pending"}).id
+            import time
+            start_time = time.time()
             related_resources = RelatedResources.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            response_dict = related_resources.to_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(response_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.RELATED_RESOURCES_RAW.value, "stage": "related_resources", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            markdown_content = related_resources.markdown
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.RELATED_RESOURCES_MARKDOWN.value, "stage": "related_resources", "content_type": "markdown", "content": markdown_content, "content_size_bytes": len(markdown_content.encode('utf-8'))})
+            related_resources.save_raw(self.output()['raw'].path)
+            related_resources.save_markdown(self.output()['markdown'].path)
         except Exception as e:
-            logger.error("SimilarProjects failed: %s", e)
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception as db_error:
+                    logger.error(f"Failed to update interaction status: {db_error}")
             raise
-
-        # Save the results.
-        related_resources.save_raw(self.output()['raw'].path)
-        related_resources.save_markdown(self.output()['markdown'].path)
+        finally:
+            if db_service:
+                db_service.close()
 
 class FindTeamMembersTask(PlanTask):
     def requires(self):
