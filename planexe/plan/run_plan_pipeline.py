@@ -4343,80 +4343,56 @@ class EstimateTaskDurationsTask(PlanTask):
         }
     
     def run_inner(self):
-        llm_executor: LLMExecutor = self.create_llm_executor()
-
-        logger.info("Estimating task durations...")
-        
-        # Load the project plan JSON.
-        with self.input()['project_plan']['raw'].open("r") as f:
-            project_plan_dict = json.load(f)
-
-        with self.input()['wbs_project'].open("r") as f:
-            wbs_project_dict = json.load(f)
-        wbs_project = WBSProject.from_dict(wbs_project_dict)
-
-        # json'ish representation of the major phases in the WBS, and their subtasks.
-        root_task = wbs_project.root_task
-        major_tasks = [child.to_dict() for child in root_task.task_children]
-        major_phases_with_subtasks = major_tasks
-
-        # Don't include uuid of the root task. It's the child tasks that are of interest to estimate.
-        decompose_task_id_list = []
-        for task in wbs_project.root_task.task_children:
-            decompose_task_id_list.extend(task.task_ids())
-
-        logger.info(f"There are {len(decompose_task_id_list)} tasks to be estimated.")
-        
-        # Split the task IDs into chunks of 3.
-        task_ids_chunks = [decompose_task_id_list[i:i + 3] for i in range(0, len(decompose_task_id_list), 3)]
-        
-        # In production mode, all chunks are processed.
-        # In developer mode, truncate to only 2 chunks for fast turnaround cycle. Otherwise LOTS of tasks are to be estimated.
-        logger.info(f"EstimateTaskDurationsTask.speedvsdetail: {self.speedvsdetail}")
-        if self.speedvsdetail == SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS:
-            logger.info("FAST_BUT_SKIP_DETAILS mode, truncating to 2 chunks for testing.")
-            task_ids_chunks = task_ids_chunks[:2]
-        else:
-            logger.info("Processing all chunks.")
-
-        # Process each chunk.
-        accumulated_task_duration_list = []
-        for index, task_ids_chunk in enumerate(task_ids_chunks, start=1):
-            logger.info("Processing chunk %d of %d", index, len(task_ids_chunks))
-            
-            query = EstimateWBSTaskDurations.format_query(
-                project_plan_dict,
-                major_phases_with_subtasks,
-                task_ids_chunk
-            )
-            
-            # IDEA: If the chunk file already exist, then there is no need to run the LLM again.
-            def execute_estimate_task_durations(llm: LLM) -> EstimateWBSTaskDurations:
-                return EstimateWBSTaskDurations.execute(llm, query)
-
-            try:
-                estimate_durations = llm_executor.run(execute_estimate_task_durations)
-            except PipelineStopRequested:
-                # Re-raise PipelineStopRequested without wrapping it
-                raise
-            except Exception as e:
-                logger.error(f"Task durations chunk {index} LLM interaction failed.", exc_info=True)
-                raise ValueError(f"Task durations chunk {index} LLM interaction failed.") from e
-
-            durations_raw_dict = estimate_durations.raw_response_dict()
-            
-            # Write the raw JSON for this chunk.
-            filename = FilenameEnum.TASK_DURATIONS_RAW_TEMPLATE.format(index)
-            raw_chunk_path = self.run_id_dir / filename
-            with open(raw_chunk_path, "w") as f:
-                json.dump(durations_raw_dict, f, indent=2)
-            
-            accumulated_task_duration_list.extend(durations_raw_dict.get('task_details', []))
-        
-        # Write the aggregated task durations.
-        aggregated_path = self.file_path(FilenameEnum.TASK_DURATIONS)
-        with open(aggregated_path, "w") as f:
-            json.dump(accumulated_task_duration_list, f, indent=2)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            llm_executor: LLMExecutor = self.create_llm_executor()
+            with self.input()['project_plan']['raw'].open("r") as f:
+                project_plan_dict = json.load(f)
+            with self.input()['wbs_project'].open("r") as f:
+                wbs_project_dict = json.load(f)
+            wbs_project = WBSProject.from_dict(wbs_project_dict)
+            root_task = wbs_project.root_task
+            major_phases_with_subtasks = [child.to_dict() for child in root_task.task_children]
+            decompose_task_id_list = []
+            for task in wbs_project.root_task.task_children:
+                decompose_task_id_list.extend(task.task_ids())
+            task_ids_chunks = [decompose_task_id_list[i:i + 3] for i in range(0, len(decompose_task_id_list), 3)]
+            if self.speedvsdetail == SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS:
+                task_ids_chunks = task_ids_chunks[:2]
+            accumulated_task_duration_list = []
+            for index, task_ids_chunk in enumerate(task_ids_chunks, start=1):
+                query = EstimateWBSTaskDurations.format_query(project_plan_dict, major_phases_with_subtasks, task_ids_chunk)
+                interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": f"estimate_durations_{index}", "prompt_text": query[:10000], "status": "pending"}).id
+                def execute_estimate_task_durations(llm: LLM) -> EstimateWBSTaskDurations:
+                    return EstimateWBSTaskDurations.execute(llm, query)
+                start_time = time.time()
+                try:
+                    estimate_durations = llm_executor.run(execute_estimate_task_durations)
+                    duration_seconds = time.time() - start_time
+                    durations_raw_dict = estimate_durations.raw_response_dict()
+                    db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(durations_raw_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+                    raw_content = json.dumps(durations_raw_dict, indent=2)
+                    filename = FilenameEnum.TASK_DURATIONS_RAW_TEMPLATE.format(index)
+                    db_service.create_plan_content({"plan_id": plan_id, "filename": filename, "stage": f"estimate_durations_{index}", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+                    with open(self.run_id_dir / filename, "w") as f:
+                        json.dump(durations_raw_dict, f, indent=2)
+                    accumulated_task_duration_list.extend(durations_raw_dict.get('task_details', []))
+                except PipelineStopRequested:
+                    raise
+                except Exception as e:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                    raise ValueError(f"Task durations chunk {index} LLM interaction failed.") from e
+            aggregated_content = json.dumps(accumulated_task_duration_list, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.TASK_DURATIONS.value, "stage": "estimate_durations_aggregated", "content_type": "json", "content": aggregated_content, "content_size_bytes": len(aggregated_content.encode('utf-8'))})
+            with open(self.file_path(FilenameEnum.TASK_DURATIONS), "w") as f:
+                json.dump(accumulated_task_duration_list, f, indent=2)
+        except Exception as e:
+            raise
+        finally:
+            if db_service:
+                db_service.close()
         
         logger.info("Task durations estimated and aggregated results written to %s", aggregated_path)
 
