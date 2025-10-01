@@ -4177,40 +4177,43 @@ class CreatePitchTask(PlanTask):
         }
     
     def run_with_llm(self, llm: LLM) -> None:
-        # Read the project plan JSON.
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()
-        
-        with self.input()['wbs_project'].open("r") as f:
-            wbs_project_dict = json.load(f)
-        wbs_project = WBSProject.from_dict(wbs_project_dict)
-        wbs_project_json = wbs_project.to_dict()
-
-        with self.input()['related_resources']['markdown'].open("r") as f:
-            related_resources_markdown = f.read()
-        
-        # Build the query
-        query = (
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'project_plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'Work Breakdown Structure.json':\n{format_json_for_use_in_query(wbs_project_json)}\n\n"
-            f"File 'similar_projects.md':\n{related_resources_markdown}"
-        )
-        
-        # Execute the pitch creation.
-        create_pitch = CreatePitch.execute(llm, query)
-        pitch_dict = create_pitch.raw_response_dict()
-        
-        # Write the resulting pitch JSON to the output file.
-        with self.output().open("w") as f:
-            json.dump(pitch_dict, f, indent=2)
-        
-        logger.info("Pitch created and written to %s", self.output().path)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['wbs_project'].open("r") as f:
+                wbs_project_dict = json.load(f)
+            wbs_project = WBSProject.from_dict(wbs_project_dict)
+            wbs_project_json = wbs_project.to_dict()
+            with self.input()['related_resources']['markdown'].open("r") as f:
+                related_resources_markdown = f.read()
+            query = (f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\nFile 'scenarios.md':\n{scenarios_markdown}\n\nFile 'project_plan.md':\n{project_plan_markdown}\n\nFile 'Work Breakdown Structure.json':\n{format_json_for_use_in_query(wbs_project_json)}\n\nFile 'similar_projects.md':\n{related_resources_markdown}")
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "create_pitch", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
+            create_pitch = CreatePitch.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            pitch_dict = create_pitch.raw_response_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(pitch_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            pitch_content = json.dumps(pitch_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.PITCH_RAW.value, "stage": "create_pitch", "content_type": "json", "content": pitch_content, "content_size_bytes": len(pitch_content.encode('utf-8'))})
+            with self.output().open("w") as f:
+                json.dump(pitch_dict, f, indent=2)
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class ConvertPitchToMarkdownTask(PlanTask):
     """
@@ -4231,21 +4234,35 @@ class ConvertPitchToMarkdownTask(PlanTask):
         }
     
     def run_with_llm(self, llm: LLM) -> None:
-        # Read the project plan JSON.
-        with self.input()['pitch'].open("r") as f:
-            pitch_json = json.load(f)
-        
-        # Build the query
-        query = format_json_for_use_in_query(pitch_json)
-        
-        # Execute the conversion.
-        converted = ConvertPitchToMarkdown.execute(llm, query)
-
-        # Save the results.
-        json_path = self.output()['raw'].path
-        converted.save_raw(json_path)
-        markdown_path = self.output()['markdown'].path
-        converted.save_markdown(markdown_path)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            with self.input()['pitch'].open("r") as f:
+                pitch_json = json.load(f)
+            query = format_json_for_use_in_query(pitch_json)
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "convert_pitch_markdown", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
+            converted = ConvertPitchToMarkdown.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            raw_dict = converted.to_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(raw_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            raw_content = json.dumps(raw_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.PITCH_CONVERT_TO_MARKDOWN_RAW.value, "stage": "convert_pitch_markdown", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            markdown_content = converted.to_markdown()
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.PITCH_MARKDOWN.value, "stage": "convert_pitch_markdown", "content_type": "markdown", "content": markdown_content, "content_size_bytes": len(markdown_content.encode('utf-8'))})
+            converted.save_raw(self.output()['raw'].path)
+            converted.save_markdown(self.output()['markdown'].path)
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 
 class IdentifyTaskDependenciesTask(PlanTask):
