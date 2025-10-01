@@ -4078,41 +4078,45 @@ class CreateWBSLevel2Task(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        logger.info("Creating Work Breakdown Structure (WBS) Level 2...")
-
-        # Read inputs from required tasks.
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()        
-        with self.input()['data_collection']['markdown'].open("r") as f:
-            data_collection_markdown = f.read()
-        with self.input()['wbs_level1']['clean'].open("r") as f:
-            wbs_level1_result_json = json.load(f)
-        
-        query = (
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'project_plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'WBS Level 1.json':\n{format_json_for_use_in_query(wbs_level1_result_json)}\n\n"
-            f"File 'data_collection.md':\n{data_collection_markdown}"
-        )
-        
-        # Execute the WBS Level 2 creation.
-        create_wbs_level2 = CreateWBSLevel2.execute(llm, query)
-        
-        # Retrieve and write the raw output.
-        wbs_level2_raw_dict = create_wbs_level2.raw_response_dict()
-        with self.output()['raw'].open("w") as f:
-            json.dump(wbs_level2_raw_dict, f, indent=2)
-        
-        # Retrieve and write the cleaned output (e.g. major phases with subtasks).
-        with self.output()['clean'].open("w") as f:
-            json.dump(create_wbs_level2.major_phases_with_subtasks, f, indent=2)
-        
-        logger.info("WBS Level 2 created successfully.")
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['data_collection']['markdown'].open("r") as f:
+                data_collection_markdown = f.read()
+            with self.input()['wbs_level1']['clean'].open("r") as f:
+                wbs_level1_result_json = json.load(f)
+            query = (f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\nFile 'scenarios.md':\n{scenarios_markdown}\n\nFile 'project_plan.md':\n{project_plan_markdown}\n\nFile 'WBS Level 1.json':\n{format_json_for_use_in_query(wbs_level1_result_json)}\n\nFile 'data_collection.md':\n{data_collection_markdown}")
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "wbs_level2", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
+            create_wbs_level2 = CreateWBSLevel2.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            wbs_level2_raw_dict = create_wbs_level2.raw_response_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(wbs_level2_raw_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            raw_content = json.dumps(wbs_level2_raw_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.WBS_LEVEL2_RAW.value, "stage": "wbs_level2", "content_type": "json", "content": raw_content, "content_size_bytes": len(raw_content.encode('utf-8'))})
+            clean_content = json.dumps(create_wbs_level2.major_phases_with_subtasks, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.WBS_LEVEL2.value, "stage": "wbs_level2", "content_type": "json", "content": clean_content, "content_size_bytes": len(clean_content.encode('utf-8'))})
+            with self.output()['raw'].open("w") as f:
+                json.dump(wbs_level2_raw_dict, f, indent=2)
+            with self.output()['clean'].open("w") as f:
+                json.dump(create_wbs_level2.major_phases_with_subtasks, f, indent=2)
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class WBSProjectLevel1AndLevel2Task(PlanTask):
     """
@@ -4132,14 +4136,23 @@ class WBSProjectLevel1AndLevel2Task(PlanTask):
         }
     
     def run_inner(self):
-        wbs_level1_path = self.input()['wbs_level1']['clean'].path
-        wbs_level2_path = self.input()['wbs_level2']['clean'].path
-        wbs_project = WBSPopulate.project_from_level1_json(wbs_level1_path)
-        WBSPopulate.extend_project_with_level2_json(wbs_project, wbs_level2_path)
-
-        json_representation = json.dumps(wbs_project.to_dict(), indent=2)
-        with self.output().open("w") as f:
-            f.write(json_representation)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            wbs_level1_path = self.input()['wbs_level1']['clean'].path
+            wbs_level2_path = self.input()['wbs_level2']['clean'].path
+            wbs_project = WBSPopulate.project_from_level1_json(wbs_level1_path)
+            WBSPopulate.extend_project_with_level2_json(wbs_project, wbs_level2_path)
+            json_representation = json.dumps(wbs_project.to_dict(), indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.WBS_PROJECT_LEVEL1_AND_LEVEL2.value, "stage": "wbs_project", "content_type": "json", "content": json_representation, "content_size_bytes": len(json_representation.encode('utf-8'))})
+            with self.output().open("w") as f:
+                f.write(json_representation)
+        except Exception as e:
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class CreatePitchTask(PlanTask):
     """
