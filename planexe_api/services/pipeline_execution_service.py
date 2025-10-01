@@ -187,6 +187,14 @@ class PipelineExecutionService:
                 environment[key] = value
                 print(f"DEBUG ENV: Explicitly set {key} in subprocess environment")
 
+        # CRITICAL: Add DATABASE_URL for Luigi database writes
+        database_url = os.environ.get("DATABASE_URL")
+        if database_url:
+            environment["DATABASE_URL"] = database_url
+            print(f"DEBUG ENV: Explicitly set DATABASE_URL in subprocess environment")
+        else:
+            print(f"WARNING ENV: DATABASE_URL not found in environment - Luigi will use SQLite fallback")
+
         print(f"DEBUG ENV: Pipeline environment configured with {len(environment)} variables")
         return environment
 
