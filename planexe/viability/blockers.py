@@ -24,6 +24,7 @@ from llama_index.core.llms.llm import LLM
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from planexe.markdown_util.fix_bullet_lists import fix_bullet_lists
+from planexe.viability.model_status import StatusEnum
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +39,10 @@ class Blocker(BaseModel):
     rom: Optional[Dict[str, Any]] = Field(default=None, description="ROM estimate: {'cost_band': 'LOW|MEDIUM|HIGH', 'eta_days': int}.")
 
 class BlockersOutput(BaseModel):
-    source_pillars: List[str] = Field(description="Array of pillar names that are YELLOW, RED, or GRAY.")
+    source_pillars: List[str] = Field(description=f"Array of pillar names that are {StatusEnum.YELLOW.value}, {StatusEnum.RED.value}, or {StatusEnum.GRAY.value}.")
     blockers: List[Blocker] = Field(description="3-5 blockers derived from source_pillars.")
 
 PILLAR_ENUM = ["HumanStability", "EconomicResilience", "EcologicalIntegrity", "Rights_Legality"]
-STATUS_ENUM = ["GREEN", "YELLOW", "RED", "GRAY"]
 REASON_CODE_ENUM = [
     # Budget/Finance
     "CONTINGENCY_LOW", "SINGLE_CUSTOMER", "ALT_COST_UNKNOWN",
@@ -83,7 +83,7 @@ The JSON object must include exactly the following keys:
 }}
 
 Instructions:
-- source_pillars: List only pillars from the input assessment where status is YELLOW, RED, or GRAY. Use exact names from PILLAR_ENUM: {', '.join(PILLAR_ENUM)}.
+- source_pillars: List only pillars from the input assessment where status is {StatusEnum.YELLOW.value}, {StatusEnum.RED.value}, or {StatusEnum.GRAY.value}. Use exact names from PILLAR_ENUM: {', '.join(PILLAR_ENUM)}.
 - blockers: Derive 3-5 blockers total (cap at 5) only from source_pillars. Distribute across pillars logically. For each:
   - id: Sequential like "B1", "B2", etc.
   - pillar: Match one from source_pillars.
