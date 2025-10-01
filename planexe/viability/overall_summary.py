@@ -6,7 +6,7 @@ It consumes the structured outputs from the previous viability steps
 (`PillarsAssessment`, `Blockers`, `FixPack`) and emits a concise verdict that can
 be serialized to JSON and markdown.
 
-PROMPT> python -u -m planexe.viability.overall_summary1 | tee output1.txt
+PROMPT> python -u -m planexe.viability.overall_summary | tee output.txt
 """
 
 from __future__ import annotations

@@ -73,10 +73,10 @@ from planexe.team.enrich_team_members_with_background_story import EnrichTeamMem
 from planexe.team.enrich_team_members_with_environment_info import EnrichTeamMembersWithEnvironmentInfo
 from planexe.team.team_markdown_document import TeamMarkdownDocumentBuilder
 from planexe.team.review_team import ReviewTeam
-from planexe.viability.overall_summary1 import OverallSummary
+from planexe.viability.overall_summary import OverallSummary
 from planexe.viability.pillars_assessment import PillarsAssessment
 from planexe.viability.blockers import Blockers
-from planexe.viability.fixpack1 import FixPack
+from planexe.viability.fixpack import FixPack
 from planexe.wbs.wbs_task import WBSTask, WBSProject
 from planexe.wbs.wbs_populate import WBSPopulate
 from planexe.wbs.wbs_task_tooltip import WBSTaskTooltip

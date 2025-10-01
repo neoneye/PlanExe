@@ -7,7 +7,7 @@ that bundle blockers into execution-ready clusters. FP0 is always reserved for
 the pre-commit gate containing the blockers that must be resolved before
 proceeding.
 
-PROMPT> python -u -m planexe.viability.fixpack1 | tee output1.txt
+PROMPT> python -u -m planexe.viability.fixpack | tee output.txt
 """
 from __future__ import annotations
 
