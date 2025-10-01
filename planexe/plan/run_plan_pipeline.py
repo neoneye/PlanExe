@@ -278,6 +278,13 @@ class SetupTask(PlanTask):
 
 
 class RedlineGateTask(PlanTask):
+    """
+    First real LLM task in the pipeline - moral compass safety check.
+
+    DATABASE INTEGRATION: Option 1 (Database-First Architecture)
+    This task persists content to database DURING execution, not after completion.
+    Files are still written to filesystem for Luigi dependency tracking.
+    """
     def requires(self):
         return self.clone(SetupTask)
 
@@ -288,17 +295,104 @@ class RedlineGateTask(PlanTask):
         }
 
     def run_with_llm(self, llm: LLM) -> None:
-        # Read inputs from required tasks.
-        with self.input().open("r") as f:
-            plan_prompt = f.read()
+        # Get database service and plan ID (Phase 1.1)
+        db_service = None
+        plan_id = self.get_plan_id()
 
-        redline_gate = RedlineGate.execute(llm, plan_prompt)
+        try:
+            db_service = self.get_database_service()
 
-        # Write the result to disk.
-        output_raw_path = self.output()['raw'].path
-        redline_gate.save_raw(output_raw_path)
-        output_markdown_path = self.output()['markdown'].path
-        redline_gate.save_markdown(output_markdown_path)
+            # Read inputs from required tasks
+            with self.input().open("r") as f:
+                plan_prompt = f.read()
+
+            # Track LLM interaction START (Phase 1.2)
+            interaction_id = db_service.create_llm_interaction({
+                "plan_id": plan_id,
+                "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
+                "stage": "redline_gate",
+                "prompt_text": plan_prompt,
+                "status": "pending"
+            }).id
+
+            logger.info(f"RedlineGateTask: Created LLM interaction {interaction_id} for plan {plan_id}")
+
+            # Execute LLM call
+            import time
+            start_time = time.time()
+            redline_gate = RedlineGate.execute(llm, plan_prompt)
+            duration_seconds = time.time() - start_time
+
+            # Update LLM interaction COMPLETE (Phase 1.2)
+            response_dict = redline_gate.to_dict()
+            db_service.update_llm_interaction(interaction_id, {
+                "status": "completed",
+                "response_text": json.dumps(response_dict),
+                "completed_at": datetime.utcnow(),
+                "duration_seconds": duration_seconds,
+                # Note: Token counts not available from RedlineGate.execute() - would need LLMExecutor integration
+                "input_tokens": None,
+                "output_tokens": None,
+                "total_tokens": None
+            })
+
+            logger.info(f"RedlineGateTask: Updated LLM interaction {interaction_id} to completed ({duration_seconds:.2f}s)")
+
+            # Persist RAW content to database (PRIMARY storage - Phase 1.3)
+            raw_content = json.dumps(response_dict, indent=2)
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.REDLINE_GATE_RAW.value,
+                "stage": "redline_gate",
+                "content_type": "json",
+                "content": raw_content,
+                "content_size_bytes": len(raw_content.encode('utf-8'))
+            })
+
+            logger.info(f"RedlineGateTask: Persisted RAW to database ({len(raw_content)} bytes)")
+
+            # Persist MARKDOWN content to database (PRIMARY storage - Phase 1.3)
+            markdown_content = redline_gate.markdown
+            db_service.create_plan_content({
+                "plan_id": plan_id,
+                "filename": FilenameEnum.REDLINE_GATE_MARKDOWN.value,
+                "stage": "redline_gate",
+                "content_type": "markdown",
+                "content": markdown_content,
+                "content_size_bytes": len(markdown_content.encode('utf-8'))
+            })
+
+            logger.info(f"RedlineGateTask: Persisted MARKDOWN to database ({len(markdown_content)} bytes)")
+
+            # Write to filesystem (SECONDARY storage for Luigi dependency tracking)
+            output_raw_path = self.output()['raw'].path
+            redline_gate.save_raw(output_raw_path)
+            output_markdown_path = self.output()['markdown'].path
+            redline_gate.save_markdown(output_markdown_path)
+
+            logger.info(f"RedlineGateTask: Wrote files to filesystem for Luigi tracking")
+
+        except Exception as e:
+            # Track LLM interaction FAILURE if it was created
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {
+                        "status": "failed",
+                        "error_message": str(e),
+                        "completed_at": datetime.utcnow()
+                    })
+                    logger.error(f"RedlineGateTask: Marked LLM interaction {interaction_id} as failed")
+                except Exception as db_error:
+                    logger.error(f"RedlineGateTask: Failed to update interaction status: {db_error}")
+
+            logger.error(f"RedlineGateTask: Execution failed for plan {plan_id}: {e}")
+            raise
+
+        finally:
+            # Clean up database connection
+            if db_service:
+                db_service.close()
+                logger.debug(f"RedlineGateTask: Closed database connection")
 
 
 class PremiseAttackTask(PlanTask):
