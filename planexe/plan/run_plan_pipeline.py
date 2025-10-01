@@ -5149,8 +5149,7 @@ class ExecutePipeline:
         full_plan_pipeline_task = FullPlanPipeline(
             run_id_dir=self.run_id_dir, 
             speedvsdetail=self.speedvsdetail, 
-            llm_models=self.llm_models, 
-            _pipeline_executor_callback=self.callback_run_task
+            llm_models=self.llm_models
         )
         self.full_plan_pipeline_task = full_plan_pipeline_task
 
