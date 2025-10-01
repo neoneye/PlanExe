@@ -4282,38 +4282,41 @@ class IdentifyTaskDependenciesTask(PlanTask):
         }
     
     def run_with_llm(self, llm: LLM) -> None:
-        logger.info("Identifying task dependencies...")
-        
-        # Read inputs from required tasks.
-        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
-            strategic_decisions_markdown = f.read()
-        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
-            scenarios_markdown = f.read()
-        with self.input()['project_plan']['markdown'].open("r") as f:
-            project_plan_markdown = f.read()        
-        with self.input()['data_collection']['markdown'].open("r") as f:
-            data_collection_markdown = f.read()
-        with self.input()['wbs_level2']['clean'].open("r") as f:
-            major_phases_with_subtasks = json.load(f)
-        
-        # Build the query
-        query = (
-            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
-            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
-            f"File 'project_plan.md':\n{project_plan_markdown}\n\n"
-            f"File 'Work Breakdown Structure.json':\n{format_json_for_use_in_query(major_phases_with_subtasks)}\n\n"
-            f"File 'data_collection.md':\n{data_collection_markdown}"
-        )
-        
-        # Execute the dependency identification.
-        identify_dependencies = IdentifyWBSTaskDependencies.execute(llm, query)
-        dependencies_raw_dict = identify_dependencies.raw_response_dict()
-        
-        # Write the raw dependencies JSON to the output file.
-        with self.output().open("w") as f:
-            json.dump(dependencies_raw_dict, f, indent=2)
-        
-        logger.info("Task dependencies identified and written to %s", self.output().path)
+        db_service = None
+        plan_id = self.get_plan_id()
+        try:
+            db_service = self.get_database_service()
+            with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+                strategic_decisions_markdown = f.read()
+            with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+                scenarios_markdown = f.read()
+            with self.input()['project_plan']['markdown'].open("r") as f:
+                project_plan_markdown = f.read()
+            with self.input()['data_collection']['markdown'].open("r") as f:
+                data_collection_markdown = f.read()
+            with self.input()['wbs_level2']['clean'].open("r") as f:
+                major_phases_with_subtasks = json.load(f)
+            query = (f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\nFile 'scenarios.md':\n{scenarios_markdown}\n\nFile 'project_plan.md':\n{project_plan_markdown}\n\nFile 'Work Breakdown Structure.json':\n{format_json_for_use_in_query(major_phases_with_subtasks)}\n\nFile 'data_collection.md':\n{data_collection_markdown}")
+            interaction_id = db_service.create_llm_interaction({"plan_id": plan_id, "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown", "stage": "task_dependencies", "prompt_text": query[:10000], "status": "pending"}).id
+            start_time = time.time()
+            identify_dependencies = IdentifyWBSTaskDependencies.execute(llm, query)
+            duration_seconds = time.time() - start_time
+            dependencies_raw_dict = identify_dependencies.raw_response_dict()
+            db_service.update_llm_interaction(interaction_id, {"status": "completed", "response_text": json.dumps(dependencies_raw_dict), "completed_at": datetime.utcnow(), "duration_seconds": duration_seconds})
+            dependencies_content = json.dumps(dependencies_raw_dict, indent=2)
+            db_service.create_plan_content({"plan_id": plan_id, "filename": FilenameEnum.TASK_DEPENDENCIES_RAW.value, "stage": "task_dependencies", "content_type": "json", "content": dependencies_content, "content_size_bytes": len(dependencies_content.encode('utf-8'))})
+            with self.output().open("w") as f:
+                json.dump(dependencies_raw_dict, f, indent=2)
+        except Exception as e:
+            if db_service and 'interaction_id' in locals():
+                try:
+                    db_service.update_llm_interaction(interaction_id, {"status": "failed", "error_message": str(e), "completed_at": datetime.utcnow()})
+                except Exception:
+                    pass
+            raise
+        finally:
+            if db_service:
+                db_service.close()
 
 class EstimateTaskDurationsTask(PlanTask):
     """
