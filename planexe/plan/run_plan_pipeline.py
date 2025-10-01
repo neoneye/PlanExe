@@ -190,6 +190,10 @@ class PlanTask(luigi.Task):
         """
         Don't override this method. Instead either override the run_inner() method, or override the run_with_llm() method.
         """
+        # DIAGNOSTIC: Log when ANY task run() is called
+        logger.error(f"🔥 {self.__class__.__name__}.run() CALLED - Luigi worker IS running!")
+        print(f"🔥 {self.__class__.__name__}.run() CALLED - Luigi worker IS running!")
+
         try:
             self.run_inner()
         except PipelineStopRequested as e:
@@ -203,6 +207,8 @@ class PlanTask(luigi.Task):
             raise
         except Exception as e:
             # Re-raise the exception with a more descriptive message
+            logger.error(f"🔥 {self.__class__.__name__}.run() FAILED: {e}")
+            print(f"🔥 {self.__class__.__name__}.run() FAILED: {e}")
             raise Exception(f"Failed to run {self.__class__.__name__} with any of the LLMs in the list: {self.llm_models!r} for run_id_dir: {self.run_id_dir!r}") from e
 
     def run_inner(self):
@@ -5269,8 +5275,30 @@ class ExecutePipeline:
         # DIAGNOSTIC: Log before Luigi build starts
         logger.error(f"🔥 About to call luigi.build() with workers=1")
         print(f"🔥 About to call luigi.build() with workers=1")
+        print(f"🔥 Luigi will build task: {self.full_plan_pipeline_task}")
+        print(f"🔥 Task parameters: run_id_dir={self.run_id_dir}, speedvsdetail={self.speedvsdetail}, llm_models={self.llm_models}")
 
-        self.luigi_build_return_value = luigi.build([self.full_plan_pipeline_task], local_scheduler=True, workers=1)
+        # Enable Luigi's detailed logging
+        import logging as stdlib_logging
+        luigi_logger = stdlib_logging.getLogger('luigi')
+        luigi_logger.setLevel(stdlib_logging.INFO)
+        print(f"🔥 Enabled Luigi INFO logging")
+
+        # Call luigi.build() with detailed logging
+        try:
+            print(f"🔥 Calling luigi.build() NOW...")
+            self.luigi_build_return_value = luigi.build(
+                [self.full_plan_pipeline_task],
+                local_scheduler=True,
+                workers=1,
+                log_level='INFO',  # Enable Luigi's own verbose logging
+                detailed_summary=True  # Show detailed task summary
+            )
+            print(f"🔥 luigi.build() returned!")
+        except Exception as e:
+            logger.error(f"🔥 luigi.build() raised exception: {type(e).__name__}: {e}")
+            print(f"🔥 luigi.build() raised exception: {type(e).__name__}: {e}")
+            raise
 
         # DIAGNOSTIC: Log Luigi build completion
         logger.error(f"🔥 luigi.build() COMPLETED with return value: {self.luigi_build_return_value}")
