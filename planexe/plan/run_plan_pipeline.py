@@ -5277,6 +5277,22 @@ class ExecutePipeline:
             workers = max(1, int(workers_env)) if workers_env else 1
         except Exception:
             workers = 1
+        # CRITICAL DIAGNOSTIC: Check if FastAPI cleanup actually ran
+        cleanup_marker = self.run_id_dir / "CLEANUP_RAN.txt"
+        if cleanup_marker.exists():
+            logger.error(f"🔥✅ CLEANUP_RAN.txt EXISTS - FastAPI cleanup executed successfully")
+            print(f"🔥✅ CLEANUP_RAN.txt EXISTS - FastAPI cleanup executed successfully")
+            with open(cleanup_marker, "r") as f:
+                logger.error(f"🔥 Marker contents: {f.read()}")
+        else:
+            logger.error(f"🔥❌ CLEANUP_RAN.txt MISSING - FastAPI cleanup DID NOT RUN!")
+            print(f"🔥❌ CLEANUP_RAN.txt MISSING - FastAPI cleanup DID NOT RUN!")
+        
+        # Check how many files exist in run_id_dir
+        existing_files = list(self.run_id_dir.iterdir())
+        logger.error(f"🔥 Files in run_id_dir: {len(existing_files)} files")
+        print(f"🔥 Files in run_id_dir: {len(existing_files)} files: {[f.name for f in existing_files[:10]]}")
+        
         logger.error(f"🔥 About to call luigi.build() with workers={workers}")
         print(f"🔥 About to call luigi.build() with workers={workers}")
         print(f"🔥 Luigi will build task: {self.full_plan_pipeline_task}")
