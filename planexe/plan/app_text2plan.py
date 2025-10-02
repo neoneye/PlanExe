@@ -16,6 +16,10 @@ import logging
 import json
 from dataclasses import dataclass
 from math import ceil
+from dotenv import load_dotenv
+
+# Load .env file for local development (Railway injects env vars directly)
+load_dotenv()
 from planexe.llm_factory import LLMInfo, OllamaStatus
 from planexe.plan.generate_run_id import generate_run_id, RUN_ID_PREFIX
 from planexe.plan.create_zip_archive import create_zip_archive
