@@ -4,6 +4,8 @@
 **Date:** 2025-09-22
 **PURPOSE:** Replace the broken complex LLM system with simple OpenAI client approach
 
+THIS IS THE LAST TIME WE KNOW THE CALLS WORKED!!
+
 ## 🚨 **Current Problem**
 
 The Luigi pipeline is failing with:
@@ -17,7 +19,8 @@ Root cause: The current system uses complex llama-index imports and dynamic clas
 
 Replace the entire complex LLM system with a simple OpenAI client that supports:
 
-1. **gpt-5-mini-2025-08-07** (Primary - OpenAI Direct)
+1. **gpt-5-nano-2025-08-07** (Primary - OpenAI Direct)
+1. **gpt-4.1-nano-2025-04-14** (Secondary - OpenAI Direct)
 2. **google/gemini-2.0-flash-001** (Fallback 1 - OpenRouter)
 3. **google/gemini-2.5-flash** (Fallback 2 - OpenRouter)
 
