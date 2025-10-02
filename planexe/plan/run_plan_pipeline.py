@@ -5330,7 +5330,6 @@ class ExecutePipeline:
                 workers=workers,  # workers from LUIGI_WORKERS env (>=1), default 1 for reliability
                 log_level='DEBUG',  # Changed to DEBUG for more visibility
                 detailed_summary=True,  # Show detailed task summary
-                worker_timeout=60  # Kill stuck workers after 60s
             )
             print(f"🔥 luigi.build() returned!")
             print(f"🔥 Active threads after luigi.build(): {threading.active_count()}")
