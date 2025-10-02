@@ -205,12 +205,18 @@ class PipelineExecutionService:
         # This was causing the production issue where Luigi would hang without executing tasks
         import shutil
         import os as os_module
+        import logging
+        logger = logging.getLogger(__name__)
         
+        # Use logger.error() to ensure these messages appear in Railway logs (print() gets lost)
+        logger.error(f"🔥🔥🔥 _write_pipeline_inputs() CALLED for: {run_id_dir}")
+        logger.error(f"🔥🔥🔥 Directory exists? {run_id_dir.exists()}")
         print(f"🔥 _write_pipeline_inputs() called for run_id_dir: {run_id_dir}")
         print(f"🔥 run_id_dir.exists() = {run_id_dir.exists()}")
         
         if run_id_dir.exists():
             existing_files = list(run_id_dir.iterdir())
+            logger.error(f"🔥🔥🔥 Directory EXISTS with {len(existing_files)} files - WILL DELETE!")
             print(f"🔥 CRITICAL: Run directory EXISTS with {len(existing_files)} files!")
             if len(existing_files) > 0:
                 print(f"🔥 First 10 files: {[f.name for f in existing_files[:10]]}")
@@ -218,15 +224,20 @@ class PipelineExecutionService:
             print(f"🔥 DELETING entire run directory: {run_id_dir}")
             try:
                 shutil.rmtree(run_id_dir)
+                logger.error(f"🔥🔥🔥 Directory DELETED successfully")
                 print(f"🔥 ✅ Run directory DELETED successfully")
             except Exception as e:
+                logger.error(f"🔥🔥🔥 ERROR deleting directory: {e}")
                 print(f"🔥 ❌ ERROR deleting run directory: {e}")
                 raise
         else:
+            logger.error(f"🔥🔥🔥 Directory does NOT exist (fresh plan)")
             print(f"🔥 Run directory does NOT exist (fresh plan)")
         
+        logger.error(f"🔥🔥🔥 Creating directory: {run_id_dir}")
         print(f"🔥 Creating clean run directory: {run_id_dir}")
         run_id_dir.mkdir(parents=True, exist_ok=True)
+        logger.error(f"🔥🔥🔥 Directory created - writing input files...")
         print(f"🔥 ✅ Run directory created successfully")
 
         # Write start time
