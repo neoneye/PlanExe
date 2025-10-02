@@ -5340,12 +5340,16 @@ class ExecutePipeline:
             timeout_thread = threading.Thread(target=timeout_monitor, name="TimeoutMonitor", daemon=True)
             timeout_thread.start()
             
+            # CRITICAL FIX: Add no_lock=True to prevent Luigi scheduler deadlock in Railway subprocess
+            # The worker thread spawns but blocks on Luigi's internal lock mechanism
+            # no_lock=True bypasses Luigi's file-based locking which fails in containerized environments
             self.luigi_build_return_value = luigi.build(
                 [self.full_plan_pipeline_task],
                 local_scheduler=True,
                 workers=workers,  # workers from LUIGI_WORKERS env (>=1), default 1 for reliability
                 log_level='DEBUG',  # Changed to DEBUG for more visibility
                 detailed_summary=True,  # Show detailed task summary
+                no_lock=True,  # Disable Luigi's file locking to prevent deadlock in containers
             )
             print(f"🔥 luigi.build() returned!")
             print(f"🔥 Active threads after luigi.build(): {threading.active_count()}")
