@@ -304,13 +304,14 @@ class PipelineExecutionService:
 
         python_executable = sys.executable
         system_name = platform.system()
-        if system_name == "Windows":
-            # Build a command string for cmd.exe to avoid argument parsing quirks
-            command = f'"{python_executable}" -m {MODULE_PATH_PIPELINE}'
-            use_shell = True
-        else:
-            command = [python_executable, "-m", MODULE_PATH_PIPELINE]
-            use_shell = False
+        
+        print(f"DEBUG: Python executable: {python_executable}")
+        print(f"DEBUG: Python version: {sys.version}")
+        print(f"DEBUG: System: {system_name}")
+        
+        # CRITICAL: Always use list format, NEVER shell=True to avoid encoding crashes
+        command = [python_executable, "-m", MODULE_PATH_PIPELINE]
+        use_shell = False
 
         print(f"DEBUG: Starting subprocess with command: {command}")
         print(f"DEBUG: Working directory: {self.planexe_project_root}")
@@ -328,17 +329,23 @@ class PipelineExecutionService:
             except Exception:
                 pass
 
-            process = subprocess.Popen(
-                command,
-                cwd=str(self.planexe_project_root),
-                env=environment,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1,
-                universal_newlines=True,
-                shell=use_shell
-            )
+            # CRITICAL FIX: On Windows, avoid console encoding crashes (exit code 3221225794)
+            # Match Gradio's working approach: merge stderr into stdout, use text mode
+            popen_kwargs = {
+                'cwd': str(self.planexe_project_root),
+                'env': environment,
+                'stdout': subprocess.PIPE,
+                'stderr': subprocess.STDOUT,  # Merge stderr into stdout like Gradio
+                'text': True,  # Text mode works when stderr is merged
+                'bufsize': 1,
+                'shell': use_shell
+            }
+            
+            if system_name == "Windows":
+                # Prevent console window creation
+                popen_kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW
+            
+            process = subprocess.Popen(command, **popen_kwargs)
             print(f"DEBUG: Subprocess started with PID: {process.pid}")
 
             # Test if subprocess actually started
@@ -363,7 +370,7 @@ class PipelineExecutionService:
         import asyncio
 
         async def read_stdout():
-            """Stream Luigi pipeline logs via WebSocket"""
+            """Stream Luigi pipeline logs via WebSocket (includes stderr since merged)"""
             if process.stdout:
                 for line in iter(process.stdout.readline, ''):
                     line = line.strip()
@@ -402,8 +409,13 @@ class PipelineExecutionService:
             """Stream Luigi pipeline errors via WebSocket"""
             if process.stderr:
                 stderr_path = run_id_dir / "stderr.txt"
-                for line in iter(process.stderr.readline, ''):
-                    line = line.strip()
+                for line in iter(process.stderr.readline, b''):
+                    # Decode binary to text (binary mode to avoid console encoding crash)
+                    try:
+                        line = line.decode('utf-8', errors='replace').strip()
+                    except Exception as e:
+                        print(f"Failed to decode stderr line: {e}")
+                        continue
                     if not line:
                         continue
 
@@ -429,22 +441,20 @@ class PipelineExecutionService:
 
                 process.stderr.close()
 
-        # Start monitoring tasks concurrently
+        # Start monitoring task (stderr is merged into stdout, so only one task needed)
         stdout_task = asyncio.create_task(read_stdout())
-        stderr_task = asyncio.create_task(read_stderr())
 
         # Wait for process completion in executor (blocking operation)
         loop = asyncio.get_event_loop()
         return_code = await loop.run_in_executor(None, process.wait)
         print(f"DEBUG: Luigi process completed with return code: {return_code}")
 
-        # Wait for monitoring tasks to complete
+        # Wait for monitoring task to complete
         try:
-            await asyncio.wait_for(asyncio.gather(stdout_task, stderr_task), timeout=5.0)
+            await asyncio.wait_for(stdout_task, timeout=5.0)
         except asyncio.TimeoutError:
-            print(f"Warning: Monitoring tasks for plan {plan_id} timed out")
+            print(f"Warning: Monitoring task for plan {plan_id} timed out")
             stdout_task.cancel()
-            stderr_task.cancel()
 
         # Update final plan status based on results
         await self._finalize_plan_status(plan_id, return_code, run_id_dir, db_service)
