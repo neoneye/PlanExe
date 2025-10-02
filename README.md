@@ -56,15 +56,17 @@ Recommendation: I recommend **Config A** as it offers the most straightforward p
 
 # Usage
 
-PlanExe comes with a Gradio-based web interface. To start the local web server:
+**For local development**, PlanExe comes with a Gradio-based web interface:
 
 ```bash
 (venv) python -m planexe.plan.app_text2plan
 ```
 
-This command launches a server at http://localhost:7860. Open that link in your browser, type a vague idea or description, and PlanExe will produce a detailed plan.
+This command launches a local development server at **http://localhost:7860** (local machine only, not for production). Open that link in your browser, type a vague idea or description, and PlanExe will produce a detailed plan.
 
 To stop the server at any time, press `Ctrl+C` in your terminal.
+
+**For production deployment**, see the [Current Development Workflow](#current-development-workflow-v016) section below which uses FastAPI (port 8080) and Next.js (port 3000) on Railway.
 
 </details>
 

@@ -200,14 +200,23 @@ class PipelineExecutionService:
 
     def _write_pipeline_inputs(self, run_id_dir: Path, request: CreatePlanRequest) -> None:
         """Write input files required by Luigi pipeline"""
-        # DIAGNOSTIC: Check run directory exists and is empty (except for expected files)
+        # CRITICAL FIX: Clean run directory before each plan to prevent Luigi from skipping tasks
+        # Luigi checks if output files exist, and if they do, it considers tasks "already complete"
+        # This was causing the production issue where Luigi would hang without executing tasks
+        import shutil
         import os as os_module
+        
         if run_id_dir.exists():
             existing_files = list(run_id_dir.iterdir())
-            print(f"🔥 Run directory exists with {len(existing_files)} files: {[f.name for f in existing_files[:10]]}")
-        else:
-            print(f"🔥 Creating run directory: {run_id_dir}")
-            run_id_dir.mkdir(parents=True, exist_ok=True)
+            if len(existing_files) > 0:
+                print(f"🔥 CRITICAL: Run directory exists with {len(existing_files)} leftover files!")
+                print(f"🔥 Leftover files would cause Luigi to skip all tasks (thinks they're complete)")
+                print(f"🔥 Deleting run directory to ensure fresh execution: {run_id_dir}")
+                shutil.rmtree(run_id_dir)
+                print(f"🔥 Run directory deleted. Creating fresh directory...")
+        
+        print(f"🔥 Creating clean run directory: {run_id_dir}")
+        run_id_dir.mkdir(parents=True, exist_ok=True)
 
         # Write start time
         start_time_file = run_id_dir / FilenameEnum.START_TIME.value
