@@ -405,43 +405,8 @@ class PipelineExecutionService:
 
                 process.stdout.close()
 
-        async def read_stderr():
-            """Stream Luigi pipeline errors via WebSocket"""
-            if process.stderr:
-                stderr_path = run_id_dir / "stderr.txt"
-                for line in iter(process.stderr.readline, b''):
-                    # Decode binary to text (binary mode to avoid console encoding crash)
-                    try:
-                        line = line.decode('utf-8', errors='replace').strip()
-                    except Exception as e:
-                        print(f"Failed to decode stderr line: {e}")
-                        continue
-                    if not line:
-                        continue
-
-                    error_data = {
-                        "type": "error",
-                        "message": line,
-                        "timestamp": datetime.utcnow().isoformat()
-                    }
-
-                    try:
-                        await websocket_manager.broadcast_to_plan(plan_id, error_data)
-                    except Exception as e:
-                        print(f"WebSocket error broadcast failed for plan {plan_id}: {e}")
-
-                    print(f"Luigi ERROR: {line}")
-
-                    # Also persist stderr to a file for offline diagnostics (Windows/CI helpful)
-                    try:
-                        with open(stderr_path, 'a', encoding='utf-8') as f:
-                            f.write(line + "\n")
-                    except Exception:
-                        pass
-
-                process.stderr.close()
-
-        # Start monitoring task (stderr is merged into stdout, so only one task needed)
+        # stderr is merged into stdout, so only need one monitoring task
+        # Start monitoring task
         stdout_task = asyncio.create_task(read_stdout())
 
         # Wait for process completion in executor (blocking operation)
