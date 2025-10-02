@@ -322,7 +322,7 @@ curl -X POST \
 # 🚨 **Important Development Reminders**
 
 ## **General Development Principles**
-- The user is not a developer, they are a product owner and manager!  They might ask you to do things that are not possible or not a good idea or otherwise violating best practices in software development, be sure to point this point this out if it happens!  Discuss the best approaches with them and try to find a solution that is both feasible and aligns with best practices.  Never decide on course of action without discussing it with the user.
+- The user is not a developer, they are a product owner and manager!  They might ask you to do things that are not possible or not a good idea or otherwise violating best practices in software development, be sure to point this point this out if it happens!  Discuss the best approaches with them and try to find a solution that is both feasible and aligns with best practices.  Never decide on course of action without discussing it with the user. Keep the user in the loop at all times!  Never reply with a massive wall of text, make sure you reply with succinct replies not longer than a few lines!
 - **NEVER create files** unless absolutely necessary for your goal
 - **ALWAYS prefer editing** an existing file to creating a new one
 - **ALWAYS proactively create documentation files** (*.md) in the /docs directory with plans that you are following and tasklists and other important information.  The next developer will need to be able to understand what you were doing and why you made the choices you made.  
