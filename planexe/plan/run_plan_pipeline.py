@@ -5290,13 +5290,14 @@ class ExecutePipeline:
 
         # Call luigi.build() with detailed logging
         # INVESTIGATION: Try different Luigi execution strategies
+        import threading
+        import time
+        
         try:
             print(f"🔥 Calling luigi.build() NOW with workers={workers}...")
             print(f"🔥 Active threads before luigi.build(): {threading.active_count()}")
             
             # Monitor worker thread activity
-            import threading
-            import time
             
             def monitor_threads():
                 time.sleep(2)  # Wait for Luigi to spawn workers
