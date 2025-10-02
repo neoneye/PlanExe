@@ -1,10 +1,4 @@
-/**
- * Author: Codex using GPT-4o (CLI)
- * Date: 2025-10-02T00:00:00Z
- * PURPOSE: Railway-optimized Dockerfile for PlanExe API server. Adds UTF-8 defaults, LUIGI_WORKERS=1,
- *          and /tmp run dir for runtime writes; keeps static UI served by FastAPI.
- * SRP and DRY check: Pass. Single responsibility of Railway API containerization; minimal, focused changes.
- */
+
 # Author: Buffy the Base Agent
 # Date: 2025-01-27
 # PURPOSE: Railway-optimized Dockerfile for PlanExe API server - handles Railway's PORT variable and environment
