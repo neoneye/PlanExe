@@ -240,6 +240,14 @@ class PipelineExecutionService:
         logger.error(f"🔥🔥🔥 Directory created - writing input files...")
         print(f"🔥 ✅ Run directory created successfully")
 
+        # PROOF OF CLEANUP: Write a marker file that Luigi can read to prove cleanup ran
+        cleanup_marker = run_id_dir / "CLEANUP_RAN.txt"
+        with open(cleanup_marker, "w", encoding="utf-8") as f:
+            f.write(f"Directory cleanup executed at {datetime.utcnow().isoformat()}\n")
+            f.write(f"Directory existed: {run_id_dir.exists()}\n")
+            f.write(f"Cleanup function called from FastAPI process\n")
+        logger.error(f"🔥🔥🔥 Wrote cleanup marker file: {cleanup_marker}")
+
         # Write start time
         start_time_file = run_id_dir / FilenameEnum.START_TIME.value
         with open(start_time_file, "w", encoding="utf-8") as f:
