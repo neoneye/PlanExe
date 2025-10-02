@@ -200,23 +200,34 @@ class PipelineExecutionService:
 
     def _write_pipeline_inputs(self, run_id_dir: Path, request: CreatePlanRequest) -> None:
         """Write input files required by Luigi pipeline"""
-        # CRITICAL FIX: Clean run directory before each plan to prevent Luigi from skipping tasks
+        # CRITICAL FIX: ALWAYS delete run directory before each plan to prevent Luigi from skipping tasks
         # Luigi checks if output files exist, and if they do, it considers tasks "already complete"
         # This was causing the production issue where Luigi would hang without executing tasks
         import shutil
         import os as os_module
         
+        print(f"🔥 _write_pipeline_inputs() called for run_id_dir: {run_id_dir}")
+        print(f"🔥 run_id_dir.exists() = {run_id_dir.exists()}")
+        
         if run_id_dir.exists():
             existing_files = list(run_id_dir.iterdir())
+            print(f"🔥 CRITICAL: Run directory EXISTS with {len(existing_files)} files!")
             if len(existing_files) > 0:
-                print(f"🔥 CRITICAL: Run directory exists with {len(existing_files)} leftover files!")
+                print(f"🔥 First 10 files: {[f.name for f in existing_files[:10]]}")
                 print(f"🔥 Leftover files would cause Luigi to skip all tasks (thinks they're complete)")
-                print(f"🔥 Deleting run directory to ensure fresh execution: {run_id_dir}")
+            print(f"🔥 DELETING entire run directory: {run_id_dir}")
+            try:
                 shutil.rmtree(run_id_dir)
-                print(f"🔥 Run directory deleted. Creating fresh directory...")
+                print(f"🔥 ✅ Run directory DELETED successfully")
+            except Exception as e:
+                print(f"🔥 ❌ ERROR deleting run directory: {e}")
+                raise
+        else:
+            print(f"🔥 Run directory does NOT exist (fresh plan)")
         
         print(f"🔥 Creating clean run directory: {run_id_dir}")
         run_id_dir.mkdir(parents=True, exist_ok=True)
+        print(f"🔥 ✅ Run directory created successfully")
 
         # Write start time
         start_time_file = run_id_dir / FilenameEnum.START_TIME.value
