@@ -357,3 +357,135 @@ interface Blocker {
 - Evidence-gated GREEN prevents “optimistic greenwashing.”
 - Fix Packs with FP0 create a pre-commit gate that flips the recommendation without re-scoring everything.
 - Roll-up in code (not in the LLM) keeps the final decision consistent and auditable.
+
+## Viability Scoring — Likert, Rule‑Based (No Hidden Weights)
+
+
+**Why change?** The old 0–100 scoring was opaque and hard to troubleshoot (implicit weights, unclear math). The new system is **simple, auditable, and deterministic**. Every downgrade is tied to an explicit rule and logged.
+
+
+### Core Idea
+
+Each pillar is assessed on **three factors**, each on a 1–5 Likert scale (1=bad, 5=good):
+
+- **evidence** — strength of supporting docs/artifacts
+
+- **risk** — residual risk posture after mitigations
+
+- **fit** — alignment/coherence with the pillar’s aims
+
+
+The model (LLM) proposes **reason_codes** and mentions **artifacts**; the **scoring is pure Python** and rule-based. No YAML weights; no hidden multipliers.
+
+### Factor Rubric (make the mapping non-arguable)
+
+| Pillar               | evidence (1–5) — “Do we have proof?”                           | risk (1–5) — “Residual downside?”                         | fit (1–5) — “Does this design address the pillar’s goals?” |
+|----------------------|-----------------------------------------------------------------|-----------------------------------------------------------|------------------------------------------------------------|
+| HumanStability       | Org charts, RACI, training plans, comms plan                    | Stakeholder conflict, turnover risk, change fatigue       | Governance clarity, incentives aligned to outcomes         |
+| EconomicResilience   | Budget, unit economics, funding letters, signed contracts       | Sensitivity to shocks, supplier concentration, FX/rate    | Cost/benefit logic, ramp plan realism, buffer integration  |
+| EcologicalIntegrity  | EIA/EIS, baseline studies, third-party audits                   | Biodiversity/water/air risks after mitigations            | Mitigation hierarchy applied, circularity/waste design     |
+| Rights_Legality      | DPIA, legal opinions, permits/licenses                          | Compliance failure, infosec/privacy breach, sanctions     | Ethical framework, data rights alignment, due process      |
+
+### Status Derivation (Deterministic)
+
+- If **any factor ≤ 2** → **RED**
+
+- Else if **worst factor == 3** → **YELLOW**
+
+- Else (all 4–5) → **GREEN**
+
+- Missing factors → **GRAY**
+
+
+**Overall status** is the **worst pillar**. Optionally, we compute a display-only number: 
+
+`overall_likert = mean(pillar_avg_likert)` and `overall_0_100 = round((overall_likert-1)/4*100)` for legacy dashboards.
+
+
+### How rules work (transparent caps)
+
+Rules map **reason_codes → factor caps** (and are gated by artifacts). Examples:
+
+- **HumanStability**: `GOVERNANCE_WEAK → fit ≤ 2`; `STAKEHOLDER_CONFLICT → risk ≤ 2`; `CHANGE_MGMT_GAPS → evidence ≤ 2` unless a `Change_Mgmt_Plan` artifact exists.
+
+- **EconomicResilience**: `CONTINGENCY_LOW → risk ≤ 2` until **≥10% contingency** is evidenced; `UNIT_ECON_UNKNOWN → evidence ≤ 2`; `SUPPLIER_CONCENTRATION → risk ≤ 3`.
+
+- **EcologicalIntegrity**: `EIA_MISSING → evidence = 1` (hard stop); `BIODIVERSITY_RISK_UNSET → risk ≤ 2`; `WASTE_MANAGEMENT_GAPS → fit ≤ 3`.
+
+- **Rights_Legality**: `DPIA_GAPS → evidence ≤ 2` until **DPIA** artifact present; `INFOSEC_GAPS → risk ≤ 3`; `ETHICS_VAGUE → fit ≤ 3`.
+
+
+Each applied rule is **logged** (e.g., `EIA_MISSING: evidence 3→1 (hard stop)`), making audits trivial.
+
+
+### “What flips to GO” becomes measurable
+
+Fix-packs/actions add artifacts or close reason codes → we **re-score** and show the **Δ uplift**.
+
+Example in the report:
+
+- **DPIA completed** → Rights_Legality.evidence `2→4` → pillar avg +0.67 → overall +Δ.
+
+- **≥10% contingency approved** → EconomicResilience.risk `2→4` → pillar avg +0.67 → overall +Δ.
+
+
+### Stop Rules & Governance
+
+- Certain codes (e.g., `EIA_MISSING`) enforce **hard RED**. If any pillar is RED, default **Recommendation = PAUSE** unless an explicit override flag is set.
+
+
+### Integration (minimal changes)
+
+1) Add a small scorer module (see `likert_score.py`).
+
+2) In `pillars_assessment.py`, **do not accept LLM status**; call the scorer with `reason_codes` and detected artifacts; overwrite `status` and `factors`.
+
+3) In `overall_summary.py`, compute overall via **worst-win** + optional Likert number; set **PAUSE** on RED.
+
+4) In `fixpack.py`, simulate actions by adding artifacts/removing codes and re-score to compute **uplift**; sort by uplift per ROM day.
+
+
+### Why this is better
+
+- **Auditable**: Every number is justified by a rule you can print.
+
+- **Deterministic**: Same input → same score. No LLM vibes.
+
+- **Maintainable**: Add/modify a rule in Python, not a weight stew in YAML.
+
+- **LLM-friendly**: The model only proposes structured facts (codes/artifacts). Math lives in code.
+
+- **Safe defaults**: Worst-pillar wins; hard stops wire directly to governance.
+
+
+### Example (pseudo-code)
+
+```python
+from likert_score import PillarInput, score_pillar, score_overall
+
+p = PillarInput(
+    pillar="EcologicalIntegrity",
+    reason_codes=["EIA_MISSING", "BIODIVERSITY_RISK_UNSET"],
+
+    provided_artifacts=[],
+)
+
+res = score_pillar(p)
+
+# res.status == "RED"; res.factors.evidence == 1
+
+```
+
+
+### Tests to keep us honest
+
+1. `EIA_MISSING` sets `evidence=1` (hard).
+
+2. Artifact gating: with `DPIA_GAPS` + `DPIA` artifact, the cap does **not** apply.
+
+3. Status mapping: any factor ≤2 ⇒ RED.
+
+4. Overall: any pillar RED ⇒ overall RED.
+
+5. Monotonicity: adding an artifact never lowers a factor.
+
