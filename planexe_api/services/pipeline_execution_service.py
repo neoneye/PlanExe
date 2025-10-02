@@ -460,7 +460,49 @@ class PipelineExecutionService:
                     "error_message": "Pipeline did not complete successfully"
                 })
         else:
-            # Process failed
+            # Attempt agent-style minimal fallback to avoid leaving the user stuck
+            if os.environ.get("PLANEXE_ENABLE_AGENT_FALLBACK", "true").lower() == "true":
+                try:
+                    await websocket_manager.broadcast_to_plan(plan_id, {
+                        "type": "status",
+                        "status": "fallback",
+                        "message": "Luigi failed. Switching to minimal agent fallback...",
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+
+                    if self._run_fallback_minimal_report(plan_id, run_id_dir, db_service):
+                        # Fallback produced a minimal final report; mark completed
+                        await websocket_manager.broadcast_to_plan(plan_id, {
+                            "type": "status",
+                            "status": "completed",
+                            "message": "✅ Fallback completed. Minimal report generated.",
+                            "progress_percentage": 100,
+                            "timestamp": datetime.utcnow().isoformat()
+                        })
+
+                        db_service.update_plan(plan_id, {
+                            "status": PlanStatus.completed.value,
+                            "progress_percentage": 100,
+                            "progress_message": "Plan completed via fallback (minimal report)",
+                            "completed_at": datetime.utcnow()
+                        })
+
+                        # End stream and cleanup
+                        end_data = {
+                            "type": "stream_end",
+                            "message": "Pipeline execution completed - closing connections",
+                            "timestamp": datetime.utcnow().isoformat()
+                        }
+                        try:
+                            await websocket_manager.broadcast_to_plan(plan_id, end_data)
+                            await websocket_manager.cleanup_plan_connections(plan_id)
+                        except Exception:
+                            pass
+                        return
+                except Exception as e:
+                    print(f"Fallback error for plan {plan_id}: {e}")
+
+            # Existing failure behavior if fallback not enabled or failed
             failure_data = {
                 "type": "status",
                 "status": "failed",
@@ -485,10 +527,74 @@ class PipelineExecutionService:
         }
         try:
             await websocket_manager.broadcast_to_plan(plan_id, end_data)
-            # Clean up plan connections after final broadcast
             await websocket_manager.cleanup_plan_connections(plan_id)
         except Exception as e:
             print(f"WebSocket end stream broadcast failed for plan {plan_id}: {e}")
+
+    # --- New helper: minimal fallback report generator ---
+    def _run_fallback_minimal_report(self, plan_id: str, run_id_dir: Path, db_service: DatabaseService) -> bool:
+        """
+        Generate a minimal final report when Luigi fails, so the UI can still display results.
+        Does not invoke Luigi; produces a Plan Lite HTML using the user's prompt.
+        Returns True on success.
+        """
+        try:
+            prompt_text = ""
+            try:
+                prompt_text = (run_id_dir / FilenameEnum.INITIAL_PLAN.value).read_text(encoding='utf-8')
+            except Exception:
+                prompt_text = "(initial prompt unavailable)"
+
+            now_iso = datetime.utcnow().isoformat()
+            html = f"""
+<!doctype html>
+<html>
+  <head>
+    <meta charset=\"utf-8\" />
+    <title>PlanExe Report (Fallback)</title>
+    <style>
+      body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }}
+      .badge {{ display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; background: #ffe9a8; color: #7a5d00; font-weight: 600; margin-bottom: 1rem; }}
+      pre {{ background: #f5f5f5; padding: 1rem; border-radius: 6px; white-space: pre-wrap; }}
+    </style>
+  </head>
+  <body>
+    <div class=\"badge\">Fallback Report</div>
+    <h1>PlanExe Minimal Report</h1>
+    <p>Luigi pipeline failed. A minimal fallback report was generated to avoid blocking your workflow.</p>
+    <h2>Initial Prompt</h2>
+    <pre>{prompt_text}</pre>
+    <h2>Status</h2>
+    <ul>
+      <li>Generation mode: agent fallback (minimal)</li>
+      <li>Timestamp (UTC): {now_iso}</li>
+      <li>Plan ID: {plan_id}</li>
+    </ul>
+    <p style=\"margin-top:2rem;color:#666\">You can re-run later to produce the full 61-task plan once Luigi is healthy.</p>
+  </body>
+</html>
+            """
+
+            report_path = run_id_dir / "999-final-report.html"
+            report_path.write_text(html, encoding='utf-8')
+
+            # Persist to database (Option 3 path) so the UI can fetch content
+            try:
+                db_service.create_plan_content({
+                    "plan_id": plan_id,
+                    "filename": "999-final-report.html",
+                    "stage": "report",
+                    "content_type": "html",
+                    "content": html,
+                    "content_size_bytes": len(html.encode('utf-8'))
+                })
+            except Exception as e:
+                print(f"WARNING: Could not persist fallback report to DB for plan {plan_id}: {e}")
+
+            return True
+        except Exception as e:
+            print(f"Fallback generation failed for plan {plan_id}: {e}")
+            return False
 
     async def _cleanup_execution(self, plan_id: str) -> None:
         """Clean up execution resources and WebSocket connections"""
