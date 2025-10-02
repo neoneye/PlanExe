@@ -19,8 +19,24 @@ DATABASE_URL = os.getenv(
     "sqlite:///./planexe.db"
 )
 
-# Create engine
-engine = create_engine(DATABASE_URL)
+# CRITICAL FIX: Add connection timeout and health checks to prevent Luigi worker thread deadlock
+# Without these, SQLAlchemy will hang indefinitely trying to connect to unreachable PostgreSQL
+# This was causing luigi.build() to hang for 30+ seconds without executing any tasks
+engine_kwargs = {
+    "pool_pre_ping": True,  # Test connections before using them (detect dead connections)
+    "pool_recycle": 3600,   # Recycle connections after 1 hour
+    "connect_args": {
+        "connect_timeout": 10  # 10 second connection timeout (PostgreSQL and SQLite compatible)
+    }
+}
+
+# SQLite doesn't support all PostgreSQL connection args
+if DATABASE_URL.startswith("sqlite"):
+    # SQLite timeout is in milliseconds (different from PostgreSQL!)
+    engine_kwargs["connect_args"] = {"timeout": 10.0}  # 10 seconds
+
+# Create engine with timeout and connection health checks
+engine = create_engine(DATABASE_URL, **engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
