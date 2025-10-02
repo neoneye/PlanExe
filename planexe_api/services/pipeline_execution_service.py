@@ -1,4 +1,14 @@
 """
+/**
+ * Author: Codex using GPT-4o (CLI)
+ * Date: 2025-10-02T00:00:00Z
+ * PURPOSE: Add OS-aware subprocess environment fixes to avoid Windows Unicode/console crashes and set
+ *          writable HOME/cache paths on Windows, while preserving Linux/Railway behavior. Also ensure
+ *          UTF-8 encoding for Python IO in the Luigi subprocess.
+ * SRP and DRY check: Pass. This file remains responsible for pipeline execution orchestration; changes
+ *          are minimal, localized to environment setup, and reuse existing mechanisms.
+ */
+
 Author: Claude Code using Sonnet 4
 Date: 2025-09-27
 PURPOSE: Thread-safe Luigi pipeline execution service using WebSocket broadcasting
@@ -12,6 +22,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional
+import platform
 
 from planexe_api.models import CreatePlanRequest, PlanStatus
 from planexe_api.database import DatabaseService
@@ -156,13 +167,35 @@ class PipelineExecutionService:
 
         # Copy environment and add pipeline-specific variables
         environment = os.environ.copy()
-        
-        # CRITICAL: Force SDK cache directories to writable /tmp location
-        # Railway's $HOME is undefined or read-only, causing OpenAI/Luigi SDK crashes
-        environment['HOME'] = '/tmp'
-        environment['OPENAI_CACHE_DIR'] = '/tmp/.cache/openai'
-        environment['LUIGI_CONFIG_PATH'] = '/tmp/.luigi'
-        print(f"DEBUG ENV: Set HOME=/tmp for SDK cache writes")
+
+        # Ensure Python runs UTF-8 to prevent Unicode console crashes on Windows
+        environment['PYTHONIOENCODING'] = environment.get('PYTHONIOENCODING', 'utf-8')
+        environment['PYTHONUTF8'] = environment.get('PYTHONUTF8', '1')
+        # Enable verbose OpenAI client logging unless explicitly disabled
+        environment['OPENAI_LOG'] = environment.get('OPENAI_LOG', 'debug')
+
+        # CRITICAL: Configure HOME/cache paths appropriately per OS
+        system_name = platform.system()
+        if system_name == "Windows":
+            # Prefer USERPROFILE, fallback to TEMP, then C:\\Temp
+            home_dir = os.environ.get('USERPROFILE') or os.environ.get('TEMP') or 'C:\\Temp'
+            cache_dir = str(Path(os.environ.get('TEMP') or home_dir) / '.cache' / 'openai')
+            luigi_cfg = str(Path(os.environ.get('TEMP') or home_dir) / '.luigi')
+            try:
+                Path(cache_dir).mkdir(parents=True, exist_ok=True)
+                Path(luigi_cfg).mkdir(parents=True, exist_ok=True)
+            except Exception as e:
+                print(f"WARNING ENV: Failed to create Windows cache/config dirs: {e}")
+            environment['HOME'] = home_dir
+            environment['OPENAI_CACHE_DIR'] = cache_dir
+            environment['LUIGI_CONFIG_PATH'] = luigi_cfg
+            print(f"DEBUG ENV: Windows HOME={home_dir} OPENAI_CACHE_DIR={cache_dir} LUIGI_CONFIG_PATH={luigi_cfg}")
+        else:
+            # Railway/Linux: use /tmp which is writable at runtime
+            environment['HOME'] = '/tmp'
+            environment['OPENAI_CACHE_DIR'] = '/tmp/.cache/openai'
+            environment['LUIGI_CONFIG_PATH'] = '/tmp/.luigi'
+            print(f"DEBUG ENV: Set HOME=/tmp for SDK cache writes (Linux/Railway)")
         
         environment[PipelineEnvironmentEnum.RUN_ID_DIR.value] = str(run_id_dir)
 
@@ -270,16 +303,31 @@ class PipelineExecutionService:
         import platform
 
         python_executable = sys.executable
-        command = [python_executable, "-m", MODULE_PATH_PIPELINE]
+        system_name = platform.system()
+        if system_name == "Windows":
+            # Build a command string for cmd.exe to avoid argument parsing quirks
+            command = f'"{python_executable}" -m {MODULE_PATH_PIPELINE}'
+            use_shell = True
+        else:
+            command = [python_executable, "-m", MODULE_PATH_PIPELINE]
+            use_shell = False
 
         print(f"DEBUG: Starting subprocess with command: {command}")
         print(f"DEBUG: Working directory: {self.planexe_project_root}")
         print(f"DEBUG: RUN_ID_DIR env var: {environment.get('RUN_ID_DIR')}")
 
-        # Use shell=True on Windows for path compatibility
-        use_shell = platform.system() == "Windows"
+        # use_shell defined above per OS
 
         try:
+            # Sanity: show which API keys we are passing (masked)
+            try:
+                oa = environment.get('OPENAI_API_KEY')
+                orr = environment.get('OPENROUTER_API_KEY')
+                print(f"DEBUG ENV: OPENAI_API_KEY present? {bool(oa)} len={len(oa) if oa else 0}")
+                print(f"DEBUG ENV: OPENROUTER_API_KEY present? {bool(orr)} len={len(orr) if orr else 0}")
+            except Exception:
+                pass
+
             process = subprocess.Popen(
                 command,
                 cwd=str(self.planexe_project_root),
@@ -353,6 +401,7 @@ class PipelineExecutionService:
         async def read_stderr():
             """Stream Luigi pipeline errors via WebSocket"""
             if process.stderr:
+                stderr_path = run_id_dir / "stderr.txt"
                 for line in iter(process.stderr.readline, ''):
                     line = line.strip()
                     if not line:
@@ -370,6 +419,13 @@ class PipelineExecutionService:
                         print(f"WebSocket error broadcast failed for plan {plan_id}: {e}")
 
                     print(f"Luigi ERROR: {line}")
+
+                    # Also persist stderr to a file for offline diagnostics (Windows/CI helpful)
+                    try:
+                        with open(stderr_path, 'a', encoding='utf-8') as f:
+                            f.write(line + "\n")
+                    except Exception:
+                        pass
 
                 process.stderr.close()
 

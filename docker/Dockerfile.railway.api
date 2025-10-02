@@ -1,3 +1,10 @@
+/**
+ * Author: Codex using GPT-4o (CLI)
+ * Date: 2025-10-02T00:00:00Z
+ * PURPOSE: Railway-optimized Dockerfile for PlanExe API server. Adds UTF-8 defaults, LUIGI_WORKERS=1,
+ *          and /tmp run dir for runtime writes; keeps static UI served by FastAPI.
+ * SRP and DRY check: Pass. Single responsibility of Railway API containerization; minimal, focused changes.
+ */
 # Author: Buffy the Base Agent
 # Date: 2025-01-27
 # PURPOSE: Railway-optimized Dockerfile for PlanExe API server - handles Railway's PORT variable and environment
@@ -40,8 +47,8 @@ COPY . .
 # Copy built frontend static assets into location served by FastAPI
 COPY --from=frontend-builder /app/planexe-frontend/out /app/ui_static
 
-# Create run directory for plan outputs
-RUN mkdir -p /app/run && chmod 755 /app/run
+# Create run directory for plan outputs (use /tmp for runtime writes on Railway)
+RUN mkdir -p /tmp/planexe_run && chmod 755 /tmp/planexe_run
 
 # Set cloud mode environment variable for PlanExe configuration system
 ENV PLANEXE_CLOUD_MODE=true
@@ -51,8 +58,11 @@ RUN test -f /app/llm_config.json || echo '{}' > /app/llm_config.json
 
 # Set environment variables
 ENV PYTHONPATH=/app
-ENV PLANEXE_RUN_DIR=/app/run
+ENV PLANEXE_RUN_DIR=/tmp/planexe_run
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONIOENCODING=utf-8
+ENV PYTHONUTF8=1
+ENV LUIGI_WORKERS=1
 
 # Railway provides PORT environment variable - use dynamic port
 EXPOSE 8080

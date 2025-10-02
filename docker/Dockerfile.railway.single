@@ -1,3 +1,10 @@
+/**
+ * Author: Codex using GPT-4o (CLI)
+ * Date: 2025-10-02T00:00:00Z
+ * PURPOSE: Railway single-service Docker build. Adds UTF-8 defaults, LUIGI_WORKERS=1, and /tmp run dir; 
+ *          builds Next.js static export and serves via FastAPI.
+ * SRP and DRY check: Pass. Single deployment recipe for combined API/UI service.
+ */
 #
 # Author: Codex using GPT-5
 # Date: 2025-09-30T02:15:00Z
@@ -72,6 +79,9 @@ RUN test -f /app/llm_config.json || echo '{}' > /app/llm_config.json
 ENV PYTHONPATH=/app
 ENV PLANEXE_RUN_DIR=/tmp/planexe_run
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONIOENCODING=utf-8
+ENV PYTHONUTF8=1
+ENV LUIGI_WORKERS=1
 
 # Railway provides PORT environment variable - expose 8080 externally
 EXPOSE 8080

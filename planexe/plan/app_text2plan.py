@@ -327,16 +327,19 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
             command,
             cwd=".",
             env=env,
-            stdout=None,
-            stderr=None
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # Capture stderr to see errors
+            text=True,
+            bufsize=1
         )
     else:
         session_state.active_proc = subprocess.Popen(
             command,
             cwd=".",
             env=env,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # Capture stderr to see errors  
+            text=True
         )
 
     # Obtain process id
