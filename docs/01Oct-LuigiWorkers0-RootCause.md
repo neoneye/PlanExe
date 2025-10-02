@@ -2,7 +2,7 @@
 
 **Date:** October 1, 2025
 **Issue:** Luigi tasks stuck in PENDING status forever
-**Root Cause:** `workers=0` parameter in `luigi.build()`
+**Root Cause:** `workers=0` parameter in `luigi.build()`   THIS MEANS NO WORKERS SPAWN!!!!
 
 ## The Problem
 
