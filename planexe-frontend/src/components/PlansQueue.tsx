@@ -1,17 +1,18 @@
 /**
- * Author: Claude Code using Sonnet 4
- * Date: 2025-09-20
- * PURPOSE: Plans Queue UI component - shows all user plans with status, retry/cancel actions, and 3-second polling
- * SRP and DRY check: Pass - Single responsibility of displaying and managing plan queue, reuses existing API client
+ * Author: Codex using GPT-5
+ * Date: 2025-10-03T00:00:00Z
+ * PURPOSE: Plans queue with recovery workspace shortcut; keeps polling/retry behaviour intact.
+ * SRP and DRY check: Pass - Focused on queue management, reusing central API client without duplication.
  */
 
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, RotateCcw, ExternalLink } from 'lucide-react'
+import { Loader2, RotateCcw, Monitor, SquareArrowOutUpRight } from 'lucide-react'
 import { fastApiClient, PlanResponse } from '@/lib/api/fastapi-client'
 
 // Use the PlanResponse type from fastapi-client instead of local interface
@@ -179,6 +180,7 @@ export function PlansQueue({ className, onPlanSelect, onPlanRetry }: PlansQueueP
                         variant="outline"
                         onClick={() => retryPlan(plan.plan_id)}
                         disabled={retryingPlanId === plan.plan_id}
+                        aria-label="Retry plan"
                       >
                         {retryingPlanId === plan.plan_id ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
@@ -192,10 +194,25 @@ export function PlansQueue({ className, onPlanSelect, onPlanRetry }: PlansQueueP
                         size="sm"
                         variant="ghost"
                         onClick={() => onPlanSelect(plan.plan_id)}
+                        aria-label="View in dashboard"
                       >
-                        <ExternalLink className="h-3 w-3" />
+                        <Monitor className="h-3 w-3" />
                       </Button>
                     )}
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="ghost"
+                      aria-label="Open recovery workspace"
+                    >
+                      <Link
+                        href={`/recovery?planId=${encodeURIComponent(plan.plan_id)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <SquareArrowOutUpRight className="h-3 w-3" />
+                      </Link>
+                    </Button>
                   </div>
                 </div>
               </div>

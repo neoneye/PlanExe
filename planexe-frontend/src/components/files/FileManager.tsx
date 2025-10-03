@@ -1,8 +1,8 @@
 /**
- * Author: Cascade
- * Date: 2025-09-19T16:59:36-04:00
- * PURPOSE: File management component for browsing and downloading Luigi pipeline outputs with FilenameEnum support
- * SRP and DRY check: Pass - Single responsibility for file operations, respects Luigi pipeline output patterns
+ * Author: Codex using GPT-5
+ * Date: 2025-10-03T00:00:00Z
+ * PURPOSE: ASCII-safe artefact browser with updated iconography; manages preview/download flows for Luigi outputs
+ * SRP and DRY check: Pass - Focused on file interactions, defers fallback rendering to dedicated components.
  */
 
 'use client';
@@ -16,7 +16,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlanFile, PipelinePhase } from '@/lib/types/pipeline';
 import { ReportTaskFallback } from './ReportTaskFallback';
-import { formatDistanceToNow } from 'date-fns';
+import { FileCode2, FileJson, FileSpreadsheet, FileText, FileType } from 'lucide-react';
+
 
 interface FileManagerProps {
   planId: string;
@@ -106,14 +107,22 @@ export const FileManager: React.FC<FileManagerProps> = ({
   }, [filteredFiles]);
 
   // Get file type icon
-  const getFileIcon = (type: string) => {
-    switch (type) {
-      case 'json': return '📄';
-      case 'md': return '📝';
-      case 'html': return '🌐';
-      case 'csv': return '📊';
-      case 'txt': return '📋';
-      default: return '📁';
+  const getFileIcon = (type: string): JSX.Element => {
+    const iconClass = 'h-5 w-5 text-blue-500';
+    const normalized = (type ?? '').toLowerCase();
+    switch (normalized) {
+      case 'json':
+        return <FileJson className={iconClass} aria-hidden="true" />;
+      case 'md':
+        return <FileText className={iconClass} aria-hidden="true" />;
+      case 'html':
+        return <FileCode2 className={iconClass} aria-hidden="true" />;
+      case 'csv':
+        return <FileSpreadsheet className={iconClass} aria-hidden="true" />;
+      case 'txt':
+        return <FileText className={iconClass} aria-hidden="true" />;
+      default:
+        return <FileType className={iconClass} aria-hidden="true" />;
     }
   };
 
@@ -243,7 +252,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
             <div>
               <CardTitle>Generated Files</CardTitle>
               <CardDescription>
-                {files.length} files generated • {filteredFiles.length} shown
+                {files.length} files generated | {filteredFiles.length} shown
               </CardDescription>
             </div>
             <div className="flex items-center space-x-2">
@@ -337,7 +346,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
                             {file.type.toUpperCase()}
                           </Badge>
                           <span className="text-xs text-gray-500">
-                            {formatFileSize(file.size)} • {formatDistanceToNow(new Date(file.lastModified), { addSuffix: true })}
+                            {formatFileSize(file.size)} | {formatDistanceToNow(new Date(file.lastModified), { addSuffix: true })}
                           </span>
                         </div>
                       </div>
