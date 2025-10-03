@@ -1,6 +1,6 @@
 ﻿## [0.3.2] - 2025-10-03 - Fallback Report Assembly
 
-
+`codex resume 0199a7fc-b79b-7322-8ffb-c0fa02463b58` Was the Codex session that did it.
 
 ### Highlights
 
