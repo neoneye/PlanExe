@@ -31,7 +31,8 @@ export function PlansQueue({ className, onPlanSelect, onPlanRetry }: PlansQueueP
   const fetchPlans = async () => {
     try {
       const plansData = await fastApiClient.getPlans()
-      setPlans(plansData.reverse()) // Show newest first
+      const sortedPlans = [...plansData].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      setPlans(sortedPlans)
     } catch (error) {
       console.error('Failed to fetch plans:', error)
     } finally {
