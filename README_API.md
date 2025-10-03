@@ -140,6 +140,11 @@ Returns HTML, missing sections, and computed completion percentage derived from 
 | `BALANCED_SPEED_AND_DETAIL` | Balanced throughput vs coverage (default). |
 | `ALL_DETAILS_BUT_SLOW` | Executes full-detail prompts for every stage. |
 
+## Recovery Workspace
+- Frontend route `/recovery?planId=PlanExe_<uuid>` opens the self-service plan recovery UI.
+- Uses existing API endpoints: `GET /api/plans/{plan_id}`, `/api/plans/{plan_id}/files`, `/api/plans/{plan_id}/fallback-report`, and `/api/plans/{plan_id}/details`.
+- `FileManager` expects `/api/plans/{plan_id}/files` to surface every persisted artefact from `plan_content`; ensure the backend responds even for pending/failed plans.
+- Ideal during plan retries or investigations when the primary report is unavailable.
 ## Testing
 - Python: `pytest -q` (runs FastAPI + pipeline utility tests).
 - Frontend: `npm test` and `npm run test:integration` inside `planexe-frontend`.

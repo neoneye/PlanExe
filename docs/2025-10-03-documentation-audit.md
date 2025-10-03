@@ -20,6 +20,7 @@
 - Added this summary to document what changed during the audit.
 
 ## Follow-Ups
+- Added `/recovery?planId=` workspace and documented the supporting endpoints in `README_API.md`.
 - Implement agent-driven remediation (Phase 5) when prioritised; documentation is ready to record it.
 - Continue monitoring SSE/WebSocket reliability—update `docs/SSE-Reliability-Analysis.md` and `docs/Thread-Safety-Analysis.md` once fixes merge.
 - Keep Railway guidance current with any future Dockerfile or environment shifts.
