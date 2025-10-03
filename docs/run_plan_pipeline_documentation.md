@@ -1,5 +1,18 @@
+/**
+ * Author: Codex using GPT-5
+ * Date: 2025-10-03T00:00:00Z
+ * PURPOSE: Adds the v0.3.2 context (database-first pipeline, fallback report assembler) to the existing
+ *          run_plan_pipeline.md reference so on-call engineers understand current behaviour.
+ * SRP and DRY check: Pass - Annotates documentation for a single module; leaves detailed task docs unchanged.
+ */
+
 # Run Plan Pipeline Documentation
 
+## Update (2025-10-03)
+- Database-first writes introduced in v0.3.0 remain mandatory: tasks must call `db_service.create_plan_content` before writing files.
+- `ReportTask` now cooperates with the fallback assembler; ensure new tasks provide machine-readable output so the recovery path can use them.
+- Fallback HTML generation lives in FastAPI (`GET /api/plans/{plan_id}/fallback-report`) and reads the artefacts emitted by these tasks.
+- Progress streaming uses the same queue signals as before; review `docs/Thread-Safety-Analysis.md` before modifying queue access.
 ## Overview
 
 The `run_plan_pipeline.py` file is the core component of the PlanExe system that orchestrates the entire planning process. It defines a comprehensive pipeline using the Luigi task framework to generate detailed project plans from initial prompts.
@@ -282,3 +295,8 @@ After reading the 4000-line pipeline file, I now understand the true complexity:
 - **Context accumulation** - later tasks read outputs from multiple earlier tasks
 - **Progress calculation** based on expected vs actual file completion
 - **Final report** aggregates 20+ different markdown/HTML sections
+
+
+
+
+

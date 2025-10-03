@@ -1,69 +1,74 @@
-# Railway Deployment Guide for PlanExe
+/**
+ * Author: Codex using GPT-5
+ * Date: 2025-10-03T00:00:00Z
+ * PURPOSE: Definitive Railway deployment runbook for PlanExe v0.3.2, including fallback report checks and
+ *          database validation steps.
+ * SRP and DRY check: Pass - Single source for Railway setup; references other docs for deep dives.
+ */
+# Railway Deployment Guide for PlanExe (v0.3.2)
 
-## Overview
-PlanExe now deploys as a single Railway service: the Docker build compiles the Next.js UI and bundles the static export into the FastAPI container, which in turn serves both the REST API and the frontend. This eliminates cross-origin headaches and keeps the deployment identical to production.
+Railway now runs PlanExe as a single FastAPI service that serves the static Next.js export and orchestrates the
+Luigi pipeline. Follow this checklist when deploying or validating the environment.
 
 ## Prerequisites
-- Railway account with a project ready
-- GitHub repository that Railway can access
-- API keys for your preferred LLM providers (OPENROUTER_API_KEY, OPENAI_API_KEY, etc.)
-- PostgreSQL database provisioned inside the Railway project (Railway does this automatically when you add a Postgres plugin)
+- Railway project with Postgres plugin provisioned.
+- GitHub repository linked to Railway (main branch recommended for deploys).
+- LLM API keys (OpenRouter, OpenAI, others as required).
+- Local `.env` kept in sync with Railway variables.
 
-## 1. Prepare the Repository
-1. Ensure main (or your deployment branch) contains the latest code.
-2. Push all changes so Railway can see the new Dockerfile logic.
-3. Confirm that docker/Dockerfile.railway.api is the file Railway should build (no separate UI Dockerfile is needed anymore).
+## Repository Preparation
+1. Ensure `docker/Dockerfile.railway.api` is up to date (it builds the UI and installs Python deps).
+2. Commit and push all changes so Railway triggers a new build.
+3. Run migrations locally (`alembic upgrade head` via project tooling) if schema changed.
 
-## 2. Configure Railway Environment Variables
-In the Railway dashboard for your PlanExe service, open the Variables tab and set:
+## Configure Railway Variables
+Set the following on the service:
 ```
-OPENROUTER_API_KEY=your_key
-OPENAI_API_KEY=your_key   # optional if you only use OpenRouter
+OPENROUTER_API_KEY=<value>
+OPENAI_API_KEY=<value>       # optional
 PLANEXE_RUN_DIR=/app/run
 PYTHONPATH=/app
 PYTHONUNBUFFERED=1
 ```
-Railway automatically injects:
-- PORT: the HTTP port the container must listen on
-- DATABASE_URL: connection string for the attached PostgreSQL instance
-- RAILWAY_ENVIRONMENT=production
+Railway injects `DATABASE_URL`, `PORT`, and `RAILWAY_ENVIRONMENT`. No further action required.
 
-## 3. Deploy the Single Service
-1. In Railway click New -> GitHub Repo, choose the PlanExe repository, and pick the branch to deploy.
-2. In the service settings, set:
-   - Root Directory: /
-   - Dockerfile Path: docker/Dockerfile.railway.api
-   - Build Context: /
-3. Trigger a deploy. The Dockerfile now performs these stages automatically:
-   - Installs Node and builds the Next.js static export (npm run build:static -> places the export in /app/ui_static).
-   - Installs Python dependencies and sets up FastAPI/Luigi.
-   - Exposes FastAPI on Railway's assigned PORT and serves the bundled UI.
-4. Once the deploy succeeds, open the logs to confirm the "Serving static UI from: /app/ui_static" message from FastAPI.
+## Deploy Steps
+1. Create or open the PlanExe service in Railway.
+2. Settings ? Deploy: root directory `/`, Dockerfile `docker/Dockerfile.railway.api`.
+3. Trigger deploy. Build stages should include:
+   - `npm ci && npm run build` for Next.js (output copied to `/app/ui_static`).
+   - `pip install -r requirements.txt` for FastAPI / Luigi.
+   - `uvicorn planexe_api.api:app` entrypoint.
+4. After deploy, check logs for:
+   - `Serving static UI from: /app/ui_static`.
+   - API key validation lines (`[OK] OPENROUTER_API_KEY`).
+   - `ReportAssembler` ready messages (v0.3.2).
 
-## 4. Smoke Tests
-1. Visit https://<your-service>.up.railway.app/ - the PlanExe UI should load without a secondary service.
-2. Hit the health check directly:
-   ```bash
-   curl https://<your-service>.up.railway.app/health
-   curl https://<your-service>.up.railway.app/api/models
-   ```
-   Both should return 200 responses.
-3. Create a test plan from the UI and monitor logs to ensure Luigi tasks execute.
+## Post-Deploy Smoke Test
+```bash
+curl https://<service>.up.railway.app/health
+curl https://<service>.up.railway.app/api/models
+```
+Then open the UI at the base URL, create a plan, and confirm:
+- Progress updates appear (SSE or WebSocket; expect occasional SSE drops).
+- `/api/plans/{plan_id}/files` lists artefacts.
+- `/api/plans/{plan_id}/fallback-report` returns HTML even if a late-stage task fails.
 
-## 5. Operations Cheatsheet
-- Deploy updates: push commits -> Railway rebuilds automatically.
-- View logs: Railway dashboard -> Service -> Logs (shows both API and Luigi output).
-- Database access: Railway's Postgres plugin provides a connection string; use psql or a GUI if needed.
-- Environment changes: edit variables and redeploy so processes pick them up.
+## Operations Cheatsheet
+- Logs: Railway dashboard ? Service ? Logs (contains FastAPI + Luigi output).
+- Database: Use Railway's SQL shell or connect via the provided `DATABASE_URL`.
+- Redeploy: Push to the tracked branch or click Redeploy.
+- Scale: Default 1x is sufficient; Luigi runs inside the same container.
+- Cleanup: Delete old runs from the UI or via `DELETE /api/plans/{plan_id}`.
 
-## 6. Troubleshooting
-- Frontend 404s: indicates the static assets did not copy. Check the build log for npm run build:static failures.
-- Missing API keys: FastAPI prints [MISSING] warnings during startup. Set the environment variables and redeploy.
-- Database errors: confirm the DATABASE_URL variable is present and the database service is running.
-- Luigi pipeline failures: open the service logs and inspect /app/run/<plan-id> inside the container (Railway provides a shell).
+## Troubleshooting
+| Issue | Check |
+| --- | --- |
+| White screen / 404 | Static export missing; inspect build phase logs |
+| 502 errors | Ensure FastAPI binds to `$PORT`; rebuild if Dockerfile changed |
+| Missing API keys | Verify environment variables, redeploy after updates |
+| No Luigi output | Inspect `/app/run/<plan_id>/log.txt` via Railway shell |
+| No report | Call fallback endpoint, review missing section list |
 
-## 7. Retiring the Legacy Frontend Service
-If your Railway project still has the old planexe-frontend service, remove it to avoid confusion. The single API service now serves all traffic.
-
----
-Remember: The UI is just a thin layer over the Python pipeline. Treat Railway as the development environment: commit, push, deploy, and debug directly in production-like conditions.
+Keep this guide updated whenever deployment requirements change. For database migration specifics see
+`docs/RailwayDatabaseMigration.md`.

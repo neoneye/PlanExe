@@ -1,5 +1,16 @@
-ï»¿# 02 Oct Codex Plan â€“ Stabilising Final Plan Assembly
+/**
+ * Author: Codex using GPT-5
+ * Date: 2025-10-03T00:00:00Z
+ * PURPOSE: Captures the October 2nd stabilisation strategy for report assembly and tracks its
+ *          completion status post v0.3.2 fallback rollout.
+ * SRP and DRY check: Pass - Historical plan plus latest status annotation without duplicating
+ *          implementation details already in code comments.
+ */# 02 Oct Codex Plan - Stabilising Final Plan Assembly
 
+## Status Update — 2025-10-03
+- [x] ReportAssembler shipped in v0.3.2 with GET /api/plans/{plan_id}/fallback-report.
+- [x] FastAPI and the frontend Files tab now surface recovered sections and completion metrics.
+- [ ] Agent-driven remediation (Phase 5) remains optional and is still deferred.
 ## Current Assembly Behaviour
 - The Luigi `ReportTask` stitches the final HTML (`029-report.html`) by reading dozens of prerequisite artefacts from `run/<plan_id>/` and feeding them to `planexe.report.report_generator.ReportGenerator`.
 - Every upstream task also persists its payload into the `plan_content` table via `db_service.create_plan_content`, which is how the FastAPI layer serves downloads on Railway.
@@ -48,6 +59,8 @@ Deliver a coherent business plan from whatever artefacts exist, and clearly docu
 
 ## Immediate Actions
 - Implement the assembler + graceful ReportTask update.
-- Document the retrieval workflow in README (filesystem, API, database) â€“ completed in this iteration.
+- Document the retrieval workflow in README (filesystem, API, database) – completed in this iteration.
 - Keep monitoring long-running plans to ensure they finish even when a late stage fails.
+
+
 

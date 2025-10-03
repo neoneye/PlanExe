@@ -1,357 +1,156 @@
-# PlanExe REST API & Node.js Integration
+/**
+ * Author: Codex using GPT-5
+ * Date: 2025-10-03T00:00:00Z
+ * PURPOSE: Authoritative guide for the PlanExe REST API and its Next.js client, reflecting the v0.3.2
+ *          database-first pipeline with fallback report assembly and Railway-first deployment.
+ * SRP and DRY check: Pass - Centralises API onboarding, runtime operations, and integration notes without
+ *          duplicating pipeline internals documented elsewhere.
+ */
+# PlanExe REST API & Frontend Integration (v0.3.2)
 
-This is a REST API wrapper and Node.js frontend for PlanExe, allowing you to build custom user interfaces using modern web technologies while leveraging the powerful AI planning capabilities of PlanExe.
+PlanExe pairs a FastAPI backend with a Next.js 15 frontend to orchestrate the 61-task Luigi planning pipeline.
+The API launches pipeline runs, streams progress, persists plan artefacts to SQLite/PostgreSQL, and now exposes
+fallback report assembly so partially successful runs still deliver a coherent plan.
 
-## 🚀 Quick Start
+## What Changed in v0.3.x
+- Database-first Luigi architecture (v0.3.0) writes every task output to `plan_content` during execution.
+- Structured OpenAI/OpenRouter fallback logic keeps long runs stable under schema drifts (v0.3.1).
+- New fallback report assembler (v0.3.2) produces HTML + JSON summaries even when `ReportTask` fails.
+- Frontend files tab surfaces recovered reports and completion percentages, sorted newest-first.
+- Railway deployment is single-container: FastAPI serves both API and the static Next.js export.
 
-### Option 1: Docker (Recommended)
+## Quick Start
 
+### Single Command Dev Loop
 ```bash
-# Clone the repository
-git clone https://github.com/neoneye/PlanExe.git
-cd PlanExe
-
-# Create environment file
-cp .env.example .env
-# Edit .env and add your OPENROUTER_API_KEY
-
-# Start the full stack
-docker compose -f docker/docker compose.yml up
-
-# Access the application
-# API: http://localhost:8080
-# UI: http://localhost:3000
+cd planexe-frontend
+npm install
+npm run go            # Starts FastAPI on :8080 and Next.js dev on :3000
 ```
+Verify:
+- UI: http://localhost:3000
+- API health: http://localhost:8080/health
 
-### Option 2: Manual Setup
-
-#### Start the Python API Server
-
+### Backend Only (FastAPI + Luigi)
 ```bash
-# Install API dependencies
-pip install fastapi uvicorn sse-starlette
-
-# Start the API server
-python -m planexe_api.api
-
-# API will be available at http://localhost:8080
+cd planexe_api
+set DATABASE_URL=sqlite:///./planexe.db   # PowerShell
+uvicorn api:app --reload --port 8080
 ```
+The server automatically loads `.env` (via `PlanExeDotEnv`) and merges values into `os.environ` for Luigi.
 
-#### Start the Node.js Frontend
-
+### Frontend Only (Next.js 15)
 ```bash
-# Install Node.js dependencies
-cd nodejs-client && npm install && cd ..
-cd nodejs-ui && npm install
-
-# Build the React app
-npm run build
-
-# Start the UI server
-npm run server
-
-# UI will be available at http://localhost:3000
+cd planexe-frontend
+npm run dev          # UI on http://localhost:3000
 ```
+Uses direct `fetch` calls to FastAPI�no Next.js API routes.
 
-## 📁 Project Structure
-
-```
-PlanExe/
-├── planexe_api/              # FastAPI REST API
-│   ├── api.py               # Main API server
-│   ├── models.py            # Pydantic schemas
-│   └── requirements.txt     # API dependencies
-├── nodejs-client/           # Node.js client SDK
-│   ├── index.js            # Client library
-│   ├── index.d.ts          # TypeScript definitions
-│   └── test.js             # Test script
-├── nodejs-ui/              # React frontend
-│   ├── src/                # React components
-│   ├── server.js           # Express server
-│   └── package.json        # UI dependencies
-├── docker/                 # Docker configuration
-│   ├── Dockerfile.api      # API container
-│   ├── Dockerfile.ui       # UI container
-│   └── docker compose.yml  # Full stack setup
-└── docs/                   # Documentation
-    └── API.md              # API documentation
-```
-
-## 🔧 API Endpoints
-
-### Core Endpoints
-
-- `GET /health` - Health check
-- `GET /api/models` - Available LLM models
-- `GET /api/prompts` - Example prompts
-- `POST /api/plans` - Create new plan
-- `GET /api/plans/{id}` - Get plan status
-- `GET /api/plans/{id}/stream` - Real-time progress (SSE)
-- `GET /api/plans/{id}/report` - Download HTML report
-
-### Example Usage
-
-```javascript
-// Create a plan
-const response = await fetch('http://localhost:8080/api/plans', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    prompt: 'Design a sustainable urban garden project',
-    speed_vs_detail: 'ALL_DETAILS_BUT_SLOW'
-  })
-});
-
-const plan = await response.json();
-console.log('Plan ID:', plan.plan_id);
-```
-
-## 📚 Node.js Client SDK
-
-### Installation
-
+### Production Build / Railway
 ```bash
-npm install planexe-client
+cd planexe-frontend
+npm run build                    # Builds static export to ./out
 ```
+Railway deploy uses `docker/Dockerfile.railway.api`, which:
+1. Builds the Next.js export and copies it to `/app/ui_static`.
+2. Installs Python deps, starts FastAPI on `$PORT`, and serves `/app/ui_static` directly.
 
-### Usage
+## Environment & Database
+- `DATABASE_URL` is mandatory (SQLite for local, Railway Postgres in prod).
+- Plan output directory defaults to `./run` locally; override with `PLANEXE_RUN_DIR` if needed.
+- API keys (`OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`) are loaded via
+  the hybrid dotenv loader and propagated to the Luigi subprocess.
 
-```javascript
-const { PlanExeClient } = require('planexe-client');
+## API Surface
 
-const client = new PlanExeClient({
-  baseURL: 'http://localhost:8080'
-});
+### Health & Metadata
+- `GET /health` ? `HealthResponse` (version, DB connectivity, queue status).
+- `GET /ping` ? plain text heartbeat.
+- `GET /api/models` ? ordered LLM catalogue (id, label, provider, latency tier).
+- `GET /api/prompts` ? curated example prompts for UI seeding.
 
-// Create a plan and watch progress
-const plan = await client.createPlan({
-  prompt: 'Design a mobile app for food delivery'
-});
+### Plan Lifecycle
+- `POST /api/plans` ? create plan; body matches `CreatePlanRequest` with snake_case fields.
+- `GET /api/plans/{plan_id}` ? latest persisted status (progress %, speed_vs_detail, error message).
+- `GET /api/plans/{plan_id}/stream` ? SSE stream of `PlanProgressEvent` (known to drop occasionally).
+- `GET /ws/plans/{plan_id}/progress` ? WebSocket alternative using same payload schema.
+- `GET /api/plans/{plan_id}/stream-status` ? discover available transports (`sse`, `websocket`).
+- `DELETE /api/plans/{plan_id}` ? stop pipeline and mark plan cancelled.
+- `GET /api/plans` ? reverse chronological plan list (newest first) for the queue view.
 
-const watcher = client.watchPlan(plan.plan_id, {
-  onProgress: (data) => {
-    console.log(`Progress: ${data.progress_percentage}%`);
-    console.log(`Status: ${data.progress_message}`);
-  },
-  onComplete: (data) => {
-    console.log('Plan completed successfully!');
-    // Download the report
-    client.downloadReport(plan.plan_id);
-  },
-  onError: (error) => {
-    console.error('Plan failed:', error.message);
-  }
-});
+### Artefacts & Reports
+- `GET /api/plans/{plan_id}/files` ? file manifest with checksum + size metadata.
+- `GET /api/plans/{plan_id}/files/{filename}` ? download persisted artefact.
+- `GET /api/plans/{plan_id}/content/{filename}` ? raw stored content.
+- `GET /api/plans/{plan_id}/details` ? Luigi stage map + dependency information.
+- `GET /api/plans/{plan_id}/report` ? canonical HTML report (Luigi `ReportTask`).
+- `GET /api/plans/{plan_id}/fallback-report` ? new assembled HTML + missing-section JSON when the
+  canonical task fails; response includes completion percentage and section inventory.
 
-// The watcher automatically handles Server-Sent Events
-// Call watcher.close() to stop watching
-```
+## Example Usage
 
-### TypeScript Support
-
-```typescript
-import { PlanExeClient, CreatePlanOptions } from 'planexe-client';
-
-const client = new PlanExeClient({ baseURL: 'http://localhost:8080' });
-
-const options: CreatePlanOptions = {
-  prompt: 'Design a smart home system',
-  speedVsDetail: 'BALANCED_SPEED_AND_DETAIL'
-};
-
-const plan = await client.createPlan(options);
-```
-
-## 🎨 React Frontend Features
-
-The included React frontend provides:
-
-- **Plan Creation Form** - Rich text input with example prompts
-- **Model Selection** - Choose from available LLM models
-- **Real-time Progress** - Live updates during plan generation
-- **Plan Management** - View, cancel, and download plans
-- **File Browser** - Access all generated plan files
-- **Responsive Design** - Works on desktop and mobile
-
-### Key Components
-
-- `PlanCreate` - Form for creating new plans
-- `PlanList` - View all plans with status
-- `PlanDetail` - Real-time progress and results
-- `usePlanExe` - React hook for API integration
-
-## 🐳 Docker Deployment
-
-### Development
-
+### Create a Plan
 ```bash
-docker compose -f docker/docker compose.yml up --build
+curl -X POST http://localhost:8080/api/plans \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Launch a community makerspace in Austin",
+    "speed_vs_detail": "ALL_DETAILS_BUT_SLOW",
+    "model": "gpt-4.1-mini"
+  }'
 ```
-
-### Production
-
-```bash
-# Set environment variables
-export OPENROUTER_API_KEY=your-key-here
-
-# Deploy with production settings
-docker compose -f docker/docker compose.yml up -d
-```
-
-### Environment Variables
-
-```env
-# Required for paid models
-OPENROUTER_API_KEY=your-openrouter-api-key
-
-# Optional: Custom output directory
-PLANEXE_RUN_DIR=/custom/path/to/plans
-
-# Optional: Custom Python path
-PATH_TO_PYTHON=/custom/python
-
-# UI Configuration
-PLANEXE_API_URL=http://localhost:8080
-```
-
-## 🔐 Configuration
-
-### LLM Models
-
-The API automatically detects available models from `llm_config.json`:
-
-- **OpenRouter Models** - Require API key, high quality
-- **Ollama Models** - Local, free, requires Ollama installation
-- **LM Studio Models** - Local, free, requires LM Studio
-
-### Speed vs Detail
-
-Choose planning depth:
-
-- `FAST_BUT_BASIC` - Quick overview, basic structure
-- `BALANCED_SPEED_AND_DETAIL` - Good balance (recommended)
-- `ALL_DETAILS_BUT_SLOW` - Comprehensive analysis
-
-## 🛠️ Development
-
-### API Development
-
-```bash
-# Install dependencies
-pip install -e '.[gradio-ui,flask-ui]'
-pip install -r planexe_api/requirements.txt
-
-# Start with auto-reload
-uvicorn planexe_api.api:app --reload --host 0.0.0.0 --port 8080
-```
-
-### Frontend Development
-
-```bash
-cd nodejs-ui
-
-# Start development server with hot reload
-npm run dev
-
-# Build for production
-npm run build
-```
-
-### Testing
-
-```bash
-# Test the Node.js client
-cd nodejs-client
-npm test
-
-# Test API endpoints
-curl http://localhost:8080/health
-```
-
-## 📖 Documentation
-
-- [API Documentation](docs/API.md) - Complete REST API reference
-- [Client SDK Documentation](nodejs-client/README.md) - Node.js client guide
-- [Original PlanExe README](README.md) - Core PlanExe documentation
-
-## 🤝 Integration Examples
-
-### Express.js Integration
-
-```javascript
-const express = require('express');
-const { PlanExeClient } = require('planexe-client');
-
-const app = express();
-const planexe = new PlanExeClient();
-
-app.post('/create-plan', async (req, res) => {
-  try {
-    const plan = await planexe.createPlan({
-      prompt: req.body.prompt
-    });
-    res.json({ planId: plan.plan_id });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-```
-
-### Next.js Integration
-
-```javascript
-// pages/api/plans.js
-import { PlanExeClient } from 'planexe-client';
-
-const client = new PlanExeClient({
-  baseURL: process.env.PLANEXE_API_URL
-});
-
-export default async function handler(req, res) {
-  if (req.method === 'POST') {
-    const plan = await client.createPlan(req.body);
-    res.json(plan);
-  }
+Response:
+```json
+{
+  "plan_id": "PlanExe_1234abcd-...",
+  "status": "queued",
+  "progress_percentage": 0,
+  "created_at": "2025-10-03T00:01:05Z"
 }
 ```
 
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **CORS Errors** - Use the provided proxy configuration
-2. **API Connection Failed** - Ensure API server is running on port 8080
-3. **Plan Creation Fails** - Check LLM model availability and API keys
-4. **SSE Stream Disconnects** - Network timeouts, implement reconnection logic
-
-### Debug Mode
-
+### Stream Progress (SSE)
 ```bash
-# Enable debug logging for API
-DEBUG=1 python -m planexe_api.api
-
-# Enable verbose client logging
-const client = new PlanExeClient({ debug: true });
+curl http://localhost:8080/api/plans/PlanExe_1234/stream
 ```
+If SSE disconnects (known issue), attempt the WebSocket endpoint or poll `/api/plans/{id}`.
 
-## 🚦 Limitations
+### Fetch Fallback Report
+```bash
+curl http://localhost:8080/api/plans/PlanExe_1234/fallback-report
+```
+Returns HTML, missing sections, and computed completion percentage derived from `plan_content` rows.
 
-- Server-Sent Events may not work through some proxies
-- Large plan outputs may take significant time to generate
-- Some LLM models require paid API keys
-- Docker setup requires sufficient disk space for plan outputs
+## Data Persistence Model
+- Every Luigi task writes to both filesystem (`run/<plan_id>/...`) and `plan_content` via
+  `DatabaseService.create_plan_content`.
+- Plan metadata (`plans` table) tracks status, timestamps, and speed/detail choices.
+- `llm_interactions` table stores prompts/responses for audit.
+- Fallback report assembler reads database-first, guaranteeing deliverables survive Railway pod restarts.
 
-## 🔄 Migration from Original UI
+## Progress Transport Notes
+- SSE remains default but unreliable on some corporate proxies (bug tracked in `SSE-Reliability-Analysis.md`).
+- WebSocket endpoint shares queues managed by `websocket_manager`; cleanup is protected by locks but still
+  under observation (see `Thread-Safety-Analysis.md`).
 
-If you're migrating from the original Gradio or Flask UI:
+## Speed vs Detail Options
+| Enum | Description |
+| --- | --- |
+| `FAST_BUT_SKIP_DETAILS` | Uses lightweight prompt templates for a rapid draft. |
+| `BALANCED_SPEED_AND_DETAIL` | Balanced throughput vs coverage (default). |
+| `ALL_DETAILS_BUT_SLOW` | Executes full-detail prompts for every stage. |
 
-1. **Data Compatibility** - Plan outputs use the same format
-2. **API Keys** - Same environment variables work
-3. **Configuration** - `llm_config.json` is used as-is
-4. **Parallel Usage** - Can run alongside existing UIs
+## Testing
+- Python: `pytest -q` (runs FastAPI + pipeline utility tests).
+- Frontend: `npm test` and `npm run test:integration` inside `planexe-frontend`.
+- Real pipeline validation: reuse historical plan logs under `run/` instead of fabricating data.
 
-## 📞 Support
+## Operational Checklist
+- Verify Railway deploy logs include `Serving static UI from: /app/ui_static`.
+- Confirm database migrations have run (see `docs/RailwayDatabaseMigration.md`).
+- Monitor `/api/plans/{id}/fallback-report` metrics for partial completions.
+- Keep `.env` synchronised with Railway variables before each deploy.
 
-- **Issues** - [GitHub Issues](https://github.com/neoneye/PlanExe/issues)
-- **API Docs** - [docs/API.md](docs/API.md)
-- **Discord** - [PlanExe Discord](https://neoneye.github.io/PlanExe-web/discord.html)
+---
+The backend remains backward compatible with existing clients; legacy Node SDK docs now live in
+`docs/old_docs/`. Use this README as the living reference for all API integrations.

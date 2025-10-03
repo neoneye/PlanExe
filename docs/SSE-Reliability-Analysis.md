@@ -1,9 +1,15 @@
 /**
- * Author: Claude Code using Sonnet 4
- * Date: 2025-09-26
- * PURPOSE: Detailed analysis of SSE reliability issues in PlanExe real-time communication
- * SRP and DRY check: Pass - Single responsibility for technical analysis documentation
+ * Author: Codex using GPT-5 (refreshing original doc by Claude Code using Sonnet 4)
+ * Date: 2025-10-03T00:00:00Z
+ * PURPOSE: Preserve and update the SSE reliability analysis with current status guidance for v0.3.2.
+ * SRP and DRY check: Pass - Focused on SSE transport reliability; references thread-safety doc for fixes.
  */
+
+## Status Update (2025-10-03)
+- SSE drops continue on some clients; fall back to `/ws/plans/{plan_id}/progress` when disconnects occur.
+- Thread cleanup hardening (see `docs/Thread-Safety-Analysis.md`) is still pending merge, so no backend fix yet.
+- Keep the 5s reconnect backoff in the UI until we have telemetry showing improved stability.
+
 
 # SSE Reliability Issues Analysis
 
@@ -170,3 +176,12 @@ The fundamental architectural problem is **mixing synchronous subprocess communi
 5. Add proper error categorization and recovery logic
 
 This analysis forms the foundation for the WebSocket architecture design in Phase 1.2.
+
+
+
+
+
+
+
+
+

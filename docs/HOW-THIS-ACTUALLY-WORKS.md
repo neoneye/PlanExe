@@ -1,185 +1,82 @@
-# HOW PLANEXE ACTUALLY WORKS
+/**
+ * Author: Codex using GPT-5
+ * Date: 2025-10-03T00:00:00Z
+ * PURPOSE: Accurate explanation of the PlanExe runtime topology for v0.3.2, covering local dev,
+ *          Railway deployment, and fallback report behaviour.
+ * SRP and DRY check: Pass - Focused on execution architecture; defers code-level detail to other docs.
+ */
+# How PlanExe Actually Works (v0.3.2)
 
-**Updated for Railway Single-Service Deployment (v0.2.0)**
+PlanExe is a three-layer system: a Next.js UI, a FastAPI orchestration service, and a Luigi subprocess. This
+note explains how those layers interact in development and on Railway now that the fallback report assembler
+is live and Railway is stable.
 
-## Architecture Overview
+## Architecture Snapshot
 
-PlanExe uses different architectures for **development** vs **production**:
+| Layer | Role | Location |
+| --- | --- | --- |
+| Next.js 15 frontend | Collects prompts, displays progress, downloads artefacts | `planexe-frontend/` |
+| FastAPI backend | Launches Luigi subprocesses, streams progress, serves files | `planexe_api/` |
+| Luigi pipeline | Executes 61 AI tasks, writes outputs to DB + filesystem | `planexe/` |
 
-### Development (Local) - 3-Layer System
-- **Next.js UI**: Port 3000 (separate dev server)
-- **FastAPI API**: Port 8080 (with CORS enabled)
-- **Luigi Pipeline**: Python subprocess (spawned by FastAPI)
+## Development Workflow (Local)
+1. Run `npm run go` inside `planexe-frontend/`.
+2. The script starts:
+   - FastAPI (uvicorn) on `http://localhost:8080`.
+   - Next.js dev server on `http://localhost:3000` with hot reload.
+3. The UI sends direct `fetch` requests to FastAPI (no proxy routes).
+4. FastAPI creates `run/PlanExe_<uuid>/`, seeds initial files, then spawns `python -m planexe.plan.run_plan_pipeline`.
+5. Luigi executes tasks, writing to both the run directory and the database. Progress is published over SSE and
+   WebSocket queues.
+6. The frontend polls `/api/plans/{id}` and listens for SSE/WebSocket updates. If SSE drops (still a known
+   issue), it reconnects or falls back to polling.
 
-### Production (Railway) - Single-Service System
-- **FastAPI Server**: Port 8080 (serves both UI and API)
-- **Static UI**: Served by FastAPI from `/ui_static/`
-- **Luigi Pipeline**: Python subprocess (same as dev)
+## Railway Deployment (Production)
+1. Railway builds `docker/Dockerfile.railway.api` which:
+   - Installs Node, builds the Next.js static export, and copies it to `/app/ui_static`.
+   - Installs Python dependencies and launches FastAPI bound to Railway's `$PORT`.
+2. A single Railway service serves both HTML and API requests from FastAPI.
+3. `DATABASE_URL` points to the Railway Postgres instance; migrations are applied before deployment.
+4. Environment variables are loaded through `PlanExeDotEnv` and merged into `os.environ` so the Luigi subprocess
+   inherits API keys.
+5. When a plan is created, Luigi runs identically to local mode. Because the filesystem is ephemeral, FastAPI now
+   relies on the database-first writes introduced in v0.3.0 plus the fallback report assembler from v0.3.2 to
+   guarantee deliverables survive pod restarts.
 
-## The 3 Core Components
-
-### Component 1: Next.js Frontend
-- **What it does**: Pretty UI forms where you type your plan idea
-- **Development**: Runs on port 3000 as separate server
-- **Production**: Built as static files, served by FastAPI
-- **Location**: `planexe-frontend/` directory
-
-### Component 2: FastAPI Backend
-- **What it does**: HTTP API + subprocess management + UI serving (prod only)
-- **What it DOESN'T do**: Any actual AI planning work!
-- **What it ACTUALLY does**: Spawns Luigi pipeline subprocess
-- **Location**: `planexe_api/` directory
-- **Key file**: `planexe_api/api.py`
-
-### Component 3: Luigi Pipeline (Python subprocess)
-- **What it does**: The ACTUAL AI planning work (61 interconnected tasks)
-- **How it starts**: FastAPI spawns it with `python -m planexe.plan.run_plan_pipeline`
-- **Location**: `planexe/` directory (the core pipeline)
-- **Key file**: `planexe/plan/run_plan_pipeline.py`
-
-## The Data Flow (What Actually Happens)
-
-### Development Mode
+## Data Flow Summary
 ```
-1. User types plan in Next.js UI (localhost:3000)
-2. Next.js sends CORS request to FastAPI (localhost:8080)
-3. FastAPI creates a run directory in `run/`
-4. FastAPI writes initial files (START_TIME, INITIAL_PLAN)
-5. FastAPI spawns subprocess: `python -m planexe.plan.run_plan_pipeline`
-6. Luigi pipeline (subprocess) reads files from run directory
-7. Luigi pipeline executes 61 AI tasks, writing output files
-8. FastAPI streams Luigi's stdout back to frontend in real-time
-9. User sees progress in the UI terminal
+User -> Next.js (3000 dev / 8080 prod) -> FastAPI (spawns subprocess) -> Luigi pipeline ->
+  write outputs to run/<plan_id>/ and plan_content table -> FastAPI serves artefacts -> UI downloads
 ```
 
-### Production Mode (Railway)
-```
-1. User accesses FastAPI server (Railway provides URL on port 8080)
-2. FastAPI serves static Next.js UI from /ui_static/
-3. UI sends relative API requests (/api/plans) to same server
-4. FastAPI creates a run directory in `run/`
-5. FastAPI writes initial files (START_TIME, INITIAL_PLAN)
-6. FastAPI spawns subprocess: `python -m planexe.plan.run_plan_pipeline`
-7. Luigi pipeline (subprocess) reads files from run directory
-8. Luigi pipeline executes 61 AI tasks, writing output files
-9. FastAPI streams Luigi's stdout back to UI in real-time
-10. User sees progress in the UI terminal
-```
+## Key Behaviours
+- **Fallback Reports**: If `ReportTask` fails, FastAPI still produces `/api/plans/{id}/fallback-report` by reading
+  `plan_content`. The frontend exposes this in the Files tab with completion percentages.
+- **Progress Streaming**: SSE remains default but unreliable in some networks; WebSocket endpoint
+  (`/ws/plans/{id}/progress`) shares the same payloads. See `docs/SSE-Reliability-Analysis.md` for mitigations.
+- **Concurrency Control**: `pipeline_execution_service.py` manages subprocess lifecycle, queues, and cleanup.
+  Thread-safety hardening is tracked in `docs/Thread-Safety-Analysis.md`.
+- **Database-first Writes**: Every task calls `DatabaseService.create_plan_content(...)` before touching the
+  filesystem, so the API and fallback assembler always have authoritative data.
 
-## How to Actually Start This Thing
+## Operational Checks
+- Local dev: `curl http://localhost:8080/health` should report `database_connected=true`.
+- Railway: deployment logs must show `Serving static UI from: /app/ui_static` and environment validation for
+  API keys.
+- Plan run: look for `/api/plans/{id}/files` entries and the fallback report endpoint even on successful runs.
 
-### Local Development
-```bash
-cd planexe-frontend
-npm run go
-```
+## Troubleshooting Cheatsheet
+| Symptom | Likely Cause | What to Inspect |
+| --- | --- | --- |
+| UI cannot reach API | FastAPI not on :8080 or CORS blocked | Terminal running `npm run go`, browser console |
+| Plan stuck in queued | Luigi subprocess failed to start | `run/<plan_id>/log.txt`, FastAPI logs |
+| SSE stops mid-run | Network or thread cleanup issue | Switch to WebSocket or poll `/api/plans/{id}` |
+| No HTML report | `ReportTask` failed | Hit `/api/plans/{id}/fallback-report`, check missing sections |
+| No LLM calls | Environment variables missing | `docs/2025-10-02-E2E-Env-Propagation-Runbook.md` steps |
 
-This command starts:
-- **FastAPI backend** on port 8080 (with CORS enabled)
-- **Next.js frontend** on port 3000 (separate dev server)
-
-**Verify it's working:**
-- Frontend: http://localhost:3000
-- Backend health: http://localhost:8080/health
-
-### Production-Like Testing (Single Service)
-```bash
-cd planexe-frontend
-npm run build               # Build Next.js static export
-cp -r out ../ui_static         # Copy to expected location
-npm run serve:single           # Start FastAPI serving both UI + API
-```
-
-> Next.js 15 removes the standalone `next export`; `npm run build` already writes the static site to `out/`.
-**Verify it's working:**
-- Single service: http://localhost:8080
-- Health check: http://localhost:8080/health
-
-## The Luigi Pipeline Subprocess
-
-**This is the part that actually does the work:**
-
-- **Command**: `python -m planexe.plan.run_plan_pipeline`
-- **Working directory**: Project root (`D:\1Projects\PlanExe`)
-- **Input**: Reads from `run/{plan_id}/` directory
-- **Output**: Writes 61 task outputs to same directory
-- **Environment**: Inherits API keys from FastAPI process
-
-## Why This is Confusing
-
-1. **The frontend doesn't directly talk to Luigi** - it talks to FastAPI
-2. **FastAPI doesn't do the AI work** - it just manages Luigi subprocesses
-3. **Luigi runs as a separate Python process** - not imported as a library
-4. **The real work happens in the subprocess** - invisible to the user
-
-## What Can Go Wrong
-
-### Development Mode Issues
-1. **Luigi subprocess fails to start** - check Python imports
-2. **Luigi can't find API keys** - environment variable inheritance issue
-3. **Luigi tasks fail** - check `run/{plan_id}/log.txt`
-4. **Frontend can't connect** - FastAPI not running on port 8080
-5. **CORS errors** - FastAPI CORS not configured for localhost:3000
-6. **No progress updates** - Luigi subprocess died silently
-
-### Production Mode Issues
-1. **White screen** - Static UI files not found at `/ui_static/`
-2. **502 errors** - FastAPI not binding to correct PORT
-3. **API calls fail** - UI using absolute URLs instead of relative paths
-4. **Static assets 404** - Next.js static export missing files
-5. **Luigi subprocess issues** - Same as development
-
-## Debug Commands
-
-### Development Mode
-```bash
-# Check if both servers are running
-netstat -an | findstr :3000  # Next.js
-netstat -an | findstr :8080  # FastAPI
-
-# Test FastAPI health
-curl http://localhost:8080/health
-
-# Test CORS
-curl -H "Origin: http://localhost:3000" http://localhost:8080/api/models
-```
-
-### Production Mode
-```bash
-# Check single service
-netstat -an | findstr :8080  # Single FastAPI service
-
-# Test health
-curl http://localhost:8080/health
-
-# Test static UI serving
-curl http://localhost:8080/
-
-# Check static files exist
-ls ui_static/
-```
-
-### Universal Debug
-```bash
-# Test Luigi pipeline manually (from project root)
-python -m planexe.plan.run_plan_pipeline
-
-# Check recent plan logs
-dir run
-type run\{latest_plan_id}\log.txt
-
-# Check environment variables
-echo $PLANEXE_CLOUD_MODE
-echo $PORT
-```
-
-## The Real Problem
-
-**Nobody documented this 3-layer architecture.** The previous developers built:
-1. A Luigi pipeline (the actual AI work)
-2. A FastAPI wrapper (subprocess manager)
-3. A Next.js frontend (pretty UI)
-
-But they never clearly explained that FastAPI is just a subprocess launcher, not the actual AI engine.
-
-**Bottom Line**: You need ALL THREE layers running for anything to work.
+## Takeaways for New Contributors
+- Keep backend/ frontend schemas aligned (snake_case everywhere).
+- Do not bypass the database service; the UI and fallback assembler depend on it.
+- Use existing run outputs in `run/` for testing rather than generating mock data.
+- When in doubt, start both services with `npm run go` and reproduce through the UI—the project optimises for
+  Railway-first workflows.

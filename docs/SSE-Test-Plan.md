@@ -1,9 +1,15 @@
 /**
- * Author: Claude Code using Sonnet 4
- * Date: 2025-09-26
- * PURPOSE: Comprehensive test plan for validating SSE reliability issues and WebSocket replacement
- * SRP and DRY check: Pass - Single responsibility for testing strategy documentation
+ * Author: Codex using GPT-5 (refreshing original doc by Claude Code using Sonnet 4)
+ * Date: 2025-10-03T00:00:00Z
+ * PURPOSE: Maintain the SSE test plan with current guidance while preserving the original scenarios.
+ * SRP and DRY check: Pass - Focused on test execution; references analysis doc for root cause details.
  */
+
+## Status Update (2025-10-03)
+- Continue to execute baseline SSE vs WebSocket comparisons after each release; fallback assembler does not change test steps.
+- Prioritise multi-client SSE endurance tests because thread cleanup fixes are still pending.
+- Capture fallback report availability during tests to confirm partial runs still deliver artefacts when SSE fails.
+
 
 # SSE Endpoint Testing Plan
 
@@ -350,3 +356,8 @@ if __name__ == "__main__":
 - CPU efficiency: Target <5% baseline (current ~15% baseline)
 
 This comprehensive test plan will validate both the current SSE issues and the effectiveness of the WebSocket replacement.
+
+
+
+
+
