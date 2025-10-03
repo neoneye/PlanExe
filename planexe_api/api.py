@@ -10,6 +10,7 @@ import os
 import threading
 import uuid
 from datetime import datetime
+from html import escape
 from pathlib import Path
 from typing import Dict, Optional, List
 
@@ -32,11 +33,12 @@ from planexe.utils.planexe_llmconfig import PlanExeLLMConfig
 from planexe_api.models import (
     CreatePlanRequest, PlanResponse, PlanProgressEvent, LLMModel,
     PromptExample, PlanFilesResponse, APIError, HealthResponse,
-    PlanStatus, SpeedVsDetail, PipelineDetailsResponse, StreamStatusResponse
+    PlanStatus, SpeedVsDetail, PipelineDetailsResponse, StreamStatusResponse,
+    FallbackReportResponse, ReportSection, MissingSection
 )
 from planexe_api.database import (
     get_database, get_database_service, create_tables, DatabaseService, Plan, LLMInteraction,
-    PlanFile, PlanMetrics, SessionLocal
+    PlanFile, PlanMetrics, PlanContent, SessionLocal
 )
 from planexe_api.services.pipeline_execution_service import PipelineExecutionService
 from planexe_api.websocket_manager import websocket_manager
@@ -590,6 +592,220 @@ async def get_stream_status(plan_id: str, db: DatabaseService = Depends(get_data
         raise HTTPException(status_code=500, detail=f"Failed to get stream status: {str(e)}")
 
 
+# Helper utilities for fallback report assembly
+EXPECTED_REPORT_FILENAMES = [
+    member.value
+    for member in FilenameEnum
+    if "{}" not in member.value
+]
+
+
+def _infer_stage_from_filename(filename: str) -> Optional[str]:
+    try:
+        return FilenameEnum(filename).name.lower()
+    except ValueError:
+        return None
+
+
+def _normalise_content_type(content_type: Optional[str]) -> str:
+    return (content_type or "text/plain").lower()
+
+
+def _render_section_html(section: ReportSection) -> str:
+    content_type = _normalise_content_type(section.content_type)
+    if content_type in ("html", "text/html"):
+        body_html = section.content
+    elif content_type in ("markdown", "md", "text/markdown"):
+        body_html = f"<pre class='content-block markdown'>{escape(section.content)}</pre>"
+    elif content_type in ("json", "application/json"):
+        body_html = f"<pre class='content-block json'>{escape(section.content)}</pre>"
+    elif content_type in ("csv", "text/csv"):
+        body_html = f"<pre class='content-block csv'>{escape(section.content)}</pre>"
+    else:
+        body_html = f"<pre class='content-block plain'>{escape(section.content)}</pre>"
+
+    title_text = escape(section.stage or section.filename)
+    filename_text = escape(section.filename)
+
+    return (
+        "<section class='plan-section'>"
+        f"<h2>{title_text}</h2>"
+        f"<p class='filename'>{filename_text}</p>"
+        f"{body_html}"
+        "</section>"
+    )
+
+
+def _render_missing_sections_html(missing_sections: List[MissingSection]) -> str:
+    if not missing_sections:
+        return (
+            "<section class='missing'>"
+            "<h2>Further Research Required</h2>"
+            "<p>All expected sections were recovered.</p>"
+            "</section>"
+        )
+
+    items = []
+    for missing in missing_sections:
+        stage_text = missing.stage or "-"
+        items.append(
+            "<li>"
+            f"<strong>{escape(stage_text)}</strong> "
+            f"<span class='filename'>{escape(missing.filename)}</span> - "
+            f"{escape(missing.reason)}"
+            "</li>"
+        )
+
+    return (
+        "<section class='missing'>"
+        "<h2>Further Research Required</h2>"
+        "<ul>" + "".join(items) + "</ul>"
+        "</section>"
+    )
+
+
+def _build_fallback_html(
+    plan_id: str,
+    generated_at: datetime,
+    completion_percentage: float,
+    recovered_expected: int,
+    total_expected: int,
+    sections: List[ReportSection],
+    missing_sections: List[MissingSection],
+) -> str:
+    header_html = (
+        "<header class='report-header'>"
+        f"<h1>Recovered Plan Report: {escape(plan_id)}</h1>"
+        f"<p>Generated at {escape(generated_at.isoformat() + 'Z')}</p>"
+        f"<p>Recovered {recovered_expected} of {total_expected} expected sections ("
+        f"{completion_percentage:.2f}% complete).</p>"
+        "</header>"
+    )
+
+    missing_html = _render_missing_sections_html(missing_sections)
+    sections_html = "".join(_render_section_html(section) for section in sections)
+
+    return f"""<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>Recovered Plan Report - {escape(plan_id)}</title>
+<style>
+body {{ font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif; background: #f9fafb; color: #111827; margin: 2rem; }}
+header.report-header {{ background: #111827; color: #f9fafb; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 10px 30px rgba(17, 24, 39, 0.25); }}
+header.report-header h1 {{ margin: 0 0 0.5rem 0; font-size: 1.8rem; }}
+header.report-header p {{ margin: 0.25rem 0; }}
+section.missing {{ background: #fef3c7; border: 1px solid #f59e0b; padding: 1.25rem; border-radius: 10px; margin-bottom: 2rem; }}
+section.missing ul {{ margin: 0.75rem 0 0 1.25rem; }}
+section.missing li {{ margin-bottom: 0.5rem; }}
+section.plan-section {{ background: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 1.5rem; margin-bottom: 1.75rem; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08); }}
+section.plan-section h2 {{ margin-top: 0; margin-bottom: 0.75rem; font-size: 1.4rem; color: #0f172a; }}
+section.plan-section .filename {{ color: #475569; font-size: 0.9rem; margin-bottom: 1rem; }}
+pre.content-block {{ background: #f1f5f9; padding: 1rem; border-radius: 8px; overflow-x: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }}
+pre.content-block.markdown {{ background: #eef2ff; }}
+pre.content-block.json {{ background: #ecfeff; }}
+pre.content-block.csv {{ background: #fef9c3; }}
+</style>
+</head>
+<body>
+{header_html}
+{missing_html}
+{sections_html}
+</body>
+</html>
+"""
+
+
+def _assemble_fallback_report(plan_id: str, plan_contents: List[PlanContent]) -> FallbackReportResponse:
+    generated_at = datetime.utcnow()
+    records_by_filename = {}
+    for record in plan_contents:
+        if record.filename not in records_by_filename:
+            records_by_filename[record.filename] = record
+
+    missing_sections: List[MissingSection] = []
+    sections: List[ReportSection] = []
+    recovered_expected = 0
+    observed_filenames = set()
+
+    for expected_filename in EXPECTED_REPORT_FILENAMES:
+        record = records_by_filename.get(expected_filename)
+        if record:
+            sections.append(
+                ReportSection(
+                    filename=record.filename,
+                    stage=record.stage,
+                    content_type=record.content_type,
+                    content=record.content,
+                )
+            )
+            recovered_expected += 1
+            observed_filenames.add(expected_filename)
+        else:
+            missing_sections.append(
+                MissingSection(
+                    filename=expected_filename,
+                    stage=_infer_stage_from_filename(expected_filename),
+                    reason="Missing from plan_content table",
+                )
+            )
+
+    extra_records = [
+        record
+        for filename, record in records_by_filename.items()
+        if filename not in observed_filenames
+    ]
+    extra_records.sort(key=lambda record: record.filename)
+
+    for record in extra_records:
+        sections.append(
+            ReportSection(
+                filename=record.filename,
+                stage=record.stage,
+                content_type=record.content_type,
+                content=record.content,
+            )
+        )
+
+    total_expected = len(EXPECTED_REPORT_FILENAMES)
+    completion_percentage = round((recovered_expected / total_expected) * 100, 2) if total_expected else 0.0
+    assembled_html = _build_fallback_html(
+        plan_id,
+        generated_at,
+        completion_percentage,
+        recovered_expected,
+        total_expected,
+        sections,
+        missing_sections,
+    )
+
+    return FallbackReportResponse(
+        plan_id=plan_id,
+        generated_at=generated_at,
+        completion_percentage=completion_percentage,
+        sections=sections,
+        missing_sections=missing_sections,
+        assembled_html=assembled_html,
+    )
+
+
+@app.get("/api/plans/{plan_id}/fallback-report", response_model=FallbackReportResponse)
+async def get_fallback_report(plan_id: str, db: DatabaseService = Depends(get_database)):
+    """Assemble a fallback report from plan_content records without rerunning Luigi."""
+    try:
+        plan = db.get_plan(plan_id)
+        if not plan:
+            raise HTTPException(status_code=404, detail="Plan not found")
+
+        plan_contents = db.get_plan_content(plan_id)
+        if not plan_contents:
+            raise HTTPException(status_code=404, detail="No plan content found for this plan")
+
+        return _assemble_fallback_report(plan_id, plan_contents)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to assemble fallback report: {exc}")
 # File download endpoints
 @app.get("/api/plans/{plan_id}/report")
 async def download_plan_report(plan_id: str, db: DatabaseService = Depends(get_database)):
@@ -715,4 +931,7 @@ if not IS_DEVELOPMENT:
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", "8080"))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
+
+

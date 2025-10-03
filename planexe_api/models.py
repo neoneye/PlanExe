@@ -108,3 +108,26 @@ class HealthResponse(BaseModel):
     version: str = Field(..., description="API version")
     planexe_version: str = Field(..., description="PlanExe version")
     available_models: int = Field(..., description="Number of available LLM models")
+class ReportSection(BaseModel):
+    """Recovered section from plan_content for fallback report assembly"""
+    filename: str = Field(..., description="Original filename persisted by the pipeline")
+    stage: Optional[str] = Field(None, description="Pipeline stage that produced the content")
+    content_type: str = Field(..., description="Content type stored in plan_content")
+    content: str = Field(..., description="Raw content retrieved from plan_content")
+
+
+class MissingSection(BaseModel):
+    """Metadata describing a section we expected but could not recover"""
+    filename: str = Field(..., description="Expected filename that is missing from plan_content")
+    stage: Optional[str] = Field(None, description="Pipeline stage expected to create this content")
+    reason: str = Field(..., description="Explanation for why this section is unavailable")
+
+
+class FallbackReportResponse(BaseModel):
+    """API response for the fallback report assembler"""
+    plan_id: str = Field(..., description="Plan identifier")
+    generated_at: datetime = Field(..., description="Timestamp when the fallback report was assembled")
+    completion_percentage: float = Field(..., description="Percentage of expected sections recovered from plan_content")
+    sections: List[ReportSection] = Field(..., description="Sections successfully recovered from plan_content")
+    missing_sections: List[MissingSection] = Field(..., description="Sections that could not be recovered")
+    assembled_html: str = Field(..., description="HTML fallback report assembled from available content")
