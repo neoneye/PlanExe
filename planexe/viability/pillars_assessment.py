@@ -17,7 +17,7 @@ import re
 import time
 from dataclasses import dataclass
 from math import ceil
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
@@ -106,17 +106,15 @@ DEFAULT_EVIDENCE_BY_PILLAR = {
     ],
 }
 
-STATUS_TO_SCORE = {
-    StatusEnum.GREEN.value: (70, 100),
-    StatusEnum.YELLOW.value: (40, 69),
-    StatusEnum.RED.value: (0, 39),
-    StatusEnum.GRAY.value: None,
-}
+LIKERT_MIN = 1
+LIKERT_MAX = 5
+LIKERT_FACTOR_KEYS: Tuple[str, ...] = ("evidence", "risk", "fit")
 
-STATUS_MIDPOINT = {
-    StatusEnum.GREEN.value: 85,
-    StatusEnum.YELLOW.value: 55,
-    StatusEnum.RED.value: 20,
+DEFAULT_LIKERT_BY_STATUS: Dict[str, Dict[str, Optional[int]]] = {
+    StatusEnum.GREEN.value: {key: 4 for key in LIKERT_FACTOR_KEYS},
+    StatusEnum.YELLOW.value: {key: 3 for key in LIKERT_FACTOR_KEYS},
+    StatusEnum.RED.value: {key: 2 for key in LIKERT_FACTOR_KEYS},
+    StatusEnum.GRAY.value: {key: None for key in LIKERT_FACTOR_KEYS},
 }
 
 DEFAULT_EVIDENCE_ITEM = "Gather evidence for assessment"
@@ -237,6 +235,116 @@ EVIDENCE_TEMPLATES: Dict[str, List[str]] = {
     ],
 }
 
+
+def _empty_likert_score() -> Dict[str, Optional[int]]:
+    return {key: None for key in LIKERT_FACTOR_KEYS}
+
+
+def _clamp_factor(value: Any) -> Optional[int]:
+    if isinstance(value, (int, float)):
+        candidate = int(round(value))
+        if LIKERT_MIN <= candidate <= LIKERT_MAX:
+            return candidate
+    return None
+
+
+def _normalize_likert_score(raw_score: Any) -> Dict[str, Optional[int]]:
+    normalized = _empty_likert_score()
+
+    if isinstance(raw_score, dict):
+        for key in LIKERT_FACTOR_KEYS:
+            normalized[key] = _clamp_factor(raw_score.get(key))
+    elif isinstance(raw_score, (list, tuple)):
+        for key, value in zip(LIKERT_FACTOR_KEYS, raw_score):
+            normalized[key] = _clamp_factor(value)
+    elif isinstance(raw_score, (int, float)):
+        # Legacy 0-100 score fallback → map to Likert (1-5)
+        scaled = ((float(raw_score) / 100.0) * (LIKERT_MAX - LIKERT_MIN)) + LIKERT_MIN
+        fallback_value = _clamp_factor(scaled)
+        if fallback_value is not None:
+            return {key: fallback_value for key in LIKERT_FACTOR_KEYS}
+
+    return normalized
+
+
+def _fallback_factors_for_status(status: str) -> Dict[str, Optional[int]]:
+    template = DEFAULT_LIKERT_BY_STATUS.get(status, DEFAULT_LIKERT_BY_STATUS[StatusEnum.GRAY.value])
+    return dict(template)
+
+
+def _derive_status_from_factors(factors: Dict[str, Optional[int]]) -> str:
+    values = [val for val in factors.values() if isinstance(val, int)]
+    if len(values) < len(LIKERT_FACTOR_KEYS):
+        return StatusEnum.GRAY.value
+
+    floor = min(values)
+    if floor <= 2:
+        return StatusEnum.RED.value
+    if floor == 3:
+        return StatusEnum.YELLOW.value
+    return StatusEnum.GREEN.value
+
+
+def _enforce_status(factors: Dict[str, Optional[int]], status: str) -> Dict[str, Optional[int]]:
+    if status == StatusEnum.GRAY.value:
+        return _empty_likert_score()
+
+    template = _fallback_factors_for_status(status)
+
+    if status == StatusEnum.YELLOW.value:
+        # Ensure at least one factor is exactly 3, but do not override worse data.
+        enforced = {}
+        first_set = False
+        for key in LIKERT_FACTOR_KEYS:
+            current = factors.get(key)
+            if isinstance(current, int) and current <= 2:
+                enforced[key] = current
+                continue
+            if not first_set:
+                enforced[key] = 3
+                first_set = True
+            else:
+                enforced[key] = max(3, min(5, current)) if isinstance(current, int) else 3
+        return enforced
+
+    if status == StatusEnum.RED.value:
+        # Keep the lowest value ≤2 if present; otherwise fall back to 2.
+        enforced = {}
+        for key in LIKERT_FACTOR_KEYS:
+            current = factors.get(key)
+            if isinstance(current, int) and current <= 2:
+                enforced[key] = max(LIKERT_MIN, current)
+            else:
+                enforced[key] = LIKERT_MIN + 1  # 2
+        return enforced
+
+    # Default (GREEN): keep ≥4 and clamp into 4–5 range.
+    enforced = {}
+    for key in LIKERT_FACTOR_KEYS:
+        current = factors.get(key)
+        if isinstance(current, int) and current >= 4:
+            enforced[key] = min(LIKERT_MAX, current)
+        else:
+            enforced[key] = 4
+    return enforced
+
+
+def _compute_derived_metrics(factors: Dict[str, Optional[int]]) -> Dict[str, Any]:
+    values = [val for val in factors.values() if isinstance(val, int)]
+    average_likert: Optional[float] = None
+    legacy_0_100: Optional[int] = None
+
+    if len(values) == len(LIKERT_FACTOR_KEYS):
+        average_raw = sum(values) / float(len(values))
+        average_likert = round(average_raw, 2)
+        legacy_raw = int(round((average_raw - LIKERT_MIN) / (LIKERT_MAX - LIKERT_MIN) * 100))
+        legacy_0_100 = max(0, min(100, legacy_raw))
+
+    enriched: Dict[str, Any] = {key: factors.get(key) for key in LIKERT_FACTOR_KEYS}
+    enriched["average_likert"] = average_likert
+    enriched["legacy_0_100"] = legacy_0_100
+    return enriched
+
 def _canonicalize_evidence(pillar: str, reason_codes: List[str], evidence_todo: List[str]) -> List[str]:
     """
     Replace action-y items with artifact names and fill from templates.
@@ -267,10 +375,24 @@ def _canonicalize_evidence(pillar: str, reason_codes: List[str], evidence_todo: 
 # Lightweight schema for structured output
 # ---------------------------------------------------------------------------
 
+class PillarLikertScoreSchema(BaseModel):
+    evidence: Optional[int] = Field(default=None, ge=LIKERT_MIN, le=LIKERT_MAX)
+    risk: Optional[int] = Field(default=None, ge=LIKERT_MIN, le=LIKERT_MAX)
+    fit: Optional[int] = Field(default=None, ge=LIKERT_MIN, le=LIKERT_MAX)
+    average_likert: Optional[float] = Field(default=None)
+    legacy_0_100: Optional[int] = Field(default=None)
+
+    class Config:
+        extra = "ignore"
+
+
 class PillarItemSchema(BaseModel):
     pillar: str = Field(..., description="Pillar name from PillarEnum")
     status: str = Field(..., description="Status indicator")
-    score: Optional[int] = Field(None, description="Score 0-100 matching the status band")
+    score: Optional[PillarLikertScoreSchema] = Field(
+        None,
+        description="Per-factor Likert scores (1-5) with derived averages",
+    )
     reason_codes: Optional[List[str]] = Field(default=None)
     evidence_todo: Optional[List[str]] = Field(default=None)
     strength_rationale: Optional[str] = Field(default=None, description="Short rationale for why status is GREEN; omit otherwise")
@@ -291,7 +413,12 @@ class PillarsSchema(BaseModel):
 # Prompt assembly
 # ---------------------------------------------------------------------------
 
-PILLARS_SYSTEM_PROMPT = make_pillars_system_prompt(PILLAR_ORDER, REASON_CODES_BY_PILLAR, STATUS_TO_SCORE)
+PILLARS_SYSTEM_PROMPT = make_pillars_system_prompt(
+    PILLAR_ORDER,
+    REASON_CODES_BY_PILLAR,
+    DEFAULT_LIKERT_BY_STATUS,
+    DEFAULT_EVIDENCE_BY_PILLAR,
+)
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -301,7 +428,7 @@ def _default_pillar(pillar: str) -> Dict[str, Any]:
     return {
         "pillar": pillar,
         "status": StatusEnum.GRAY.value,
-        "score": None,
+        "score": _compute_derived_metrics(_empty_likert_score()),
         "reason_codes": [],
         "evidence_todo": [DEFAULT_EVIDENCE_ITEM],
     }
@@ -351,27 +478,38 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
     pillars = data.get("pillars", [])
     validated: List[Dict[str, Any]] = []
 
+    valid_statuses = {status.value for status in StatusEnum}
+
     for p in pillars:
         pillar_name = p.get("pillar", "Rights_Legality")
         status_raw = p.get("status", StatusEnum.GRAY.value)
-        score = p.get("score")
+        status_enum = status_raw if status_raw in valid_statuses else StatusEnum.GRAY.value
+
+        score_raw = p.get("score")
+        factors = _normalize_likert_score(score_raw)
+        if all(factors[key] is None for key in LIKERT_FACTOR_KEYS):
+            factors = _fallback_factors_for_status(status_enum)
 
         reason_codes = [rc for rc in (p.get("reason_codes") or []) if isinstance(rc, str)]
         evidence_todo = [e for e in (p.get("evidence_todo") or []) if isinstance(e, str) and e.strip()]
         strength_rationale = p.get("strength_rationale")
 
-        # Normalize status
-        status_enum = status_raw if status_raw in STATUS_TO_SCORE or status_raw == StatusEnum.GRAY.value else StatusEnum.GRAY.value
+        # Canonicalize evidence BEFORE applying status rules
+        evidence_todo = _canonicalize_evidence(pillar_name, reason_codes, evidence_todo)
 
-        # Evidence gate: GREEN with evidence -> downgrade
+        status_from_factors = _derive_status_from_factors(factors)
+        if status_from_factors != StatusEnum.GRAY.value:
+            status_enum = status_from_factors
+
+        # Evidence gate: GREEN with evidence → downgrade to YELLOW
         if status_enum == StatusEnum.GREEN.value and evidence_todo:
             status_enum = StatusEnum.YELLOW.value
-            score = None  # will snap later
+            factors = _enforce_status(factors, status_enum)
 
-        # Reason code gate: GREEN with negative reason codes -> downgrade
+        # Reason code gate: GREEN with negative reason codes → downgrade to YELLOW
         if status_enum == StatusEnum.GREEN.value and any(rc in NEGATIVE_REASON_CODES for rc in reason_codes):
             status_enum = StatusEnum.YELLOW.value
-            score = None  # will snap later
+            factors = _enforce_status(factors, status_enum)
 
         # Strength gate for GREEN
         if status_enum == StatusEnum.GREEN.value:
@@ -379,24 +517,29 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
             has_rationale = isinstance(strength_rationale, str) and strength_rationale.strip()
             if not (has_strength or has_rationale):
                 status_enum = StatusEnum.YELLOW.value
-                score = None
-
-        # Canonicalize evidence BEFORE checking GRAY fallback
-        evidence_todo = _canonicalize_evidence(pillar_name, reason_codes, evidence_todo)
+                factors = _enforce_status(factors, status_enum)
 
         # If YELLOW/RED but no reason codes AND no evidence → GRAY
         if status_enum in (StatusEnum.YELLOW.value, StatusEnum.RED.value) and not reason_codes and not evidence_todo:
             status_enum = StatusEnum.GRAY.value
-            score = None
+            factors = _enforce_status(factors, status_enum)
 
-        # Snap score to band midpoint if missing
-        if score is None:
-            band = STATUS_TO_SCORE.get(status_enum)
-            score = None if band is None else (band[0] + band[1]) // 2
+        # Ensure factor defaults align with final status
+        if status_enum != StatusEnum.GRAY.value:
+            fallback = _fallback_factors_for_status(status_enum)
+            for key in LIKERT_FACTOR_KEYS:
+                if factors.get(key) is None:
+                    factors[key] = fallback[key]
+            status_enum = _derive_status_from_factors(factors)
+            # If factors still insufficient, reset to status defaults
+            if status_enum == StatusEnum.GRAY.value:
+                factors = _enforce_status({}, StatusEnum.GRAY.value)
+                status_enum = StatusEnum.GRAY.value
+        else:
+            factors = _enforce_status({}, StatusEnum.GRAY.value)
+            status_enum = StatusEnum.GRAY.value
 
-        if score is not None and status_enum in STATUS_TO_SCORE and STATUS_TO_SCORE[status_enum]:
-            lo, hi = STATUS_TO_SCORE[status_enum]
-            score = max(lo, min(hi, int(score)))
+        score = _compute_derived_metrics(factors)
 
         # Keep rationale only for final GREEN with non-empty text
         if not (status_enum == StatusEnum.GREEN.value and isinstance(strength_rationale, str) and strength_rationale.strip()):
@@ -449,13 +592,34 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         name = pillar.get("pillar", "Unknown")
         display_name = PillarEnum.get_display_name(name)
         status = pillar.get("status", StatusEnum.GRAY.value)
-        score = pillar.get("score", None)
+        score = pillar.get("score") or {}
         reason_codes = pillar.get("reason_codes", []) or []
         evidence = pillar.get("evidence_todo", []) or []
         strength_rationale = pillar.get("strength_rationale")
 
         rows.append(f"### {display_name}\n")
-        rows.append(f"**Status**: {status} ({score if score is not None else '—'})\n")
+        def _fmt_factor(val: Any) -> str:
+            if isinstance(val, (int, float)):
+                if isinstance(val, float):
+                    return f"{val:.2f}".rstrip("0").rstrip(".")
+                return str(val)
+            return "—"
+
+        factor_parts = [f"{key}={_fmt_factor(score.get(key))}" for key in LIKERT_FACTOR_KEYS]
+
+        avg_val = score.get("average_likert")
+        avg_part = None
+        if isinstance(avg_val, (int, float)):
+            avg_fmt = f"{avg_val:.2f}".rstrip("0").rstrip(".")
+            avg_part = f"avg={avg_fmt}"
+
+        legacy_val = score.get("legacy_0_100")
+        legacy_part = None
+        if isinstance(legacy_val, (int, float)):
+            legacy_part = f"legacy={int(legacy_val)}"
+
+        metrics = ", ".join(part for part in factor_parts + [avg_part, legacy_part] if part)
+        rows.append(f"**Status**: {status} ({metrics if metrics else '—'})\n")
 
         if status == StatusEnum.GREEN.value:
             # GREEN pillars should not show evidence; optionally render the rationale if provided.

@@ -5,12 +5,12 @@ I want to change it to a multiple parameters in the range 1-5, so that the score
 Then it make sense to get rid of the hardcoded "RED"/"YELLOW"/"GREEN" strings and use the StatusEnum instead.
 """
 import json
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 def make_pillars_system_prompt(
     PILLAR_ORDER: List[str],
     REASON_CODES_BY_PILLAR: Dict[str, List[str]],
-    STATUS_BANDS: Optional[Dict[str, Optional[Tuple[int, int]]]] = None,
+    LIKERT_DEFAULTS: Optional[Dict[str, Dict[str, Optional[int]]]] = None,
     DEFAULT_EVIDENCE_BY_PILLAR: Optional[Dict[str, List[str]]] = None,
     FORBID_FIRST_WORDS: Optional[List[str]] = None,
 ) -> str:
@@ -21,7 +21,7 @@ def make_pillars_system_prompt(
     Auto-sync:
       - Pillar order: from PILLAR_ORDER
       - Reason-code whitelist: from REASON_CODES_BY_PILLAR
-      - Status bands + midpoints: from STATUS_BANDS (or defaults)
+      - Likert defaults: from LIKERT_DEFAULTS (or defaults)
       - GRAY defaults: from DEFAULT_EVIDENCE_BY_PILLAR (or sensible defaults)
 
     Returns:
@@ -29,12 +29,12 @@ def make_pillars_system_prompt(
     """
 
     # ---- Defaults -----------------------------------------------------------
-    if STATUS_BANDS is None:
-        STATUS_BANDS = {
-            "GREEN":  (70, 100),
-            "YELLOW": (40, 69),
-            "RED":    (0, 39),
-            "GRAY":   None,
+    if LIKERT_DEFAULTS is None:
+        LIKERT_DEFAULTS = {
+            "GREEN": {"evidence": 4, "risk": 4, "fit": 4},
+            "YELLOW": {"evidence": 3, "risk": 3, "fit": 3},
+            "RED": {"evidence": 2, "risk": 2, "fit": 2},
+            "GRAY": {"evidence": None, "risk": None, "fit": None},
         }
 
     if FORBID_FIRST_WORDS is None:
@@ -72,15 +72,13 @@ def make_pillars_system_prompt(
         ])
 
     # ---- Derived values -----------------------------------------------------
-    def _midpoints(bands: Dict[str, Optional[Tuple[int, int]]]) -> Dict[str, Optional[int]]:
-        # Hardcode rounded midpoints to match validator logic.
-        MIDPOINT_OVERRIDES = {"GREEN": 85, "YELLOW": 55, "RED": 20}
-        out: Dict[str, Optional[int]] = {}
-        for k, rng in bands.items():
-            out[k] = MIDPOINT_OVERRIDES.get(k) if rng is not None else None
-        return out
-
-    BAND_MIDPOINTS = _midpoints(STATUS_BANDS)
+    factor_rubric_lines = [
+        "- HumanStability — evidence: org charts, RACI, training plans, comms plan; risk: stakeholder conflict, turnover risk, change fatigue; fit: governance clarity, incentives aligned.",
+        "- EconomicResilience — evidence: budget, unit economics, funding letters, signed contracts; risk: sensitivity to shocks, supplier concentration, FX/rate exposure; fit: cost/benefit logic, ramp realism, contingency buffers.",
+        "- EcologicalIntegrity — evidence: EIA/EIS, baseline studies, third-party audits; risk: biodiversity/water/air risks post-mitigation; fit: mitigation hierarchy, circularity, waste design.",
+        "- Rights_Legality — evidence: DPIA, legal opinions, permits/licenses; risk: compliance failure, infosec/privacy breach, sanctions; fit: ethical framework, data rights alignment, due process.",
+    ]
+    factor_rubric_text = "\n".join(factor_rubric_lines)
 
     # The enforced, ordered skeleton the model must overwrite.
     skeleton = {
@@ -88,7 +86,13 @@ def make_pillars_system_prompt(
             {
                 "pillar": p,
                 "status": "GRAY",
-                "score": None,
+                "score": {
+                    "evidence": None,
+                    "risk": None,
+                    "fit": None,
+                    "average_likert": None,
+                    "legacy_0_100": None,
+                },
                 "reason_codes": [],
                 "evidence_todo": DEFAULT_EVIDENCE_BY_PILLAR.get(p, [])[:2],
                 "strength_rationale": None,
@@ -100,8 +104,7 @@ def make_pillars_system_prompt(
     # ---- JSON blocks to embed verbatim into the prompt ----------------------
     pillar_order_json        = json.dumps(PILLAR_ORDER, indent=2, ensure_ascii=False)
     reason_whitelist_json    = json.dumps(REASON_CODES_BY_PILLAR, indent=2, sort_keys=True, ensure_ascii=False)
-    status_bands_json        = json.dumps(STATUS_BANDS, indent=2, sort_keys=True, ensure_ascii=False)
-    band_midpoints_json      = json.dumps(BAND_MIDPOINTS, indent=2, sort_keys=True, ensure_ascii=False)
+    likert_defaults_json     = json.dumps(LIKERT_DEFAULTS, indent=2, sort_keys=True, ensure_ascii=False)
     skeleton_json            = json.dumps(skeleton, indent=2, ensure_ascii=False)
     gray_defaults_json       = json.dumps(DEFAULT_EVIDENCE_BY_PILLAR, indent=2, sort_keys=True, ensure_ascii=False)
     forbid_first_words_json  = json.dumps(FORBID_FIRST_WORDS, indent=2, ensure_ascii=False)
@@ -114,7 +117,13 @@ Output contract (emit JSON only; exactly one object per pillar, arrays must exis
     {
       "pillar": "HumanStability" | "EconomicResilience" | "EcologicalIntegrity" | "Rights_Legality",
       "status": "GREEN" | "YELLOW" | "RED" | "GRAY",
-      "score":  integer | null,
+      "score": {
+        "evidence": integer | null,  // Likert 1–5, null if status is GRAY
+        "risk": integer | null,
+        "fit": integer | null,
+        "average_likert": null,      // leave null; backend fills derived values
+        "legacy_0_100": null         // leave null; backend fills derived values
+      },
       "reason_codes": [string, ...],   // only from the whitelist for this pillar
       "evidence_todo": [string, ...],  // ≤ 2 artifact-style items; empty for GREEN
       "strength_rationale": "string"   // OPTIONAL; only for GREEN; omit otherwise
@@ -135,11 +144,8 @@ Output contract (emit JSON only; exactly one object per pillar, arrays must exis
         "Reason-code whitelist by pillar (use UPPERCASE exactly; do NOT invent new codes; empty array if none apply):\n"
         f"{reason_whitelist_json}\n\n"
 
-        "Status bands (scores must stay within the chosen band; GRAY has no score):\n"
-        f"{status_bands_json}\n\n"
-
-        "Band midpoints to use when uncertain within a band:\n"
-        f"{band_midpoints_json}\n\n"
+        "Likert defaults by status (use as anchors; override when evidence justifies it):\n"
+        f"{likert_defaults_json}\n\n"
 
         "Pillar scopes (evaluate all pillars even if absent in the input):\n"
         "- HumanStability — people/org readiness, governance, change management, training, operating model.\n"
@@ -147,11 +153,21 @@ Output contract (emit JSON only; exactly one object per pillar, arrays must exis
         "- EcologicalIntegrity — environmental impact/baselines, carbon/water/waste, permits/mitigation.\n"
         "- Rights_Legality — laws, licenses/permissions, data protection/ethics, biosecurity/permits.\n\n"
 
-        "Scoring rules:\n"
-        "- GREEN  → score ∈ GREEN band (use the GREEN midpoint if uncertain).\n"
-        "- YELLOW → score ∈ YELLOW band (use the YELLOW midpoint if uncertain).\n"
-        "- RED    → score ∈ RED band (use the RED midpoint if uncertain).\n"
-        "- GRAY   → score must be null (insufficient/ambiguous evidence).\n\n"
+        "Likert scoring (1=poor, 5=excellent):\n"
+        "- evidence — strength of supporting docs/artifacts.\n"
+        "- risk — residual risk posture after mitigations.\n"
+        "- fit — alignment/coherence with the pillar’s aims.\n\n"
+
+        "Factor rubric (use this mental checklist when assigning values):\n"
+        f"{factor_rubric_text}\n\n"
+
+        "Status derivation (keep status aligned with the worst factor):\n"
+        "- Any factor ≤2 ⇒ RED.\n"
+        "- Else if the worst factor ==3 ⇒ YELLOW.\n"
+        "- Else if all factors ≥4 ⇒ GREEN.\n"
+        "- Missing factors ⇒ GRAY (leave the factors null and propose evidence to unlock assessment).\n\n"
+
+        "Do not fill `average_likert` or `legacy_0_100`; leave them null so the backend can compute them deterministically.\n\n"
 
         "Evidence gating:\n"
         "- GREEN ⇒ evidence_todo MUST be empty.\n"
