@@ -100,7 +100,7 @@ const HomePage: React.FC = () => {
             <CardHeader>
               <CardTitle className="text-lg">Recent Plans</CardTitle>
               <CardDescription>
-                Open any plan in the Workspace to inspect artefacts, fallback reports, and stage progress — even if it is pending or failed.
+                Open any plan in the Workspace to inspect artefacts, fallback reports, and stage progress - even if it is pending or failed.
               </CardDescription>
             </CardHeader>
             <CardContent>

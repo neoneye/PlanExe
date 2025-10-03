@@ -8,6 +8,19 @@
 # 3 Oct — Workspace Redesign Plan (High-Level, No Code)
 
 ## Summary
+## Progress (2025-10-03)
+- Entry page now routes directly to the workspace route after plan creation.
+- Plans queue highlights the workspace action before retry.
+- Backend exposes `/api/plans/{plan_id}/artefacts` for plan_content data (pending, failed, and completed).
+- Workspace file browser consumes the artefact endpoint and polls every 5 seconds.
+
+## TODO for Next Developer
+- Build the workspace stage timeline that lights up by artefact arrival.
+- Feed live status into the workspace header and stage list (WebSocket + polling).
+- Add canonical vs fallback report toggle in the workspace center panel.
+- Integrate new artefact endpoint into any other tools or docs that referenced `/files`.
+- Address remaining lint items in monitoring components and legacy scripts if time allows.
+
 - Replace the multi-tab dashboard with a minimal entry screen and a single, focused Workspace.
 - After the user submits a plan prompt, immediately navigate to the Workspace where assembly happens.
 - The Workspace reflects the run_plan_pipeline_documentation.md stages and shows database population in real time (plan_content driven), not filesystem assumptions.
@@ -18,7 +31,7 @@
 - Out of scope: Changing Luigi task graph, altering backend business logic beyond contracts already provided (no pipeline rewrites).
 
 ## UX Principles
-- Single-flow orientation: Prompt ? Workspace (no complex tab maze).
+- Single-flow orientation: prompt -> workspace (no complex tab maze).
 - Always-on visibility: Progress, artefacts, and report are co-present.
 - Database-first truth: Show what exists in plan_content even if Luigi fails late.
 - Progressive enhancement: Prefer WebSocket; fall back to polling gracefully.

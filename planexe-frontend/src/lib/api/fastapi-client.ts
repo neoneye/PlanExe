@@ -58,6 +58,22 @@ export interface PlanFilesResponse {
   has_report: boolean;
 }
 
+export interface PlanArtefact {
+  filename: string;
+  content_type: string;
+  stage?: string | null;
+  size_bytes: number;
+  created_at: string;
+  description?: string | null;
+  task_name?: string | null;
+  order?: number | null;
+}
+
+export interface PlanArtefactListResponse {
+  plan_id: string;
+  artefacts: PlanArtefact[];
+}
+
 export interface ReportSectionResponse {
   filename: string;
   stage?: string | null;
@@ -144,6 +160,11 @@ export class FastAPIClient {
   async getPlanFiles(plan_id: string): Promise<PlanFilesResponse> {
     const response = await fetch(`${this.baseURL}/api/plans/${plan_id}/files`);
     return this.handleResponse<PlanFilesResponse>(response);
+  }
+
+  async getPlanArtefacts(plan_id: string): Promise<PlanArtefactListResponse> {
+    const response = await fetch(`${this.baseURL}/api/plans/${plan_id}/artefacts`);
+    return this.handleResponse<PlanArtefactListResponse>(response);
   }
 
   async getFallbackReport(plan_id: string): Promise<FallbackReportResponse> {
