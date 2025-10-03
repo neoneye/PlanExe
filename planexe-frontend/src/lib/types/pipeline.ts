@@ -127,26 +127,13 @@ export interface TaskOutput {
 
 export interface PlanFile {
   filename: string;
-  relativePath: string;
-  absolutePath: string;
-  size: number;
-  type: 'json' | 'md' | 'html' | 'csv' | 'txt';
-  stage: PipelinePhase;
-  taskName: string;
-  outputType: 'raw' | 'clean' | 'markdown' | 'html';
-  lastModified: Date;
-  isRequired: boolean;
-  description: string;
-}
-
-export interface FileListResponse {
-  planId: string;
-  files: PlanFile[];
-  phases: Record<PipelinePhase, PlanFile[]>;
-  zipUrl?: string;
-  reportUrl?: string;
-  totalSize: number;
-  lastUpdated: Date;
+  stage?: string | null;
+  contentType: string;
+  sizeBytes: number;
+  createdAt: string;
+  description?: string | null;
+  taskName?: string | null;
+  order?: number | null;
 }
 
 // =======================

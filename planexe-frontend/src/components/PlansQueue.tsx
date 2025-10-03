@@ -89,7 +89,7 @@ export function PlansQueue({ className, onPlanSelect, onPlanRetry }: PlansQueueP
     )
   }
 
-  const getStatusIcon = (status: string, _progress: number) => {
+  const getStatusIcon = (status: string) => {
     if (status === 'running') {
       return <Loader2 className="h-4 w-4 animate-spin" />
     }
@@ -141,7 +141,7 @@ export function PlansQueue({ className, onPlanSelect, onPlanRetry }: PlansQueueP
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      {getStatusIcon(plan.status, plan.progress_percentage)}
+                      {getStatusIcon(plan.status)}
                       {getStatusBadge(plan.status)}
                       <span className="text-sm text-muted-foreground">
                         {formatDate(plan.created_at)}

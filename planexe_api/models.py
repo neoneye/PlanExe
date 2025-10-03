@@ -79,6 +79,24 @@ class PlanFilesResponse(BaseModel):
     has_report: bool = Field(..., description="Whether HTML report is available")
 
 
+class PlanArtefact(BaseModel):
+    """Detail for plan_content artefacts exposed via API"""
+    filename: str = Field(..., description="Canonical filename")
+    content_type: str = Field(..., description="Content type recorded by the pipeline")
+    stage: Optional[str] = Field(None, description="Pipeline stage reported by the task")
+    size_bytes: int = Field(0, description="Approximate size in bytes")
+    created_at: datetime = Field(..., description="Timestamp when the artefact was stored")
+    description: Optional[str] = Field(None, description="Human readable display label")
+    task_name: Optional[str] = Field(None, description="Associated Luigi task name if available")
+    order: Optional[int] = Field(None, description="Sort key derived from filename prefix")
+
+
+class PlanArtefactListResponse(BaseModel):
+    """Response listing database-backed artefacts for a plan"""
+    plan_id: str
+    artefacts: List[PlanArtefact] = Field(..., description="Artefacts sourced from plan_content")
+
+
 class APIError(BaseModel):
     """Standard API error response"""
     error: str = Field(..., description="Error message")

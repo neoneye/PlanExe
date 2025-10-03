@@ -32,7 +32,7 @@ from planexe.utils.planexe_llmconfig import PlanExeLLMConfig
 
 from planexe_api.models import (
     CreatePlanRequest, PlanResponse, PlanProgressEvent, LLMModel,
-    PromptExample, PlanFilesResponse, APIError, HealthResponse,
+    PromptExample, PlanFilesResponse, PlanArtefactListResponse, PlanArtefact, APIError, HealthResponse,
     PlanStatus, SpeedVsDetail, PipelineDetailsResponse, StreamStatusResponse,
     FallbackReportResponse, ReportSection, MissingSection
 )
@@ -925,6 +925,59 @@ if not IS_DEVELOPMENT:
         missing_dir = STATIC_UI_DIR or Path("/app/ui_static")
         print(f"Warning: Static UI directory not found: {missing_dir}")
         print("   This is expected in local development mode or before frontend build")
+
+
+
+# Plan artefact listing endpoint (database-backed)
+@app.get("/api/plans/{plan_id}/artefacts", response_model=PlanArtefactListResponse)
+async def list_plan_artefacts(plan_id: str, db: DatabaseService = Depends(get_database)):
+    """Return artefacts persisted in plan_content for the given plan."""
+    try:
+        plan = db.get_plan(plan_id)
+        if not plan:
+            raise HTTPException(status_code=404, detail="Plan not found")
+
+        content_records = db.get_plan_content(plan_id)
+        artefacts: List[PlanArtefact] = []
+
+        for record in content_records:
+            size_bytes = record.content_size_bytes
+            if size_bytes is None:
+                size_bytes = len(record.content.encode('utf-8')) if record.content else 0
+
+            description = record.filename
+            if '-' in description:
+                description = description.split('-', 1)[1]
+            if '.' in description:
+                description = description.rsplit('.', 1)[0]
+            description = description.replace('_', ' ').replace('-', ' ').strip().title() or record.filename
+
+            try:
+                order = int(record.filename.split('-', 1)[0])
+            except (ValueError, IndexError):
+                order = None
+
+            artefacts.append(
+                PlanArtefact(
+                    filename=record.filename,
+                    content_type=record.content_type,
+                    stage=record.stage,
+                    size_bytes=size_bytes,
+                    created_at=record.created_at or datetime.utcnow(),
+                    description=description,
+                    task_name=record.stage or description,
+                    order=order,
+                )
+            )
+
+        artefacts.sort(key=lambda entry: ((entry.order if entry.order is not None else 9999), entry.filename))
+
+        return PlanArtefactListResponse(plan_id=plan_id, artefacts=artefacts)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch plan artefacts: {exc}")
+
 
 
 

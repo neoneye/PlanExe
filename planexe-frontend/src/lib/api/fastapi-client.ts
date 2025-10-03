@@ -41,9 +41,20 @@ export interface PromptExample {
   title?: string;
 }
 
+export interface PlanFileEntry {
+  filename: string;
+  content_type: string;
+  stage?: string | null;
+  size_bytes: number;
+  created_at: string;
+  description?: string | null;
+  task_name?: string | null;
+  order?: number | null;
+}
+
 export interface PlanFilesResponse {
   plan_id: string;
-  files: string[];
+  files: PlanFileEntry[];
   has_report: boolean;
 }
 

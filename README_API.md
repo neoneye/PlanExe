@@ -44,7 +44,7 @@ The server automatically loads `.env` (via `PlanExeDotEnv`) and merges values in
 cd planexe-frontend
 npm run dev          # UI on http://localhost:3000
 ```
-Uses direct `fetch` calls to FastAPI—no Next.js API routes.
+Uses direct `fetch` calls to FastAPIï¿½no Next.js API routes.
 
 ### Production Build / Railway
 ```bash
@@ -142,8 +142,8 @@ Returns HTML, missing sections, and computed completion percentage derived from 
 
 ## Recovery Workspace
 - Frontend route `/recovery?planId=PlanExe_<uuid>` opens the self-service plan recovery UI.
-- Uses existing API endpoints: `GET /api/plans/{plan_id}`, `/api/plans/{plan_id}/files`, `/api/plans/{plan_id}/fallback-report`, and `/api/plans/{plan_id}/details`.
-- `FileManager` expects `/api/plans/{plan_id}/files` to surface every persisted artefact from `plan_content`; ensure the backend responds even for pending/failed plans.
+- Uses existing API endpoints: `GET /api/plans/{plan_id}`, `/api/plans/{plan_id}/artefacts`, `/api/plans/{plan_id}/fallback-report`, and `/api/plans/{plan_id}/details`.
+- `/api/plans/{plan_id}/artefacts` surfaces every persisted record from `plan_content`, including pending/failed stages.
 - Ideal during plan retries or investigations when the primary report is unavailable.
 ## Testing
 - Python: `pytest -q` (runs FastAPI + pipeline utility tests).
