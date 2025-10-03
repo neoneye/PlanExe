@@ -1,4 +1,10 @@
 """
+Author: Codex using GPT-5
+Date: `2025-10-02T18:47:00Z`
+PURPOSE: Add reusable JSON helper for CandidateScenarios persistence.
+SRP and DRY check: Pass - data wrapper serialization only.
+"""
+"""
 Synthesize Strategic Scenarios
 
 - It takes the filtered list of "vital few" levers as input.
@@ -146,6 +152,10 @@ class CandidateScenarios:
         if include_user_prompt:
             d['user_prompt'] = self.user_prompt
         return d
+
+    def to_clean_json(self) -> str:
+        """Return the scenario analysis payload as formatted JSON."""
+        return json.dumps(self.response.model_dump(), indent=2)
 
     def save_raw(self, file_path: str) -> None:
         Path(file_path).write_text(json.dumps(self.to_dict(), indent=2))

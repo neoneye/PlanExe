@@ -1,4 +1,10 @@
 """
+Author: Codex using GPT-5
+Date: `2025-10-02T18:50:00Z`
+PURPOSE: Provide JSON helper for PreProjectAssessment persistence.
+SRP and DRY check: Pass - serialization only.
+"""
+"""
 PROMPT> python -m planexe.expert.pre_project_assessment
 
 IDEA: markdown document, that goes into the final report.
@@ -363,6 +369,10 @@ class PreProjectAssessment:
         if include_user_prompt:
             d['user_prompt'] = self.user_prompt
         return d
+
+    def to_clean_json(self) -> str:
+        """Return the pre-project assessment summary as formatted JSON."""
+        return json.dumps(self.preproject_assessment, indent=2)
 
     def save_raw(self, file_path: str) -> None:
         with open(file_path, 'w') as f:

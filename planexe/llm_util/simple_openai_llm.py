@@ -9,7 +9,7 @@ import os
 from typing import Any, Optional
 from openai import OpenAI
 from llama_index.core.llms.llm import LLM
-from pydantic import Field, PrivateAttr
+from pydantic import Field, PrivateAttr, ValidationError
 
 
 class SimpleOpenAILLM(LLM):
@@ -316,6 +316,17 @@ Your response must be valid JSON only, no other text.
                     return StructuredLLMResponse(parsed_model, response_text)
                 else:
                     raise ValueError(f"Could not parse JSON response: {response_text}") from e
+            except ValidationError:
+                # Fallback attempt: remind model to return data, not schema
+                fallback_messages = list(formatted_messages) + [{
+                    "role": "user",
+                    "content": "Respond again with ONLY a JSON object matching the requested fields. Do not include JSON schema definitions or comments."
+                }]
+                fallback_text = self.base_llm.chat(fallback_messages)
+                response_text = fallback_text if isinstance(fallback_text, str) else str(fallback_text)
+                response_data = json.loads(response_text)
+                parsed_model = self.output_cls.model_validate(response_data)
+                return StructuredLLMResponse(parsed_model, response_text)
 
         except Exception as e:
             raise Exception(f"Structured LLM completion failed for model {self.base_llm.model}: {str(e)}")

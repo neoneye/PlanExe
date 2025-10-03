@@ -1,4 +1,10 @@
 """
+Author: Codex using GPT-5
+Date: `2025-10-02T18:49:00Z`
+PURPOSE: Expose JSON helper for MakeAssumptions cleaned output.
+SRP and DRY check: Pass - serialization wrapper without duplication.
+"""
+"""
 Analyze a vague description, generate relevant questions for clarification, make reasonable assumptions where necessary.
 
 PROMPT> python -m planexe.assume.make_assumptions
@@ -304,6 +310,10 @@ class MakeAssumptions:
         if include_user_prompt:
             d['user_prompt'] = self.user_prompt
         return d
+
+    def to_clean_json(self) -> str:
+        """Return assumption list as formatted JSON."""
+        return json.dumps(self.assumptions, indent=2)
 
     def save_raw(self, file_path: str) -> None:
         with open(file_path, 'w') as f:

@@ -1,4 +1,10 @@
 """
+Author: Codex using GPT-5
+Date: `2025-10-02T18:48:00Z`
+PURPOSE: Provide JSON helper for SelectScenario to satisfy pipeline persistence.
+SRP and DRY check: Pass - serialization only.
+"""
+"""
 Select the best fitting scenario from the 3 candidate scenarios
 
 PROMPT> python -m planexe.lever.select_scenario
@@ -146,6 +152,10 @@ class SelectScenario:
         if include_user_prompt:
             d['user_prompt'] = self.user_prompt
         return d
+
+    def to_clean_json(self) -> str:
+        """Return the final scenario selection as formatted JSON."""
+        return json.dumps(self.response.model_dump(), indent=2)
 
     def save_raw(self, file_path: str) -> None:
         Path(file_path).write_text(json.dumps(self.to_dict(), indent=2))

@@ -1,4 +1,4 @@
-"""
+﻿"""
 PROMPT> python -m planexe.plan.run_plan_pipeline
 
 In order to resume an unfinished run.
@@ -8,6 +8,7 @@ PROMPT> RUN_ID_DIR=/absolute/path/to/PlanExe_20250216_150332 python -m planexe.p
 """
 from dataclasses import dataclass, field
 from datetime import date, datetime
+import time
 import logging
 import json
 from typing import Any, Optional
@@ -191,8 +192,8 @@ class PlanTask(luigi.Task):
         Don't override this method. Instead either override the run_inner() method, or override the run_with_llm() method.
         """
         # DIAGNOSTIC: Log when ANY task run() is called
-        logger.error(f"🔥 {self.__class__.__name__}.run() CALLED - Luigi worker IS running!")
-        print(f"🔥 {self.__class__.__name__}.run() CALLED - Luigi worker IS running!")
+        logger.error(f"ðŸ”¥ {self.__class__.__name__}.run() CALLED - Luigi worker IS running!")
+        print(f"ðŸ”¥ {self.__class__.__name__}.run() CALLED - Luigi worker IS running!")
 
         try:
             self.run_inner()
@@ -207,8 +208,8 @@ class PlanTask(luigi.Task):
             raise
         except Exception as e:
             # Re-raise the exception with a more descriptive message
-            logger.error(f"🔥 {self.__class__.__name__}.run() FAILED: {e}")
-            print(f"🔥 {self.__class__.__name__}.run() FAILED: {e}")
+            logger.error(f"ðŸ”¥ {self.__class__.__name__}.run() FAILED: {e}")
+            print(f"ðŸ”¥ {self.__class__.__name__}.run() FAILED: {e}")
             raise Exception(f"Failed to run {self.__class__.__name__} with any of the LLMs in the list: {self.llm_models!r} for run_id_dir: {self.run_id_dir!r}") from e
 
     def run_inner(self):
@@ -302,31 +303,31 @@ class RedlineGateTask(PlanTask):
 
     def run_with_llm(self, llm: LLM) -> None:
         # DIAGNOSTIC: Log that this method is actually being called
-        logger.error(f"🔥 RedlineGateTask.run_with_llm() CALLED - Luigi IS executing tasks!")
-        print(f"🔥 RedlineGateTask.run_with_llm() CALLED - Luigi IS executing tasks!")
+        logger.error(f"ðŸ”¥ RedlineGateTask.run_with_llm() CALLED - Luigi IS executing tasks!")
+        print(f"ðŸ”¥ RedlineGateTask.run_with_llm() CALLED - Luigi IS executing tasks!")
 
         # Get database service and plan ID (Phase 1.1)
         db_service = None
         plan_id = self.get_plan_id()
-        logger.error(f"🔥 RedlineGateTask: plan_id = {plan_id}")
-        print(f"🔥 RedlineGateTask: plan_id = {plan_id}")
+        logger.error(f"ðŸ”¥ RedlineGateTask: plan_id = {plan_id}")
+        print(f"ðŸ”¥ RedlineGateTask: plan_id = {plan_id}")
 
         try:
-            logger.error(f"🔥 RedlineGateTask: About to get database service...")
-            print(f"🔥 RedlineGateTask: About to get database service...")
+            logger.error(f"ðŸ”¥ RedlineGateTask: About to get database service...")
+            print(f"ðŸ”¥ RedlineGateTask: About to get database service...")
             db_service = self.get_database_service()
-            logger.error(f"🔥 RedlineGateTask: Database service obtained successfully")
-            print(f"🔥 RedlineGateTask: Database service obtained successfully")
+            logger.error(f"ðŸ”¥ RedlineGateTask: Database service obtained successfully")
+            print(f"ðŸ”¥ RedlineGateTask: Database service obtained successfully")
 
             # Read inputs from required tasks
             with self.input().open("r") as f:
                 plan_prompt = f.read()
-            logger.error(f"🔥 RedlineGateTask: Read plan prompt ({len(plan_prompt)} chars)")
-            print(f"🔥 RedlineGateTask: Read plan prompt ({len(plan_prompt)} chars)")
+            logger.error(f"ðŸ”¥ RedlineGateTask: Read plan prompt ({len(plan_prompt)} chars)")
+            print(f"ðŸ”¥ RedlineGateTask: Read plan prompt ({len(plan_prompt)} chars)")
 
             # Track LLM interaction START (Phase 1.2)
-            logger.error(f"🔥 RedlineGateTask: About to create LLM interaction in database...")
-            print(f"🔥 RedlineGateTask: About to create LLM interaction in database...")
+            logger.error(f"ðŸ”¥ RedlineGateTask: About to create LLM interaction in database...")
+            print(f"ðŸ”¥ RedlineGateTask: About to create LLM interaction in database...")
             interaction_id = db_service.create_llm_interaction({
                 "plan_id": plan_id,
                 "llm_model": str(self.llm_models[0]) if self.llm_models else "unknown",
@@ -336,18 +337,18 @@ class RedlineGateTask(PlanTask):
             }).id
 
             logger.info(f"RedlineGateTask: Created LLM interaction {interaction_id} for plan {plan_id}")
-            logger.error(f"🔥 RedlineGateTask: LLM interaction {interaction_id} created successfully")
-            print(f"🔥 RedlineGateTask: LLM interaction {interaction_id} created successfully")
+            logger.error(f"ðŸ”¥ RedlineGateTask: LLM interaction {interaction_id} created successfully")
+            print(f"ðŸ”¥ RedlineGateTask: LLM interaction {interaction_id} created successfully")
 
             # Execute LLM call
             import time
-            logger.error(f"🔥 RedlineGateTask: About to call RedlineGate.execute() with LLM...")
-            print(f"🔥 RedlineGateTask: About to call RedlineGate.execute() with LLM: {type(llm).__name__}")
+            logger.error(f"ðŸ”¥ RedlineGateTask: About to call RedlineGate.execute() with LLM...")
+            print(f"ðŸ”¥ RedlineGateTask: About to call RedlineGate.execute() with LLM: {type(llm).__name__}")
             start_time = time.time()
             redline_gate = RedlineGate.execute(llm, plan_prompt)
             duration_seconds = time.time() - start_time
-            logger.error(f"🔥 RedlineGateTask: RedlineGate.execute() completed in {duration_seconds:.2f}s")
-            print(f"🔥 RedlineGateTask: RedlineGate.execute() completed in {duration_seconds:.2f}s")
+            logger.error(f"ðŸ”¥ RedlineGateTask: RedlineGate.execute() completed in {duration_seconds:.2f}s")
+            print(f"ðŸ”¥ RedlineGateTask: RedlineGate.execute() completed in {duration_seconds:.2f}s")
 
             # Update LLM interaction COMPLETE (Phase 1.2)
             response_dict = redline_gate.to_dict()
@@ -5280,29 +5281,29 @@ class ExecutePipeline:
         # CRITICAL DIAGNOSTIC: Check if FastAPI cleanup actually ran
         cleanup_marker = self.run_id_dir / "CLEANUP_RAN.txt"
         if cleanup_marker.exists():
-            logger.error(f"🔥✅ CLEANUP_RAN.txt EXISTS - FastAPI cleanup executed successfully")
-            print(f"🔥✅ CLEANUP_RAN.txt EXISTS - FastAPI cleanup executed successfully")
+            logger.error(f"ðŸ”¥âœ… CLEANUP_RAN.txt EXISTS - FastAPI cleanup executed successfully")
+            print(f"ðŸ”¥âœ… CLEANUP_RAN.txt EXISTS - FastAPI cleanup executed successfully")
             with open(cleanup_marker, "r") as f:
-                logger.error(f"🔥 Marker contents: {f.read()}")
+                logger.error(f"ðŸ”¥ Marker contents: {f.read()}")
         else:
-            logger.error(f"🔥❌ CLEANUP_RAN.txt MISSING - FastAPI cleanup DID NOT RUN!")
-            print(f"🔥❌ CLEANUP_RAN.txt MISSING - FastAPI cleanup DID NOT RUN!")
+            logger.error(f"ðŸ”¥âŒ CLEANUP_RAN.txt MISSING - FastAPI cleanup DID NOT RUN!")
+            print(f"ðŸ”¥âŒ CLEANUP_RAN.txt MISSING - FastAPI cleanup DID NOT RUN!")
         
         # Check how many files exist in run_id_dir
         existing_files = list(self.run_id_dir.iterdir())
-        logger.error(f"🔥 Files in run_id_dir: {len(existing_files)} files")
-        print(f"🔥 Files in run_id_dir: {len(existing_files)} files: {[f.name for f in existing_files[:10]]}")
+        logger.error(f"ðŸ”¥ Files in run_id_dir: {len(existing_files)} files")
+        print(f"ðŸ”¥ Files in run_id_dir: {len(existing_files)} files: {[f.name for f in existing_files[:10]]}")
         
-        logger.error(f"🔥 About to call luigi.build() with workers={workers}")
-        print(f"🔥 About to call luigi.build() with workers={workers}")
-        print(f"🔥 Luigi will build task: {self.full_plan_pipeline_task}")
-        print(f"🔥 Task parameters: run_id_dir={self.run_id_dir}, speedvsdetail={self.speedvsdetail}, llm_models={self.llm_models}")
+        logger.error(f"ðŸ”¥ About to call luigi.build() with workers={workers}")
+        print(f"ðŸ”¥ About to call luigi.build() with workers={workers}")
+        print(f"ðŸ”¥ Luigi will build task: {self.full_plan_pipeline_task}")
+        print(f"ðŸ”¥ Task parameters: run_id_dir={self.run_id_dir}, speedvsdetail={self.speedvsdetail}, llm_models={self.llm_models}")
 
         # Enable Luigi's detailed logging
         import logging as stdlib_logging
         luigi_logger = stdlib_logging.getLogger('luigi')
         luigi_logger.setLevel(stdlib_logging.INFO)
-        print(f"🔥 Enabled Luigi INFO logging")
+        print(f"ðŸ”¥ Enabled Luigi INFO logging")
 
         # Call luigi.build() with detailed logging
         # INVESTIGATION: Try different Luigi execution strategies
@@ -5310,15 +5311,15 @@ class ExecutePipeline:
         import time
         
         try:
-            print(f"🔥 Calling luigi.build() NOW with workers={workers}...")
-            print(f"🔥 Active threads before luigi.build(): {threading.active_count()}")
+            print(f"ðŸ”¥ Calling luigi.build() NOW with workers={workers}...")
+            print(f"ðŸ”¥ Active threads before luigi.build(): {threading.active_count()}")
             
             # Monitor worker thread activity
             
             def monitor_threads():
                 time.sleep(2)  # Wait for Luigi to spawn workers
                 threads = threading.enumerate()
-                print(f"🔥 THREAD MONITOR: {len(threads)} active threads:")
+                print(f"ðŸ”¥ THREAD MONITOR: {len(threads)} active threads:")
                 for t in threads:
                     print(f"  - {t.name}: alive={t.is_alive()}, daemon={t.daemon}")
             
@@ -5332,10 +5333,10 @@ class ExecutePipeline:
                 time.sleep(30)  # Wait 30 seconds
                 if self.luigi_build_return_value is None:
                     elapsed = time.time() - build_start
-                    print(f"🔥 WARNING: luigi.build() has been running for {elapsed:.1f}s without completing!")
-                    print(f"🔥 This suggests worker threads are not executing tasks")
+                    print(f"ðŸ”¥ WARNING: luigi.build() has been running for {elapsed:.1f}s without completing!")
+                    print(f"ðŸ”¥ This suggests worker threads are not executing tasks")
                     threads = threading.enumerate()
-                    print(f"🔥 Current threads: {[t.name for t in threads]}")
+                    print(f"ðŸ”¥ Current threads: {[t.name for t in threads]}")
             
             timeout_thread = threading.Thread(target=timeout_monitor, name="TimeoutMonitor", daemon=True)
             timeout_thread.start()
@@ -5351,17 +5352,17 @@ class ExecutePipeline:
                 detailed_summary=True,  # Show detailed task summary
                 no_lock=True,  # Disable Luigi's file locking to prevent deadlock in containers
             )
-            print(f"🔥 luigi.build() returned!")
-            print(f"🔥 Active threads after luigi.build(): {threading.active_count()}")
-            print(f"🔥 Total build time: {time.time() - build_start:.1f}s")
+            print(f"ðŸ”¥ luigi.build() returned!")
+            print(f"ðŸ”¥ Active threads after luigi.build(): {threading.active_count()}")
+            print(f"ðŸ”¥ Total build time: {time.time() - build_start:.1f}s")
         except Exception as e:
-            logger.error(f"🔥 luigi.build() raised exception: {type(e).__name__}: {e}")
-            print(f"🔥 luigi.build() raised exception: {type(e).__name__}: {e}")
+            logger.error(f"ðŸ”¥ luigi.build() raised exception: {type(e).__name__}: {e}")
+            print(f"ðŸ”¥ luigi.build() raised exception: {type(e).__name__}: {e}")
             raise
 
         # DIAGNOSTIC: Log Luigi build completion
-        logger.error(f"🔥 luigi.build() COMPLETED with return value: {self.luigi_build_return_value}")
-        print(f"🔥 luigi.build() COMPLETED with return value: {self.luigi_build_return_value}")
+        logger.error(f"ðŸ”¥ luigi.build() COMPLETED with return value: {self.luigi_build_return_value}")
+        print(f"ðŸ”¥ luigi.build() COMPLETED with return value: {self.luigi_build_return_value}")
 
         # After the pipeline finishes (or fails), check for the stop flag.
         if self.has_stop_flag_file:
@@ -5389,15 +5390,15 @@ if __name__ == '__main__':
     from planexe.llm_util.track_activity import TrackActivity
 
     # DIAGNOSTIC: Verify DATABASE_URL is set in subprocess environment
-    print(f"🔥 LUIGI SUBPROCESS STARTED 🔥")
-    print(f"🔥 DATABASE_URL in subprocess: {os.environ.get('DATABASE_URL', 'NOT SET')[:60]}...")
-    print(f"🔥 OPENAI_API_KEY in subprocess: {os.environ.get('OPENAI_API_KEY', 'NOT SET')[:20]}...")
-    print(f"🔥 Total environment variables: {len(os.environ)}")
+    print(f"ðŸ”¥ LUIGI SUBPROCESS STARTED ðŸ”¥")
+    print(f"ðŸ”¥ DATABASE_URL in subprocess: {os.environ.get('DATABASE_URL', 'NOT SET')[:60]}...")
+    print(f"ðŸ”¥ OPENAI_API_KEY in subprocess: {os.environ.get('OPENAI_API_KEY', 'NOT SET')[:20]}...")
+    print(f"ðŸ”¥ Total environment variables: {len(os.environ)}")
 
     pipeline_environment = PipelineEnvironment.from_env()
     try:
         run_id_dir: Path = pipeline_environment.get_run_id_dir()
-        print(f"🔥 RUN_ID_DIR: {run_id_dir}")
+        print(f"ðŸ”¥ RUN_ID_DIR: {run_id_dir}")
     except ValueError as e:
         msg = f"RUN_ID_DIR is not set or invalid. Error getting run_id_dir: {e!r}"
         logger.error(msg)
@@ -5408,7 +5409,7 @@ if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
 
     # DIAGNOSTIC: Log that logger is configured
-    print(f"🔥 Logger configured, about to start Luigi pipeline...")
+    print(f"ðŸ”¥ Logger configured, about to start Luigi pipeline...")
 
     # Log messages on the console
     colored_formatter = colorlog.ColoredFormatter(
@@ -5488,3 +5489,4 @@ if __name__ == '__main__':
     except Exception as e:
         logger.error(f"Failed to run pipeline: {e}")
         sys.exit(1)
+

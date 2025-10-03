@@ -1,4 +1,10 @@
 """
+Author: Codex using GPT-5
+Date: `2025-10-02T18:51:00Z`
+PURPOSE: Add serialization helpers for EnrichPotentialLevers persistence.
+SRP and DRY check: Pass - serialization only.
+"""
+"""
 Enrich the potential levers with fields such as: "description", "synergy_text", "conflict_text".
 
 - This module takes the raw, brainstormed list of potential levers.
@@ -170,6 +176,17 @@ class EnrichPotentialLevers:
             metadata=all_metadata
         )
     
+    def to_dict(self, include_metadata: bool = True) -> dict:
+        """Return enriched lever data as a dictionary."""
+        data = {'enriched_levers': [lever.model_dump() for lever in self.characterized_levers]}
+        if include_metadata:
+            data['metadata'] = self.metadata
+        return data
+
+    def to_clean_json(self) -> str:
+        """Return enriched lever content as formatted JSON string."""
+        return json.dumps([lever.model_dump() for lever in self.characterized_levers], indent=2)
+
     def save_raw(self, file_path: str) -> None:
         """Saves the characterized levers to a JSON file."""
         output_data = {

@@ -1,4 +1,10 @@
 """
+Author: Codex using GPT-5
+Date: `2025-10-02T18:45:00Z`
+PURPOSE: Ensure IdentifyPotentialLevers exposes JSON helpers for pipeline persistence.
+SRP and DRY check: Pass - single data wrapper; reuses existing helpers.
+"""
+"""
 Brainstorm what key "levers" can be pulled to change the outcome of the plan.
 
 The output contains near duplicates, these have to be deduplicated. A few lever names appear twice.
@@ -233,6 +239,10 @@ class IdentifyPotentialLevers:
         if include_user_prompt:
             d['user_prompt'] = self.user_prompt
         return d
+
+    def to_clean_json(self) -> str:
+        """Return cleaned lever list as formatted JSON."""
+        return json.dumps(self.lever_item_list(), indent=2)
 
     def save_raw(self, file_path: str) -> None:
         Path(file_path).write_text(json.dumps(self.to_dict(), indent=2))
