@@ -1,4 +1,16 @@
-﻿## [0.3.1] - 2025-10-02 - Pipeline LLM Stabilization
+﻿## [0.3.2] - 2025-10-03 - Fallback Report Assembly
+
+### Highlights
+- Added an API-first recovery path that assembles HTML reports from stored `plan_content` records when Luigi's `ReportTask` fails.
+
+### Features
+- New endpoint `GET /api/plans/{plan_id}/fallback-report` uses database contents to build a complete HTML artifact, list missing sections, and compute completion percentage.
+- Frontend Files tab now surfaces a "Recovered Report Assembly" panel with refresh, HTML download, and missing-section JSON export options.
+
+### Validation
+- Invoked `_assemble_fallback_report` against historical plan `PlanExe_adf66b59-3c51-4e26-9a98-90fdbfce2658`, producing fallback HTML (~18KB) with accurate completion metrics despite the original Luigi failure.
+
+## [0.3.1] - 2025-10-02 - Pipeline LLM Stabilization
 
 ### Highlights
 - Restored end-to-end Luigi run after regressing to Option-3 persistence path.
