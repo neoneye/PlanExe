@@ -47,6 +47,28 @@ export interface PlanFilesResponse {
   has_report: boolean;
 }
 
+export interface ReportSectionResponse {
+  filename: string;
+  stage?: string | null;
+  content_type: string;
+  content: string;
+}
+
+export interface MissingSectionResponse {
+  filename: string;
+  stage?: string | null;
+  reason: string;
+}
+
+export interface FallbackReportResponse {
+  plan_id: string;
+  generated_at: string;
+  completion_percentage: number;
+  sections: ReportSectionResponse[];
+  missing_sections: MissingSectionResponse[];
+  assembled_html: string;
+}
+
 export interface HealthResponse {
   status: string;
   version: string;
@@ -111,6 +133,11 @@ export class FastAPIClient {
   async getPlanFiles(plan_id: string): Promise<PlanFilesResponse> {
     const response = await fetch(`${this.baseURL}/api/plans/${plan_id}/files`);
     return this.handleResponse<PlanFilesResponse>(response);
+  }
+
+  async getFallbackReport(plan_id: string): Promise<FallbackReportResponse> {
+    const response = await fetch(`${this.baseURL}/api/plans/${plan_id}/fallback-report`);
+    return this.handleResponse<FallbackReportResponse>(response);
   }
 
   // Download specific file

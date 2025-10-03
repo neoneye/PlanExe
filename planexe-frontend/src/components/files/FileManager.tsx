@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlanFile, PipelinePhase } from '@/lib/types/pipeline';
+import { ReportTaskFallback } from './ReportTaskFallback';
 import { formatDistanceToNow } from 'date-fns';
 
 interface FileManagerProps {
@@ -233,6 +234,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
 
   return (
     <div className={`space-y-6 ${className}`}>
+      <ReportTaskFallback planId={planId} />
       
       {/* Header & Controls */}
       <Card>
