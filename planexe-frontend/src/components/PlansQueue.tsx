@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, RotateCcw, Monitor, SquareArrowOutUpRight } from 'lucide-react'
+import { Loader2, RotateCcw, Monitor } from 'lucide-react'
 import { fastApiClient, PlanResponse } from '@/lib/api/fastapi-client'
 
 // Use the PlanResponse type from fastapi-client instead of local interface
@@ -173,7 +173,31 @@ export function PlansQueue({ className, onPlanSelect, onPlanRetry }: PlansQueueP
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2 ml-4">
+                  <div className="flex flex-wrap items-center gap-2 ml-4">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="secondary"
+                      aria-label="Open plan in workspace"
+                    >
+                      <Link
+                        href={`/recovery?planId=${encodeURIComponent(plan.plan_id)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Open Workspace
+                      </Link>
+                    </Button>
+                    {onPlanSelect && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onPlanSelect(plan.plan_id)}
+                        aria-label="View in dashboard"
+                      >
+                        <Monitor className="h-3 w-3" />
+                      </Button>
+                    )}
                     {(plan.status === 'failed' || plan.status === 'pending') && (
                       <Button
                         size="sm"
@@ -189,30 +213,6 @@ export function PlansQueue({ className, onPlanSelect, onPlanRetry }: PlansQueueP
                         )}
                       </Button>
                     )}
-                    {onPlanSelect && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onPlanSelect(plan.plan_id)}
-                        aria-label="View in dashboard"
-                      >
-                        <Monitor className="h-3 w-3" />
-                      </Button>
-                    )}
-                    <Button
-                      asChild
-                      size="sm"
-                      variant="ghost"
-                      aria-label="Open recovery workspace"
-                    >
-                      <Link
-                        href={`/recovery?planId=${encodeURIComponent(plan.plan_id)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <SquareArrowOutUpRight className="h-3 w-3" />
-                      </Link>
-                    </Button>
                   </div>
                 </div>
               </div>
