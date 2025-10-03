@@ -1,3 +1,14 @@
+/**
+ * Author: Cascade (Claude Sonnet 4)
+ * Date: 2025-10-02T23:58:10-04:00
+ * PURPOSE: Fallback component for displaying report task information when the main report fails to load.
+ *          Recovers sections from plan_content database and assembles them into a viewable HTML report.
+ *          Provides download capabilities for both HTML and missing sections JSON.
+ *          Used when Luigi pipeline fails to generate 029-report.html.
+ * SRP and DRY check: Pass - Single responsibility of displaying fallback report assembly.
+ *                     No duplication - unique fallback report component.
+ */
+
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -134,7 +145,7 @@ export const ReportTaskFallback: React.FC<ReportTaskFallbackProps> = ({ planId, 
           <span>Recovered Report Assembly</span>
           <div className="flex items-center space-x-2">
             <Badge variant="outline" className="text-xs">
-              Completion {report ? `${report.completion_percentage.toFixed(2)}%` : '—'}
+              Completion {report ? `${report.completion_percentage.toFixed(2)}%` : 'N/A'}
             </Badge>
             <Badge variant="secondary" className="text-xs">
               {recoveredSectionCount} sections
