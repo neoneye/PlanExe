@@ -173,6 +173,17 @@ Output contract (emit JSON only; exactly one object per pillar, arrays must exis
         "- If a pillar is GRAY and you have not proposed evidence, use the defaults for that pillar from this mapping:\n"
         f"{gray_defaults_json}\n\n"
 
+        "### FACTOR DIFFERENTIATION RULE (MANDATORY)\n"
+        "For any pillar with status RED or YELLOW:\n"
+        "- Do not set evidence, risk, and fit to the same value.\n"
+        "- Choose a decisive factor (one of: evidence, risk, fit) that most strongly justifies the status per the rubric, and set it strictly lower than at least one of the other two.\n"
+        "- Include at least one reason_code that clearly supports the chosen decisive factor.\n"
+        "Examples (illustrative, not prescriptive):\n"
+        "- Acceptable (RED): evidence=2, risk=1, fit=2 with GOVERNANCE_WEAK, STAKEHOLDER_CONFLICT (decisive factor: risk).\n"
+        "- Acceptable (YELLOW): evidence=2, risk=3, fit=3 with DPIA_GAPS (decisive factor: evidence).\n"
+        "- Not acceptable: evidence=3, risk=3, fit=3 with multiple issues.\n"
+        "Note: Use equal factors only for GRAY. If the rubric seems balanced, choose the factor with the clearest supporting reason_code as decisive and reflect that in the numbers.\n\n"
+
         "STRICT OUTPUT METHOD — OVERWRITE THE SKELETON BELOW:\n"
         "Return your result by OVERWRITING this exact JSON structure in-place. Keep the same order and keys. Replace values only. Do NOT add, remove, or reorder objects. Do NOT add fields.\n"
         "If you keep any pillar as GRAY, you MUST NOT delete the prefilled evidence_todo; either keep them or REPLACE them with 1–2 artifact items. An empty evidence_todo for a GRAY pillar is INVALID.\n"
