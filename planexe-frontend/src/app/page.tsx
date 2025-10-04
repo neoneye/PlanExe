@@ -32,9 +32,17 @@ const HomePage: React.FC = () => {
     setIsCreating(true);
     setError(null);
     try {
+      console.log('[PlanExe] Creating plan with data:', planData);
       const plan = await fastApiClient.createPlan(planData);
-      router.push(`/recovery?planId=${encodeURIComponent(plan.plan_id)}`);
+      console.log('[PlanExe] Plan created successfully:', plan);
+      console.log('[PlanExe] Navigating to workspace with plan_id:', plan.plan_id);
+      
+      // Navigate to workspace (recovery route)
+      const workspaceUrl = `/recovery?planId=${encodeURIComponent(plan.plan_id)}`;
+      console.log('[PlanExe] Workspace URL:', workspaceUrl);
+      router.push(workspaceUrl);
     } catch (err) {
+      console.error('[PlanExe] Plan creation failed:', err);
       const message = err instanceof Error ? err.message : 'Failed to create plan.';
       setError(message);
     } finally {
