@@ -16,7 +16,7 @@ import logging
 import re
 import time
 from dataclasses import dataclass
-from math import ceil
+from math import ceil, floor
 from typing import Any, Dict, List, Optional, Tuple
 
 from llama_index.core.llms import ChatMessage, MessageRole
@@ -242,7 +242,7 @@ def _empty_likert_score() -> Dict[str, Optional[int]]:
 
 def _clamp_factor(value: Any) -> Optional[int]:
     if isinstance(value, (int, float)):
-        candidate = int(round(value))
+        candidate = int(floor(value))
         if LIKERT_MIN <= candidate <= LIKERT_MAX:
             return candidate
     return None
