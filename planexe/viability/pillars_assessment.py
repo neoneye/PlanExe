@@ -430,7 +430,6 @@ class PillarsSchema(BaseModel):
 PILLARS_SYSTEM_PROMPT = make_pillars_system_prompt(
     PILLAR_ORDER,
     REASON_CODES_BY_PILLAR,
-    DEFAULT_LIKERT_BY_STATUS,
     DEFAULT_EVIDENCE_BY_PILLAR,
 )
 

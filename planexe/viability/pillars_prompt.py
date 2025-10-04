@@ -10,7 +10,6 @@ from typing import Dict, List, Optional
 def make_pillars_system_prompt(
     PILLAR_ORDER: List[str],
     REASON_CODES_BY_PILLAR: Dict[str, List[str]],
-    LIKERT_DEFAULTS: Optional[Dict[str, Dict[str, Optional[int]]]] = None,
     DEFAULT_EVIDENCE_BY_PILLAR: Optional[Dict[str, List[str]]] = None,
     FORBID_FIRST_WORDS: Optional[List[str]] = None,
 ) -> str:
@@ -21,7 +20,6 @@ def make_pillars_system_prompt(
     Auto-sync:
       - Pillar order: from PILLAR_ORDER
       - Reason-code whitelist: from REASON_CODES_BY_PILLAR
-      - Likert defaults: from LIKERT_DEFAULTS (or defaults)
       - GRAY defaults: from DEFAULT_EVIDENCE_BY_PILLAR (or sensible defaults)
 
     Returns:
@@ -29,14 +27,6 @@ def make_pillars_system_prompt(
     """
 
     # ---- Defaults -----------------------------------------------------------
-    if LIKERT_DEFAULTS is None:
-        LIKERT_DEFAULTS = {
-            "GREEN": {"evidence": 4, "risk": 4, "fit": 4},
-            "YELLOW": {"evidence": 3, "risk": 3, "fit": 3},
-            "RED": {"evidence": 2, "risk": 2, "fit": 2},
-            "GRAY": {"evidence": None, "risk": None, "fit": None},
-        }
-
     if FORBID_FIRST_WORDS is None:
         FORBID_FIRST_WORDS = [
             "conduct", "ensure", "perform", "create", "update",
@@ -102,7 +92,6 @@ def make_pillars_system_prompt(
     # ---- JSON blocks to embed verbatim into the prompt ----------------------
     pillar_order_json        = json.dumps(PILLAR_ORDER, indent=2, ensure_ascii=False)
     reason_whitelist_json    = json.dumps(REASON_CODES_BY_PILLAR, indent=2, sort_keys=True, ensure_ascii=False)
-    likert_defaults_json     = json.dumps(LIKERT_DEFAULTS, indent=2, sort_keys=True, ensure_ascii=False)
     skeleton_json            = json.dumps(skeleton, indent=2, ensure_ascii=False)
     gray_defaults_json       = json.dumps(DEFAULT_EVIDENCE_BY_PILLAR, indent=2, sort_keys=True, ensure_ascii=False)
     forbid_first_words_json  = json.dumps(FORBID_FIRST_WORDS, indent=2, ensure_ascii=False)
