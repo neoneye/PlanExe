@@ -37,10 +37,13 @@ const HomePage: React.FC = () => {
       console.log('[PlanExe] Plan created successfully:', plan);
       console.log('[PlanExe] Navigating to workspace with plan_id:', plan.plan_id);
       
-      // Navigate to workspace (recovery route)
+      // Navigate to workspace (recovery route) - use window.location for guaranteed navigation
       const workspaceUrl = `/recovery?planId=${encodeURIComponent(plan.plan_id)}`;
       console.log('[PlanExe] Workspace URL:', workspaceUrl);
-      router.push(workspaceUrl);
+      
+      // Use window.location to ensure navigation happens
+      // Next.js router.push() can sometimes be prevented by form submission
+      window.location.href = workspaceUrl;
     } catch (err) {
       console.error('[PlanExe] Plan creation failed:', err);
       const message = err instanceof Error ? err.message : 'Failed to create plan.';
