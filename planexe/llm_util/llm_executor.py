@@ -32,6 +32,7 @@ import time
 import logging
 import inspect
 import typing
+import traceback
 from uuid import uuid4
 from typing import Any, Callable, Optional, List
 from dataclasses import dataclass
@@ -207,7 +208,7 @@ class LLMExecutor:
             llm = llm_model.create_llm()
         except Exception as e:
             duration = time.perf_counter() - attempt_start_time
-            logger.error(f"Error creating LLM {llm_model!r}: {e!r}")
+            logger.error(f"LLMExecutor: Error creating LLM {llm_model!r}: {e!r} traceback: {traceback.format_exc()}")
             return LLMAttempt(stage='create', llm_model=llm_model, success=False, duration=duration, exception=e)
 
         llm_executor_uuid = str(uuid4())
@@ -223,7 +224,7 @@ class LLMExecutor:
             raise
         except Exception as e:
             duration = time.perf_counter() - attempt_start_time
-            logger.error(f"LLMExecutor: error when invoking execute_function. LLM {llm_model!r} and llm_executor_uuid: {llm_executor_uuid!r}: {e!r}")
+            logger.error(f"LLMExecutor: error when invoking execute_function. LLM {llm_model!r} and llm_executor_uuid: {llm_executor_uuid!r}: {e!r} traceback: {traceback.format_exc()}")
             return LLMAttempt(stage='execute', llm_model=llm_model, success=False, duration=duration, exception=e)
 
     def _check_stop_callback(self, last_attempt: LLMAttempt, start_time: float, attempt_index: int) -> None:
