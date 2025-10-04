@@ -1,13 +1,13 @@
 /**
  * Author: Codex using GPT-5
  * Date: 2025-10-03T00:00:00Z
- * PURPOSE: ASCII-safe artefact browser with updated iconography; manages preview/download flows for Luigi outputs
- * SRP and DRY check: Pass - Focused on file interactions, defers fallback rendering to dedicated components.
+ * PURPOSE: ASCII-safe artefact browser driven by plan_content metadata supplied via the workspace.
+ * SRP and DRY check: Pass - Presentational component for artefact exploration; delegates data fetching to parent.
  */
 
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,13 +16,16 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDistanceToNow } from 'date-fns';
 import { PlanFile } from '@/lib/types/pipeline';
-import { fastApiClient } from '@/lib/api/fastapi-client';
-import { ReportTaskFallback } from './ReportTaskFallback';
 import { FileCode2, FileJson, FileSpreadsheet, FileText, FileType } from 'lucide-react';
 
 interface FileManagerProps {
   planId: string;
-  onFileSelect?: (file: PlanFile) => void;
+  artefacts: PlanFile[];
+  isLoading: boolean;
+  error?: string | null;
+  lastUpdated?: Date | null;
+  onRefresh?: () => void;
+  onPreview?: (file: PlanFile) => void;
   className?: string;
 }
 
@@ -61,88 +64,77 @@ const PHASE_LABELS: Record<string, string> = {
   unknown: 'Unclassified Stage',
 };
 
-const normaliseContentType = (value: string): string => {
-  const lowered = value.toLowerCase();
-  if (lowered.includes('html')) return 'html';
-  if (lowered.includes('markdown') || lowered.endsWith('.md')) return 'md';
-  if (lowered.includes('csv')) return 'csv';
-  if (lowered.includes('json')) return 'json';
-  if (lowered.includes('txt')) return 'txt';
-  return lowered;
-};
-
-const formatFilename = (filename: string): string => {
-  const tail = filename.split('-').slice(1).join('-') || filename;
-  return tail
-    .replace(/[_-]+/g, ' ')
-    .replace(/\.[^/.]+$/, '')
-    .replace(/\b\w/g, (char) => char.toUpperCase())
-    .trim();
-};
-
 const getPhaseLabel = (phase?: string | null): string => {
   if (!phase) {
     return PHASE_LABELS.unknown;
   }
-  if (PHASE_LABELS[phase]) {
-    return PHASE_LABELS[phase];
-  }
-  return formatFilename(phase);
+  return PHASE_LABELS[phase] ?? phase.replace(/[_-]+/g, ' ').trim().replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-export const FileManager: React.FC<FileManagerProps> = ({ planId, onFileSelect, className = '' }) => {
-  const [files, setFiles] = useState<PlanFile[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const getFileIcon = (type: string): React.ReactElement => {
+  const iconClass = 'h-5 w-5 text-blue-500';
+  switch (type) {
+    case 'json':
+      return <FileJson className={iconClass} aria-hidden="true" />;
+    case 'md':
+      return <FileText className={iconClass} aria-hidden="true" />;
+    case 'html':
+      return <FileCode2 className={iconClass} aria-hidden="true" />;
+    case 'csv':
+      return <FileSpreadsheet className={iconClass} aria-hidden="true" />;
+    case 'txt':
+      return <FileText className={iconClass} aria-hidden="true" />;
+    default:
+      return <FileType className={iconClass} aria-hidden="true" />;
+  }
+};
+
+const formatFileSize = (bytes: number): string => {
+  if (!bytes) {
+    return '0 B';
+  }
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const exponent = Math.floor(Math.log(bytes) / Math.log(1024));
+  const value = bytes / Math.pow(1024, exponent);
+  return `${value.toFixed(1)} ${units[exponent]}`;
+};
+
+export const FileManager: React.FC<FileManagerProps> = ({
+  planId,
+  artefacts,
+  isLoading,
+  error,
+  lastUpdated,
+  onRefresh,
+  onPreview,
+  className = '',
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStage, setSelectedStage] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
 
-  const fetchFiles = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await fastApiClient.getPlanArtefacts(planId);
-      const mapped: PlanFile[] = response.artefacts.map((entry) => ({
-        filename: entry.filename,
-        stage: entry.stage ?? 'unknown',
-        contentType: normaliseContentType(entry.content_type),
-        sizeBytes: entry.size_bytes ?? 0,
-        createdAt: entry.created_at,
-        description: entry.description ?? formatFilename(entry.filename),
-        taskName: entry.task_name ?? entry.stage ?? formatFilename(entry.filename),
-        order: entry.order ?? Number.MAX_SAFE_INTEGER,
-      }));
+  const stageOptions = useMemo(() => {
+    const stages = new Set<string>();
+    artefacts.forEach((file) => {
+      stages.add(file.stage ?? 'unknown');
+    });
+    const ordered = KNOWN_PHASE_ORDER.filter((stage) => stages.has(stage));
+    const extras = Array.from(stages)
+      .filter((stage) => !KNOWN_PHASE_ORDER.includes(stage) && stage !== 'unknown')
+      .sort();
+    const includeUnknown = stages.has('unknown');
+    return [...ordered, ...extras, ...(includeUnknown ? ['unknown'] : [])];
+  }, [artefacts]);
 
-      mapped.sort((a, b) => {
-        const orderDiff = (a.order ?? 9999) - (b.order ?? 9999);
-        if (orderDiff !== 0) {
-          return orderDiff;
-        }
-        return a.filename.localeCompare(b.filename);
-      });
-
-      setFiles(mapped);
-      setLastUpdated(new Date());
-      setError(null);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setFiles([]);
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [planId]);
-
-  useEffect(() => {
-    fetchFiles();
-    const interval = window.setInterval(fetchFiles, 5000);
-    return () => window.clearInterval(interval);
-  }, [fetchFiles]);
+  const typeOptions = useMemo(() => {
+    const types = new Set<string>();
+    artefacts.forEach((file) => types.add(file.contentType));
+    return Array.from(types).sort();
+  }, [artefacts]);
 
   const filteredFiles = useMemo(() => {
-    return files.filter((file) => {
+    return artefacts.filter((file) => {
       const matchesSearch = searchTerm
         ? file.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (file.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
@@ -154,7 +146,7 @@ export const FileManager: React.FC<FileManagerProps> = ({ planId, onFileSelect, 
 
       return matchesSearch && matchesStage && matchesType;
     });
-  }, [files, searchTerm, selectedStage, selectedType]);
+  }, [artefacts, searchTerm, selectedStage, selectedType]);
 
   const filesByStage = useMemo(() => {
     const grouped: Record<string, PlanFile[]> = {};
@@ -168,48 +160,9 @@ export const FileManager: React.FC<FileManagerProps> = ({ planId, onFileSelect, 
     return grouped;
   }, [filteredFiles]);
 
-  const stageOptions = useMemo(() => {
-    const present = new Set<string>();
-    files.forEach((file) => {
-      present.add(file.stage ?? 'unknown');
-    });
-    const ordered = KNOWN_PHASE_ORDER.filter((phase) => present.has(phase));
-    const extras = Array.from(present).filter((phase) => !KNOWN_PHASE_ORDER.includes(phase) && phase !== 'unknown').sort();
-    const includeUnknown = present.has('unknown');
-    return [...ordered, ...extras, ...(includeUnknown ? ['unknown'] : [])];
-  }, [files]);
-
-  const typeOptions = useMemo(() => {
-    const present = new Set<string>();
-    files.forEach((file) => present.add(file.contentType));
-    return Array.from(present).sort();
-  }, [files]);
-
-  const getFileIcon = (type: string): React.ReactElement => {
-    const iconClass = 'h-5 w-5 text-blue-500';
-    switch (type) {
-      case 'json':
-        return <FileJson className={iconClass} aria-hidden="true" />;
-      case 'md':
-        return <FileText className={iconClass} aria-hidden="true" />;
-      case 'html':
-        return <FileCode2 className={iconClass} aria-hidden="true" />;
-      case 'csv':
-        return <FileSpreadsheet className={iconClass} aria-hidden="true" />;
-      case 'txt':
-        return <FileText className={iconClass} aria-hidden="true" />;
-      default:
-        return <FileType className={iconClass} aria-hidden="true" />;
-    }
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (!bytes) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-  };
+  const lastUpdatedLabel = lastUpdated
+    ? formatDistanceToNow(lastUpdated, { addSuffix: true })
+    : 'never';
 
   const downloadFile = async (file: PlanFile) => {
     try {
@@ -231,13 +184,7 @@ export const FileManager: React.FC<FileManagerProps> = ({ planId, onFileSelect, 
     }
   };
 
-  const previewFile = (file: PlanFile) => {
-    if (onFileSelect) {
-      onFileSelect(file);
-    }
-  };
-
-  const handleDownloadZip = async () => {
+  const downloadZip = async () => {
     try {
       setIsDownloadingZip(true);
       const response = await fetch(`/api/plans/${planId}/download`);
@@ -260,36 +207,8 @@ export const FileManager: React.FC<FileManagerProps> = ({ planId, onFileSelect, 
     }
   };
 
-  const renderStageFilterOptions = () => (
-    <>
-      <SelectItem value="all">All Stages</SelectItem>
-      {stageOptions.map((stage) => (
-        <SelectItem key={stage} value={stage}>
-          {getPhaseLabel(stage)}
-        </SelectItem>
-      ))}
-    </>
-  );
-
-  const renderTypeFilterOptions = () => (
-    <>
-      <SelectItem value="all">All Types</SelectItem>
-      {typeOptions.map((type) => (
-        <SelectItem key={type} value={type}>
-          {type.toUpperCase()}
-        </SelectItem>
-      ))}
-    </>
-  );
-
-  const lastUpdatedLabel = lastUpdated
-    ? formatDistanceToNow(lastUpdated, { addSuffix: true })
-    : 'never';
-
   return (
     <div className={`space-y-6 ${className}`}>
-      <ReportTaskFallback planId={planId} />
-
       <Card className="border-blue-200 bg-blue-50/50">
         <CardHeader className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -300,11 +219,11 @@ export const FileManager: React.FC<FileManagerProps> = ({ planId, onFileSelect, 
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => fetchFiles()} disabled={isLoading}>
+              <Button variant="outline" size="sm" onClick={onRefresh} disabled={isLoading}>
                 Refresh
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleDownloadZip} disabled={isDownloadingZip || isLoading}>
-                {isDownloadingZip ? 'Preparing�' : 'Download ZIP'}
+              <Button variant="ghost" size="sm" onClick={downloadZip} disabled={isDownloadingZip || isLoading}>
+                {isDownloadingZip ? 'Preparing...' : 'Download ZIP'}
               </Button>
             </div>
           </div>
@@ -320,7 +239,12 @@ export const FileManager: React.FC<FileManagerProps> = ({ planId, onFileSelect, 
                 <SelectValue placeholder="Filter by stage" />
               </SelectTrigger>
               <SelectContent>
-                {renderStageFilterOptions()}
+                <SelectItem value="all">All Stages</SelectItem>
+                {stageOptions.map((stage) => (
+                  <SelectItem key={stage} value={stage}>
+                    {getPhaseLabel(stage)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={selectedType} onValueChange={setSelectedType}>
@@ -328,7 +252,12 @@ export const FileManager: React.FC<FileManagerProps> = ({ planId, onFileSelect, 
                 <SelectValue placeholder="File type" />
               </SelectTrigger>
               <SelectContent>
-                {renderTypeFilterOptions()}
+                <SelectItem value="all">All Types</SelectItem>
+                {typeOptions.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type.toUpperCase()}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -341,23 +270,23 @@ export const FileManager: React.FC<FileManagerProps> = ({ planId, onFileSelect, 
         </Card>
       )}
 
-      {isLoading && !files.length ? (
+      {isLoading && artefacts.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center text-sm text-slate-500">
-            Loading artefacts from the database�
+            Loading artefacts from the database...
           </CardContent>
         </Card>
-      ) : null}
+      )}
 
-      {!isLoading && !error && filteredFiles.length === 0 ? (
+      {!isLoading && !error && filteredFiles.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center text-slate-500">
-            {files.length === 0
+            {artefacts.length === 0
               ? 'No artefacts recorded yet. The pipeline may still be running or has not produced any outputs.'
               : 'No artefacts match your filters.'}
           </CardContent>
         </Card>
-      ) : null}
+      )}
 
       {filteredFiles.length > 0 && (
         <Tabs defaultValue="list" className="w-full">
@@ -384,14 +313,12 @@ export const FileManager: React.FC<FileManagerProps> = ({ planId, onFileSelect, 
                             {file.contentType.toUpperCase()}
                           </Badge>
                           <span>{formatFileSize(file.sizeBytes)}</span>
-                          <span>
-                            Stored {formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}
-                          </span>
+                          <span>Stored {formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}</span>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => previewFile(file)}>
+                      <Button size="sm" variant="outline" onClick={() => onPreview?.(file)}>
                         Preview
                       </Button>
                       <Button size="sm" onClick={() => downloadFile(file)}>

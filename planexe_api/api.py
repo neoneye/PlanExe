@@ -320,6 +320,61 @@ async def create_plan(request: CreatePlanRequest):
         raise HTTPException(status_code=500, detail=f"Failed to create plan: {str(e)}")
 
 
+# Database artefact endpoint
+@app.get("/api/plans/{plan_id}/artefacts", response_model=PlanArtefactListResponse)
+async def list_plan_artefacts(plan_id: str, db: DatabaseService = Depends(get_database)):
+    """Return artefacts persisted in plan_content for the given plan."""
+    try:
+        plan = db.get_plan(plan_id)
+        if not plan:
+            raise HTTPException(status_code=404, detail="Plan not found")
+
+        content_records = db.get_plan_content(plan_id)
+        artefacts: List[PlanArtefact] = []
+
+        for record in content_records:
+            size_bytes = record.content_size_bytes
+            if size_bytes is None:
+                size_bytes = len(record.content.encode('utf-8')) if record.content else 0
+
+            description = record.filename
+            if '-' in description:
+                description = description.split('-', 1)[1]
+            if '.' in description:
+                description = description.rsplit('.', 1)[0]
+            description = description.replace('_', ' ').replace('-', ' ').strip().title() or record.filename
+
+            try:
+                order = int(record.filename.split('-', 1)[0])
+            except (ValueError, IndexError):
+                order = None
+
+            artefacts.append(
+                PlanArtefact(
+                    filename=record.filename,
+                    content_type=record.content_type,
+                    stage=record.stage,
+                    size_bytes=size_bytes,
+                    created_at=record.created_at or datetime.utcnow(),
+                    description=description,
+                    task_name=record.stage or description,
+                    order=order,
+                )
+            )
+
+        artefacts.sort(key=lambda entry: ((entry.order if entry.order is not None else 9999), entry.filename))
+
+        return PlanArtefactListResponse(
+            plan_id=plan_id,
+            artefacts=artefacts
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch plan artefacts: {exc}")
+
+
+
 # Plan details endpoint
 @app.get("/api/plans/{plan_id}", response_model=PlanResponse)
 async def get_plan(plan_id: str, db: DatabaseService = Depends(get_database)):
@@ -481,29 +536,78 @@ async def get_plan_files(plan_id: str, db: DatabaseService = Depends(get_databas
         if not plan:
             raise HTTPException(status_code=404, detail="Plan not found")
 
-        files = db.get_plan_files(plan_id)
-
-        # Extract just the filenames as simple strings
-        filenames = [f.filename for f in files]
-
-        # Check if HTML report exists (try database first, then filesystem)
-        content_record = db.get_plan_content_by_filename(plan_id, "999-final-report.html")
-        has_report = content_record is not None
-        
+        artefact_response = await list_plan_artefacts(plan_id, db)
+        has_report = any(entry.filename == "999-final-report.html" for entry in artefact_response.artefacts)
         if not has_report:
-            # Fallback to filesystem check
             report_path = Path(plan.output_dir) / "999-final-report.html"
             has_report = report_path.exists()
 
+        filenames = [entry.filename for entry in artefact_response.artefacts]
+
         return PlanFilesResponse(
             plan_id=plan_id,
-            files=filenames,  # Simple string list
-            has_report=has_report  # Boolean flag
+            files=filenames,
+            has_report=has_report
         )
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get plan files: {str(e)}")
+
+
+# Database artefact endpoint
+@app.get("/api/plans/{plan_id}/artefacts", response_model=PlanArtefactListResponse)
+async def list_plan_artefacts(plan_id: str, db: DatabaseService = Depends(get_database)):
+    """Return artefacts persisted in plan_content for the given plan."""
+    try:
+        plan = db.get_plan(plan_id)
+        if not plan:
+            raise HTTPException(status_code=404, detail="Plan not found")
+
+        content_records = db.get_plan_content(plan_id)
+        artefacts: List[PlanArtefact] = []
+
+        for record in content_records:
+            size_bytes = record.content_size_bytes
+            if size_bytes is None:
+                size_bytes = len(record.content.encode('utf-8')) if record.content else 0
+
+            description = record.filename
+            if '-' in description:
+                description = description.split('-', 1)[1]
+            if '.' in description:
+                description = description.rsplit('.', 1)[0]
+            description = description.replace('_', ' ').replace('-', ' ').strip().title() or record.filename
+
+            try:
+                order = int(record.filename.split('-', 1)[0])
+            except (ValueError, IndexError):
+                order = None
+
+            artefacts.append(
+                PlanArtefact(
+                    filename=record.filename,
+                    content_type=record.content_type,
+                    stage=record.stage,
+                    size_bytes=size_bytes,
+                    created_at=record.created_at or datetime.utcnow(),
+                    description=description,
+                    task_name=record.stage or description,
+                    order=order,
+                )
+            )
+
+        artefacts.sort(key=lambda entry: ((entry.order if entry.order is not None else 9999), entry.filename))
+
+        return PlanArtefactListResponse(
+            plan_id=plan_id,
+            artefacts=artefacts
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch plan artefacts: {exc}")
+
 
 
 # Plan details endpoint

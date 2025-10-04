@@ -1,4 +1,41 @@
-﻿## [0.3.2] - 2025-10-03 - Fallback Report Assembly
+## [0.3.3] - 2025-10-03 - Recovery Workspace Artefact Integration
+
+### Highlights
+
+- Integrated new `/api/plans/{plan_id}/artefacts` endpoint across recovery workspace components
+- Enhanced FileManager to consume database-driven artefact metadata with stage grouping
+- Improved recovery page to use artefact endpoint for real-time file visibility
+- Cleaned up documentation (removed redundant docs/3Oct.md in favor of docs/3OctWorkspace.md)
+
+### Features
+
+- **New API Endpoint**: `GET /api/plans/{plan_id}/artefacts` returns structured artefact list from `plan_content` table with metadata (stage, order, size, description)
+- **FileManager Enhancement**: Now displays artefacts by pipeline stage with proper ordering and filtering
+- **Recovery Workspace**: Unified artefact viewing across pending, failed, and completed plans
+- **Database-First**: Artefact visibility works immediately as pipeline writes to `plan_content`, no filesystem dependency
+
+### Technical Details
+
+- Artefact endpoint extracts order from filename prefix (e.g., "018-wbs_level1.json" → order=18)
+- Stage grouping aligns with KNOWN_PHASE_ORDER from documentation
+- Size calculation uses `content_size_bytes` from database or calculates from content
+- Auto-generated descriptions from filenames (e.g., "wbs_level1" → "Wbs Level1")
+
+### Files Modified
+
+- `planexe_api/api.py` - Added `/api/plans/{plan_id}/artefacts` endpoint
+- `planexe-frontend/src/components/files/FileManager.tsx` - Integrated artefact metadata display
+- `planexe-frontend/src/app/recovery/page.tsx` - Updated to use new artefact endpoint
+- `planexe-frontend/public/favicon.ico` - Updated favicon
+- `planexe-frontend/public/favicon.svg` - Updated favicon
+
+### Documentation
+
+- Removed `docs/3Oct.md` (superseded by `docs/3OctWorkspace.md`)
+
+---
+
+## [0.3.2] - 2025-10-03 - Fallback Report Assembly
 
 `codex resume 0199a7fc-b79b-7322-8ffb-c0fa02463b58` Was the Codex session that did it.
 
