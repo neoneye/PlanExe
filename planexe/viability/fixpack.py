@@ -54,7 +54,6 @@ class PillarItem(BaseModel):
 
     pillar: PillarEnum
     status: StatusEnum
-    score: Optional[int] = None
     reason_codes: List[str] = Field(default_factory=list)
     evidence_todo: List[str] = Field(default_factory=list)
 
@@ -417,28 +416,24 @@ if __name__ == "__main__":
             {
                 "pillar": PillarEnum.HumanStability.value,
                 "status": "YELLOW",
-                "score": 55,
                 "reason_codes": ["STAFF_AVERSION"],
                 "evidence_todo": ["Stakeholder interviews"]
             },
             {
                 "pillar": PillarEnum.EconomicResilience.value,
                 "status": "GRAY",
-                "score": None,
                 "reason_codes": ["CONTINGENCY_LOW"],
                 "evidence_todo": ["Budget scenario analysis"]
             },
             {
                 "pillar": PillarEnum.EcologicalIntegrity.value,
                 "status": "YELLOW",
-                "score": 60,
                 "reason_codes": ["WATER_STRESS"],
                 "evidence_todo": ["Water sourcing assessment"]
             },
             {
                 "pillar": PillarEnum.Rights_Legality.value,
                 "status": "RED",
-                "score": 25,
                 "reason_codes": ["DPIA_GAPS", "ETHICS_VAGUE"],
                 "evidence_todo": ["Run DPIA v1"]
             }
