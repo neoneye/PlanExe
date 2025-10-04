@@ -7,6 +7,8 @@ It consumes the structured outputs from the previous viability steps
 be serialized to JSON and markdown.
 
 PROMPT> python -u -m planexe.viability.overall_summary | tee output.txt
+
+IDEA: Re-enable "score" within the overall_summary when I have gotton the pillars_assessment.py likert scores to work.
 """
 
 from __future__ import annotations
@@ -31,7 +33,7 @@ class PillarItem(BaseModel):
 
     pillar: str
     status: str
-    score: Optional[float] = None
+    # score: Optional[float] = None
     reason_codes: List[str] = Field(default_factory=list)
     evidence_todo: List[str] = Field(default_factory=list)
 
@@ -73,7 +75,7 @@ class FixPacksPayload(BaseModel):
 class OverallPayload(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    score: Optional[int]
+    # score: Optional[int]
     status: str
     confidence: str
 
@@ -304,7 +306,7 @@ class OverallSummary:
         if red_gray_covered:
             upgraded_status = STATUS_UPGRADE_MAP.get(worst_status, worst_status)
 
-        overall_score = _compute_average_score([pillar.score for pillar in pillars_model.pillars])
+        # overall_score = _compute_average_score([pillar.score for pillar in pillars_model.pillars])
         confidence = _confidence_from_statuses(statuses)
 
         recommendation = _determine_recommendation(
@@ -324,7 +326,7 @@ class OverallSummary:
         )
 
         overall_payload = OverallPayload(
-            score=overall_score,
+            # score=overall_score,
             status=upgraded_status,
             confidence=confidence,
         )
@@ -363,7 +365,8 @@ class OverallSummary:
     def convert_to_markdown(payload: OverallSummaryPayload) -> str:
         lines: List[str] = []
         lines.append(f"- Status: {payload.overall.status}")
-        score_value = payload.overall.score
+        # score_value = payload.overall.score
+        score_value = None
         lines.append(f"- Score: {score_value if score_value is not None else 'N/A'}")
         lines.append(f"- Confidence: {payload.overall.confidence}")
         lines.append("")
@@ -440,7 +443,8 @@ def _build_why_list(*, pillars: Sequence[PillarItem], max_items: int) -> List[st
             continue
 
         display = PillarEnum.get_display_name(pillar.pillar)
-        score_fragment = f"score {int(pillar.score)}" if pillar.score is not None else "no score"
+        # score_fragment = f"score {int(pillar.score)}" if pillar.score is not None else "no score"
+        score_fragment = "no score"
         reason_fragment = _pillar_focus_reason(pillar)
 
         base_text = f"{display} {status} ({score_fragment})"
