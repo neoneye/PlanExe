@@ -90,8 +90,6 @@ def make_pillars_system_prompt(
                     "evidence": None,
                     "risk": None,
                     "fit": None,
-                    "average_likert": None,
-                    "legacy_0_100": None,
                 },
                 "reason_codes": [],
                 "evidence_todo": DEFAULT_EVIDENCE_BY_PILLAR.get(p, [])[:2],
@@ -120,9 +118,7 @@ Output contract (emit JSON only; exactly one object per pillar, arrays must exis
       "score": {
         "evidence": integer | null,  // Likert 1–5, null if status is GRAY
         "risk": integer | null,
-        "fit": integer | null,
-        "average_likert": null,      // leave null; backend fills derived values
-        "legacy_0_100": null         // leave null; backend fills derived values
+        "fit": integer | null
       },
       "reason_codes": [string, ...],   // only from the whitelist for this pillar
       "evidence_todo": [string, ...],  // ≤ 2 artifact-style items; empty for GREEN
@@ -144,9 +140,6 @@ Output contract (emit JSON only; exactly one object per pillar, arrays must exis
         "Reason-code whitelist by pillar (use UPPERCASE exactly; do NOT invent new codes; empty array if none apply):\n"
         f"{reason_whitelist_json}\n\n"
 
-        "Likert defaults by status (use as anchors; override when evidence justifies it):\n"
-        f"{likert_defaults_json}\n\n"
-
         "Pillar scopes (evaluate all pillars even if absent in the input):\n"
         "- HumanStability — people/org readiness, governance, change management, training, operating model.\n"
         "- EconomicResilience — budget/contingency, unit economics, suppliers/SPOF/integration, delivery risk.\n"
@@ -158,6 +151,11 @@ Output contract (emit JSON only; exactly one object per pillar, arrays must exis
         "- risk — residual risk posture after mitigations.\n"
         "- fit — alignment/coherence with the pillar’s aims.\n\n"
 
+        "Scoring discipline:\n"
+        "- Start from the defaults above, then adjust each factor individually based on the plan.\n"
+        "- Only output identical factor values when the underlying evidence truly supports the same posture.\n"
+        "- Allow stronger dimensions to remain high even if a single weak factor drives RED/YELLOW.\n\n"
+
         "Factor rubric (use this mental checklist when assigning values):\n"
         f"{factor_rubric_text}\n\n"
 
@@ -166,8 +164,6 @@ Output contract (emit JSON only; exactly one object per pillar, arrays must exis
         "- Else if the worst factor ==3 ⇒ YELLOW.\n"
         "- Else if all factors ≥4 ⇒ GREEN.\n"
         "- Missing factors ⇒ GRAY (leave the factors null and propose evidence to unlock assessment).\n\n"
-
-        "Do not fill `average_likert` or `legacy_0_100`; leave them null so the backend can compute them deterministically.\n\n"
 
         "Evidence gating:\n"
         "- GREEN ⇒ evidence_todo MUST be empty.\n"

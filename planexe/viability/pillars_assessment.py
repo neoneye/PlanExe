@@ -289,44 +289,58 @@ def _enforce_status(factors: Dict[str, Optional[int]], status: str) -> Dict[str,
     if status == StatusEnum.GRAY.value:
         return _empty_likert_score()
 
-    template = _fallback_factors_for_status(status)
-
-    if status == StatusEnum.YELLOW.value:
-        # Ensure at least one factor is exactly 3, but do not override worse data.
-        enforced = {}
-        first_set = False
-        for key in LIKERT_FACTOR_KEYS:
-            current = factors.get(key)
-            if isinstance(current, int) and current <= 2:
-                enforced[key] = current
-                continue
-            if not first_set:
-                enforced[key] = 3
-                first_set = True
-            else:
-                enforced[key] = max(3, min(5, current)) if isinstance(current, int) else 3
-        return enforced
+    factors = factors or {}
 
     if status == StatusEnum.RED.value:
-        # Keep the lowest value ≤2 if present; otherwise fall back to 2.
+        enforced: Dict[str, int] = {}
+        has_red_factor = False
+        for key in LIKERT_FACTOR_KEYS:
+            current = factors.get(key)
+            if isinstance(current, int):
+                value = max(LIKERT_MIN, min(LIKERT_MAX, current))
+            else:
+                value = None
+            if value is None:
+                value = LIKERT_MIN + 1  # default to 2 when missing
+            if value <= LIKERT_MIN + 1:
+                has_red_factor = True
+            enforced[key] = value
+
+        if not has_red_factor:
+            weakest_key = min(enforced, key=enforced.get)
+            enforced[weakest_key] = LIKERT_MIN + 1
+        return enforced
+
+    if status == StatusEnum.YELLOW.value:
+        enforced = {}
+        lowest_key = LIKERT_FACTOR_KEYS[0]
+        lowest_val = None
+        for key in LIKERT_FACTOR_KEYS:
+            current = factors.get(key)
+            if isinstance(current, int):
+                value = max(3, min(LIKERT_MAX, current))
+            else:
+                value = 3
+            enforced[key] = value
+            if lowest_val is None or value < lowest_val:
+                lowest_val = value
+                lowest_key = key
+        if enforced[lowest_key] > 3:
+            enforced[lowest_key] = 3
+        return enforced
+
+    if status == StatusEnum.GREEN.value:
         enforced = {}
         for key in LIKERT_FACTOR_KEYS:
             current = factors.get(key)
-            if isinstance(current, int) and current <= 2:
-                enforced[key] = max(LIKERT_MIN, current)
+            if isinstance(current, int):
+                value = min(LIKERT_MAX, max(4, current))
             else:
-                enforced[key] = LIKERT_MIN + 1  # 2
+                value = 4
+            enforced[key] = value
         return enforced
 
-    # Default (GREEN): keep ≥4 and clamp into 4–5 range.
-    enforced = {}
-    for key in LIKERT_FACTOR_KEYS:
-        current = factors.get(key)
-        if isinstance(current, int) and current >= 4:
-            enforced[key] = min(LIKERT_MAX, current)
-        else:
-            enforced[key] = 4
-    return enforced
+    return dict(_fallback_factors_for_status(status))
 
 
 def _compute_derived_metrics(factors: Dict[str, Optional[int]]) -> Dict[str, Any]:
