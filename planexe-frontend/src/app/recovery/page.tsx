@@ -88,7 +88,7 @@ const STAGE_LABELS: Record<string, string> = {
 };
 
 const normaliseStageLabel = (stage?: string | null): string => {
-  if (!stage) {
+  if (!stage || typeof stage !== 'string') {
     return STAGE_LABELS.unknown;
   }
   return (
@@ -288,12 +288,16 @@ const WorkspaceContent: React.FC = () => {
       const response: PlanArtefactListResponse = await fastApiClient.getPlanArtefacts(
         planId
       );
-      const mapped: PlanFile[] = response.artefacts.map((entry) => ({
+      // Filter out any undefined/null entries before mapping
+      const validArtefacts = (response.artefacts || []).filter(
+        (entry) => entry && entry.filename
+      );
+      const mapped: PlanFile[] = validArtefacts.map((entry) => ({
         filename: entry.filename,
         stage: entry.stage ?? 'unknown',
-        contentType: entry.content_type,
+        contentType: entry.content_type ?? 'unknown',
         sizeBytes: entry.size_bytes ?? 0,
-        createdAt: entry.created_at,
+        createdAt: entry.created_at ?? new Date().toISOString(),
         description: entry.description ?? entry.filename,
         taskName: entry.task_name ?? entry.stage ?? entry.filename,
         order: entry.order ?? Number.MAX_SAFE_INTEGER,
@@ -329,9 +333,15 @@ const WorkspaceContent: React.FC = () => {
       const text = await blob.text();
       setCanonicalHtml(text);
     } catch (err) {
+      // Handle 404 gracefully - report may not exist yet
       const message = err instanceof Error ? err.message : 'Canonical report unavailable.';
+      const is404 = message.includes('404') || message.includes('Not Found');
       setCanonicalHtml(null);
-      setCanonicalError(message);
+      setCanonicalError(
+        is404 
+          ? 'Report not generated yet. The Luigi pipeline may still be running.' 
+          : message
+      );
     } finally {
       setReportLoading(false);
     }
