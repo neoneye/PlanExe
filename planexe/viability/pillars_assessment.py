@@ -112,8 +112,16 @@ LIKERT_FACTOR_KEYS: Tuple[str, ...] = ("evidence", "risk", "fit")
 
 DEFAULT_LIKERT_BY_STATUS: Dict[str, Dict[str, Optional[int]]] = {
     StatusEnum.GREEN.value: {key: 4 for key in LIKERT_FACTOR_KEYS},
-    StatusEnum.YELLOW.value: {key: 3 for key in LIKERT_FACTOR_KEYS},
-    StatusEnum.RED.value: {key: 2 for key in LIKERT_FACTOR_KEYS},
+    StatusEnum.YELLOW.value: {
+        "evidence": 2,
+        "risk": 3,
+        "fit": 3,
+    },
+    StatusEnum.RED.value: {
+        "evidence": 3,
+        "risk": 2,
+        "fit": 3,
+    },
     StatusEnum.GRAY.value: {key: None for key in LIKERT_FACTOR_KEYS},
 }
 
@@ -153,7 +161,7 @@ EVIDENCE_TEMPLATES: Dict[str, List[str]] = {
         "Middleware integration POC report (data transfer ≥80% on sample)"
     ],
     "DPIA_GAPS": [
-        "Top-N data sources: licenses + DPIAs bundle"
+        "Bundle the license files for the top data sources and the corresponding DPIAs."
     ],
     "LICENSE_GAPS": [
         "License registry (source, terms, expiry)"
@@ -219,7 +227,7 @@ EVIDENCE_TEMPLATES: Dict[str, List[str]] = {
         "Water permit inventory + compliance status"
     ],
     "INFOSEC_GAPS": [
-        "Threat model + control mapping (e.g., STRIDE ↔ CIS/NIST)"
+        "Threat model + control mapping (e.g., STRIDE mapped to CIS/NIST)"
     ],
     "DATA_QUALITY_WEAK": [
         "Data profiling report (completeness, accuracy, drift)"
@@ -233,6 +241,50 @@ EVIDENCE_TEMPLATES: Dict[str, List[str]] = {
     "CONSENT_MODEL_WEAK": [
         "Consent/permission model spec + audit sample"
     ],
+}
+
+EVIDENCE_DONE_WHEN: Dict[str, str] = {
+    "Stakeholder map + skills gap snapshot": "top 20 stakeholders include influence/interest scores, critical role gaps quantified, and HR lead sign-off captured.",
+    "Change plan v1 (communications, training, adoption KPIs)": "communications calendar, training modules, and baseline adoption KPIs documented with exec sponsor approval.",
+    "Assumption ledger v1 + sensitivity table": "ledger lists top 10 assumptions with owners and rationale, sensitivity table shows +/-20% scenario impact, and file stored in shared workspace.",
+    "Cost model v2 (on-prem vs cloud TCO)": "three-year capex/opex comparison completed with currency assumptions, variance notes, and CFO review recorded.",
+    "Environmental baseline note (scope, metrics)": "scope, metrics, measurement methods, and data sources detailed with sustainability lead sign-off.",
+    "Cloud carbon estimate v1 (regions/services)": "regional/service mix applied, monthly kgCO2e calculated with methodology notes, and results published to shared dashboard.",
+    "Regulatory mapping v1 + open questions list": "applicable regulations by jurisdiction linked to control owners, open questions assigned with due dates, and compliance counsel acknowledged.",
+    "Licenses & permits inventory + gaps list": "inventory captures license IDs, terms, expiry, owners, gaps flagged with remediation owners, and legal review logged.",
+    "Talent market scan report (availability, salary ranges, channels)": "report covers at least three geographies with supply/demand stats, salary bands, sourcing channels, and talent lead approval.",
+    "Cloud carbon baseline (last 30 days) using CCF method (kWh, kgCO2e)": "provider telemetry ingested for the last 30 days, kWh to kgCO2e conversion factors cited, and QA sign-off completed.",
+    "IT integration audit (systems map, gap analysis)": "systems map includes data flows and auth patterns, gap analysis rated per interface, and architecture lead sign-off captured.",
+    "Middleware integration POC report (data transfer >=80% on sample)": "POC moves >=80% of representative records end-to-end, error rate logged, rollback documented, and integration owner approval noted.",
+    "Bundle the license files for the top data sources and the corresponding DPIAs.": "zip archive contains current license PDFs plus matching DPIAs for top data sources with compliance lead acknowledgement.",
+    "License registry (source, terms, expiry)": "registry details each source, key terms, renewal dates, and accountable owners with legal confirmation recorded.",
+    "ABS/benefit-sharing term sheet + playbook": "term sheet reviewed by legal, playbook lists trigger events and benefit percentages, and stakeholder contacts confirmed.",
+    "Climate exposure maps (2030/2040/2050) + site vulnerability memo": "maps cover priority sites, memo rates exposure per scenario, and risk officer sign-off logged.",
+    "Water budget & drought plan baseline for target sites": "baseline shows monthly demand vs supply, drought triggers defined, and operations lead approval documented.",
+    "Budget v2 with >=10% contingency + Monte Carlo risk workbook": "workbook runs >=1000 simulations, contingency coverage summarized, and finance team review attached.",
+    "Market expansion memo (3 jurisdictions) + risk/opportunity analysis": "memo compares TAM, regulatory hurdles, partner landscape for three jurisdictions with go/no-go recommendation and strategy lead approval.",
+    "Normative Charter v1.0 with auditable rules & dissent logging": "charter states enforceable principles, audit trail process, dissent logging workflow, and ethics board endorsement noted.",
+    "RACI + decision log v1 (scope: this plan)": "RACI lists workstreams with named owners, decision log captures at least five key decisions with timestamps, and sponsor sign-off recorded.",
+    "Training needs assessment + skill gap analysis report": "assessment covers >70% of targeted staff, skill gap heatmap provided, and L&D lead approval logged.",
+    "Stakeholder conflict resolution framework + escalation matrix": "framework defines triggers, escalation tiers include contacts/SLAs, and legal review acknowledged.",
+    "Safety culture assessment report (survey, incident analysis)": "survey response rate >=70%, incident trends analyzed over 12 months, and HSE lead sign-off recorded.",
+    "Unit economics model v1 + sensitivity table (key drivers)": "model includes CAC, LTV, gross margin, sensitivity table covers +/-20% price and COGS, and CFO sign-off attached.",
+    "Supplier risk register v1 + diversification plan": "register lists top 10 suppliers with risk scores and mitigations, diversification actions dated, and procurement lead approval noted.",
+    "SPOF analysis note + mitigation options": "note catalogs each single point of failure with RTO, proposes two mitigations per SPOF, and engineering lead approval captured.",
+    "Business impact analysis v1 (RTO/RPO, critical processes)": "BIA lists critical processes with RTO/RPO targets, impact scoring completed, and continuity manager sign-off logged.",
+    "DR/BCP test report (last test + outcomes)": "report documents scenario, execution date, pass/fail metrics, remediation actions with owners, and QA validation recorded.",
+    "Environmental impact assessment scope + baseline metrics": "EIA scope aligns to regulatory threshold, baseline metrics sourced with citations, and environmental consultant approval noted.",
+    "Biodiversity screening memo (species/habitat, mitigation)": "memo identifies protected species/habitats, mitigation actions prioritized, and ecological advisor sign-off captured.",
+    "Waste management plan v1 (types, handling, compliance)": "plan inventories waste streams, handling partners, compliance obligations, and EHS manager approval logged.",
+    "Water permit inventory + compliance status": "inventory lists permit IDs, expiry, usage limits, compliance status evidence linked, and legal sign-off recorded.",
+    "Threat model + control mapping (e.g., STRIDE mapped to CIS/NIST)": "threat model covers all STRIDE categories, controls mapped to CIS/NIST references, and security architect approval noted.",
+    "Data profiling report (completeness, accuracy, drift)": "profiling executed on latest dataset, completeness/accuracy/drift metrics charted, and data steward sign-off recorded.",
+    "Model card + evaluation report (intended use, metrics, limits)": "model card documents intended use, metrics, limitations, evaluation report includes fairness/performance results, and risk board acknowledgement attached.",
+    "Data flow map + transfer mechanism memo (SCCs/BCRs)": "map traces cross-border flows, memo states legal mechanism per transfer, and privacy officer approval logged.",
+    "Consent/permission model spec + audit sample": "spec defines consent states and retention rules, audit sample verifies 10 records, and compliance sign-off captured.",
+    "Issue analysis memo v1": "memo states problem, root-cause hypotheses, recommended next steps, and reviewer assignment confirmed.",
+    "Baseline note v1 (scope, metrics)": "note defines scope, baseline metrics with source timestamp, and accountable owner approval logged.",
+    "Gather evidence for assessment": "at least one canonical artifact uploaded with owner and review date recorded in workspace.",
 }
 
 
@@ -273,14 +325,21 @@ def _fallback_factors_for_status(status: str) -> Dict[str, Optional[int]]:
 
 
 def _derive_status_from_factors(factors: Dict[str, Optional[int]]) -> str:
-    values = [val for val in factors.values() if isinstance(val, int)]
-    if len(values) < len(LIKERT_FACTOR_KEYS):
+    coerced: Dict[str, Optional[int]] = {}
+    for key in LIKERT_FACTOR_KEYS:
+        value = factors.get(key)
+        coerced[key] = value if isinstance(value, int) else None
+
+    if any(coerced[key] is None for key in LIKERT_FACTOR_KEYS):
         return StatusEnum.GRAY.value
 
-    floor = min(values)
-    if floor <= 2:
+    evidence = coerced["evidence"]
+    risk = coerced["risk"]
+    fit = coerced["fit"]
+
+    if risk <= 2:
         return StatusEnum.RED.value
-    if floor == 3:
+    if evidence <= 2 or fit <= 2:
         return StatusEnum.YELLOW.value
     return StatusEnum.GREEN.value
 
@@ -290,55 +349,43 @@ def _enforce_status(factors: Dict[str, Optional[int]], status: str) -> Dict[str,
         return _empty_likert_score()
 
     factors = factors or {}
+    sanitized: Dict[str, Optional[int]] = {}
+    for key in LIKERT_FACTOR_KEYS:
+        sanitized[key] = _clamp_factor(factors.get(key))
 
     if status == StatusEnum.RED.value:
-        enforced: Dict[str, int] = {}
-        has_red_factor = False
-        for key in LIKERT_FACTOR_KEYS:
-            current = factors.get(key)
-            if isinstance(current, int):
-                value = max(LIKERT_MIN, min(LIKERT_MAX, current))
-            else:
-                value = None
-            if value is None:
-                value = LIKERT_MIN + 1  # default to 2 when missing
-            if value <= LIKERT_MIN + 1:
-                has_red_factor = True
-            enforced[key] = value
-
-        if not has_red_factor:
-            weakest_key = min(enforced, key=enforced.get)
-            enforced[weakest_key] = LIKERT_MIN + 1
-        return enforced
+        if sanitized["risk"] is None or sanitized["risk"] > 2:
+            sanitized["risk"] = 2
+        for key in ("evidence", "fit"):
+            if sanitized[key] is None:
+                sanitized[key] = 3
+        return sanitized
 
     if status == StatusEnum.YELLOW.value:
-        enforced = {}
-        lowest_key = LIKERT_FACTOR_KEYS[0]
-        lowest_val = None
-        for key in LIKERT_FACTOR_KEYS:
-            current = factors.get(key)
-            if isinstance(current, int):
-                value = max(3, min(LIKERT_MAX, current))
-            else:
-                value = 3
-            enforced[key] = value
-            if lowest_val is None or value < lowest_val:
-                lowest_val = value
-                lowest_key = key
-        if enforced[lowest_key] > 3:
-            enforced[lowest_key] = 3
-        return enforced
+        if sanitized["risk"] is None or sanitized["risk"] <= 2:
+            sanitized["risk"] = 3
+
+        gap_keys = ("evidence", "fit")
+        has_gap = any(
+            sanitized[key] is not None and sanitized[key] <= 2 for key in gap_keys
+        )
+        if not has_gap:
+            sanitized["evidence"] = 2
+
+        for key in gap_keys:
+            if sanitized[key] is None:
+                sanitized[key] = 2 if key == "evidence" else 3
+
+        if not any(sanitized[key] <= 2 for key in gap_keys):
+            sanitized["evidence"] = 2
+        return sanitized
 
     if status == StatusEnum.GREEN.value:
-        enforced = {}
         for key in LIKERT_FACTOR_KEYS:
-            current = factors.get(key)
-            if isinstance(current, int):
-                value = min(LIKERT_MAX, max(4, current))
-            else:
-                value = 4
-            enforced[key] = value
-        return enforced
+            value = sanitized.get(key)
+            if value is None or value < 4:
+                sanitized[key] = 4
+        return sanitized
 
     return dict(_fallback_factors_for_status(status))
 
@@ -358,6 +405,23 @@ def _compute_derived_metrics(factors: Dict[str, Optional[int]]) -> Dict[str, Any
     enriched["average_likert"] = average_likert
     enriched["legacy_0_100"] = legacy_0_100
     return enriched
+
+
+def _attach_done_when(item: str) -> str:
+    text = item.strip()
+    if not text:
+        return text
+    if "done when:" in text.lower():
+        return text
+    criteria = EVIDENCE_DONE_WHEN.get(
+        text,
+        "artifact is published to the workspace with an owner, acceptance evidence, and review date recorded.",
+    )
+    return f"{text} — done when: {criteria}"
+
+
+def _apply_done_when(items: List[str]) -> List[str]:
+    return [_attach_done_when(item) for item in items if isinstance(item, str) and item.strip()]
 
 def _canonicalize_evidence(pillar: str, reason_codes: List[str], evidence_todo: List[str]) -> List[str]:
     """
@@ -383,7 +447,7 @@ def _canonicalize_evidence(pillar: str, reason_codes: List[str], evidence_todo: 
             if tmpl not in out:
                 out.append(tmpl)
     # Cap to 2 items
-    return out[:2]
+    return _apply_done_when(out[:2])
 
 # ---------------------------------------------------------------------------
 # Lightweight schema for structured output
@@ -443,7 +507,7 @@ def _default_pillar(pillar: str) -> Dict[str, Any]:
         "status": StatusEnum.GRAY.value,
         "score": _compute_derived_metrics(_empty_likert_score()),
         "reason_codes": [],
-        "evidence_todo": [DEFAULT_EVIDENCE_ITEM],
+        "evidence_todo": _apply_done_when([DEFAULT_EVIDENCE_ITEM]),
     }
 
 def enforce_gray_evidence(
@@ -463,7 +527,7 @@ def enforce_gray_evidence(
             if not ev:
                 pillar = str(it.get("pillar", ""))
                 ev = list(defaults.get(pillar, GENERIC_FALLBACK))[:2]
-            it["evidence_todo"] = ev[:2]
+            it["evidence_todo"] = _apply_done_when(ev[:2])
     return items
 
 def enforce_colored_evidence(
@@ -482,7 +546,7 @@ def enforce_colored_evidence(
             ev: List[str] = [e for e in raw_ev if isinstance(e, str) and e.strip()]
             if not ev:
                 ev = DEFAULT_EVIDENCE[:1]
-            it["evidence_todo"] = ev[:2]
+            it["evidence_todo"] = _apply_done_when(ev[:2])
     return items
 
 def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -592,6 +656,57 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
     def _pillars_label(n: int) -> str:
         return "pillar" if n == 1 else "pillars"
 
+    def _humanize_reason(code: str) -> str:
+        return code.replace("_", " ").lower()
+
+    def _format_reason_snippet(codes: List[str], limit: int = 2) -> str:
+        cleaned = [_humanize_reason(code) for code in codes if isinstance(code, str) and code]
+        if not cleaned:
+            return ""
+        subset = cleaned[:limit]
+        if len(cleaned) > limit:
+            subset.append("...")
+        return ", ".join(subset)
+
+    def _driver_text(status: str, score_dict: Dict[str, Any], reason_codes: List[str]) -> Optional[str]:
+        factor_values: Dict[str, Optional[int]] = {
+            key: score_dict.get(key) if isinstance(score_dict.get(key), int) else None
+            for key in LIKERT_FACTOR_KEYS
+        }
+
+        if any(factor_values[key] is None for key in LIKERT_FACTOR_KEYS):
+            return None
+
+        reason_snippet = _format_reason_snippet(reason_codes)
+
+        if status == StatusEnum.RED.value:
+            base = "risk"
+            return f"{base} ({reason_snippet})" if reason_snippet else base
+
+        if status == StatusEnum.YELLOW.value:
+            gap_candidates = [
+                key
+                for key in ("evidence", "fit")
+                if factor_values[key] is not None and factor_values[key] <= 2
+            ]
+            if not gap_candidates and factor_values["risk"] is not None and factor_values["risk"] <= 2:
+                gap_candidates = ["risk"]
+
+            if not gap_candidates:
+                return None
+
+            gap_candidates.sort(key=lambda k: (factor_values[k], 0 if k == "evidence" else 1))
+            driver_key = gap_candidates[0]
+            base = {"evidence": "evidence", "risk": "risk", "fit": "fit"}.get(driver_key, driver_key)
+            return f"{base} ({reason_snippet})" if reason_snippet else base
+
+        if status == StatusEnum.GREEN.value:
+            if all(factor_values[key] >= 4 for key in LIKERT_FACTOR_KEYS):
+                return "all factors >=4"
+            return "balanced evidence, risk, and fit"
+
+        return None
+
     rows: List[str] = []
     rows.append("## Summary")
     rows.append(f"- **GREEN**: {status_counts['GREEN']} {_pillars_label(status_counts['GREEN'])}")
@@ -619,20 +734,22 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
             return "—"
 
         factor_parts = [f"{key}={_fmt_factor(score.get(key))}" for key in LIKERT_FACTOR_KEYS]
-
-        avg_val = score.get("average_likert")
-        avg_part = None
-        if isinstance(avg_val, (int, float)):
-            avg_fmt = f"{avg_val:.2f}".rstrip("0").rstrip(".")
-            avg_part = f"avg={avg_fmt}"
-
         legacy_val = score.get("legacy_0_100")
         legacy_part = None
         if isinstance(legacy_val, (int, float)):
             legacy_part = f"legacy={int(legacy_val)}"
+        metrics_parts = factor_parts + ([legacy_part] if legacy_part else [])
+        metrics_text = ", ".join(part for part in metrics_parts if part)
 
-        metrics = ", ".join(part for part in factor_parts + [avg_part, legacy_part] if part)
-        rows.append(f"**Status**: {status} ({metrics if metrics else '—'})\n")
+        driver_phrase = _driver_text(status, score, reason_codes)
+        status_line = f"**Status**: {status}"
+        if driver_phrase:
+            status_line += f" — driven by {driver_phrase}"
+        if metrics_text:
+            status_line += f". Metrics: {metrics_text}"
+        else:
+            status_line += "."
+        rows.append(status_line + "\n")
 
         if status == StatusEnum.GREEN.value:
             # GREEN pillars should not show evidence; optionally render the rationale if provided.
