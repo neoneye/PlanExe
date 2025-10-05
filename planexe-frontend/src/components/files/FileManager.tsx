@@ -65,10 +65,12 @@ const PHASE_LABELS: Record<string, string> = {
 };
 
 const getPhaseLabel = (phase?: string | null): string => {
-  if (!phase) {
+  // Guard against null, undefined, empty string, or non-string values
+  if (!phase || typeof phase !== 'string' || phase.trim() === '') {
     return PHASE_LABELS.unknown;
   }
-  return PHASE_LABELS[phase] ?? phase.replace(/[_-]+/g, ' ').trim().replace(/\b\w/g, (char) => char.toUpperCase());
+  const trimmed = phase.trim();
+  return PHASE_LABELS[trimmed] ?? trimmed.replace(/[_-]+/g, ' ').trim().replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
 const getFileIcon = (type: string): React.ReactElement => {

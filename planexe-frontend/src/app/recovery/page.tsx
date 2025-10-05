@@ -88,12 +88,14 @@ const STAGE_LABELS: Record<string, string> = {
 };
 
 const normaliseStageLabel = (stage?: string | null): string => {
-  if (!stage || typeof stage !== 'string') {
+  // Guard against null, undefined, empty string, or non-string values
+  if (!stage || typeof stage !== 'string' || stage.trim() === '') {
     return STAGE_LABELS.unknown;
   }
+  const trimmed = stage.trim();
   return (
-    STAGE_LABELS[stage] ??
-    stage.replace(/[_-]+/g, ' ').trim().replace(/\b\w/g, (char) => char.toUpperCase())
+    STAGE_LABELS[trimmed] ??
+    trimmed.replace(/[_-]+/g, ' ').trim().replace(/\b\w/g, (char) => char.toUpperCase())
   );
 };
 
@@ -292,16 +294,20 @@ const WorkspaceContent: React.FC = () => {
       const validArtefacts = (response.artefacts || []).filter(
         (entry) => entry && entry.filename
       );
-      const mapped: PlanFile[] = validArtefacts.map((entry) => ({
-        filename: entry.filename,
-        stage: entry.stage ?? 'unknown',
-        contentType: entry.content_type ?? 'unknown',
-        sizeBytes: entry.size_bytes ?? 0,
-        createdAt: entry.created_at ?? new Date().toISOString(),
-        description: entry.description ?? entry.filename,
-        taskName: entry.task_name ?? entry.stage ?? entry.filename,
-        order: entry.order ?? Number.MAX_SAFE_INTEGER,
-      }));
+      const mapped: PlanFile[] = validArtefacts.map((entry) => {
+        // Normalize empty strings to 'unknown' to prevent crashes
+        const normalizedStage = (entry.stage && entry.stage.trim()) || 'unknown';
+        return {
+          filename: entry.filename,
+          stage: normalizedStage,
+          contentType: entry.content_type ?? 'unknown',
+          sizeBytes: entry.size_bytes ?? 0,
+          createdAt: entry.created_at ?? new Date().toISOString(),
+          description: entry.description ?? entry.filename,
+          taskName: entry.task_name ?? normalizedStage ?? entry.filename,
+          order: entry.order ?? Number.MAX_SAFE_INTEGER,
+        };
+      });
       mapped.sort((a, b) => {
         const orderDiff = (a.order ?? 9999) - (b.order ?? 9999);
         if (orderDiff !== 0) {
