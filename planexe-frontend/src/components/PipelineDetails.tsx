@@ -7,11 +7,12 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loader2, CheckCircle, XCircle, Clock, FileText, Activity, Terminal } from 'lucide-react'
+import { getApiBaseUrl } from '@/lib/utils/api-config'
 
 interface PipelineStage {
   event_name: string
@@ -46,23 +47,30 @@ export function PipelineDetails({ planId, className }: PipelineDetailsProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch pipeline details
-  const fetchDetails = async () => {
+  // Fetch pipeline details from FastAPI backend
+  const fetchDetails = useCallback(async () => {
     try {
-      const response = await fetch(`/api/plans/${planId}/details`)
+      const baseUrl = getApiBaseUrl()
+      const response = await fetch(`${baseUrl}/api/plans/${planId}/details`)
       if (response.ok) {
         const detailsData = await response.json()
         setDetails(detailsData)
         setError(null)
       } else {
-        setError(`Failed to fetch details: ${response.status}`)
+        // Silently handle 404 - details endpoint may not exist yet
+        if (response.status === 404) {
+          setError(null)
+        } else {
+          setError(`Failed to fetch details: ${response.status}`)
+        }
       }
     } catch (err) {
-      setError(`Network error: ${err}`)
+      // Silently handle network errors during polling
+      console.debug(`Pipeline details fetch error: ${err}`)
     } finally {
       setLoading(false)
     }
-  }
+  }, [planId])
 
   // 3-second polling
   useEffect(() => {
