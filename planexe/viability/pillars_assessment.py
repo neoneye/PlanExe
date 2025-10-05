@@ -284,6 +284,14 @@ EVIDENCE_DONE_WHEN: Dict[str, str] = {
     "Consent/permission model spec + audit sample": "spec defines consent states and retention rules, audit sample verifies 10 records, and compliance sign-off captured.",
     "Issue analysis memo v1": "memo states problem, root-cause hypotheses, recommended next steps, and reviewer assignment confirmed.",
     "Baseline note v1 (scope, metrics)": "note defines scope, baseline metrics with source timestamp, and accountable owner approval logged.",
+    "Resident satisfaction survey v1 (anonymized)": ">=60% response rate across key cohorts, anonymization method documented, results and anonymized dataset stored, and privacy review sign-off attached.",
+    "Conflict resolution log v1 (summary of cases)": "covers last 6 months with counts by severity, median time-to-resolution, escalation paths, and governance owner sign-off recorded.",
+    "Contingency budget breakdown v1": "stress-tested under at least three downside scenarios, shows >=6 months runway in worst case, and CFO sign-off recorded.",
+    "Unit economics model v2 (sensitivity analysis)": "includes price -20% and COGS +20% scenarios, base case LTV/CAC >= 3, assumptions ledger linked, and finance review sign-off captured.",
+    "Ecosystem baseline study v1 (biodiversity, air/water quality)": "methodology and sampling plan documented, third-party data sources cited, QA checklist complete, and environmental lead sign-off logged.",
+    "Waste management plan v1 (closed-loop design)": "material flow diagram provided, target diversion rate >=80%, vendor agreements attached, and compliance mapping completed.",
+    "Top-N data sources: licenses + DPIAs bundle": "each top data source includes license file, DPIA (v2+ for high-risk), retention policy link, and DPO sign-off recorded.",
+    "Ethics framework v1 (resident rights, data governance)": "principles enumerated, decision rights and escalations defined, adoption plan approved by exec sponsor, and training plan attached.",
     "Gather evidence for assessment": "at least one canonical artifact uploaded with owner and review date recorded in workspace.",
 }
 
@@ -310,11 +318,9 @@ def _normalize_likert_score(raw_score: Any) -> Dict[str, Optional[int]]:
         for key, value in zip(LIKERT_FACTOR_KEYS, raw_score):
             normalized[key] = _clamp_factor(value)
     elif isinstance(raw_score, (int, float)):
-        # Legacy 0-100 score fallback → map to Likert (1-5)
-        scaled = ((float(raw_score) / 100.0) * (LIKERT_MAX - LIKERT_MIN)) + LIKERT_MIN
-        fallback_value = _clamp_factor(scaled)
-        if fallback_value is not None:
-            return {key: fallback_value for key in LIKERT_FACTOR_KEYS}
+        # Legacy 0-100 score exists but carries no per-factor signal.
+        # Return empty factors and let downstream status defaults populate honestly.
+        return _empty_likert_score()
 
     return normalized
 
@@ -391,19 +397,26 @@ def _enforce_status(factors: Dict[str, Optional[int]], status: str) -> Dict[str,
 
 
 def _compute_derived_metrics(factors: Dict[str, Optional[int]]) -> Dict[str, Any]:
-    values = [val for val in factors.values() if isinstance(val, int)]
-    average_likert: Optional[float] = None
-    legacy_0_100: Optional[int] = None
-
-    if len(values) == len(LIKERT_FACTOR_KEYS):
-        average_raw = sum(values) / float(len(values))
-        average_likert = round(average_raw, 2)
-        legacy_raw = int(round((average_raw - LIKERT_MIN) / (LIKERT_MAX - LIKERT_MIN) * 100))
-        legacy_0_100 = max(0, min(100, legacy_raw))
+    total_required = len(LIKERT_FACTOR_KEYS)
+    ints = [
+        factors.get(key)
+        for key in LIKERT_FACTOR_KEYS
+        if isinstance(factors.get(key), int)
+    ]
 
     enriched: Dict[str, Any] = {key: factors.get(key) for key in LIKERT_FACTOR_KEYS}
-    enriched["average_likert"] = average_likert
-    enriched["legacy_0_100"] = legacy_0_100
+
+    if len(ints) == total_required:
+        total = sum(ints)
+        denominator = (LIKERT_MAX - LIKERT_MIN) * total_required
+        numerator = (total - (LIKERT_MIN * total_required)) * 100
+        legacy_raw = (numerator + denominator // 2) // denominator
+        enriched["legacy_0_100"] = max(0, min(100, legacy_raw))
+        enriched["average_likert"] = total / total_required
+    else:
+        enriched["legacy_0_100"] = None
+        enriched["average_likert"] = None
+
     return enriched
 
 
