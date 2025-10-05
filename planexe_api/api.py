@@ -55,10 +55,10 @@ IS_DEVELOPMENT = os.environ.get("PLANEXE_CLOUD_MODE", "false").lower() != "true"
 
 # CORS configuration - only enable for local development
 if IS_DEVELOPMENT:
-    print("Development mode: CORS enabled for localhost:3000")
+    print("Development mode: CORS enabled for localhost:3000 and localhost:3001")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000"],
+        allow_origins=["http://localhost:3000", "http://localhost:3001"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
