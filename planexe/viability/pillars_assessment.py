@@ -17,7 +17,7 @@ import re
 import time
 from dataclasses import dataclass
 from math import ceil, floor
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
@@ -109,6 +109,8 @@ DEFAULT_EVIDENCE_BY_PILLAR = {
 LIKERT_MIN = 1
 LIKERT_MAX = 5
 LIKERT_FACTOR_KEYS: Tuple[str, ...] = ("evidence", "risk", "fit")
+ALL_FACTORS = tuple(LIKERT_FACTOR_KEYS)
+FACTOR_ORDER_INDEX = {key: idx for idx, key in enumerate(("risk", "evidence", "fit"))}
 
 DEFAULT_LIKERT_BY_STATUS: Dict[str, Dict[str, Optional[int]]] = {
     StatusEnum.GREEN.value: {key: 4 for key in LIKERT_FACTOR_KEYS},
@@ -132,6 +134,64 @@ STRENGTH_REASON_CODES = {
     # Use positive signals that justify GREEN
     "HITL_GOVERNANCE_OK",
 }
+
+# Map reason codes to the factors they primarily stress. Unknown codes default to all factors.
+REASON_CODE_FACTOR: Dict[str, Set[str]] = {
+    "GOVERNANCE_WEAK": {"risk"},
+    "STAKEHOLDER_CONFLICT": {"risk", "fit"},
+    "CHANGE_MGMT_GAPS": {"risk"},
+    "CONTINGENCY_LOW": {"risk", "fit"},
+    "UNIT_ECON_UNKNOWN": {"fit", "evidence"},
+    "EIA_MISSING": {"risk", "evidence"},
+    "BIODIVERSITY_RISK_UNSET": {"risk", "evidence"},
+    "WASTE_MANAGEMENT_GAPS": {"fit", "evidence"},
+    "DPIA_GAPS": {"evidence"},
+    "ETHICS_VAGUE": {"evidence", "fit"},
+    "INFOSEC_GAPS": {"risk", "evidence"},
+    "TRAINING_GAPS": {"risk", "fit"},
+    "SAFETY_CULTURE_WEAK": {"risk"},
+    "SUPPLIER_CONCENTRATION": {"risk", "fit"},
+    "SPOF_DEPENDENCY": {"risk"},
+    "BIA_MISSING": {"risk", "evidence"},
+    "DR_TEST_GAPS": {"risk"},
+    "CLOUD_CARBON_UNKNOWN": {"risk", "evidence"},
+    "CLIMATE_UNQUANTIFIED": {"risk", "evidence"},
+    "WATER_STRESS": {"risk"},
+    "WATER_PERMIT_RISK": {"risk"},
+    "MODEL_RISK_UNQUANTIFIED": {"risk"},
+    "CROSSBORDER_RISK": {"risk", "evidence"},
+    "CONSENT_MODEL_WEAK": {"evidence"},
+    "DATA_QUALITY_WEAK": {"evidence"},
+    "ABS_UNDEFINED": {"fit", "evidence"},
+    "LICENSE_GAPS": {"evidence"},
+}
+
+
+def _reason_code_factor_set(code: str) -> Set[str]:
+    mapped = REASON_CODE_FACTOR.get(code)
+    if mapped:
+        return mapped
+    return set(ALL_FACTORS)
+
+
+def _build_reason_code_fallbacks() -> Dict[str, Dict[str, str]]:
+    fallbacks: Dict[str, Dict[str, str]] = {pillar: {} for pillar in PILLAR_ORDER}
+    for pillar, codes in REASON_CODES_BY_PILLAR.items():
+        for code in codes:
+            factors = _reason_code_factor_set(code)
+            weight = len(factors)
+            for factor in factors:
+                existing = fallbacks[pillar].get(factor)
+                if existing is None:
+                    fallbacks[pillar][factor] = code
+                else:
+                    existing_weight = len(_reason_code_factor_set(existing))
+                    if weight < existing_weight:
+                        fallbacks[pillar][factor] = code
+    return fallbacks
+
+
+FALLBACK_REASON_CODE_BY_PILLAR_AND_FACTOR = _build_reason_code_fallbacks()
 
 # Canonical evidence templates per reason code (artifact-first, not actions)
 # EVIDENCE_TEMPLATES
@@ -345,6 +405,8 @@ def _derive_status_from_factors(factors: Dict[str, Optional[int]]) -> str:
 
     if risk <= 2:
         return StatusEnum.RED.value
+    if evidence <= 2 and fit <= 2:
+        return StatusEnum.RED.value
     if evidence <= 2 or fit <= 2:
         return StatusEnum.YELLOW.value
     return StatusEnum.GREEN.value
@@ -360,11 +422,26 @@ def _enforce_status(factors: Dict[str, Optional[int]], status: str) -> Dict[str,
         sanitized[key] = _clamp_factor(factors.get(key))
 
     if status == StatusEnum.RED.value:
-        if sanitized["risk"] is None or sanitized["risk"] > 2:
+        original_risk = sanitized["risk"]
+        evidence_val = sanitized["evidence"]
+        fit_val = sanitized["fit"]
+        double_gap = (
+            isinstance(evidence_val, int)
+            and evidence_val <= 2
+            and isinstance(fit_val, int)
+            and fit_val <= 2
+            and (original_risk is None or original_risk > 2)
+        )
+
+        if original_risk is None:
+            sanitized["risk"] = 3 if double_gap else 2
+        elif original_risk > 2 and not double_gap:
             sanitized["risk"] = 2
+
         for key in ("evidence", "fit"):
-            if sanitized[key] is None:
-                sanitized[key] = 3
+            current = sanitized[key]
+            if current is None:
+                sanitized[key] = 2 if double_gap else 3
         return sanitized
 
     if status == StatusEnum.YELLOW.value:
@@ -436,12 +513,21 @@ def _attach_done_when(item: str) -> str:
 def _apply_done_when(items: List[str]) -> List[str]:
     return [_attach_done_when(item) for item in items if isinstance(item, str) and item.strip()]
 
+
+def _base_evidence_name(text: str) -> str:
+    if not isinstance(text, str):
+        return ""
+    base = text.split(" — done when:")[0]
+    return base.strip()
+
+
 def _canonicalize_evidence(pillar: str, reason_codes: List[str], evidence_todo: List[str]) -> List[str]:
     """
     Replace action-y items with artifact names and fill from templates.
     Cap at 2 items to keep Step-1 tight.
     """
     out: List[str] = []
+    base_seen: Set[str] = set()
     # Auto-rewrite common vague lines
     rewrites = {
         "recruit additional engineers": None,  # drop from step-1; becomes a blocker if needed
@@ -450,15 +536,25 @@ def _canonicalize_evidence(pillar: str, reason_codes: List[str], evidence_todo: 
         "research carbon offset": None,
     }
     for item in evidence_todo or []:
+        if not isinstance(item, str):
+            continue
         lower = item.lower()
         if any(k in lower for k in rewrites.keys()):
             continue
-        out.append(item.strip())
+        trimmed = item.strip()
+        base = _base_evidence_name(trimmed)
+        if not base or base in base_seen:
+            continue
+        base_seen.add(base)
+        out.append(trimmed)
     # Add canonical artifacts per reason code
     for rc in reason_codes:
         for tmpl in EVIDENCE_TEMPLATES.get(rc, []):
-            if tmpl not in out:
-                out.append(tmpl)
+            base = _base_evidence_name(tmpl)
+            if not base or base in base_seen:
+                continue
+            base_seen.add(base)
+            out.append(tmpl)
     # Cap to 2 items
     return _apply_done_when(out[:2])
 
@@ -562,6 +658,18 @@ def enforce_colored_evidence(
             it["evidence_todo"] = _apply_done_when(ev[:2])
     return items
 
+
+def _reason_codes_support_factor(reason_codes: List[str], factor: str) -> bool:
+    return any(
+        factor in _reason_code_factor_set(code)
+        for code in reason_codes
+    )
+
+
+def _fallback_reason_code(pillar: str, factor: str) -> Optional[str]:
+    return FALLBACK_REASON_CODE_BY_PILLAR_AND_FACTOR.get(pillar, {}).get(factor)
+
+
 def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Make weak-model output deterministic and policy-compliant."""
     data = dict(payload)  # shallow copy
@@ -629,6 +737,20 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
             factors = _enforce_status({}, StatusEnum.GRAY.value)
             status_enum = StatusEnum.GRAY.value
 
+        factor_values_for_priority = {
+            key: factors.get(key) if isinstance(factors.get(key), int) else None
+            for key in LIKERT_FACTOR_KEYS
+        }
+        prioritized_factors = _factor_priority(status_enum, factor_values_for_priority)
+        decisive_factor = prioritized_factors[0] if prioritized_factors else None
+
+        if status_enum in (StatusEnum.YELLOW.value, StatusEnum.RED.value) and decisive_factor:
+            if not _reason_codes_support_factor(reason_codes, decisive_factor):
+                fallback_code = _fallback_reason_code(pillar_name, decisive_factor)
+                if fallback_code and fallback_code not in reason_codes:
+                    reason_codes.append(fallback_code)
+                evidence_todo = _canonicalize_evidence(pillar_name, reason_codes, evidence_todo)
+
         score = _compute_derived_metrics(factors)
 
         # Keep rationale only for final GREEN with non-empty text
@@ -653,9 +775,55 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
     return {"pillars": ordered}
 
 # ---------------------------------------------------------------------------
-# Markdown rendering
+# Markdown rendering helpers
 # ---------------------------------------------------------------------------
 
+
+def _factor_priority(status: str, factor_values: Dict[str, Optional[int]]) -> List[str]:
+    def value_for(key: str) -> int:
+        val = factor_values.get(key)
+        return val if isinstance(val, int) else LIKERT_MAX + 1
+
+    ordered: List[str]
+    if status == StatusEnum.RED.value and value_for("risk") <= 2:
+        remaining = [key for key in LIKERT_FACTOR_KEYS if key != "risk"]
+        remaining.sort(key=lambda k: (value_for(k), FACTOR_ORDER_INDEX.get(k, 99)))
+        ordered = ["risk"] + remaining
+    else:
+        low = [key for key in LIKERT_FACTOR_KEYS if value_for(key) <= 2]
+        low.sort(key=lambda k: (value_for(k), FACTOR_ORDER_INDEX.get(k, 99)))
+        high = [key for key in LIKERT_FACTOR_KEYS if key not in low]
+        high.sort(key=lambda k: (value_for(k), FACTOR_ORDER_INDEX.get(k, 99)))
+        ordered = low + high
+    return ordered
+
+
+def _select_factor_with_reason_support(candidates: List[str], reason_codes: List[str]) -> Optional[str]:
+    for factor in candidates:
+        if _reason_codes_support_factor(reason_codes, factor):
+            return factor
+    return None
+
+
+def _reason_keywords_for_factor(reason_codes: List[str], factor: str, limit: int = 4) -> List[str]:
+    keywords: List[str] = []
+    for code in reason_codes:
+        if factor not in _reason_code_factor_set(code):
+            continue
+        parts = [segment for segment in code.lower().split("_") if segment]
+        if not parts:
+            continue
+        keyword = " ".join(parts[:2])
+        if keyword not in keywords:
+            keywords.append(keyword)
+        if len(keywords) >= limit:
+            break
+    return keywords
+
+
+# ---------------------------------------------------------------------------
+# Markdown rendering
+# ---------------------------------------------------------------------------
 
 
 def convert_to_markdown(data: Dict[str, Any]) -> str:
@@ -669,18 +837,6 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
     def _pillars_label(n: int) -> str:
         return "pillar" if n == 1 else "pillars"
 
-    def _humanize_reason(code: str) -> str:
-        return code.replace("_", " ").lower()
-
-    def _format_reason_snippet(codes: List[str], limit: int = 2) -> str:
-        cleaned = [_humanize_reason(code) for code in codes if isinstance(code, str) and code]
-        if not cleaned:
-            return ""
-        subset = cleaned[:limit]
-        if len(cleaned) > limit:
-            subset.append("...")
-        return ", ".join(subset)
-
     def _driver_text(status: str, score_dict: Dict[str, Any], reason_codes: List[str]) -> Optional[str]:
         factor_values: Dict[str, Optional[int]] = {
             key: score_dict.get(key) if isinstance(score_dict.get(key), int) else None
@@ -690,35 +846,24 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         if any(factor_values[key] is None for key in LIKERT_FACTOR_KEYS):
             return None
 
-        reason_snippet = _format_reason_snippet(reason_codes)
+        candidates = _factor_priority(status, factor_values)
+        driver_factor = _select_factor_with_reason_support(candidates, reason_codes)
+        if driver_factor is None:
+            driver_factor = candidates[0] if candidates else None
 
-        if status == StatusEnum.RED.value:
-            base = "risk"
-            return f"{base} ({reason_snippet})" if reason_snippet else base
-
-        if status == StatusEnum.YELLOW.value:
-            gap_candidates = [
-                key
-                for key in ("evidence", "fit")
-                if factor_values[key] is not None and factor_values[key] <= 2
-            ]
-            if not gap_candidates and factor_values["risk"] is not None and factor_values["risk"] <= 2:
-                gap_candidates = ["risk"]
-
-            if not gap_candidates:
-                return None
-
-            gap_candidates.sort(key=lambda k: (factor_values[k], 0 if k == "evidence" else 1))
-            driver_key = gap_candidates[0]
-            base = {"evidence": "evidence", "risk": "risk", "fit": "fit"}.get(driver_key, driver_key)
-            return f"{base} ({reason_snippet})" if reason_snippet else base
+        if driver_factor is None:
+            return None
 
         if status == StatusEnum.GREEN.value:
-            if all(factor_values[key] >= 4 for key in LIKERT_FACTOR_KEYS):
+            if all(factor_values[key] is not None and factor_values[key] >= 4 for key in LIKERT_FACTOR_KEYS):
                 return "all factors >=4"
             return "balanced evidence, risk, and fit"
 
-        return None
+        keywords = _reason_keywords_for_factor(reason_codes, driver_factor)
+        if keywords:
+            keyword_text = ", ".join(keywords[:4])
+            return f"{driver_factor} ({keyword_text})"
+        return driver_factor
 
     rows: List[str] = []
     rows.append("## Summary")
