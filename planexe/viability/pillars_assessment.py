@@ -906,12 +906,13 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         driver_phrase = _driver_text(status, score, reason_codes)
         status_line = f"**Status**: {status}"
         if driver_phrase:
-            status_line += f" — driven by {driver_phrase}"
-        if metrics_text:
-            status_line += f". Metrics: {metrics_text}"
+            status_line += f" — driven by {driver_phrase}."
         else:
             status_line += "."
         rows.append(status_line + "\n")
+
+        if metrics_text:
+            rows.append(f"**Metrics**: {metrics_text}\n")
 
         if status == StatusEnum.GREEN.value:
             # GREEN pillars should not show evidence; optionally render the rationale if provided.
