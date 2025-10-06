@@ -485,13 +485,8 @@ def _compute_derived_metrics(factors: Dict[str, Optional[int]]) -> Dict[str, Any
 
     if len(ints) == total_required:
         total = sum(ints)
-        denominator = (LIKERT_MAX - LIKERT_MIN) * total_required
-        numerator = (total - (LIKERT_MIN * total_required)) * 100
-        legacy_raw = (numerator + denominator // 2) // denominator
-        enriched["legacy_0_100"] = max(0, min(100, legacy_raw))
         enriched["average_likert"] = total / total_required
     else:
-        enriched["legacy_0_100"] = None
         enriched["average_likert"] = None
 
     return enriched
@@ -567,7 +562,6 @@ class PillarLikertScoreSchema(BaseModel):
     risk: Optional[int] = Field(default=None, ge=LIKERT_MIN, le=LIKERT_MAX)
     fit: Optional[int] = Field(default=None, ge=LIKERT_MIN, le=LIKERT_MAX)
     average_likert: Optional[float] = Field(default=None)
-    legacy_0_100: Optional[int] = Field(default=None)
 
     class Config:
         extra = "ignore"
@@ -891,12 +885,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
                 return str(val)
             return "—"
 
-        factor_parts = [f"{key}={_fmt_factor(score.get(key))}" for key in LIKERT_FACTOR_KEYS]
-        legacy_val = score.get("legacy_0_100")
-        legacy_part = None
-        if isinstance(legacy_val, (int, float)):
-            legacy_part = f"legacy={int(legacy_val)}"
-        metrics_parts = factor_parts + ([legacy_part] if legacy_part else [])
+        metrics_parts = [f"{key}={_fmt_factor(score.get(key))}" for key in LIKERT_FACTOR_KEYS]
         metrics_text = ", ".join(part for part in metrics_parts if part)
 
         driver_phrase = _driver_text(status, score, reason_codes)
