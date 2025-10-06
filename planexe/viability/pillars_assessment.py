@@ -13,11 +13,11 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 import time
 from dataclasses import dataclass
 from math import ceil, floor
 from typing import Any, Dict, List, Optional, Set, Tuple
+from pathlib import Path
 
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
@@ -831,6 +831,9 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
     def _pillars_label(n: int) -> str:
         return "pillar" if n == 1 else "pillars"
 
+    def _format_count_pillars(n: int) -> str:
+        return f"{n} {_pillars_label(n)}"
+
     def _driver_text(status: str, score_dict: Dict[str, Any], reason_codes: List[str]) -> Optional[str]:
         factor_values: Dict[str, Optional[int]] = {
             key: score_dict.get(key) if isinstance(score_dict.get(key), int) else None
@@ -859,14 +862,26 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
             return f"{driver_factor} ({keyword_text})"
         return driver_factor
 
+    # Load the "pillars_assessment_summary.html" file
+    html_file_path = Path(__file__).parent / "pillars_assessment_summary.html"
+    with open(html_file_path, "r") as f:
+        html = f.read()
+
+    # Replace the GREEN_COUNT, YELLOW_COUNT, RED_COUNT, GRAY_COUNT with the status counts
+    html = html.replace("GREEN_COUNT", _format_count_pillars(status_counts['GREEN']))
+    html = html.replace("YELLOW_COUNT", _format_count_pillars(status_counts['YELLOW']))
+    html = html.replace("RED_COUNT", _format_count_pillars(status_counts['RED']))
+    html = html.replace("GRAY_COUNT", _format_count_pillars(status_counts['GRAY']))
+
+    # Dim the pillar cards if the count is 0
+    html = html.replace("GREEN_PILLAR_CSS_CLASS", "pillar-card--count-zero" if status_counts['GREEN'] == 0 else "")
+    html = html.replace("YELLOW_PILLAR_CSS_CLASS", "pillar-card--count-zero" if status_counts['YELLOW'] == 0 else "")
+    html = html.replace("RED_PILLAR_CSS_CLASS", "pillar-card--count-zero" if status_counts['RED'] == 0 else "")
+    html = html.replace("GRAY_PILLAR_CSS_CLASS", "pillar-card--count-zero" if status_counts['GRAY'] == 0 else "")
+
     rows: List[str] = []
-    rows.append("## Summary")
-    rows.append(f"- **GREEN**: {status_counts['GREEN']} {_pillars_label(status_counts['GREEN'])}")
-    rows.append(f"- **YELLOW**: {status_counts['YELLOW']} {_pillars_label(status_counts['YELLOW'])}")
-    rows.append(f"- **RED**: {status_counts['RED']} {_pillars_label(status_counts['RED'])}")
-    rows.append(f"- **GRAY**: {status_counts['GRAY']} {_pillars_label(status_counts['GRAY'])}")
-    rows.append("")
-    rows.append("## Pillar Details")
+    rows.append(html)
+    rows.append("\n\n## Pillar Details")
 
     for pillar in pillars:
         name = pillar.get("pillar", "Unknown")
