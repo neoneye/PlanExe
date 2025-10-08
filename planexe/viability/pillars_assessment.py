@@ -833,6 +833,15 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
 
     def _format_count_pillars(n: int) -> str:
         return f"{n} {_pillars_label(n)}"
+        
+    def _get_legend_markdown() -> str:
+        try:
+            path = Path(__file__).parent / "pillars_assessment_metrics_legend.md"
+            with open(path, "r", encoding="utf-8") as f:
+                return f.read()
+        except FileNotFoundError:
+            logger.warning("pillars_assessment_metrics_legend.md not found. The legend will not be included in the report.")
+            return ""
 
     def _driver_text(status: str, score_dict: Dict[str, Any], reason_codes: List[str]) -> Optional[str]:
         factor_values: Dict[str, Optional[int]] = {
@@ -882,6 +891,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
     rows: List[str] = []
     rows.append(html)
     rows.append("\n\n## Pillar Details")
+    rows.append(_get_legend_markdown())
 
     for pillar in pillars:
         name = pillar.get("pillar", "Unknown")
@@ -892,7 +902,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         evidence = pillar.get("evidence_todo", []) or []
         strength_rationale = pillar.get("strength_rationale")
 
-        rows.append(f"### {display_name}\n")
+        rows.append(f"### Pillar: {display_name}\n")
         def _fmt_factor(val: Any) -> str:
             if isinstance(val, (int, float)):
                 if isinstance(val, float):
