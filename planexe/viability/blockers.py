@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from llama_index.core.llms.llm import LLM
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
+from planexe.markdown_util.escape_markdown import escape_markdown
 from planexe.markdown_util.fix_bullet_lists import fix_bullet_lists
 from planexe.viability.model_pillar import PillarEnum
 from planexe.viability.model_status import StatusEnum
@@ -196,11 +197,11 @@ class Blockers:
             if blocker.acceptance_tests:
                 rows.append("\n**Acceptance Tests:**\n")
                 for test in blocker.acceptance_tests:
-                    rows.append(f"  - {test}")
+                    rows.append(f"  - {escape_markdown(test)}")
             if blocker.artifacts_required:
                 rows.append("\n**Artifacts Required:**\n")
                 for artifact in blocker.artifacts_required:
-                    rows.append(f"  - {artifact}")
+                    rows.append(f"  - {escape_markdown(artifact)}")
             if blocker.owner:
                 rows.append(f"\n**Owner:** {blocker.owner}\n")
             if blocker.rom:
