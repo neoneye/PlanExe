@@ -926,7 +926,10 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
                 rows.append(f"_Why green:_ {strength_rationale}\n")
         elif status in (StatusEnum.YELLOW.value, StatusEnum.RED.value):
             if reason_codes:
-                rows.append("**Issues:** " + ", ".join(reason_codes) + "\n")
+                rows.append("**Issues:**\n")
+                for item in reason_codes:
+                    rows.append(f"- {item}")
+                rows.append("")
             if evidence:
                 rows.append("**Evidence Needed:**\n")
                 for item in evidence:
