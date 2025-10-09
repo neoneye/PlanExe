@@ -83,7 +83,7 @@ class ViabilitySummaryPayload(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     recommendation: str
-    why: List[str]
+    why: List[Any]  # Can be List[str] (legacy) or List[Tuple[str, str, str]] (table format)
     what_flips_to_go: List[str]
 
 
@@ -224,6 +224,14 @@ def _pillar_focus_reason(pillar: PillarItem) -> Optional[str]:
 
 
 @dataclass
+class WhyItem:
+    """Represents a single entry in the 'Why' section."""
+    display: str
+    status: str
+    codes: str
+
+
+@dataclass
 class OverallSummary:
     """Container for the step-4 roll-up."""
 
@@ -305,7 +313,7 @@ class OverallSummary:
             red_gray_covered=red_gray_covered,
         )
 
-        why_reasons = _build_why_list(
+        why_items = _build_why_list(
             pillars=pillars_model.pillars,
             max_items=max_why,
         )
@@ -320,6 +328,12 @@ class OverallSummary:
             status=upgraded_status,
             confidence=confidence,
         )
+
+        # Convert WhyItem dataclasses to dicts for JSON serialization
+        why_reasons = [
+            {"display": item.display, "status": item.status, "codes": item.codes}
+            for item in why_items
+        ]
 
         viability_summary_payload = ViabilitySummaryPayload(
             recommendation=recommendation,
@@ -362,8 +376,26 @@ class OverallSummary:
         lines.append("")
         lines.append("## Why")
         if payload.viability_summary.why:
+            # Build table header
+            lines.append("| Pillar | Status | Reasoning Codes |")
+            lines.append("|--------|--------|-----------------|")
+            # Build table rows
             for item in payload.viability_summary.why:
-                lines.append(f"- {escape_markdown(item)}")
+                # Each item is a WhyItem dataclass or dict
+                if isinstance(item, dict):
+                    display = item.get('display', '—')
+                    status = item.get('status', '—')
+                    codes = item.get('codes', '—')
+                elif hasattr(item, 'display'):
+                    display = item.display
+                    status = item.status
+                    codes = item.codes
+                else:
+                    # Fallback for unexpected format
+                    display = '—'
+                    status = '—'
+                    codes = str(item)
+                lines.append(f"| {escape_markdown(display)} | {escape_markdown(status)} | {escape_markdown(codes)} |")
         else:
             lines.append("- No major viability flags identified.")
         lines.append("")
@@ -422,26 +454,33 @@ def _determine_recommendation(
     return RECOMMENDATION_GO
 
 
-def _build_why_list(*, pillars: Sequence[PillarItem], max_items: int) -> List[str]:
-    reasons: List[Tuple[int, str]] = []
+def _build_why_list(*, pillars: Sequence[PillarItem], max_items: int) -> List[WhyItem]:
+    """Build a list of WhyItem dataclasses for the Why section."""
+    reasons: List[Tuple[int, WhyItem]] = []
     for pillar in pillars:
         status = pillar.status.upper()
         if status == StatusEnum.GREEN.value:
             continue
 
         display = PillarEnum.get_display_name(pillar.pillar)
-        reason_fragment = _pillar_focus_reason(pillar)
+        
+        # Extract reason codes or evidence items
+        if pillar.reason_codes:
+            codes = ", ".join(pillar.reason_codes[:5])  # Show up to 5 codes
+        elif pillar.evidence_todo:
+            codes = f"Evidence needed: {', '.join(pillar.evidence_todo[:3])}"
+        else:
+            codes = "—"
 
-        base_text = f"{display} {status}"
-        text = f"{base_text}: {reason_fragment}" if reason_fragment else base_text
-
-        reasons.append((STATUS_SEVERITY.get(status, STATUS_SEVERITY[StatusEnum.GRAY.value]), text))
+        severity = STATUS_SEVERITY.get(status, STATUS_SEVERITY[StatusEnum.GRAY.value])
+        why_item = WhyItem(display=display, status=status, codes=codes)
+        reasons.append((severity, why_item))
 
     if not reasons:
         return []
 
     reasons.sort(key=lambda item: item[0], reverse=True)
-    return [text for _, text in reasons[:max_items]]
+    return [why_item for _, why_item in reasons[:max_items]]
 
 
 def _build_flips_list(

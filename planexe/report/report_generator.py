@@ -143,7 +143,7 @@ class ReportGenerator:
             ("Pillars Assessment", pillars_markdown_file_path, ['tables']),
             ("Blockers", blockers_markdown_file_path, []),
             ("Fix Packs", fixpack_markdown_file_path, ['tables']),
-            ("Overall Summary", overall_markdown_file_path, []),
+            ("Overall Summary", overall_markdown_file_path, ['tables']),
         ]
 
         html_sections: list[str] = []
