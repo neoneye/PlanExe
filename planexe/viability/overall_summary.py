@@ -372,7 +372,7 @@ class OverallSummary:
         lines.append(f"- Confidence: {escape_markdown(payload.overall.confidence)}")
         lines.append(f"- Recommendation: {escape_markdown(payload.viability_summary.recommendation)}")
         lines.append("")
-        lines.append("## Why")
+        lines.append("## Concerns Affecting Viability")
         if payload.viability_summary.why:
             # Build table header
             lines.append("| Pillar | Status | Reasoning Codes |")
