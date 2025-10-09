@@ -889,7 +889,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
     rows.append("\n\n## Pillar Details")
     rows.append(_get_legend_markdown())
 
-    for pillar in pillars:
+    for pillar_index, pillar in enumerate(pillars, start=1):
         name = pillar.get("pillar", "Unknown")
         display_name = PillarEnum.get_display_name(name)
         status = pillar.get("status", StatusEnum.GRAY.value)
@@ -898,7 +898,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         evidence = pillar.get("evidence_todo", []) or []
         strength_rationale = pillar.get("strength_rationale")
 
-        rows.append(f"### Pillar: {display_name}\n")
+        rows.append(f"### Pillar {pillar_index}: {display_name}\n")
         def _fmt_factor(val: Any) -> str:
             if isinstance(val, (int, float)):
                 if isinstance(val, float):
