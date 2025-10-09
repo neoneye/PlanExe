@@ -20,6 +20,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from planexe.markdown_util.escape_markdown import escape_markdown
 from planexe.viability.model_pillar import PillarEnum
 from planexe.viability.model_status import StatusEnum
 
@@ -376,14 +377,14 @@ class OverallSummary:
         lines.append("## Why")
         if payload.viability_summary.why:
             for item in payload.viability_summary.why:
-                lines.append(f"- {item}")
+                lines.append(f"- {escape_markdown(item)}")
         else:
             lines.append("- No major viability flags identified.")
         lines.append("")
         lines.append("## What Flips to GO")
         if payload.viability_summary.what_flips_to_go:
             for item in payload.viability_summary.what_flips_to_go:
-                lines.append(f"- {item}")
+                lines.append(f"- {escape_markdown(item)}")
         else:
             lines.append("- FP0 is empty; no gating acceptance tests.")
         return "\n".join(lines).rstrip()
