@@ -188,10 +188,6 @@ class Blockers:
         Convert the raw blockers output to markdown.
         """
         rows = []
-        rows.append("## Source Pillars")
-        rows.append(f"- {', '.join(blockers_output.source_pillars)}")
-        rows.append("")
-        rows.append("## Blockers")
         for blocker in blockers_output.blockers:
             rows.append(f"### {blocker.id}: {blocker.title}\n")
             rows.append(f"**Pillar:** {blocker.pillar}\n")
