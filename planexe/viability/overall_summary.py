@@ -34,7 +34,6 @@ class PillarItem(BaseModel):
 
     pillar: str
     status: str
-    # score: Optional[float] = None
     reason_codes: List[str] = Field(default_factory=list)
     evidence_todo: List[str] = Field(default_factory=list)
 
@@ -76,7 +75,6 @@ class FixPacksPayload(BaseModel):
 class OverallPayload(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    # score: Optional[int]
     status: str
     confidence: str
 
@@ -186,13 +184,6 @@ def _confidence_from_statuses(statuses: Sequence[str]) -> str:
     if any(status == StatusEnum.YELLOW.value for status in normalized):
         return "Medium"
     return "High"
-
-
-def _compute_average_score(scores: Sequence[Optional[float]]) -> Optional[int]:
-    numeric = [float(score) for score in scores if score is not None]
-    if not numeric:
-        return None
-    return round(sum(numeric) / len(numeric))
 
 
 def _collect_fp0_ids(fix_packs: Sequence[FixPackItem]) -> List[str]:
@@ -307,7 +298,6 @@ class OverallSummary:
         if red_gray_covered:
             upgraded_status = STATUS_UPGRADE_MAP.get(worst_status, worst_status)
 
-        # overall_score = _compute_average_score([pillar.score for pillar in pillars_model.pillars])
         confidence = _confidence_from_statuses(statuses)
 
         recommendation = _determine_recommendation(
@@ -327,7 +317,6 @@ class OverallSummary:
         )
 
         overall_payload = OverallPayload(
-            # score=overall_score,
             status=upgraded_status,
             confidence=confidence,
         )
@@ -366,9 +355,6 @@ class OverallSummary:
     def convert_to_markdown(payload: OverallSummaryPayload) -> str:
         lines: List[str] = []
         lines.append(f"- Status: {payload.overall.status}")
-        # score_value = payload.overall.score
-        score_value = None
-        lines.append(f"- Score: {score_value if score_value is not None else 'N/A'}")
         lines.append(f"- Confidence: {payload.overall.confidence}")
         lines.append("")
         lines.append("## Recommendation")
@@ -444,11 +430,9 @@ def _build_why_list(*, pillars: Sequence[PillarItem], max_items: int) -> List[st
             continue
 
         display = PillarEnum.get_display_name(pillar.pillar)
-        # score_fragment = f"score {int(pillar.score)}" if pillar.score is not None else "no score"
-        score_fragment = "no score"
         reason_fragment = _pillar_focus_reason(pillar)
 
-        base_text = f"{display} {status} ({score_fragment})"
+        base_text = f"{display} {status}"
         text = f"{base_text}: {reason_fragment}" if reason_fragment else base_text
 
         reasons.append((STATUS_SEVERITY.get(status, STATUS_SEVERITY[StatusEnum.GRAY.value]), text))
@@ -506,25 +490,21 @@ if __name__ == "__main__":
             {
                 "pillar": PillarEnum.HumanStability.value,
                 "status": StatusEnum.YELLOW.value,
-                "score": 60,
                 "reason_codes": ["STAFF_AVERSION"],
                 "evidence_todo": ["Stakeholder survey"]
             },
             {
                 "pillar": PillarEnum.EconomicResilience.value,
                 "status": StatusEnum.RED.value,
-                "score": 30,
                 "reason_codes": ["CONTINGENCY_LOW"]
             },
             {
                 "pillar": PillarEnum.EcologicalIntegrity.value,
-                "status": StatusEnum.GREEN.value,
-                "score": 80
+                "status": StatusEnum.GREEN.value
             },
             {
                 "pillar": PillarEnum.Rights_Legality.value,
                 "status": StatusEnum.GRAY.value,
-                "score": None,
                 "evidence_todo": ["DPIA"]
             },
         ]
