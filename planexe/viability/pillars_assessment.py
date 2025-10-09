@@ -377,10 +377,6 @@ def _normalize_likert_score(raw_score: Any) -> Dict[str, Optional[int]]:
     elif isinstance(raw_score, (list, tuple)):
         for key, value in zip(LIKERT_FACTOR_KEYS, raw_score):
             normalized[key] = _clamp_factor(value)
-    elif isinstance(raw_score, (int, float)):
-        # Legacy 0-100 score exists but carries no per-factor signal.
-        # Return empty factors and let downstream status defaults populate honestly.
-        return _empty_likert_score()
 
     return normalized
 
