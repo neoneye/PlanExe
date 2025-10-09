@@ -368,11 +368,9 @@ class OverallSummary:
     @staticmethod
     def convert_to_markdown(payload: OverallSummaryPayload) -> str:
         lines: List[str] = []
-        lines.append(f"- Status: {payload.overall.status}")
-        lines.append(f"- Confidence: {payload.overall.confidence}")
-        lines.append("")
-        lines.append("## Recommendation")
-        lines.append(f"- {payload.viability_summary.recommendation}")
+        lines.append(f"- Status: {escape_markdown(payload.overall.status)}")
+        lines.append(f"- Confidence: {escape_markdown(payload.overall.confidence)}")
+        lines.append(f"- Recommendation: {escape_markdown(payload.viability_summary.recommendation)}")
         lines.append("")
         lines.append("## Why")
         if payload.viability_summary.why:
