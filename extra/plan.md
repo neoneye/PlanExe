@@ -1,5 +1,38 @@
 # Future plan for PlanExe
 
+Using the "5 Whys" method:
+> I want multiple-agents talking with each other, via zulip.
+
+Why?
+
+> Can I “execute” a plan from start to finish, with the agents doing all the labor.
+> Zulip is open source. So I’m not dependent on Discord/Teams/Slack.
+
+Why?
+
+> When humans are doing the labor, they have to decompose the problem into tasks. 
+> In my experience with PlanExe AI can decompose to sometimes better/worse.
+> Possible via MCP to interface with issue tracker.
+> delegate parts of the port to humans.
+
+Why?
+
+> Companies spend lots of effort on planning and getting the right people to communicate with meetings, emails. Something I dislike about working in coding jobs.
+> Wasting time and money on planning.
+
+Why?
+
+> Cut cost and optimize speed.
+
+Why?
+
+> To satisfy my own curiosity. I’m curious to what kind of outcome is. An AI organization/company, possible distributed network.
+> Is it a global organism as seen in scifi movies that are controlled by AIs, that takes power away from politicians.
+> My concerns are:
+> will it be able to adapt to a changing world. Re-plan in real-time when a shipment is delayed, a machine breaks down, or an unexpected storm hits.
+> quiet, compounding errors, security oversights, and cost blowouts.
+
+
 ## Execute the plan
 
 Currently it's up to humans to execute a plan. How can this be automated?
