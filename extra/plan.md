@@ -11,9 +11,9 @@ Why?
 Why?
 
 > When humans are doing the labor, they have to decompose the problem into tasks. 
-> In my experience with PlanExe AI can decompose to sometimes better/worse.
+> In my experience with PlanExe, AI can decompose sometimes better/worse than humans.
 > Possible via MCP to interface with issue tracker.
-> delegate parts of the port to humans.
+> delegate parts of the plan to humans.
 
 Why?
 
@@ -26,7 +26,7 @@ Why?
 
 Why?
 
-> To satisfy my own curiosity. I’m curious to what kind of outcome is. An AI organization/company, possible distributed network.
+> To satisfy my own curiosity. I’m curious to what kind of outcome it is. An AI organization/company, possible distributed network.
 > Is it a global organism as seen in scifi movies that are controlled by AIs, that takes power away from politicians.
 > My concerns are:
 > will it be able to adapt to a changing world. Re-plan in real-time when a shipment is delayed, a machine breaks down, or an unexpected storm hits.
