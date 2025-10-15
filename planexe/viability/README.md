@@ -4,10 +4,10 @@ Big plans die from two things: cognitive overload and fuzzy follow-through. A 20
 
 This protocol turns that mess into a short, decision-ready path:
 
-- Contain the scope first. We score four CAS pillars so risk lives inside a clear frame, not as a free-for-all list.
-- Convert weakness into action. Only non-green pillars produce 3–5 blockers, each with acceptance tests and artifacts—no hand-wavy “mitigate later.”
+- Contain the scope first. We score four CAS domains so risk lives inside a clear frame, not as a free-for-all list.
+- Convert weakness into action. Only non-green domains produce 3–5 blockers, each with acceptance tests and artifacts—no hand-wavy “mitigate later.”
 - Bundle execution. We group blockers into Fix Packs, with FP0 (Pre-Commit Gate) capturing the minimal, high-leverage work that flips the recommendation.
-- Make the verdict mechanical. The final Overall & Summary is a roll-up driven by rules, not vibes: worst pillar status, upgraded only if FP0 closes the hard gaps.
+- Make the verdict mechanical. The final Overall & Summary is a roll-up driven by rules, not vibes: worst domain status, upgraded only if FP0 closes the hard gaps.
 
 It also solves a practical tooling problem: weaker LLMs struggle with rich schemas and will hallucinate fields. Splitting the task into four small steps with enums and guardrails keeps outputs stable, auditable, and easy to wire into CI/CD or dashboards.
 
@@ -20,7 +20,7 @@ Bottom line: this exists so teams don’t stall at the sight of a scary risk lis
 A minimal, deterministic protocol that lets even a weaker LLM produce a useful viability assessment in four constrained steps:
 
 ```text
-1) Pillars → 2) Blockers → 3) Fix Packs → 4) Overall & Summary
+1) Domains → 2) Blockers → 3) Fix Packs → 4) Overall & Summary
 ```
 
 This README defines purpose, data flow, enums, JSON shapes, guardrails, and validator rules so a programmer can wire it up without prior context.
@@ -28,7 +28,7 @@ This README defines purpose, data flow, enums, JSON shapes, guardrails, and vali
 ⸻
 
 TL;DR
-- Order matters: Do Pillars first (scope), then Blockers (derived), then Fix Packs (clusters), then Overall/Summary (mechanical roll-up).
+- Order matters: Do Domains first (scope), then Blockers (derived), then Fix Packs (clusters), then Overall/Summary (mechanical roll-up).
 - Keep outputs tiny, enum-driven, ID-stable.
 - After each step, run a validator/auto-repair pass to fix status/score ranges, drop unknown fields, and back-fill defaults.
 
@@ -38,8 +38,8 @@ TL;DR
 
 The ViabilityAssessor turns a plan snapshot into a decision-ready assessment. It does this by:
 
-- scoring the plan on four CAS pillars (HumanStability, EconomicResilience, EcologicalIntegrity, Rights_Legality),
-- turning weak pillars into a short list of blockers with acceptance tests and artifacts,
+- scoring the plan on four CAS domains (HumanStability, EconomicResilience, EcologicalIntegrity, Rights_Legality),
+- turning weak domains into a short list of blockers with acceptance tests and artifacts,
 - bundling them into Fix Packs (with FP0 = Pre-Commit Gate),
 - and producing an executive summary with a crisp recommendation and a small “what flips to GO” checklist.
 
@@ -63,7 +63,7 @@ Plan text ──> Step 1: PILLARS ──> Step 2: BLOCKERS ──> Step 3: FIX_P
 
 ## Step 0 — Constants & Enums (used in all steps)
 
-PILLAR_ENUM
+DOMAIN_ENUM
 - HumanStability, EconomicResilience, EcologicalIntegrity, Rights_Legality
 
 STATUS_ENUM
@@ -84,21 +84,21 @@ COST_BAND_ENUM
 
 ⸻
 
-## Step 1 — Emit Pillars
+## Step 1 — Emit Domains
 
 Goal: Establish the authoritative scope and evidence gates. No blockers yet.
 
 Input
 - Plan synopsis (text)
-- Pillar and reason-code enums
+- Domain and reason-code enums
 
 Output (JSON) — what the LLM must emit
 
 ```json
 {
-  "pillars": [
+  "domains": [
     {
-      "pillar": "HumanStability",
+      "domain": "HumanStability",
       "status": "YELLOW",
       "score": 60,
       "reason_codes": ["STAFF_AVERSION"],
@@ -111,9 +111,9 @@ Output (JSON) — what the LLM must emit
 **Example (GREEN with strength rationale):**
 ```json
 {
-  "pillars": [
+  "domains": [
     {
-      "pillar": "HumanStability",
+      "domain": "HumanStability",
       "status": "GREEN",
       "score": 85,
       "reason_codes": ["STAKEHOLDER_ALIGNMENT"],
@@ -123,7 +123,7 @@ Output (JSON) — what the LLM must emit
   ]
 }
 ```
-Note: The model outputs only the pillars array. No inline rule metadata.
+Note: The model outputs only the domains array. No inline rule metadata.
 
 The status mean:
 - GREEN — Good to go.
@@ -138,8 +138,8 @@ You don’t have enough information to judge. Don’t guess—add a “first mea
 Interpretation & validation (spec — not emitted by the LLM)
 - Enumerations
 - status ∈ {"GREEN","YELLOW","RED","GRAY"}
-- pillar ∈ PILLAR_ENUM (unknown pillar names → treated as GRAY)
-- reason_codes must come from the whitelist for that pillar (enforced downstream)
+- domain ∈ DOMAIN_ENUM (unknown domain names → treated as GRAY)
+- reason_codes must come from the whitelist for that domain (enforced downstream)
 - Score bands
 - GREEN: 70–100
 - YELLOW: 40–69
@@ -148,7 +148,7 @@ Interpretation & validation (spec — not emitted by the LLM)
 - Validator behavior
 - If status ≠ GRAY and score is missing or outside the band, the validator snaps to the band midpoint (GREEN:85, YELLOW:55, RED:20).
 - If status == GRAY, score must be null (validator will null it if present).
-- Unknown/unsupported pillar values are coerced to { "status":"GRAY", "score":null }.
+- Unknown/unsupported domain values are coerced to { "status":"GRAY", "score":null }.
 - Evidence gating
 - GREEN requires no open evidence items: evidence_todo must be empty.
 - YELLOW/RED may have evidence_todo entries.
@@ -156,8 +156,8 @@ Interpretation & validation (spec — not emitted by the LLM)
 - Formatting & determinism
 - Emit plain JSON (no Markdown).
 - Keep field names stable and lowercase with underscores for arrays.
-- Order pillars consistently (e.g., the canonical PILLAR_ENUM order).
-- `strength_rationale` (string, optional): Only for `status: "GREEN"`. A one-sentence justification of why the pillar is green (e.g., what evidence shows it is strong). Omit or set to `null` for non-GREEN statuses.
+- Order domains consistently (e.g., the canonical DOMAIN_ENUM order).
+- `strength_rationale` (string, optional): Only for `status: "GREEN"`. A one-sentence justification of why the domain is green (e.g., what evidence shows it is strong). Omit or set to `null` for non-GREEN statuses.
 
 ⸻
 
@@ -182,7 +182,7 @@ Where `BlockerItem` is defined elsewhere in this spec. The list can be empty **o
 ### Validation rules (applied by the orchestrator)
 - `1 ≤ len(blockers) ≤ 5` (unless explicitly allowed to be 0).
 - Each blocker must be specific, actionable, and clearly derived from Step 1.
-- (Optional) If you choose to attribute blockers to pillars **per item**, add that inside `BlockerItem` (e.g., a `pillar` or `pillars` field) — **do not** reintroduce a top-level `source_pillars` key.
+- (Optional) If you choose to attribute blockers to domains **per item**, add that inside `BlockerItem` (e.g., a `domain` or `domains` field) — **do not** reintroduce a top-level `source_domains` key.
 
 ### Example (LLM output)
 ```json
@@ -210,7 +210,7 @@ Goal: Provide execution bundles. FP0 is the pre-commit gate.
 
 Algorithm (simple)
 - FP0 = every blocker mapped to must-fix criteria:
-- any blocker from a GRAY pillar, or
+- any blocker from a GRAY domain, or
 - any blocker whose reason_codes include a must-fix set you define (e.g., DPIA_GAPS, CONTINGENCY_LOW, ETHICS_VAGUE).
 - Remaining blockers → group by theme for FP1..FPn.
 
@@ -234,11 +234,11 @@ Guardrails
 ## Step 4 — Emit Overall & Viability Summary (mechanical roll-up)
 
 Computation rules (do these outside the LLM, in code)
-- Overall status: start with the worst pillar status; upgrade one notch if FP0 fully covers all RED/GRAY blockers.
+- Overall status: start with the worst domain status; upgrade one notch if FP0 fully covers all RED/GRAY blockers.
 - Recommendation:
-- Any RED pillar → PROCEED_WITH_CAUTION
+- Any RED domain → PROCEED_WITH_CAUTION
 (If FP0 neutralizes all RED/GRAY, use GO_IF_FP0.)
-- All pillars GREEN/YELLOW → GO.
+- All domains GREEN/YELLOW → GO.
 - what_flips_to_go: union of acceptance_tests from all blockers in FP0 (dedup, ≤5).
 
 Output (JSON)
@@ -275,21 +275,21 @@ Pseudocode (Python):
 
 ```python
 def band_mid(status): return {"GREEN":85,"YELLOW":55,"RED":20}.get(status)
-def validate_pillars(pillars):
+def validate_domains(domains):
     out=[]
-    for p in pillars:
-        if p["pillar"] not in PILLAR_ENUM: p["pillar"]="Rights_Legality"; p["status"]="GRAY"
+    for p in domains:
+        if p["domain"] not in DOMAIN_ENUM: p["domain"]="Rights_Legality"; p["status"]="GRAY"
         if p["status"]=="GREEN" and p.get("evidence_todo"): p["status"]="YELLOW"
         if "score" not in p or not in_band(p["score"], p["status"]):
             p["score"]=band_mid(p["status"])
         out.append(p)
     return out
 
-def validate_blockers(blockers, pillars):
-    valid_pillars={p["pillar"] for p in pillars}
+def validate_blockers(blockers, domains):
+    valid_domains={p["domain"] for p in domains}
     out=[]
     for b in blockers[:5]:
-        if b["pillar"] not in valid_pillars: continue
+        if b["domain"] not in valid_domains: continue
         b.setdefault("rom", {"cost_band":"LOW","eta_days":14})
         out.append(b)
     return out
@@ -305,19 +305,19 @@ Output JSON only with exactly the fields listed.
 Use only these enums: … Do not invent new fields.
 If unsure, use GRAY or leave list empty.
 
-Step 1 (pillars):
+Step 1 (domains):
 
-Emit pillars array with 4 items (one per pillar).
+Emit domains array with 4 items (one per domain).
 GREEN requires evidence_todo empty.
 
 Step 2 (blockers):
 
-Create ≤5 blockers only from pillars where status ≠ GREEN.
-reason_codes must be a subset of the pillar’s reason_codes.
+Create ≤5 blockers only from domains where status ≠ GREEN.
+reason_codes must be a subset of the domain’s reason_codes.
 
 Step 3 (fix packs):
 
-Build FP0 from blockers tied to GRAY pillars or reason codes in {DPIA_GAPS, CONTINGENCY_LOW, ETHICS_VAGUE}.
+Build FP0 from blockers tied to GRAY domains or reason codes in {DPIA_GAPS, CONTINGENCY_LOW, ETHICS_VAGUE}.
 Then group remaining blockers into FP1..FPn by theme.
 
 Step 4 (overall & summary):
@@ -333,16 +333,16 @@ TypeScript (consuming side):
 
 ```typescript
 type Status = "GREEN" | "YELLOW" | "RED" | "GRAY";
-type Pillar = "HumanStability" | "EconomicResilience" | "EcologicalIntegrity" | "Rights_Legality";
+type Domain = "HumanStability" | "EconomicResilience" | "EcologicalIntegrity" | "Rights_Legality";
 type CostBand = "LOW" | "MEDIUM" | "HIGH";
 
-interface PillarItem {
-  pillar: Pillar; status: Status; score?: number;
+interface DomainItem {
+  domain: Domain; status: Status; score?: number;
   reason_codes?: string[]; evidence_todo?: string[];
 }
 
 interface Blocker {
-  id: string; pillar: Pillar; title: string;
+  id: string; domain: Domain; title: string;
   reason_codes?: string[]; acceptance_tests?: string[];
   artifacts_required?: string[]; owner?: string;
   rom?: { cost_band: CostBand; eta_days: number };
@@ -353,7 +353,7 @@ interface Blocker {
 ⸻
 
 ## Design Rationale
-- Pillars-first bounds the problem and gives deterministic derivations.
+- Domains-first bounds the problem and gives deterministic derivations.
 - Evidence-gated GREEN prevents “optimistic greenwashing.”
 - Fix Packs with FP0 create a pre-commit gate that flips the recommendation without re-scoring everything.
 - Roll-up in code (not in the LLM) keeps the final decision consistent and auditable.
@@ -366,20 +366,20 @@ interface Blocker {
 
 ### Core Idea
 
-Each pillar is assessed on **three factors**, each on a 1–5 Likert scale (1=bad, 5=good):
+Each domain is assessed on **three factors**, each on a 1–5 Likert scale (1=bad, 5=good):
 
 - **evidence** — strength of supporting docs/artifacts
 
 - **risk** — residual risk posture after mitigations
 
-- **fit** — alignment/coherence with the pillar’s aims
+- **fit** — alignment/coherence with the domain’s aims
 
 
 The model (LLM) proposes **reason_codes** and mentions **artifacts**; the **scoring is pure Python** and rule-based. No YAML weights; no hidden multipliers.
 
 ### Factor Rubric (make the mapping non-arguable)
 
-| Pillar               | evidence (1–5) — “Do we have proof?”                           | risk (1–5) — “Residual downside?”                         | fit (1–5) — “Does this design address the pillar’s goals?” |
+| Domain               | evidence (1–5) — “Do we have proof?”                           | risk (1–5) — “Residual downside?”                         | fit (1–5) — “Does this design address the domain’s goals?” |
 |----------------------|-----------------------------------------------------------------|-----------------------------------------------------------|------------------------------------------------------------|
 | HumanStability       | Org charts, RACI, training plans, comms plan                    | Stakeholder conflict, turnover risk, change fatigue       | Governance clarity, incentives aligned to outcomes         |
 | EconomicResilience   | Budget, unit economics, funding letters, signed contracts       | Sensitivity to shocks, supplier concentration, FX/rate    | Cost/benefit logic, ramp plan realism, buffer integration  |
@@ -397,9 +397,9 @@ The model (LLM) proposes **reason_codes** and mentions **artifacts**; the **scor
 - Missing factors → **GRAY**
 
 
-**Overall status** is the **worst pillar**. Optionally, we compute a display-only number: 
+**Overall status** is the **worst domain**. Optionally, we compute a display-only number: 
 
-`overall_likert = mean(pillar_avg_likert)` and `overall_0_100 = round((overall_likert-1)/4*100)` for legacy dashboards.
+`overall_likert = mean(domain_avg_likert)` and `overall_0_100 = round((overall_likert-1)/4*100)` for legacy dashboards.
 
 
 ### How rules work (transparent caps)
@@ -424,21 +424,21 @@ Fix-packs/actions add artifacts or close reason codes → we **re-score** and sh
 
 Example in the report:
 
-- **DPIA completed** → Rights_Legality.evidence `2→4` → pillar avg +0.67 → overall +Δ.
+- **DPIA completed** → Rights_Legality.evidence `2→4` → domain avg +0.67 → overall +Δ.
 
-- **≥10% contingency approved** → EconomicResilience.risk `2→4` → pillar avg +0.67 → overall +Δ.
+- **≥10% contingency approved** → EconomicResilience.risk `2→4` → domain avg +0.67 → overall +Δ.
 
 
 ### Stop Rules & Governance
 
-- Certain codes (e.g., `EIA_MISSING`) enforce **hard RED**. If any pillar is RED, default **Recommendation = PAUSE** unless an explicit override flag is set.
+- Certain codes (e.g., `EIA_MISSING`) enforce **hard RED**. If any domain is RED, default **Recommendation = PAUSE** unless an explicit override flag is set.
 
 
 ### Integration (minimal changes)
 
 1) Add a small scorer module (see `likert_score.py`).
 
-2) In `pillars_assessment.py`, **do not accept LLM status**; call the scorer with `reason_codes` and detected artifacts; overwrite `status` and `factors`.
+2) In `domains_assessment.py`, **do not accept LLM status**; call the scorer with `reason_codes` and detected artifacts; overwrite `status` and `factors`.
 
 3) In `overall_summary.py`, compute overall via **worst-win** + optional Likert number; set **PAUSE** on RED.
 
@@ -455,22 +455,22 @@ Example in the report:
 
 - **LLM-friendly**: The model only proposes structured facts (codes/artifacts). Math lives in code.
 
-- **Safe defaults**: Worst-pillar wins; hard stops wire directly to governance.
+- **Safe defaults**: Worst-domain wins; hard stops wire directly to governance.
 
 
 ### Example (pseudo-code)
 
 ```python
-from likert_score import PillarInput, score_pillar, score_overall
+from likert_score import DomainInput, score_domain, score_overall
 
-p = PillarInput(
-    pillar="EcologicalIntegrity",
+p = DomainInput(
+    domain="EcologicalIntegrity",
     reason_codes=["EIA_MISSING", "BIODIVERSITY_RISK_UNSET"],
 
     provided_artifacts=[],
 )
 
-res = score_pillar(p)
+res = score_domain(p)
 
 # res.status == "RED"; res.factors.evidence == 1
 
@@ -485,7 +485,7 @@ res = score_pillar(p)
 
 3. Status mapping: any factor ≤2 ⇒ RED.
 
-4. Overall: any pillar RED ⇒ overall RED.
+4. Overall: any domain RED ⇒ overall RED.
 
 5. Monotonicity: adding an artifact never lowers a factor.
 
