@@ -949,7 +949,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
 
 
 @dataclass
-class PillarsAssessment:
+class DomainsAssessment:
     system_prompt: str
     user_prompt: str
     response: Dict[str, Any]
@@ -957,7 +957,7 @@ class PillarsAssessment:
     metadata: Dict[str, Any]
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> "PillarsAssessment":
+    def execute(cls, llm: LLM, user_prompt: str) -> "DomainsAssessment":
         if not isinstance(user_prompt, str):
             raise TypeError("user_prompt must be a string")
         if not isinstance(llm, LLM):
@@ -1047,7 +1047,7 @@ if __name__ == "__main__":  # pragma: no cover
     llm = get_llm(model_name)
 
     print(f"PILLARS_SYSTEM_PROMPT: {PILLARS_SYSTEM_PROMPT}\n\n")
-    result = PillarsAssessment.execute(llm, plan_text)
+    result = DomainsAssessment.execute(llm, plan_text)
     print(json.dumps(result.response, indent=2, ensure_ascii=False))
     print("\nMarkdown:\n")
     print(result.markdown)
