@@ -1,3 +1,43 @@
+## [0.3.5] - 2025-10-15 - TypeScript Configuration and PlanForm Fixes
+
+### ✅ **Critical TypeScript Errors Resolved**
+
+**FIXED**: Multiple TypeScript compilation errors preventing proper frontend development and deployment.
+
+#### 🔧 **Issue 1: Missing Next.js TypeScript Declarations**
+- **Problem**: `next-env.d.ts` file was missing, causing JSX element type errors
+- **Fix**: Created proper Next.js TypeScript declaration file with React and Next.js types
+- **Files**: `planexe-frontend/next-env.d.ts`
+
+#### 🔧 **Issue 2: JSX Configuration Mismatch**
+- **Problem**: `tsconfig.json` had incorrect JSX mode (`"preserve"` instead of `"react-jsx"`)
+- **Fix**: Updated to `"react-jsx"` for Next.js 13+ compatibility and added React types
+- **Files**: `planexe-frontend/tsconfig.json`
+
+#### 🔧 **Issue 3: React Hook Form Field Type Annotations**
+- **Problem**: `ControllerRenderProps` field parameters had implicit `any` types
+- **Fix**: Added proper TypeScript type annotations for all form field render props
+- **Files**: `planexe-frontend/src/components/planning/PlanForm.tsx`
+
+#### 🔧 **Issue 4: API Client Report Endpoint**
+- **Problem**: Frontend calling non-existent `/report` endpoint causing 404 errors
+- **Fix**: Updated API client to use correct `/api/plans/{plan_id}/report` endpoint
+- **Files**: `planexe-frontend/src/lib/api/fastapi-client.ts`
+
+### 🎯 **Development Experience Improvements**
+- ✅ **TypeScript Compilation**: All errors resolved, clean compilation
+- ✅ **IDE Support**: Proper IntelliSense and type checking in VS Code
+- ✅ **Deployment Ready**: Frontend builds successfully for production deployment
+- ✅ **API Integration**: Correct endpoint usage prevents runtime 404 errors
+
+### 📋 **Files Modified**
+- `planexe-frontend/next-env.d.ts` - **NEW**: Next.js TypeScript declarations
+- `planexe-frontend/tsconfig.json` - JSX configuration and React types
+- `planexe-frontend/src/components/planning/PlanForm.tsx` - Field type annotations
+- `planexe-frontend/src/lib/api/fastapi-client.ts` - Report endpoint fix
+
+---
+
 ## [0.3.4] - 2025-10-15 - Critical Railway Deployment Fixes
 
 ### 🚨 **CRITICAL FIXES: Railway Production Deployment Blockers**
