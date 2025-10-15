@@ -889,7 +889,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
     rows.append("\n\n## Domain Details")
     rows.append(_get_legend_markdown())
 
-    for domain_index, domain in enumerate(domains, start=1):
+    for domain in domains:
         name = domain.get("domain", "Unknown")
         display_name = DomainEnum.get_display_name(name)
         status = domain.get("status", StatusEnum.GRAY.value)
@@ -898,7 +898,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         evidence = domain.get("evidence_todo", []) or []
         strength_rationale = domain.get("strength_rationale")
 
-        rows.append(f"### Domain {domain_index}: {display_name}\n")
+        rows.append(f"### Domain: {display_name}\n")
         def _fmt_factor(val: Any) -> str:
             if isinstance(val, (int, float)):
                 if isinstance(val, float):
