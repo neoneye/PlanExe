@@ -32,6 +32,16 @@ TL;DR
 - Keep outputs tiny, enum-driven, ID-stable.
 - After each step, run a validator/auto-repair pass to fix status/score ranges, drop unknown fields, and back-fill defaults.
 
+### CAS Domains — the Viability Backbone
+
+The four domains we track come from complex adaptive systems (CAS) thinking: a plan only sticks if it can adapt within intertwined human, economic, environmental, and legal ecosystems. The canonical enum lives in `planexe/viability/model_domain.py`, but the intuition is:
+- **Human Stability** — People readiness, stakeholder alignment, operating model, change management.
+- **Economic Resilience** — Funding and runway, unit economics, supplier dependence, contingency buffers.
+- **Ecological Integrity** — Environmental baselines, resource impacts, mitigation evidence, sustainability claims.
+- **Rights & Legality** — Regulatory compliance, data/ethics posture, permits, governance safeguards.
+
+Keeping the assessment anchored to these four domains gives every downstream step (blockers, fix packs, overall verdict) a common language and CAS-informed scope.
+
 ⸻
 
 ## Overall Purpose
@@ -488,4 +498,3 @@ res = score_domain(p)
 4. Overall: any domain RED ⇒ overall RED.
 
 5. Monotonicity: adding an artifact never lowers a factor.
-
