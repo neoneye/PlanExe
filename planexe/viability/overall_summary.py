@@ -8,7 +8,7 @@ be serialized to JSON and markdown.
 
 PROMPT> python -u -m planexe.viability.overall_summary | tee output.txt
 
-IDEA: Re-enable "score" within the overall_summary when I have gotton the pillars_assessment.py likert scores to work.
+IDEA: Re-enable "score" within the overall_summary when I have gotton the domains_assessment.py likert scores to work.
 """
 
 from __future__ import annotations
@@ -29,26 +29,26 @@ from planexe.viability.model_status import StatusEnum
 # ---------------------------------------------------------------------------
 
 
-class PillarItem(BaseModel):
+class DomainItem(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    pillar: str
+    domain: str
     status: str
     reason_codes: List[str] = Field(default_factory=list)
     evidence_todo: List[str] = Field(default_factory=list)
 
 
-class PillarsPayload(BaseModel):
+class DomainsPayload(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    pillars: List[PillarItem]
+    domains: List[DomainItem]
 
 
 class BlockerItem(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     id: str
-    pillar: str
+    domain: str
     acceptance_tests: List[str] = Field(default_factory=list)
 
 
@@ -208,16 +208,6 @@ def _dedupe(strings: Iterable[str], limit: int) -> List[str]:
     return result
 
 
-def _pillar_focus_reason(pillar: PillarItem) -> Optional[str]:
-    if pillar.reason_codes:
-        joined = ", ".join(pillar.reason_codes[:3])
-        return f"Reason codes: {joined}"
-    if pillar.evidence_todo:
-        joined = ", ".join(pillar.evidence_todo[:2])
-        return f"Evidence to gather: {joined}"
-    return None
-
-
 # ---------------------------------------------------------------------------
 # Result object
 # ---------------------------------------------------------------------------
@@ -244,7 +234,7 @@ class OverallSummary:
     def execute(
         cls,
         *,
-        pillars_payload: Any,
+        domains_payload: Any,
         blockers_payload: Any,
         fix_packs_payload: Any,
         max_why: int = 3,
@@ -252,11 +242,11 @@ class OverallSummary:
     ) -> "OverallSummary":
         """Compute the viability roll-up using the deterministic Step 4 rules."""
 
-        pillars_model = _parse_model(
-            PillarsPayload,
-            pillars_payload,
-            field_name="pillars",
-            expected_field="pillars",
+        domains_model = _parse_model(
+            DomainsPayload,
+            domains_payload,
+            field_name="domains",
+            expected_field="domains",
         )
         blockers_model = _parse_model(
             BlockersPayload,
@@ -271,15 +261,15 @@ class OverallSummary:
             expected_field="fix_packs",
         )
 
-        if not pillars_model.pillars:
-            raise ValueError("Pillars payload must include at least one pillar entry.")
+        if not domains_model.domains:
+            raise ValueError("Domains payload must include at least one domain entry.")
 
-        status_by_pillar: Dict[str, str] = {
-            item.pillar: item.status.upper()
-            for item in pillars_model.pillars
+        status_by_domain: Dict[str, str] = {
+            item.domain: item.status.upper()
+            for item in domains_model.domains
         }
 
-        statuses: List[str] = list(status_by_pillar.values())
+        statuses: List[str] = list(status_by_domain.values())
         worst_status = _worst_status(statuses)
         worst_status = worst_status or StatusEnum.GRAY.value
 
@@ -289,15 +279,15 @@ class OverallSummary:
         unmatched_blockers: set[str] = set()
 
         for blocker in blockers_model.blockers:
-            pillar_status = status_by_pillar.get(blocker.pillar)
-            if pillar_status in {StatusEnum.RED.value, StatusEnum.GRAY.value}:
+            domain_status = status_by_domain.get(blocker.domain)
+            if domain_status in {StatusEnum.RED.value, StatusEnum.GRAY.value}:
                 red_gray_blockers.add(blocker.id)
-            elif pillar_status is None:
+            elif domain_status is None:
                 unmatched_blockers.add(blocker.id)
 
-        has_red_or_gray_pillar = any(status in {StatusEnum.RED.value, StatusEnum.GRAY.value} for status in statuses)
+        has_red_or_gray_domain = any(status in {StatusEnum.RED.value, StatusEnum.GRAY.value} for status in statuses)
         red_gray_covered = (
-            has_red_or_gray_pillar
+            has_red_or_gray_domain
             and not unmatched_blockers
             and red_gray_blockers.issubset(fp0_blocker_ids)
         )
@@ -314,7 +304,7 @@ class OverallSummary:
         )
 
         why_items = _build_why_list(
-            pillars=pillars_model.pillars,
+            domains=domains_model.domains,
             max_items=max_why,
         )
 
@@ -375,7 +365,7 @@ class OverallSummary:
         lines.append("## Concerns Affecting Viability")
         if payload.viability_summary.why:
             # Build table header
-            lines.append("| Pillar | Status | Reasoning Codes |")
+            lines.append("| Domain | Status | Reasoning Codes |")
             lines.append("|--------|--------|-----------------|")
             # Build table rows
             for item in payload.viability_summary.why:
@@ -452,21 +442,21 @@ def _determine_recommendation(
     return RECOMMENDATION_GO
 
 
-def _build_why_list(*, pillars: Sequence[PillarItem], max_items: int) -> List[WhyItem]:
+def _build_why_list(*, domains: Sequence[DomainItem], max_items: int) -> List[WhyItem]:
     """Build a list of WhyItem dataclasses for the Why section."""
     reasons: List[Tuple[int, WhyItem]] = []
-    for pillar in pillars:
-        status = pillar.status.upper()
+    for domain in domains:
+        status = domain.status.upper()
         if status == StatusEnum.GREEN.value:
             continue
 
-        display = DomainEnum.get_display_name(pillar.pillar)
+        display = DomainEnum.get_display_name(domain.domain)
         
         # Extract reason codes or evidence items
-        if pillar.reason_codes:
-            codes = ", ".join(pillar.reason_codes[:5])  # Show up to 5 codes
-        elif pillar.evidence_todo:
-            codes = f"Evidence needed: {', '.join(pillar.evidence_todo[:3])}"
+        if domain.reason_codes:
+            codes = ", ".join(domain.reason_codes[:5])  # Show up to 5 codes
+        elif domain.evidence_todo:
+            codes = f"Evidence needed: {', '.join(domain.evidence_todo[:3])}"
         else:
             codes = "—"
 
@@ -522,25 +512,25 @@ __all__ = ["OverallSummary"]
 
 
 if __name__ == "__main__":
-    example_pillars = {
-        "pillars": [
+    example_domains = {
+        "domains": [
             {
-                "pillar": DomainEnum.HumanStability.value,
+                "domain": DomainEnum.HumanStability.value,
                 "status": StatusEnum.YELLOW.value,
                 "reason_codes": ["STAFF_AVERSION"],
                 "evidence_todo": ["Stakeholder survey"]
             },
             {
-                "pillar": DomainEnum.EconomicResilience.value,
+                "domain": DomainEnum.EconomicResilience.value,
                 "status": StatusEnum.RED.value,
                 "reason_codes": ["CONTINGENCY_LOW"]
             },
             {
-                "pillar": DomainEnum.EcologicalIntegrity.value,
+                "domain": DomainEnum.EcologicalIntegrity.value,
                 "status": StatusEnum.GREEN.value
             },
             {
-                "pillar": DomainEnum.Rights_Legality.value,
+                "domain": DomainEnum.Rights_Legality.value,
                 "status": StatusEnum.GRAY.value,
                 "evidence_todo": ["DPIA"]
             },
@@ -551,17 +541,17 @@ if __name__ == "__main__":
         "blockers": [
             {
                 "id": "B1",
-                "pillar": DomainEnum.EconomicResilience.value,
+                "domain": DomainEnum.EconomicResilience.value,
                 "acceptance_tests": [">=10% contingency approved"]
             },
             {
                 "id": "B2",
-                "pillar": DomainEnum.Rights_Legality.value,
+                "domain": DomainEnum.Rights_Legality.value,
                 "acceptance_tests": ["Finalize DPIA"]
             },
             {
                 "id": "B3",
-                "pillar": DomainEnum.HumanStability.value,
+                "domain": DomainEnum.HumanStability.value,
                 "acceptance_tests": ["Stakeholder plan signed"]
             },
         ]
@@ -575,7 +565,7 @@ if __name__ == "__main__":
     }
 
     summary = OverallSummary.execute(
-        pillars_payload=example_pillars,
+        domains_payload=example_domains,
         blockers_payload=example_blockers,
         fix_packs_payload=example_fix_packs,
     )

@@ -7,20 +7,20 @@ Then it make sense to get rid of the hardcoded "RED"/"YELLOW"/"GREEN" strings an
 import json
 from typing import Dict, List, Optional
 
-def make_pillars_system_prompt(
-    PILLAR_ORDER: List[str],
-    REASON_CODES_BY_PILLAR: Dict[str, List[str]],
-    DEFAULT_EVIDENCE_BY_PILLAR: Optional[Dict[str, List[str]]] = None,
+def make_domains_system_prompt(
+    DOMAIN_ORDER: List[str],
+    REASON_CODES_BY_DOMAIN: Dict[str, List[str]],
+    DEFAULT_EVIDENCE_BY_DOMAIN: Optional[Dict[str, List[str]]] = None,
     FORBID_FIRST_WORDS: Optional[List[str]] = None,
 ) -> str:
     """
-    Build a self-contained system prompt for Viability Protocol · Step 1 (PILLARS),
+    Build a self-contained system prompt for Viability Protocol · Step 1 (DOMAINS),
     with an inline, *ordered* skeleton JSON the model must overwrite in-place.
 
     Auto-sync:
-      - Pillar order: from PILLAR_ORDER
-      - Reason-code whitelist: from REASON_CODES_BY_PILLAR
-      - GRAY defaults: from DEFAULT_EVIDENCE_BY_PILLAR (or sensible defaults)
+      - Domain order: from DOMAIN_ORDER
+      - Reason-code whitelist: from REASON_CODES_BY_DOMAIN
+      - GRAY defaults: from DEFAULT_EVIDENCE_BY_DOMAIN (or sensible defaults)
 
     Returns:
       A system prompt string.
@@ -34,8 +34,8 @@ def make_pillars_system_prompt(
         ]
 
     # Provide robust defaults for GRAY evidence if caller doesn't supply them.
-    if DEFAULT_EVIDENCE_BY_PILLAR is None:
-        DEFAULT_EVIDENCE_BY_PILLAR = {
+    if DEFAULT_EVIDENCE_BY_DOMAIN is None:
+        DEFAULT_EVIDENCE_BY_DOMAIN = {
             "HumanStability": [
                 "Stakeholder map + skills gap snapshot",
                 "Change plan v1 (communications, training, adoption KPIs)"
@@ -54,9 +54,9 @@ def make_pillars_system_prompt(
             ],
         }
 
-    # Ensure every pillar in order has at least 2 default items (fallbacks).
-    for p in PILLAR_ORDER:
-        DEFAULT_EVIDENCE_BY_PILLAR.setdefault(p, [
+    # Ensure every domain in order has at least 2 default items (fallbacks).
+    for p in DOMAIN_ORDER:
+        DEFAULT_EVIDENCE_BY_DOMAIN.setdefault(p, [
             "Baseline note v1 (scope, metrics)",
             "Risk register v1 (issues, owners)"
         ])
@@ -72,9 +72,9 @@ def make_pillars_system_prompt(
 
     # The enforced, ordered skeleton the model must overwrite.
     skeleton = {
-        "pillars": [
+        "domains": [
             {
-                "pillar": p,
+                "domain": p,
                 "status": "GRAY",
                 "score": {
                     "evidence": None,
@@ -82,34 +82,34 @@ def make_pillars_system_prompt(
                     "fit": None,
                 },
                 "reason_codes": [],
-                "evidence_todo": DEFAULT_EVIDENCE_BY_PILLAR.get(p, [])[:2],
+                "evidence_todo": DEFAULT_EVIDENCE_BY_DOMAIN.get(p, [])[:2],
                 "strength_rationale": None,
             }
-            for p in PILLAR_ORDER
+            for p in DOMAIN_ORDER
         ]
     }
 
     # ---- JSON blocks to embed verbatim into the prompt ----------------------
-    pillar_order_json        = json.dumps(PILLAR_ORDER, indent=2, ensure_ascii=False)
-    reason_whitelist_json    = json.dumps(REASON_CODES_BY_PILLAR, indent=2, sort_keys=True, ensure_ascii=False)
+    domain_order_json        = json.dumps(DOMAIN_ORDER, indent=2, ensure_ascii=False)
+    reason_whitelist_json    = json.dumps(REASON_CODES_BY_DOMAIN, indent=2, sort_keys=True, ensure_ascii=False)
     skeleton_json            = json.dumps(skeleton, indent=2, ensure_ascii=False)
-    gray_defaults_json       = json.dumps(DEFAULT_EVIDENCE_BY_PILLAR, indent=2, sort_keys=True, ensure_ascii=False)
+    gray_defaults_json       = json.dumps(DEFAULT_EVIDENCE_BY_DOMAIN, indent=2, sort_keys=True, ensure_ascii=False)
     forbid_first_words_json  = json.dumps(FORBID_FIRST_WORDS, indent=2, ensure_ascii=False)
 
     # ---- Output contract (kept for clarity; skeleton enforces order) --------
     output_contract = r"""
-Output contract (emit JSON only; exactly one object per pillar, arrays must exist even if empty):
+Output contract (emit JSON only; exactly one object per domain, arrays must exist even if empty):
 {
-  "pillars": [
+  "domains": [
     {
-      "pillar": "HumanStability" | "EconomicResilience" | "EcologicalIntegrity" | "Rights_Legality",
+      "domain": "HumanStability" | "EconomicResilience" | "EcologicalIntegrity" | "Rights_Legality",
       "status": "GREEN" | "YELLOW" | "RED" | "GRAY",
       "score": {
         "evidence": integer | null,  // Likert 1–5, null if status is GRAY
         "risk": integer | null,
         "fit": integer | null
       },
-      "reason_codes": [string, ...],   // only from the whitelist for this pillar
+      "reason_codes": [string, ...],   // only from the whitelist for this domain
       "evidence_todo": [string, ...],  // ≤ 2 artifact-style items; empty for GREEN
       "strength_rationale": "string"   // OPTIONAL; only for GREEN; omit otherwise
     }
@@ -120,16 +120,16 @@ Output contract (emit JSON only; exactly one object per pillar, arrays must exis
     # ---- Prompt -------------------------------------------------------------
     prompt = (
         "You output JSON only. No prose, no markdown.\n\n"
-        "ASSIGNMENT — Determine viability of a plan — PILLARS\n"
-        "Given a plan (free-text), assess viability across the defined pillars and return a single JSON object.\n\n"
+        "ASSIGNMENT — Determine viability of a plan — DOMAINS\n"
+        "Given a plan (free-text), assess viability across the defined domains and return a single JSON object.\n\n"
 
-        "Pillar order (emit exactly one object per pillar, in this exact order):\n"
-        f"{pillar_order_json}\n\n"
+        "Domain order (emit exactly one object per domain, in this exact order):\n"
+        f"{domain_order_json}\n\n"
 
-        "Reason-code whitelist by pillar (use UPPERCASE exactly; do NOT invent new codes; empty array if none apply):\n"
+        "Reason-code whitelist by domain (use UPPERCASE exactly; do NOT invent new codes; empty array if none apply):\n"
         f"{reason_whitelist_json}\n\n"
 
-        "Pillar scopes (evaluate all pillars even if absent in the input):\n"
+        "Domain scopes (evaluate all domains even if absent in the input):\n"
         "- HumanStability — people/org readiness, governance, change management, training, operating model.\n"
         "- EconomicResilience — budget/contingency, unit economics, suppliers/SPOF/integration, delivery risk.\n"
         "- EcologicalIntegrity — environmental impact/baselines, carbon/water/waste, permits/mitigation.\n"
@@ -138,7 +138,7 @@ Output contract (emit JSON only; exactly one object per pillar, arrays must exis
         "Likert scoring (1=poor, 5=excellent):\n"
         "- evidence — strength of supporting docs/artifacts.\n"
         "- risk — residual risk posture after mitigations.\n"
-        "- fit — alignment/coherence with the pillar’s aims.\n\n"
+        "- fit — alignment/coherence with the domain’s aims.\n\n"
 
         "Scoring discipline:\n"
         "- Start from the defaults above, then adjust each factor individually based on the plan.\n"
@@ -158,7 +158,7 @@ Output contract (emit JSON only; exactly one object per pillar, arrays must exis
         "- GREEN ⇒ evidence_todo MUST be empty.\n"
         "- YELLOW/RED ⇒ include 1–2 concise artifact-style evidence TODOs tied to the issues.\n"
         "- If information is too thin to justify YELLOW/RED with a listed reason_code, use GRAY.\n"
-        "- For every GRAY pillar, evidence_todo MUST contain 1–2 artifact-style items (do NOT leave it empty).\n\n"
+        "- For every GRAY domain, evidence_todo MUST contain 1–2 artifact-style items (do NOT leave it empty).\n\n"
 
         "Evidence style (artifacts, not actions):\n"
         '- GOOD: "Unit economics model v1 + sensitivity table", "Supplier risk register v1", "Top-N data sources: licenses + DPIAs bundle".\n'
@@ -170,11 +170,11 @@ Output contract (emit JSON only; exactly one object per pillar, arrays must exis
         "- If an item begins with a verb, REWRITE it into the artifact that would result from that action.\n\n"
 
         "GRAY defaults:\n"
-        "- If a pillar is GRAY and you have not proposed evidence, use the defaults for that pillar from this mapping:\n"
+        "- If a domain is GRAY and you have not proposed evidence, use the defaults for that domain from this mapping:\n"
         f"{gray_defaults_json}\n\n"
 
         "### FACTOR DIFFERENTIATION RULE (MANDATORY)\n"
-        "For any pillar with status RED or YELLOW:\n"
+        "For any domain with status RED or YELLOW:\n"
         "- Do not set evidence, risk, and fit to the same value.\n"
         "- Choose a decisive factor (one of: evidence, risk, fit) that most strongly justifies the status per the rubric, and set it strictly lower than at least one of the other two.\n"
         "- Include at least one reason_code that clearly supports the chosen decisive factor.\n"
@@ -186,12 +186,12 @@ Output contract (emit JSON only; exactly one object per pillar, arrays must exis
 
         "STRICT OUTPUT METHOD — OVERWRITE THE SKELETON BELOW:\n"
         "Return your result by OVERWRITING this exact JSON structure in-place. Keep the same order and keys. Replace values only. Do NOT add, remove, or reorder objects. Do NOT add fields.\n"
-        "If you keep any pillar as GRAY, you MUST NOT delete the prefilled evidence_todo; either keep them or REPLACE them with 1–2 artifact items. An empty evidence_todo for a GRAY pillar is INVALID.\n"
+        "If you keep any domain as GRAY, you MUST NOT delete the prefilled evidence_todo; either keep them or REPLACE them with 1–2 artifact items. An empty evidence_todo for a GRAY domain is INVALID.\n"
         f"{skeleton_json}\n\n"
 
         "Tie-breaks & determinism:\n"
         "- If unsure between GREEN and YELLOW, choose YELLOW with at least one whitelist reason_code; if still unsure, choose GRAY.\n"
-        "- If the plan never touches a pillar, mark it GRAY and propose concrete evidence to unlock assessment.\n"
+        "- If the plan never touches a domain, mark it GRAY and propose concrete evidence to unlock assessment.\n"
         "- Treat any risk or need mentioned in the plan as an open issue unless there is explicit evidence it has been resolved.\n"
         "- Scrutinize quantitative claims (e.g., budgets, timelines, percentages). A low contingency (<10-15%) for a complex project is a significant risk; do not mark it GREEN without strong counter-evidence.\n"
         "- Do not invent fields. Do not output prose or markdown.\n\n"

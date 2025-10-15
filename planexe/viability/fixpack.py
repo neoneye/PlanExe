@@ -1,7 +1,7 @@
 """
 Implements Step 3 of the ViabilityAssessor protocol: Fix Pack generation.
 
-This module consumes the JSON outputs from Step 1 (Pillars) and Step 2 (Blockers)
+This module consumes the JSON outputs from Step 1 (Domains) and Step 2 (Blockers)
 packaged in the combined pipeline prompt and emits a structured set of Fix Packs
 that bundle blockers into execution-ready clusters. FP0 is always reserved for
 the pre-commit gate containing the blockers that must be resolved before
@@ -49,19 +49,19 @@ MUST_FIX_REASON_CODES = {"DPIA_GAPS", "CONTINGENCY_LOW", "ETHICS_VAGUE"}
 # --- Pydantic models for input payloads ---
 
 
-class PillarItem(BaseModel):
+class DomainItem(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    pillar: DomainEnum
+    domain: DomainEnum
     status: StatusEnum
     reason_codes: List[str] = Field(default_factory=list)
     evidence_todo: List[str] = Field(default_factory=list)
 
 
-class PillarsInput(BaseModel):
+class DomainsInput(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    pillars: List[PillarItem]
+    domains: List[DomainItem]
 
 
 class ROM(BaseModel):
@@ -75,7 +75,7 @@ class Blocker(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     id: str
-    pillar: str
+    domain: str
     title: str
     reason_codes: List[str] = Field(default_factory=list)
     acceptance_tests: List[str] = Field(default_factory=list)
@@ -87,7 +87,7 @@ class Blocker(BaseModel):
 class BlockersOutput(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    source_pillars: List[str] = Field(default_factory=list)
+    source_domains: List[str] = Field(default_factory=list)
     blockers: List[Blocker]
 
 
@@ -127,7 +127,7 @@ Rules you must follow:
    - priority: one of {"Immediate", "High", "Medium", "Low"}.
 3. Do NOT include FP0 in your response; it is already assembled elsewhere.
 4. Cover every remaining blocker exactly once; do not duplicate or omit blocker IDs.
-5. Prefer grouping blockers that share the same pillar or address closely related themes.
+5. Prefer grouping blockers that share the same domain or address closely related themes.
 6. If there are no blockers provided, return {"fix_packs": []}.
 """.strip()
 
@@ -189,7 +189,7 @@ class FixPack:
         cls,
         llm: LLM,
         user_prompt: str,
-        pillars_assessment_json: str,
+        domains_assessment_json: str,
         blockers_json: str,
     ) -> "FixPack":
         """Generate fix packs using pipeline context and serialized step outputs."""
@@ -198,22 +198,22 @@ class FixPack:
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
 
-        if not isinstance(pillars_assessment_json, str):
-            raise ValueError("Invalid pillars_assessment_json.")
+        if not isinstance(domains_assessment_json, str):
+            raise ValueError("Invalid domains_assessment_json.")
         if not isinstance(blockers_json, str):
             raise ValueError("Invalid blockers_json.")
 
         try:
-            pillars_input = PillarsInput.model_validate_json(pillars_assessment_json)
+            domains_input = DomainsInput.model_validate_json(domains_assessment_json)
         except (ValidationError, json.JSONDecodeError) as exc:
-            raise ValueError("Invalid JSON payload for pillars assessment.") from exc
+            raise ValueError("Invalid JSON payload for domains assessment.") from exc
 
         try:
             blockers_output = BlockersOutput.model_validate_json(blockers_json)
         except (ValidationError, json.JSONDecodeError) as exc:
             raise ValueError("Invalid JSON payload for blockers.") from exc
 
-        status_map = _status_by_pillar(pillars_input.pillars)
+        status_map = _status_by_domain(domains_input.domains)
         fp0_blocker_ids = _select_fp0_blockers(
             blockers_output.blockers,
             status_map,
@@ -238,7 +238,7 @@ class FixPack:
             "duration": 0,
             "response_byte_count": 0,
             "raw_context_bytes": len(user_prompt.encode("utf-8")),
-            "pillars_payload_bytes": len(pillars_assessment_json.encode("utf-8")),
+            "domains_payload_bytes": len(domains_assessment_json.encode("utf-8")),
             "blockers_payload_bytes": len(blockers_json.encode("utf-8")),
             "fp0_blocker_ids": fp0_blocker_ids,
             "remaining_blocker_ids": [blocker.id for blocker in remaining_blockers],
@@ -307,12 +307,12 @@ class FixPack:
         )
 
 
-def _status_by_pillar(pillars: Sequence[PillarItem]) -> Dict[str, str]:
+def _status_by_domain(domains: Sequence[DomainItem]) -> Dict[str, str]:
     mapping: Dict[str, str] = {}
-    for item in pillars:
-        pillar_name = item.pillar.value if isinstance(item.pillar, Enum) else str(item.pillar)
+    for item in domains:
+        domain_name = item.domain.value if isinstance(item.domain, Enum) else str(item.domain)
         status_value = item.status.value if isinstance(item.status, Enum) else str(item.status)
-        mapping[pillar_name] = status_value
+        mapping[domain_name] = status_value
     return mapping
 
 
@@ -324,8 +324,8 @@ def _select_fp0_blockers(
     must_fix_set = set(must_fix_codes)
     fp0_ids: List[str] = []
     for blocker in blockers:
-        pillar_status = status_map.get(blocker.pillar)
-        if pillar_status == StatusEnum.GRAY:
+        domain_status = status_map.get(blocker.domain)
+        if domain_status == StatusEnum.GRAY.value:
             fp0_ids.append(blocker.id)
             continue
         if any(code in must_fix_set for code in blocker.reason_codes):
@@ -340,13 +340,13 @@ def _build_user_prompt(
     fp0_blocker_ids: Sequence[str],
 ) -> str:
     payload = {
-        "status_by_pillar": status_map,
+        "status_by_domain": status_map,
         "must_fix_reason_codes": sorted(set(must_fix_codes)),
         "fp0_blocker_ids": list(fp0_blocker_ids),
         "blockers": [
             {
                 "id": blocker.id,
-                "pillar": blocker.pillar,
+                "domain": blocker.domain,
                 "title": blocker.title,
                 "reason_codes": blocker.reason_codes,
                 "acceptance_tests": blocker.acceptance_tests,
@@ -411,28 +411,28 @@ def _validate_fix_packs(
 if __name__ == "__main__":
     from planexe.llm_factory import get_llm
 
-    pillars_example = {
-        "pillars": [
+    domains_example = {
+        "domains": [
             {
-                "pillar": DomainEnum.HumanStability.value,
+                "domain": DomainEnum.HumanStability.value,
                 "status": "YELLOW",
                 "reason_codes": ["STAFF_AVERSION"],
                 "evidence_todo": ["Stakeholder interviews"]
             },
             {
-                "pillar": DomainEnum.EconomicResilience.value,
+                "domain": DomainEnum.EconomicResilience.value,
                 "status": "GRAY",
                 "reason_codes": ["CONTINGENCY_LOW"],
                 "evidence_todo": ["Budget scenario analysis"]
             },
             {
-                "pillar": DomainEnum.EcologicalIntegrity.value,
+                "domain": DomainEnum.EcologicalIntegrity.value,
                 "status": "YELLOW",
                 "reason_codes": ["WATER_STRESS"],
                 "evidence_todo": ["Water sourcing assessment"]
             },
             {
-                "pillar": DomainEnum.Rights_Legality.value,
+                "domain": DomainEnum.Rights_Legality.value,
                 "status": "RED",
                 "reason_codes": ["DPIA_GAPS", "ETHICS_VAGUE"],
                 "evidence_todo": ["Run DPIA v1"]
@@ -441,11 +441,11 @@ if __name__ == "__main__":
     }
 
     blockers_example = {
-        "source_pillars": [DomainEnum.EconomicResilience.value, DomainEnum.Rights_Legality.value, DomainEnum.HumanStability.value],
+        "source_domains": [DomainEnum.EconomicResilience.value, DomainEnum.Rights_Legality.value, DomainEnum.HumanStability.value],
         "blockers": [
             {
                 "id": "B1",
-                "pillar": DomainEnum.EconomicResilience.value,
+                "domain": DomainEnum.EconomicResilience.value,
                 "title": "Budget contingency below policy floor",
                 "reason_codes": ["CONTINGENCY_LOW"],
                 "acceptance_tests": ["15% contingency approved"],
@@ -455,7 +455,7 @@ if __name__ == "__main__":
             },
             {
                 "id": "B2",
-                "pillar": DomainEnum.Rights_Legality.value,
+                "domain": DomainEnum.Rights_Legality.value,
                 "title": "DPIA not initiated for launch regions",
                 "reason_codes": ["DPIA_GAPS"],
                 "acceptance_tests": ["DPIA submitted for all regions"],
@@ -465,7 +465,7 @@ if __name__ == "__main__":
             },
             {
                 "id": "B3",
-                "pillar": DomainEnum.HumanStability.value,
+                "domain": DomainEnum.HumanStability.value,
                 "title": "Stakeholder readiness unclear",
                 "reason_codes": ["STAFF_AVERSION"],
                 "acceptance_tests": ["Stakeholder survey ≥70% positive"],
@@ -475,7 +475,7 @@ if __name__ == "__main__":
             },
             {
                 "id": "B4",
-                "pillar": DomainEnum.EcologicalIntegrity.value,
+                "domain": DomainEnum.EcologicalIntegrity.value,
                 "title": "Water sourcing plan incomplete",
                 "reason_codes": ["WATER_STRESS"],
                 "acceptance_tests": ["Signed water supply MOU"],
@@ -490,8 +490,8 @@ if __name__ == "__main__":
     llm = get_llm(model_name)
 
     prompt = (
-        "File '029-1-pillars_assessment_raw.json':\n"
-        f"{json.dumps(pillars_example, indent=2)}\n\n"
+        "File '029-1-domains_assessment_raw.json':\n"
+        f"{json.dumps(domains_example, indent=2)}\n\n"
         "File '029-3-blockers_raw.json':\n"
         f"{json.dumps(blockers_example, indent=2)}"
     )
@@ -499,7 +499,7 @@ if __name__ == "__main__":
     result = FixPack.execute(
         llm=llm,
         user_prompt=prompt,
-        pillars_assessment_json=json.dumps(pillars_example),
+        domains_assessment_json=json.dumps(domains_example),
         blockers_json=json.dumps(blockers_example),
     )
     print(json.dumps(result.response, indent=2))

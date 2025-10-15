@@ -8,7 +8,7 @@ from enum import Enum
 
 
 class StatusEnum(str, Enum):
-    """Status enumeration for viability assessment pillars.
+    """Status enumeration for viability assessment domains.
     
     This enum represents the overall viability status of a project or plan
     based on evidence and assessment of critical factors.

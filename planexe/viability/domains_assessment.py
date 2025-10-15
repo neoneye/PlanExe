@@ -1,11 +1,11 @@
 """
-Pillars assessment
+Domains assessment
 
 Auto-repair that enforces status/score bands, evidence gating, and reason-code whitelists.
 
 IDEA: Scoring transparency. The "score" is currently untrustworthy. I want to change from the range 0-100 to multiple parameters in the range 1-5, so that the score can be fact checked.
 
-IDEA: Extract the REASON_CODES_BY_PILLAR, DEFAULT_EVIDENCE_BY_PILLAR, EVIDENCE_TEMPLATES into a JSON file.
+IDEA: Extract the REASON_CODES_BY_DOMAIN, DEFAULT_EVIDENCE_BY_DOMAIN, EVIDENCE_TEMPLATES into a JSON file.
 
 PROMPT> python -u -m planexe.viability.domains_assessment | tee output.txt
 """
@@ -24,7 +24,7 @@ from llama_index.core.llms.llm import LLM
 from pydantic import BaseModel, Field
 
 from planexe.markdown_util.fix_bullet_lists import fix_bullet_lists
-from planexe.viability.domains_prompt import make_pillars_system_prompt
+from planexe.viability.domains_prompt import make_domains_system_prompt
 from planexe.viability.model_domain import DomainEnum
 from planexe.viability.model_status import StatusEnum
 
@@ -34,10 +34,10 @@ logger = logging.getLogger(__name__)
 # Constants & enums
 # ---------------------------------------------------------------------------
 
-PILLAR_ORDER: List[str] = DomainEnum.value_list()
+DOMAIN_ORDER: List[str] = DomainEnum.value_list()
 
 # This list is not exhaustive, more items are likely to be added over time.
-REASON_CODES_BY_PILLAR: Dict[str, List[str]] = {
+REASON_CODES_BY_DOMAIN: Dict[str, List[str]] = {
     DomainEnum.HumanStability.value: [
         "TALENT_UNKNOWN",
         "STAFF_AVERSION",
@@ -84,10 +84,10 @@ REASON_CODES_BY_PILLAR: Dict[str, List[str]] = {
 }
 
 NEGATIVE_REASON_CODES: List[str] = sorted(
-    {code for codes in REASON_CODES_BY_PILLAR.values() for code in codes}
+    {code for codes in REASON_CODES_BY_DOMAIN.values() for code in codes}
 )
 
-DEFAULT_EVIDENCE_BY_PILLAR = {
+DEFAULT_EVIDENCE_BY_DOMAIN = {
     DomainEnum.HumanStability.value: [
         "Stakeholder map + skills gap snapshot",
         "Change plan v1 (communications, training, adoption KPIs)",
@@ -175,23 +175,23 @@ def _reason_code_factor_set(code: str) -> Set[str]:
 
 
 def _build_reason_code_fallbacks() -> Dict[str, Dict[str, str]]:
-    fallbacks: Dict[str, Dict[str, str]] = {pillar: {} for pillar in PILLAR_ORDER}
-    for pillar, codes in REASON_CODES_BY_PILLAR.items():
+    fallbacks: Dict[str, Dict[str, str]] = {domain: {} for domain in DOMAIN_ORDER}
+    for domain, codes in REASON_CODES_BY_DOMAIN.items():
         for code in codes:
             factors = _reason_code_factor_set(code)
             weight = len(factors)
             for factor in factors:
-                existing = fallbacks[pillar].get(factor)
+                existing = fallbacks[domain].get(factor)
                 if existing is None:
-                    fallbacks[pillar][factor] = code
+                    fallbacks[domain][factor] = code
                 else:
                     existing_weight = len(_reason_code_factor_set(existing))
                     if weight < existing_weight:
-                        fallbacks[pillar][factor] = code
+                        fallbacks[domain][factor] = code
     return fallbacks
 
 
-FALLBACK_REASON_CODE_BY_PILLAR_AND_FACTOR = _build_reason_code_fallbacks()
+FALLBACK_REASON_CODE_BY_DOMAIN_AND_FACTOR = _build_reason_code_fallbacks()
 
 # Canonical evidence templates per reason code (artifact-first, not actions)
 # EVIDENCE_TEMPLATES
@@ -512,7 +512,7 @@ def _base_evidence_name(text: str) -> str:
     return base.strip()
 
 
-def _canonicalize_evidence(pillar: str, reason_codes: List[str], evidence_todo: List[str]) -> List[str]:
+def _canonicalize_evidence(domain: str, reason_codes: List[str], evidence_todo: List[str]) -> List[str]:
     """
     Replace action-y items with artifact names and fill from templates.
     Cap at 2 items to keep Step-1 tight.
@@ -553,7 +553,7 @@ def _canonicalize_evidence(pillar: str, reason_codes: List[str], evidence_todo: 
 # Lightweight schema for structured output
 # ---------------------------------------------------------------------------
 
-class PillarLikertScoreSchema(BaseModel):
+class DomainLikertScoreSchema(BaseModel):
     evidence: Optional[int] = Field(default=None, ge=LIKERT_MIN, le=LIKERT_MAX)
     risk: Optional[int] = Field(default=None, ge=LIKERT_MIN, le=LIKERT_MAX)
     fit: Optional[int] = Field(default=None, ge=LIKERT_MIN, le=LIKERT_MAX)
@@ -563,10 +563,10 @@ class PillarLikertScoreSchema(BaseModel):
         extra = "ignore"
 
 
-class PillarItemSchema(BaseModel):
-    pillar: str = Field(..., description="Pillar name from DomainEnum")
+class DomainItemSchema(BaseModel):
+    domain: str = Field(..., description="Domain name from DomainEnum")
     status: str = Field(..., description="Status indicator")
-    score: Optional[PillarLikertScoreSchema] = Field(
+    score: Optional[DomainLikertScoreSchema] = Field(
         None,
         description="Per-factor Likert scores (1-5) with derived averages",
     )
@@ -579,8 +579,8 @@ class PillarItemSchema(BaseModel):
         extra = "ignore"
 
 
-class PillarsSchema(BaseModel):
-    pillars: List[PillarItemSchema] = Field(default_factory=list)
+class DomainsSchema(BaseModel):
+    domains: List[DomainItemSchema] = Field(default_factory=list)
 
     class Config:
         extra = "ignore"
@@ -590,19 +590,19 @@ class PillarsSchema(BaseModel):
 # Prompt assembly
 # ---------------------------------------------------------------------------
 
-PILLARS_SYSTEM_PROMPT = make_pillars_system_prompt(
-    PILLAR_ORDER,
-    REASON_CODES_BY_PILLAR,
-    DEFAULT_EVIDENCE_BY_PILLAR,
+DOMAINS_SYSTEM_PROMPT = make_domains_system_prompt(
+    DOMAIN_ORDER,
+    REASON_CODES_BY_DOMAIN,
+    DEFAULT_EVIDENCE_BY_DOMAIN,
 )
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _default_pillar(pillar: str) -> Dict[str, Any]:
+def _default_domain(domain: str) -> Dict[str, Any]:
     return {
-        "pillar": pillar,
+        "domain": domain,
         "status": StatusEnum.GRAY.value,
         "score": _compute_derived_metrics(_empty_likert_score()),
         "reason_codes": [],
@@ -614,8 +614,8 @@ def enforce_gray_evidence(
     defaults: Dict[str, List[str]],
 ) -> List[Dict[str, Any]]:
     """
-    Ensure every GRAY pillar has 1–2 artifact-style evidence items.
-    If missing, fill from `defaults[pillar]`; if that’s empty/missing, use a generic fallback.
+    Ensure every GRAY domain has 1–2 artifact-style evidence items.
+    If missing, fill from `defaults[domain]`; if that’s empty/missing, use a generic fallback.
     """
     GENERIC_FALLBACK: List[str] = ["Baseline note v1 (scope, metrics)"]
 
@@ -624,8 +624,8 @@ def enforce_gray_evidence(
             raw_ev = it.get("evidence_todo") or []
             ev: List[str] = [e for e in raw_ev if isinstance(e, str) and e.strip()]
             if not ev:
-                pillar = str(it.get("pillar", ""))
-                ev = list(defaults.get(pillar, GENERIC_FALLBACK))[:2]
+                domain = str(it.get("domain", ""))
+                ev = list(defaults.get(domain, GENERIC_FALLBACK))[:2]
             it["evidence_todo"] = _apply_done_when(ev[:2])
     return items
 
@@ -633,7 +633,7 @@ def enforce_colored_evidence(
     items: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     """
-    Ensure YELLOW/RED pillars have at least one artifact-style evidence item.
+    Ensure YELLOW/RED domains have at least one artifact-style evidence item.
     If empty, insert a minimal default. Also cap evidence_todo to max 2 items.
     """
     DEFAULT_EVIDENCE: List[str] = ["Issue analysis memo v1"]
@@ -656,20 +656,20 @@ def _reason_codes_support_factor(reason_codes: List[str], factor: str) -> bool:
     )
 
 
-def _fallback_reason_code(pillar: str, factor: str) -> Optional[str]:
-    return FALLBACK_REASON_CODE_BY_PILLAR_AND_FACTOR.get(pillar, {}).get(factor)
+def _fallback_reason_code(domain: str, factor: str) -> Optional[str]:
+    return FALLBACK_REASON_CODE_BY_DOMAIN_AND_FACTOR.get(domain, {}).get(factor)
 
 
 def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Make weak-model output deterministic and policy-compliant."""
     data = dict(payload)  # shallow copy
-    pillars = data.get("pillars", [])
+    domains = data.get("domains", [])
     validated: List[Dict[str, Any]] = []
 
     valid_statuses = {status.value for status in StatusEnum}
 
-    for p in pillars:
-        pillar_name = p.get("pillar", "Rights_Legality")
+    for p in domains:
+        domain_name = p.get("domain", "Rights_Legality")
         status_raw = p.get("status", StatusEnum.GRAY.value)
         status_enum = status_raw if status_raw in valid_statuses else StatusEnum.GRAY.value
 
@@ -683,7 +683,7 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
         strength_rationale = p.get("strength_rationale")
 
         # Canonicalize evidence BEFORE applying status rules
-        evidence_todo = _canonicalize_evidence(pillar_name, reason_codes, evidence_todo)
+        evidence_todo = _canonicalize_evidence(domain_name, reason_codes, evidence_todo)
 
         status_from_factors = _derive_status_from_factors(factors)
         if status_from_factors != StatusEnum.GRAY.value:
@@ -736,10 +736,10 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         if status_enum in (StatusEnum.YELLOW.value, StatusEnum.RED.value) and decisive_factor:
             if not _reason_codes_support_factor(reason_codes, decisive_factor):
-                fallback_code = _fallback_reason_code(pillar_name, decisive_factor)
+                fallback_code = _fallback_reason_code(domain_name, decisive_factor)
                 if fallback_code and fallback_code not in reason_codes:
                     reason_codes.append(fallback_code)
-                evidence_todo = _canonicalize_evidence(pillar_name, reason_codes, evidence_todo)
+                evidence_todo = _canonicalize_evidence(domain_name, reason_codes, evidence_todo)
 
         score = _compute_derived_metrics(factors)
 
@@ -748,7 +748,7 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
             strength_rationale = None
 
         validated.append({
-            "pillar": pillar_name,
+            "domain": domain_name,
             "status": status_enum,
             "score": score,
             "reason_codes": reason_codes,
@@ -756,13 +756,13 @@ def validate_and_repair(payload: Dict[str, Any]) -> Dict[str, Any]:
             **({"strength_rationale": strength_rationale} if strength_rationale else {}),
         })
 
-    validated = enforce_gray_evidence(validated, DEFAULT_EVIDENCE_BY_PILLAR)
+    validated = enforce_gray_evidence(validated, DEFAULT_EVIDENCE_BY_DOMAIN)
     validated = enforce_colored_evidence(validated)
 
-    # Keep pillar order & fill any missing pillars (belt-and-suspenders)
-    by_name = {it["pillar"]: it for it in validated}
-    ordered = [by_name.get(p, _default_pillar(p)) for p in PILLAR_ORDER]
-    return {"pillars": ordered}
+    # Keep domain order & fill any missing domains (belt-and-suspenders)
+    by_name = {it["domain"]: it for it in validated}
+    ordered = [by_name.get(p, _default_domain(p)) for p in DOMAIN_ORDER]
+    return {"domains": ordered}
 
 # ---------------------------------------------------------------------------
 # Markdown rendering helpers
@@ -817,18 +817,18 @@ def _reason_keywords_for_factor(reason_codes: List[str], factor: str, limit: int
 
 
 def convert_to_markdown(data: Dict[str, Any]) -> str:
-    pillars = data.get("pillars", [])
+    domains = data.get("domains", [])
     status_counts = {status.value: 0 for status in StatusEnum}
-    for pillar in pillars:
-        status = pillar.get("status", StatusEnum.GRAY.value)
+    for domain in domains:
+        status = domain.get("status", StatusEnum.GRAY.value)
         if status in status_counts:
             status_counts[status] += 1
 
-    def _pillars_label(n: int) -> str:
-        return "pillar" if n == 1 else "pillars"
+    def _domains_label(n: int) -> str:
+        return "domain" if n == 1 else "domains"
 
-    def _format_count_pillars(n: int) -> str:
-        return f"{n} {_pillars_label(n)}"
+    def _format_count_domains(n: int) -> str:
+        return f"{n} {_domains_label(n)}"
         
     def _get_legend_markdown() -> str:
         try:
@@ -873,32 +873,32 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         html = f.read()
 
     # Replace the GREEN_COUNT, YELLOW_COUNT, RED_COUNT, GRAY_COUNT with the status counts
-    html = html.replace("GREEN_COUNT", _format_count_pillars(status_counts['GREEN']))
-    html = html.replace("YELLOW_COUNT", _format_count_pillars(status_counts['YELLOW']))
-    html = html.replace("RED_COUNT", _format_count_pillars(status_counts['RED']))
-    html = html.replace("GRAY_COUNT", _format_count_pillars(status_counts['GRAY']))
+    html = html.replace("GREEN_COUNT", _format_count_domains(status_counts['GREEN']))
+    html = html.replace("YELLOW_COUNT", _format_count_domains(status_counts['YELLOW']))
+    html = html.replace("RED_COUNT", _format_count_domains(status_counts['RED']))
+    html = html.replace("GRAY_COUNT", _format_count_domains(status_counts['GRAY']))
 
-    # Dim the pillar cards if the count is 0
-    html = html.replace("GREEN_PILLAR_CSS_CLASS", "pillar-card--count-zero" if status_counts['GREEN'] == 0 else "")
-    html = html.replace("YELLOW_PILLAR_CSS_CLASS", "pillar-card--count-zero" if status_counts['YELLOW'] == 0 else "")
-    html = html.replace("RED_PILLAR_CSS_CLASS", "pillar-card--count-zero" if status_counts['RED'] == 0 else "")
-    html = html.replace("GRAY_PILLAR_CSS_CLASS", "pillar-card--count-zero" if status_counts['GRAY'] == 0 else "")
+    # Dim the domain cards if the count is 0
+    html = html.replace("GREEN_DOMAIN_CSS_CLASS", "domain-card--count-zero" if status_counts['GREEN'] == 0 else "")
+    html = html.replace("YELLOW_DOMAIN_CSS_CLASS", "domain-card--count-zero" if status_counts['YELLOW'] == 0 else "")
+    html = html.replace("RED_DOMAIN_CSS_CLASS", "domain-card--count-zero" if status_counts['RED'] == 0 else "")
+    html = html.replace("GRAY_DOMAIN_CSS_CLASS", "domain-card--count-zero" if status_counts['GRAY'] == 0 else "")
 
     rows: List[str] = []
     rows.append(html)
     rows.append("\n\n## Domain Details")
     rows.append(_get_legend_markdown())
 
-    for pillar_index, pillar in enumerate(pillars, start=1):
-        name = pillar.get("pillar", "Unknown")
+    for domain_index, domain in enumerate(domains, start=1):
+        name = domain.get("domain", "Unknown")
         display_name = DomainEnum.get_display_name(name)
-        status = pillar.get("status", StatusEnum.GRAY.value)
-        score = pillar.get("score") or {}
-        reason_codes = pillar.get("reason_codes", []) or []
-        evidence = pillar.get("evidence_todo", []) or []
-        strength_rationale = pillar.get("strength_rationale")
+        status = domain.get("status", StatusEnum.GRAY.value)
+        score = domain.get("score") or {}
+        reason_codes = domain.get("reason_codes", []) or []
+        evidence = domain.get("evidence_todo", []) or []
+        strength_rationale = domain.get("strength_rationale")
 
-        rows.append(f"### Domain {pillar_index}: {display_name}\n")
+        rows.append(f"### Domain {domain_index}: {display_name}\n")
         def _fmt_factor(val: Any) -> str:
             if isinstance(val, (int, float)):
                 if isinstance(val, float):
@@ -921,7 +921,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
             rows.append(f"**Metrics**: {metrics_text}\n")
 
         if status == StatusEnum.GREEN.value:
-            # GREEN pillars should not show evidence; optionally render the rationale if provided.
+            # GREEN domains should not show evidence; optionally render the rationale if provided.
             if strength_rationale:
                 rows.append(f"_Why green:_ {strength_rationale}\n")
         elif status in (StatusEnum.YELLOW.value, StatusEnum.RED.value):
@@ -963,7 +963,7 @@ class DomainsAssessment:
         if not isinstance(llm, LLM):
             raise TypeError("llm must be an instance of LLM")
 
-        system_prompt = PILLARS_SYSTEM_PROMPT
+        system_prompt = DOMAINS_SYSTEM_PROMPT
         messages = [
             ChatMessage(role=MessageRole.SYSTEM, content=system_prompt),
             ChatMessage(role=MessageRole.USER, content=user_prompt),
@@ -974,7 +974,7 @@ class DomainsAssessment:
         raw_text = ""
         used_structured = False
 
-        sllm = llm.as_structured_llm(PillarsSchema)
+        sllm = llm.as_structured_llm(DomainsSchema)
         chat_response = sllm.chat(messages)
         used_structured = True
         raw_payload = chat_response.raw.model_dump()
@@ -1046,7 +1046,7 @@ if __name__ == "__main__":  # pragma: no cover
     model_name = "ollama-llama3.1"
     llm = get_llm(model_name)
 
-    print(f"PILLARS_SYSTEM_PROMPT: {PILLARS_SYSTEM_PROMPT}\n\n")
+    print(f"DOMAINS_SYSTEM_PROMPT: {DOMAINS_SYSTEM_PROMPT}\n\n")
     result = DomainsAssessment.execute(llm, plan_text)
     print(json.dumps(result.response, indent=2, ensure_ascii=False))
     print("\nMarkdown:\n")

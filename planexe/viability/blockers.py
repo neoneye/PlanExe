@@ -1,9 +1,9 @@
 """
-One-pager that generates blockers from pillars assessment.
+One-pager that generates blockers from domains assessment.
 
 Based on ViabilityAssessor Step 2: Emit Blockers.
 
-- The blockers summary derives from weak pillars (YELLOW, RED, GRAY).
+- The blockers summary derives from weak domains (YELLOW, RED, GRAY).
 - Purpose: Convert weaknesses into 3-5 actionable blockers with acceptance tests and artifacts.
 - Helps prioritize fixes: Each blocker has verifiable tests, required artifacts, owner, and ROM estimate.
 - Provides execution clarity: Bundles risks into crisp, testable items for Fix Packs.
@@ -32,19 +32,19 @@ logger = logging.getLogger(__name__)
 
 class Blocker(BaseModel):
     id: str = Field(description="Unique ID like 'B1', 'B2', etc.")
-    pillar: str = Field(description="The pillar name from DomainEnum.")
+    domain: str = Field(description="The domain name from DomainEnum.")
     title: str = Field(description="A concise, descriptive title for the blocker.")
-    reason_codes: Optional[List[str]] = Field(default_factory=list, description="Subset of reason codes from the pillar's issues.")
+    reason_codes: Optional[List[str]] = Field(default_factory=list, description="Subset of reason codes from the domain's issues.")
     acceptance_tests: Optional[List[str]] = Field(default_factory=list, description="1-3 verifiable acceptance tests (e.g., '>=10% contingency approved').")
     artifacts_required: Optional[List[str]] = Field(default_factory=list, description="Required artifacts/deliverables (e.g., 'Budget_v2.pdf').")
     owner: Optional[str] = Field(default=None, description="Responsible role or team (e.g., 'PMO').")
     rom: Optional[Dict[str, Any]] = Field(default=None, description="ROM estimate: {'cost_band': 'LOW|MEDIUM|HIGH', 'eta_days': int}.")
 
 class BlockersOutput(BaseModel):
-    source_pillars: List[str] = Field(description=f"Array of pillar names that are {StatusEnum.YELLOW.value}, {StatusEnum.RED.value}, or {StatusEnum.GRAY.value}.")
-    blockers: List[Blocker] = Field(description="3-5 blockers derived from source_pillars.")
+    source_domains: List[str] = Field(description=f"Array of domain names that are {StatusEnum.YELLOW.value}, {StatusEnum.RED.value}, or {StatusEnum.GRAY.value}.")
+    blockers: List[Blocker] = Field(description="3-5 blockers derived from source_domains.")
 
-PILLAR_ENUM = DomainEnum.value_list()
+DOMAIN_ENUM = DomainEnum.value_list()
 REASON_CODE_ENUM = [
     # Budget/Finance
     "CONTINGENCY_LOW", "SINGLE_CUSTOMER", "ALT_COST_UNKNOWN",
@@ -64,16 +64,16 @@ REASON_CODE_ENUM = [
 COST_BAND_ENUM = ["LOW", "MEDIUM", "HIGH"]
 
 BLOCKERS_SYSTEM_PROMPT = f"""
-You are an expert risk assessor specializing in deriving actionable blockers from pillar assessments in viability plans. Your task is to generate a complete blockers output as a valid JSON object that strictly adheres to the schema below. Do not include any extra text, markdown formatting, or additional keys.
+You are an expert risk assessor specializing in deriving actionable blockers from domain assessments in viability plans. Your task is to generate a complete blockers output as a valid JSON object that strictly adheres to the schema below. Do not include any extra text, markdown formatting, or additional keys.
 
 The JSON object must include exactly the following keys:
 
 {{
-  "source_pillars": ["HumanStability", "EconomicResilience"],  // Array of pillar names from DomainEnum that have status YELLOW, RED, or GRAY
-  "blockers": [  // Array of 3-5 Blocker objects, only from source_pillars
+  "source_domains": ["HumanStability", "EconomicResilience"],  // Array of domain names from DomainEnum that have status YELLOW, RED, or GRAY
+  "blockers": [  // Array of 3-5 Blocker objects, only from source_domains
     {{
       "id": "B1",
-      "pillar": "EconomicResilience",
+      "domain": "EconomicResilience",
       "title": "Contingency too low",
       "reason_codes": ["CONTINGENCY_LOW"],
       "acceptance_tests": [">=10% contingency approved", "Monte Carlo risk workbook attached"],
@@ -85,18 +85,18 @@ The JSON object must include exactly the following keys:
 }}
 
 Instructions:
-- source_pillars: List only pillars from the input assessment where status is {StatusEnum.YELLOW.value}, {StatusEnum.RED.value}, or {StatusEnum.GRAY.value}. Use exact names from DomainEnum: {', '.join(PILLAR_ENUM)}.
-- blockers: Derive 3-5 blockers total (cap at 5) only from source_pillars. Distribute across pillars logically. For each:
+- source_domains: List only domains from the input assessment where status is {StatusEnum.YELLOW.value}, {StatusEnum.RED.value}, or {StatusEnum.GRAY.value}. Use exact names from DomainEnum: {', '.join(DOMAIN_ENUM)}.
+- blockers: Derive 3-5 blockers total (cap at 5) only from source_domains. Distribute across domains logically. For each:
   - id: Sequential like "B1", "B2", etc.
-  - pillar: Match one from source_pillars.
+  - domain: Match one from source_domains.
   - title: Concise and descriptive (e.g., "Contingency too low").
-  - reason_codes: Subset of 1-2 codes from the pillar's 'Issues' in the input. Use from REASON_CODE_ENUM if possible: {', '.join(REASON_CODE_ENUM)}; otherwise, use input terms.
+  - reason_codes: Subset of 1-2 codes from the domain's 'Issues' in the input. Use from REASON_CODE_ENUM if possible: {', '.join(REASON_CODE_ENUM)}; otherwise, use input terms.
   - acceptance_tests: 1-3 short, verifiable tests (e.g., ">=80% support in survey").
   - artifacts_required: 1-3 specific deliverables/files (e.g., "Plan_v1.pdf").
   - owner: A role/team (e.g., "PMO", "Engineering Lead").
   - rom: Always include {{"cost_band": one of {', '.join(COST_BAND_ENUM)}, "eta_days": realistic number like 14}}.
-- Derivation: Base blockers on the pillar's status, score, Issues, and Evidence Needed. Focus on turning weaknesses into testable fixes.
-- Guardrails: No blockers from GREEN pillars. Keep total <=5. Use professional, concise language.
+- Derivation: Base blockers on the domain's status, score, Issues, and Evidence Needed. Focus on turning weaknesses into testable fixes.
+- Guardrails: No blockers from GREEN domains. Keep total <=5. Use professional, concise language.
 
 Output Requirements:
 - Your entire response must be a valid JSON object conforming exactly to the schema above.
@@ -116,7 +116,7 @@ class Blockers:
     @classmethod
     def execute(cls, llm: LLM, user_prompt: str) -> 'Blockers':
         """
-        Invoke LLM with pillars assessment text to derive blockers.
+        Invoke LLM with domains assessment text to derive blockers.
         """
         if not isinstance(llm, LLM):
             raise ValueError("Invalid LLM instance.")
@@ -191,7 +191,7 @@ class Blockers:
         rows = []
         for blocker in blockers_output.blockers:
             rows.append(f"### {blocker.id}: {blocker.title}\n")
-            rows.append(f"**Pillar:** {blocker.pillar}\n")
+            rows.append(f"**Domain:** {blocker.domain}\n")
             if blocker.reason_codes:
                 rows.append(f"\n**Reason Codes:** {', '.join(blocker.reason_codes)}\n")
             if blocker.acceptance_tests:
@@ -218,19 +218,19 @@ class Blockers:
 if __name__ == "__main__":
     from planexe.llm_factory import get_llm
 
-    # Extracted Pillars Assessment from report
-    pillars_text = """
-Pillars Assessment
+    # Extracted Domains Assessment from report
+    domains_text = """
+Domains Assessment
 
 Summary
 
-	GREEN: 0 pillars
-	YELLOW: 2 pillars
-	RED: 2 pillars
-	GRAY: 0 pillars
+	GREEN: 0 domains
+	YELLOW: 2 domains
+	RED: 2 domains
+	GRAY: 0 domains
 
 
-Pillar Details
+Domain Details
 
 Human Stability
 
@@ -283,7 +283,7 @@ Evidence Needed:
     model_name = "ollama-llama3.1"
     llm = get_llm(model_name)
 
-    query = pillars_text
+    query = domains_text
     input_bytes_count = len(query.encode('utf-8'))
     print(f"Query: {query}")
     result = Blockers.execute(llm, query)

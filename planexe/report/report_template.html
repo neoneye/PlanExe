@@ -137,13 +137,13 @@
             margin-bottom: 0; /* Removes default bottom margin from the last paragraph */
         }
 
-        /* Pillars Grid */
-        .pillars-grid {
+        /* Domains Grid */
+        .domains-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 12px;
         }
-        .pillar-card {
+        .domain-card {
             border-radius: 5px;
             border: 1px solid #c2c2c2;
             padding-top: 12px;
@@ -151,20 +151,20 @@
             padding-bottom: 0;
             padding-left: 14px;
         }
-        .pillar-card__header {
+        .domain-card__header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
             margin-bottom: 6px;
         }
-        .pillar-card__left {
+        .domain-card__left {
             display: flex;
             align-items: center;
             gap: 10px;
             min-width: 0;
         }
-        .pillar-card__icon {
+        .domain-card__icon {
             display: inline-grid;
             place-items: center;
             width: 28px; height: 28px;
@@ -174,30 +174,30 @@
             font-size: 16px;
             flex: 0 0 28px;
         }
-        .pillar-card__status-name {
+        .domain-card__status-name {
             font-weight: 800;
             letter-spacing: .02em;
         }
-        .pillar-card__count {
+        .domain-card__count {
             font-variant-numeric: tabular-nums;
             font-weight: 600;
             opacity: .85;
             white-space: nowrap;
         }
-        .pillar-card__body {
+        .domain-card__body {
             color: #2a2a2a;
             font-size: .95rem;
         }
-        /* Pillar States */
-        .pillar-card--green .pillar-card__icon { background: var(--green-500); color: #fff; }
-        .pillar-card--green .pillar-card__status-name { color: var(--green-700); }
-        .pillar-card--yellow .pillar-card__icon { background: var(--yellow-500); color: #111; }
-        .pillar-card--yellow .pillar-card__status-name { color: var(--yellow-700); }
-        .pillar-card--red .pillar-card__icon { background: var(--red-500); color: #fff; }
-        .pillar-card--red .pillar-card__status-name { color: var(--red-700); }
-        .pillar-card--gray .pillar-card__icon { background: var(--gray-500); color: #fff; }
-        .pillar-card--gray .pillar-card__status-name { color: var(--gray-700); }
-        .pillar-card--count-zero .pillar-card__body { color: #979797; }
+        /* Domain States */
+        .domain-card--green .domain-card__icon { background: var(--green-500); color: #fff; }
+        .domain-card--green .domain-card__status-name { color: var(--green-700); }
+        .domain-card--yellow .domain-card__icon { background: var(--yellow-500); color: #111; }
+        .domain-card--yellow .domain-card__status-name { color: var(--yellow-700); }
+        .domain-card--red .domain-card__icon { background: var(--red-500); color: #fff; }
+        .domain-card--red .domain-card__status-name { color: var(--red-700); }
+        .domain-card--gray .domain-card__icon { background: var(--gray-500); color: #fff; }
+        .domain-card--gray .domain-card__status-name { color: var(--gray-700); }
+        .domain-card--count-zero .domain-card__body { color: #979797; }
     </style>
     <!--HTML_HEAD_INSERT_HERE-->
 </head>

@@ -3837,7 +3837,7 @@ class FixPacksTask(PlanTask):
         fix_packs = FixPack.execute(
             llm=llm, 
             user_prompt=query, 
-            pillars_assessment_json=pillars_assessment_raw, 
+            domains_assessment_json=pillars_assessment_raw, 
             blockers_json=blockers_raw
         )
 
@@ -3871,7 +3871,7 @@ class ViabilityOverallSummaryTask(PlanTask):
             fix_packs_raw = f.read()
 
         summary = OverallSummary.execute(
-            pillars_payload=pillars_assessment_raw,
+            domains_payload=pillars_assessment_raw,
             blockers_payload=blockers_raw,
             fix_packs_payload=fix_packs_raw,
         )
