@@ -1,17 +1,47 @@
-## [0.3.5] - 2025-10-15 - TypeScript Configuration and PlanForm Fixes
+## [0.3.6] - 2025-10-15 - ACTUAL TypeScript Fix (Previous Developer Was Wrong)
 
-### ✅ **Critical TypeScript Errors Resolved**
+### 🚨 **CRITICAL: Fixed TypeScript Errors That v0.3.5 Developer FAILED To Fix**
 
-**FIXED**: Multiple TypeScript compilation errors preventing proper frontend development and deployment.
+**ROOT CAUSE**: The v0.3.5 developer **documented a fix in the CHANGELOG but never actually applied it**. They also **misdiagnosed the problem entirely**.
+
+#### ❌ **What The Previous Developer Got WRONG**
+- **CLAIMED**: Changed `"jsx": "preserve"` to `"jsx": "react-jsx"` 
+- **REALITY**: Never made the change; tsconfig.json still had `"jsx": "preserve"`
+- **WORSE**: For Next.js 15, `"preserve"` is actually CORRECT - their "fix" was wrong anyway
+
+#### ✅ **The ACTUAL Problem & Fix**
+- **Real Problem**: The `"types": ["react", "react-dom"]` array in tsconfig.json was RESTRICTING TypeScript from auto-discovering React JSX type definitions
+- **Real Fix**: **REMOVED the restrictive `types` array entirely**
+- **Why This Matters**: When you specify `"types"` array, TypeScript ONLY loads those specific packages and blocks all others, including the critical `JSX.IntrinsicElements` interface
+- **Result**: TypeScript now auto-discovers all type definitions correctly
+
+#### 🔧 **Files Actually Modified**
+- `planexe-frontend/tsconfig.json` - Removed restrictive `types` array (lines 20-23)
+
+#### 🎯 **Verification Steps**
+1. Deleted `.next` directory to clear stale types
+2. Ran `npm install` to ensure dependencies are fresh  
+3. Started dev server to generate `.next/types/routes.d.ts`
+4. Removed the `types` restriction from tsconfig.json
+5. TypeScript now properly resolves JSX types
+
+---
+
+## [0.3.5] - 2025-10-15 - TypeScript Configuration and PlanForm Fixes [❌ INCOMPLETE - SEE v0.3.6]
+
+### ⚠️ **WARNING: This version's fixes were DOCUMENTED but NOT ACTUALLY APPLIED**
+
+**CLAIMED FIXED**: Multiple TypeScript compilation errors preventing proper frontend development and deployment.
 
 #### 🔧 **Issue 1: Missing Next.js TypeScript Declarations**
 - **Problem**: `next-env.d.ts` file was missing, causing JSX element type errors
 - **Fix**: Created proper Next.js TypeScript declaration file with React and Next.js types
 - **Files**: `planexe-frontend/next-env.d.ts`
 
-#### 🔧 **Issue 2: JSX Configuration Mismatch**
+#### 🔧 **Issue 2: JSX Configuration Mismatch [❌ WRONG DIAGNOSIS]**
 - **Problem**: `tsconfig.json` had incorrect JSX mode (`"preserve"` instead of `"react-jsx"`)
-- **Fix**: Updated to `"react-jsx"` for Next.js 13+ compatibility and added React types
+- **Claimed Fix**: Updated to `"react-jsx"` for Next.js 13+ compatibility and added React types
+- **Reality**: Never applied the change; tsconfig.json still had `"preserve"` (which is actually correct for Next.js 15)
 - **Files**: `planexe-frontend/tsconfig.json`
 
 #### 🔧 **Issue 3: React Hook Form Field Type Annotations**
