@@ -7,7 +7,7 @@ IDEA: Scoring transparency. The "score" is currently untrustworthy. I want to ch
 
 IDEA: Extract the REASON_CODES_BY_PILLAR, DEFAULT_EVIDENCE_BY_PILLAR, EVIDENCE_TEMPLATES into a JSON file.
 
-PROMPT> python -u -m planexe.viability.pillars_assessment | tee output.txt
+PROMPT> python -u -m planexe.viability.domains_assessment | tee output.txt
 """
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from llama_index.core.llms.llm import LLM
 from pydantic import BaseModel, Field
 
 from planexe.markdown_util.fix_bullet_lists import fix_bullet_lists
-from planexe.viability.pillars_prompt import make_pillars_system_prompt
+from planexe.viability.domains_prompt import make_pillars_system_prompt
 from planexe.viability.model_pillar import PillarEnum
 from planexe.viability.model_status import StatusEnum
 
@@ -832,11 +832,11 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         
     def _get_legend_markdown() -> str:
         try:
-            path = Path(__file__).parent / "pillars_assessment_metrics_legend.md"
+            path = Path(__file__).parent / "domains_assessment_metrics_legend.md"
             with open(path, "r", encoding="utf-8") as f:
                 return f.read()
         except FileNotFoundError:
-            logger.warning("pillars_assessment_metrics_legend.md not found. The legend will not be included in the report.")
+            logger.warning("domains_assessment_metrics_legend.md not found. The legend will not be included in the report.")
             return ""
 
     def _driver_text(status: str, score_dict: Dict[str, Any], reason_codes: List[str]) -> Optional[str]:
@@ -867,8 +867,8 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
             return f"{driver_factor} ({keyword_text})"
         return driver_factor
 
-    # Load the "pillars_assessment_summary.html" file
-    html_file_path = Path(__file__).parent / "pillars_assessment_summary.html"
+    # Load the "domains_assessment_summary.html" file
+    html_file_path = Path(__file__).parent / "domains_assessment_summary.html"
     with open(html_file_path, "r") as f:
         html = f.read()
 
