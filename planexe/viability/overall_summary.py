@@ -7,8 +7,6 @@ It consumes the structured outputs from the previous viability steps
 be serialized to JSON and markdown.
 
 PROMPT> python -u -m planexe.viability.overall_summary | tee output.txt
-
-IDEA: Re-enable "score" within the overall_summary when I have gotton the domains_assessment.py likert scores to work.
 """
 
 from __future__ import annotations
