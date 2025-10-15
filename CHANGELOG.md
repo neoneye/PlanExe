@@ -1,3 +1,32 @@
+## [0.3.4] - 2025-10-15 - Critical Railway Deployment Fixes
+
+### 🚨 **CRITICAL FIXES: Railway Production Deployment Blockers**
+
+**RESOLVED**: Three critical issues preventing Railway deployment from functioning.
+
+#### 🔧 **Issue 1: Read-Only Filesystem Plan Directory**
+- **Problem**: `PLANEXE_RUN_DIR=/app/run` was read-only on Railway, causing plan creation to fail
+- **Fix**: Updated to writable `/tmp/planexe_runs` in both Docker and Railway environment templates
+- **Files**: `.env.docker.example`, `railway-env-template.txt`
+
+#### 🔧 **Issue 2: Strict Dual-API-Key Requirement**
+- **Problem**: Pipeline required both OpenAI AND OpenRouter keys, failing Railway deployments using single provider
+- **Fix**: Modified `_setup_environment()` to allow single provider usage (at least one of OpenAI or OpenRouter)
+- **Files**: `planexe_api/services/pipeline_execution_service.py`
+
+#### 🔧 **Issue 3: Frontend Fallback Model Mismatch**
+- **Problem**: Frontend fallback model `fallback-gpt5-nano` doesn't exist in backend `llm_config.json`
+- **Fix**: Updated fallback to use actual backend model `gpt-5-mini-2025-08-07`
+- **Files**: `planexe-frontend/src/components/planning/PlanForm.tsx`
+
+### 🎯 **Railway Deployment Status**
+- ✅ **Writable Directories**: Plans now create successfully in `/tmp/planexe_runs`
+- ✅ **Single Provider Support**: OpenRouter-only Railway deployments work
+- ✅ **Model API Fallbacks**: Proper backend model alignment prevents 500 errors
+- ✅ **Production Ready**: All deployment blockers eliminated
+
+---
+
 ## [0.3.3] - 2025-10-03 - Recovery Workspace Artefact Integration
 
 ### Highlights
