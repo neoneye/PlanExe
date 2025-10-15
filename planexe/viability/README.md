@@ -251,8 +251,7 @@ Output (JSON) — what the LLM must emit
       "score": {
         "evidence": 2,
         "risk": 3,
-        "fit": 3,
-        "average_likert": 2.67
+        "fit": 3
       },
       "reason_codes": ["STAFF_AVERSION"],
       "evidence_todo": ["Stakeholder survey baseline"]
@@ -261,7 +260,7 @@ Output (JSON) — what the LLM must emit
 }
 ```
 
-The nested `score` object must follow `DomainLikertScoreSchema` (per-factor Likert 1–5 plus the derived `average_likert`).
+The nested `score` object must follow `DomainLikertScoreSchema` (per-factor Likert 1–5).
 
 **Example (GREEN with strength rationale):**
 ```json
@@ -273,8 +272,7 @@ The nested `score` object must follow `DomainLikertScoreSchema` (per-factor Like
       "score": {
         "evidence": 4,
         "risk": 4,
-        "fit": 5,
-        "average_likert": 4.33
+        "fit": 5
       },
       "reason_codes": ["STAKEHOLDER_ALIGNMENT"],
       "evidence_todo": [],
@@ -302,13 +300,12 @@ Interpretation & validation (spec — not emitted by the LLM)
 - reason_codes must come from the whitelist for that domain (enforced downstream)
 - Likert factors (`score` follows `DomainLikertScoreSchema` from `domains_assessment.py`)
   - Factors are integers 1–5 (or null when unknown) for `evidence`, `risk`, `fit`.
-  - `average_likert` is derived; omit or set to null if any factor is missing.
   - Status is deterministic: any factor ≤2 ⇒ RED; else worst factor ==3 ⇒ YELLOW; all factors ≥4 ⇒ GREEN; missing factors ⇒ GRAY.
 - Validator behavior
 - Normalizes the per-factor Likert scores (clamps 1–5, fills defaults per status).
-- Recomputes `average_likert` and aligns status with the factor rule.
+- Aligns status with the factor rule.
 - If status == GRAY, factors are nulled out.
-- Unknown/unsupported domain values are coerced to { "status":"GRAY", "score":{"evidence":null,"risk":null,"fit":null,"average_likert":null} }.
+- Unknown/unsupported domain values are coerced to { "status":"GRAY", "score":{"evidence":null,"risk":null,"fit":null} }.
 - Evidence gating
 - GREEN requires no open evidence items: evidence_todo must be empty.
 - YELLOW/RED may have evidence_todo entries.
@@ -426,7 +423,7 @@ Validation & Auto-repair (run after each step)
 
 Implement a tiny validator that:
 	1.	Enum checks: drop unknown fields; coerce invalid enum values to GRAY/defaults.
-	2.	Status/factor sync: normalize to the Likert schema (1–5), derive status from factors, recompute `average_likert`.
+	2.	Status/factor sync: normalize to the Likert schema (1–5) and derive status from factors.
 	3.	Evidence gate: if status="GREEN" and evidence_todo not empty → downgrade to YELLOW (and re-sync factors).
 	4.	ID integrity: verify blocker_ids exist; remove or flag extras.
 	5.	Defaults: back-fill rom missing with {"cost_band":"LOW","eta_days":14}.
@@ -444,10 +441,6 @@ def normalize_likert(score):
             if isinstance(value, (int, float)):
                 clamped = max(1, min(5, int(value)))
                 factors[key] = clamped
-    if all(factors[key] is not None for key in LIKERT_KEYS):
-        factors["average_likert"] = sum(factors[key] for key in LIKERT_KEYS) / len(LIKERT_KEYS)
-    else:
-        factors["average_likert"] = None
     return factors
 
 def derive_status(factors):
@@ -470,7 +463,6 @@ def validate_domains(domains):
         if p["status"]=="GRAY":
             for key in LIKERT_KEYS:
                 p["score"][key]=None
-            p["score"]["average_likert"]=None
         out.append(p)
     return out
 
@@ -529,7 +521,6 @@ interface DomainLikertScore {
   evidence?: number | null;
   risk?: number | null;
   fit?: number | null;
-  average_likert?: number | null;
 }
 
 interface DomainItem {

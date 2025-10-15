@@ -468,22 +468,7 @@ def _enforce_status(factors: Dict[str, Optional[int]], status: str) -> Dict[str,
 
 
 def _compute_derived_metrics(factors: Dict[str, Optional[int]]) -> Dict[str, Any]:
-    total_required = len(LIKERT_FACTOR_KEYS)
-    ints = [
-        factors.get(key)
-        for key in LIKERT_FACTOR_KEYS
-        if isinstance(factors.get(key), int)
-    ]
-
-    enriched: Dict[str, Any] = {key: factors.get(key) for key in LIKERT_FACTOR_KEYS}
-
-    if len(ints) == total_required:
-        total = sum(ints)
-        enriched["average_likert"] = total / total_required
-    else:
-        enriched["average_likert"] = None
-
-    return enriched
+    return {key: factors.get(key) for key in LIKERT_FACTOR_KEYS}
 
 
 def _attach_done_when(item: str) -> str:
@@ -555,7 +540,6 @@ class DomainLikertScoreSchema(BaseModel):
     evidence: Optional[int] = Field(default=None, ge=LIKERT_MIN, le=LIKERT_MAX)
     risk: Optional[int] = Field(default=None, ge=LIKERT_MIN, le=LIKERT_MAX)
     fit: Optional[int] = Field(default=None, ge=LIKERT_MIN, le=LIKERT_MAX)
-    average_likert: Optional[float] = Field(default=None)
 
     class Config:
         extra = "ignore"
@@ -566,7 +550,7 @@ class DomainItemSchema(BaseModel):
     status: str = Field(..., description="Status indicator")
     score: Optional[DomainLikertScoreSchema] = Field(
         None,
-        description="Per-factor Likert scores (1-5) with derived averages",
+        description="Per-factor Likert scores (1-5)",
     )
     reason_codes: Optional[List[str]] = Field(default=None)
     evidence_todo: Optional[List[str]] = Field(default=None)
