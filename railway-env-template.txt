@@ -20,8 +20,8 @@ ANTHROPIC_API_KEY=your_anthropic_key_here
 GOOGLE_API_KEY=your_google_key_here
 
 # === APPLICATION SETTINGS ===
-# Plan execution directory (Railway will create this)
-PLANEXE_RUN_DIR=/app/run
+# Plan execution directory (writable location on Railway)
+PLANEXE_RUN_DIR=/tmp/planexe_runs
 
 # Python path for module imports
 PYTHONPATH=/app

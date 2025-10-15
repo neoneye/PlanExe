@@ -197,11 +197,11 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                                     <span>[Error] Railway Error: {modelsError}</span>
                                   </div>
                                 </SelectItem>
-                                <SelectItem value="fallback-gpt5-nano" >
+                                <SelectItem value="gpt-5-mini-2025-08-07" >
                                   <div className="flex items-center space-x-2">
-                                    <span>Fallback: GPT-5 Nano (Manual Entry)</span>
+                                    <span>Default: GPT-5 Nano (Primary)</span>
                                     <Badge variant="outline" className="text-xs">
-                                      Backup Option
+                                      Primary Choice
                                     </Badge>
                                   </div>
                                 </SelectItem>
@@ -213,11 +213,11 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                                     <span>[Warning] No models from Railway API</span>
                                   </div>
                                 </SelectItem>
-                                <SelectItem value="fallback-gpt5-nano">
+                                <SelectItem value="gpt-5-mini-2025-08-07">
                                   <div className="flex items-center space-x-2">
-                                    <span>Fallback: GPT-5 Nano (Manual Entry)</span>
+                                    <span>Default: GPT-5 Nano (Primary)</span>
                                     <Badge variant="outline" className="text-xs">
-                                      Backup Option
+                                      Primary Choice
                                     </Badge>
                                   </div>
                                 </SelectItem>

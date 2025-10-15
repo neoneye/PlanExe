@@ -103,6 +103,110 @@ export interface HealthResponse {
   available_models: number;
 }
 
+// WebSocket Client for real-time progress (replaces unreliable SSE)
+export class WebSocketClient {
+  private ws: WebSocket | null = null;
+  private listeners: Map<string, Array<(data: any) => void>> = new Map();
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectDelay = 1000;
+  private planId: string;
+  private baseURL: string;
+
+  constructor(planId: string, baseURL?: string) {
+    this.planId = planId;
+    this.baseURL = baseURL || '';
+  }
+
+  connect(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}${this.baseURL}/ws/plans/${this.planId}/progress`;
+
+        this.ws = new WebSocket(wsUrl);
+
+        this.ws.onopen = () => {
+          this.reconnectAttempts = 0;
+          resolve();
+        };
+
+        this.ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            this.emit('message', data);
+          } catch (error) {
+            // If not JSON, emit as raw message
+            this.emit('message', { type: 'raw', message: event.data });
+          }
+        };
+
+        this.ws.onerror = (error) => {
+          this.emit('error', error);
+          reject(error);
+        };
+
+        this.ws.onclose = (event) => {
+          this.emit('close', event);
+          if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
+            this.scheduleReconnect();
+          }
+        };
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  private scheduleReconnect() {
+    this.reconnectAttempts++;
+    this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000); // Exponential backoff, max 30s
+
+    setTimeout(() => {
+      this.connect().catch(() => {
+        // Silent fail - let the UI handle reconnection status
+      });
+    }, this.reconnectDelay);
+  }
+
+  on(event: string, callback: (data: any) => void) {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, []);
+    }
+    this.listeners.get(event)!.push(callback);
+  }
+
+  off(event: string, callback: (data: any) => void) {
+    const callbacks = this.listeners.get(event);
+    if (callbacks) {
+      const index = callbacks.indexOf(callback);
+      if (index > -1) {
+        callbacks.splice(index, 1);
+      }
+    }
+  }
+
+  private emit(event: string, data: any) {
+    const callbacks = this.listeners.get(event);
+    if (callbacks) {
+      callbacks.forEach(callback => callback(data));
+    }
+  }
+
+  disconnect() {
+    if (this.ws) {
+      this.ws.close(1000, 'Client disconnect');
+      this.ws = null;
+    }
+    this.listeners.clear();
+  }
+
+  isConnected(): boolean {
+    return this.ws?.readyState === WebSocket.OPEN;
+  }
+}
+
 // Simple, Clean FastAPI Client
 export class FastAPIClient {
   private baseURL: string;
@@ -204,9 +308,9 @@ export class FastAPIClient {
     return this.handleResponse<PlanResponse[]>(response);
   }
 
-  // Server-Sent Events for Real-time Progress
-  streamProgress(plan_id: string): EventSource {
-    return new EventSource(`${this.baseURL}/api/plans/${plan_id}/stream`);
+  // WebSocket for Real-time Progress (replaces unreliable SSE)
+  streamProgress(plan_id: string): WebSocketClient {
+    return new WebSocketClient(plan_id, this.baseURL);
   }
 
   // Utility: Download blob as file

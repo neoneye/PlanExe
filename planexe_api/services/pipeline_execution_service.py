@@ -136,11 +136,13 @@ class PipelineExecutionService:
         print(f"DEBUG ENV: Starting environment setup for plan {plan_id}")
 
         # CRITICAL: Validate required API keys BEFORE subprocess creation
+        # Allow single provider usage - at least one of OpenAI or OpenRouter must be available
         required_keys = {
             "OPENAI_API_KEY": "OpenAI API calls",
             "OPENROUTER_API_KEY": "OpenRouter API calls"
         }
-        
+
+        available_keys = []
         missing_keys = []
         for key, purpose in required_keys.items():
             value = os.environ.get(key)
@@ -148,12 +150,15 @@ class PipelineExecutionService:
                 missing_keys.append(f"{key} (needed for {purpose})")
                 print(f"  ❌ {key}: NOT FOUND in os.environ")
             else:
+                available_keys.append(key)
                 print(f"  ✅ {key}: Available (length: {len(value)})")
-        
-        if missing_keys:
-            error_msg = f"Missing required API keys: {', '.join(missing_keys)}"
+
+        if not available_keys:
+            error_msg = f"No API keys available. At least one provider (OpenAI or OpenRouter) is required."
             print(f"ERROR ENV: {error_msg}")
             raise ValueError(error_msg)
+
+        print(f"INFO ENV: {len(available_keys)} API provider(s) available: {', '.join(available_keys)}")
 
         # Check API keys in current environment
         api_keys_to_check = ["OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"]
