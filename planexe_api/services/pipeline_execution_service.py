@@ -435,7 +435,7 @@ class PipelineExecutionService:
 
         if return_code == 0:
             # Check for expected final output file
-            final_output_file = run_id_dir / "999-final-report.html"
+            final_output_file = run_id_dir / FilenameEnum.REPORT.value
 
             if final_output_file.exists():
                 # Success - broadcast completion message
@@ -650,15 +650,15 @@ class PipelineExecutionService:
 </html>
             """
 
-            report_path = run_id_dir / "999-final-report.html"
+            report_path = run_id_dir / FilenameEnum.REPORT.value
             report_path.write_text(html, encoding='utf-8')
 
             # Persist to database (Option 3 path) so the UI can fetch content
             try:
                 db_service.create_plan_content({
                     "plan_id": plan_id,
-                    "filename": "999-final-report.html",
-                    "stage": "report",
+                    "filename": FilenameEnum.REPORT.value,
+                    "stage": "reporting",
                     "content_type": "html",
                     "content": html,
                     "content_size_bytes": len(html.encode('utf-8'))

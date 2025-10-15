@@ -537,9 +537,10 @@ async def get_plan_files(plan_id: str, db: DatabaseService = Depends(get_databas
             raise HTTPException(status_code=404, detail="Plan not found")
 
         artefact_response = await list_plan_artefacts(plan_id, db)
-        has_report = any(entry.filename == "999-final-report.html" for entry in artefact_response.artefacts)
+        report_filename = FilenameEnum.REPORT.value
+        has_report = any(entry.filename == report_filename for entry in artefact_response.artefacts)
         if not has_report:
-            report_path = Path(plan.output_dir) / "999-final-report.html"
+            report_path = Path(plan.output_dir) / report_filename
             has_report = report_path.exists()
 
         filenames = [entry.filename for entry in artefact_response.artefacts]
@@ -919,7 +920,7 @@ async def download_plan_report(plan_id: str, db: DatabaseService = Depends(get_d
         if not plan:
             raise HTTPException(status_code=404, detail="Plan not found")
 
-        report_path = Path(plan.output_dir) / "999-final-report.html"
+        report_path = Path(plan.output_dir) / FilenameEnum.REPORT.value
 
         if not report_path.exists():
             raise HTTPException(status_code=404, detail="Report not found")

@@ -1,3 +1,14 @@
+## [0.3.5] - 2025-10-16 - Canonical Report Endpoint Repair
+
+### 🔧 Fixes
+
+- Align FastAPI report detection with the actual Luigi output filename (`029-report.html`) so `/api/plans/{plan_id}/report` and `has_report` no longer return 404 despite successful runs. 【F:planexe_api/api.py†L525-L545】【F:planexe_api/services/pipeline_execution_service.py†L428-L476】
+- Ensure the minimal fallback report generator persists `029-report.html` metadata under the `reporting` stage for consistent UI grouping. 【F:planexe_api/services/pipeline_execution_service.py†L612-L653】
+
+### ✅ Result
+
+- Recovery workspace and production deployments once again serve canonical reports after successful or fallback executions.
+
 ## [0.3.4] - 2025-10-15 - Critical Railway Deployment Fixes
 
 ### 🚨 **CRITICAL FIXES: Railway Production Deployment Blockers**
