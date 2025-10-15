@@ -1,166 +1,336 @@
 """
-Author: Claude Code using Sonnet 4
-Date: 2025-09-22
-PURPOSE: Simple OpenAI client wrapper to replace complex llama-index LLM system
-SRP and DRY check: Pass - Single responsibility for OpenAI API calls with minimal dependencies
+Author: ChatGPT gpt-5-codex
+Date: 2025-10-18
+PURPOSE: Responses API-backed OpenAI client with reasoning-aware streaming and structured output helpers.
+SRP and DRY check: Pass - single module orchestrates raw and structured GPT-5 calls without duplicating schema logic.
 """
 
+from __future__ import annotations
+
+import json
+import logging
 import os
-from typing import Any, Optional
-from openai import OpenAI
+from contextlib import suppress
+from typing import Any, Dict, Generator, Iterable, List, Optional, Sequence, Type
+
 from llama_index.core.llms.llm import LLM
-from pydantic import Field, PrivateAttr, ValidationError
+from openai import OpenAI
+from pydantic import BaseModel, Field, PrivateAttr, ValidationError
+
+from planexe.llm_util.schema_registry import get_schema_entry
+
+logger = logging.getLogger(__name__)
+
+
+def _ensure_message_dict(message: Any) -> Dict[str, Any]:
+    if isinstance(message, dict):
+        return message
+
+    if hasattr(message, "role") and hasattr(message, "content"):
+        role = getattr(message.role, "value", message.role)
+        return {"role": str(role).lower(), "content": getattr(message, "content")}
+
+    raise TypeError(f"Unsupported message format: {message!r}")
+
+
+def _normalize_content(content: Any) -> List[Dict[str, Any]]:
+    if isinstance(content, str):
+        return [{"type": "text", "text": content}]
+
+    if isinstance(content, list):
+        normalized: List[Dict[str, Any]] = []
+        for item in content:
+            if isinstance(item, dict):
+                normalized.append(item)
+            else:
+                normalized.append({"type": "text", "text": str(item)})
+        return normalized
+
+    return [{"type": "text", "text": str(content)}]
 
 
 class SimpleOpenAILLM(LLM):
-    """
-    Simple wrapper around OpenAI client that supports both direct OpenAI and OpenRouter.
-    Maintains compatibility with existing LlamaIndex LLM interface methods.
-    """
+    """Responses API-powered OpenAI adapter used throughout the Luigi pipeline."""
 
-    model: str = Field(description="The model name")
-    provider: str = Field(description="Either 'openai' or 'openrouter'")
+    model: str = Field(description="The OpenAI model identifier")
+    provider: str = Field(description="Only 'openai' is supported after Responses migration")
     _client: OpenAI = PrivateAttr()
+    _last_response_payload: Optional[Dict[str, Any]] = PrivateAttr(default=None)
 
-    def __init__(self, model: str, provider: str, **kwargs):
-        """
-        Initialize the LLM with OpenAI client.
-        Args:
-            model: The model name (e.g., "gpt-5-mini-2025-08-07", "google/gemini-2.0-flash-001")
-            provider: Either "openai" or "openrouter"
-            **kwargs: Additional parameters (maintained for compatibility)
-        """
+    def __init__(self, model: str, provider: str, **kwargs: Any):
         super().__init__(model=model, provider=provider, **kwargs)
 
-        if provider == "openai":
-            api_key = os.getenv("OPENAI_API_KEY")
-            if not api_key:
-                error_msg = (
-                    "OPENAI_API_KEY environment variable not set! "
-                    "Cannot create OpenAI client. "
-                    "Check Railway environment variables."
-                )
-                print(f"ERROR LLM: {error_msg}")
-                raise ValueError(error_msg)
-            
-            print(f"DEBUG LLM: Creating OpenAI client (key length: {len(api_key)})")
-            self._client = OpenAI(api_key=api_key)
-            
-        elif provider == "openrouter":
-            api_key = os.getenv("OPENROUTER_API_KEY")
-            if not api_key:
-                error_msg = (
-                    "OPENROUTER_API_KEY environment variable not set! "
-                    "Cannot create OpenRouter client. "
-                    "Check Railway environment variables."
-                )
-                print(f"ERROR LLM: {error_msg}")
-                raise ValueError(error_msg)
-            
-            print(f"DEBUG LLM: Creating OpenRouter client (key length: {len(api_key)})")
-            self._client = OpenAI(
-                base_url="https://openrouter.ai/api/v1",
-                api_key=api_key
+        if provider != "openai":
+            raise ValueError(
+                "SimpleOpenAILLM only supports provider='openai' now that OpenRouter is deprecated for GPT-5 streaming"
             )
-        else:
-            raise ValueError(f"Unsupported provider: {provider}")
 
-    def complete(self, prompt: str, **kwargs) -> str:
-        """
-        Complete a prompt using the configured model.
-{{ ... }}
-        Maintains LlamaIndex LLM interface compatibility.
-        Uses standard chat completions API for all models (simpler).
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            error_msg = "OPENAI_API_KEY environment variable not set; cannot create OpenAI client"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
-        Args:
-            prompt: The input prompt text
-            **kwargs: Additional parameters (maintained for compatibility)
+        logger.debug("Creating OpenAI Responses client for model %s", model)
+        self._client = OpenAI(api_key=api_key)
 
-        Returns:
-            The completion text
-        """
-        try:
-            # Use standard chat completions for ALL models (simpler approach)
-            extra_headers = {}
-            if self.provider == "openrouter":
-                extra_headers = {
-                    "HTTP-Referer": "https://github.com/neoneye/PlanExe",
-                    "X-Title": "PlanExe"
-                }
+    # ------------------------------------------------------------------
+    # Core request/response plumbing
+    # ------------------------------------------------------------------
+    def _prepare_input(self, messages: Sequence[Any]) -> List[Dict[str, Any]]:
+        normalized = []
+        for message in messages:
+            message_dict = _ensure_message_dict(message)
+            role = message_dict.get("role", "user")
+            content = _normalize_content(message_dict.get("content", ""))
+            normalized.append({"role": role, "content": content})
+        return normalized
 
-            completion = self._client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                extra_headers=extra_headers
-            )
-            return completion.choices[0].message.content
+    @staticmethod
+    def _build_text_format(schema_entry: Optional[Any] = None) -> Optional[Dict[str, Any]]:
+        if schema_entry is None:
+            return None
 
-        except Exception as e:
-            raise Exception(f"LLM completion failed for model {self.model}: {str(e)}")
+        return {
+            "type": "json_schema",
+            "name": schema_entry.qualified_name,
+            "strict": True,
+            "schema": schema_entry.schema,
+        }
 
-    def chat(self, messages, **kwargs) -> str:
-        """
-        Chat completion with message history.
-        Maintains LlamaIndex LLM interface compatibility.
+    def _request_args(
+        self,
+        messages: Sequence[Any],
+        *,
+        schema_entry: Optional[Any] = None,
+    ) -> Dict[str, Any]:
+        request: Dict[str, Any] = {
+            "model": self.model,
+            "input": self._prepare_input(messages),
+            "reasoning": {"effort": "high", "summary": "detailed"},
+            "text": {"verbosity": "high"},
+        }
 
-        Args:
-            messages: List of message dicts with 'role' and 'content'
-            **kwargs: Additional parameters
+        text_format = self._build_text_format(schema_entry)
+        if text_format:
+            request["text"]["format"] = text_format
 
-        Returns:
-            The response text
-        """
-        try:
-            extra_headers = {}
-            if self.provider == "openrouter":
-                extra_headers = {
-                    "HTTP-Referer": "https://github.com/neoneye/PlanExe",
-                    "X-Title": "PlanExe"
-                }
+        return request
 
-            completion = self._client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                extra_headers=extra_headers
-            )
-            return completion.choices[0].message.content
+    @staticmethod
+    def _payload_to_dict(response: Any) -> Dict[str, Any]:
+        if response is None:
+            return {}
+        if isinstance(response, dict):
+            return response
+        for attr in ("model_dump", "to_dict"):
+            method = getattr(response, attr, None)
+            if callable(method):
+                with suppress(TypeError):
+                    return method()
+        json_method = getattr(response, "model_dump_json", None)
+        if callable(json_method):
+            return json.loads(json_method())
+        json_text = getattr(response, "json", None)
+        if callable(json_text):
+            return json.loads(json_text())
+        raise TypeError(f"Unsupported response payload type: {type(response)!r}")
 
-        except Exception as e:
-            raise Exception(f"LLM chat failed for model {self.model}: {str(e)}")
+    @staticmethod
+    def _extract_reasoning_chunks(block: Dict[str, Any]) -> List[str]:
+        chunks: List[str] = []
+        reasoning = block.get("reasoning")
+        if isinstance(reasoning, dict):
+            summary = reasoning.get("summary")
+            if summary:
+                chunks.append(summary)
+            details = reasoning.get("details")
+            if isinstance(details, list):
+                for detail in details:
+                    if isinstance(detail, dict):
+                        text_value = detail.get("text") or detail.get("value")
+                        if text_value:
+                            chunks.append(text_value)
+                    elif isinstance(detail, str):
+                        chunks.append(detail)
+        content = block.get("content")
+        if isinstance(content, list):
+            for item in content:
+                if isinstance(item, dict):
+                    text_value = item.get("text") or item.get("value")
+                    if text_value:
+                        chunks.append(text_value)
+                elif isinstance(item, str):
+                    chunks.append(item)
+        return chunks
 
-    def complete(self, prompt: str, **kwargs):
-        """
-        Complete a text prompt using the LLM.
+    @classmethod
+    def _extract_output(cls, payload: Dict[str, Any]) -> Dict[str, Any]:
+        text_parts: List[str] = []
+        parsed_candidates: List[Any] = []
+        reasoning_parts: List[str] = []
 
-        Args:
-            prompt: The input prompt text
-            **kwargs: Additional parameters
+        output = payload.get("output", [])
+        if isinstance(output, dict):
+            output = [output]
+        for block in output:
+            if not isinstance(block, dict):
+                continue
+            block_type = block.get("type")
+            if block_type == "message":
+                for content in block.get("content", []):
+                    if not isinstance(content, dict):
+                        continue
+                    content_type = content.get("type")
+                    if content_type == "output_text":
+                        text_parts.append(content.get("text", ""))
+                    elif content_type == "output_parsed":
+                        parsed_candidates.append(content.get("parsed"))
+            elif block_type == "reasoning":
+                reasoning_parts.extend(cls._extract_reasoning_chunks(block))
 
-        Returns:
-            Completion response text
-        """
+        if not text_parts:
+            fallback_text = payload.get("output_text")
+            if isinstance(fallback_text, list):
+                text_parts.extend(str(item) for item in fallback_text)
+            elif isinstance(fallback_text, str):
+                text_parts.append(fallback_text)
+
+        if not parsed_candidates:
+            parsed_value = payload.get("output_parsed")
+            if isinstance(parsed_value, list):
+                parsed_candidates.extend(parsed_value)
+            elif parsed_value is not None:
+                parsed_candidates.append(parsed_value)
+
+        reasoning_summary = payload.get("output_reasoning")
+        if isinstance(reasoning_summary, dict):
+            summary_text = reasoning_summary.get("summary")
+            if summary_text:
+                reasoning_parts.append(summary_text)
+
+        reasoning_text = "\n".join([chunk for chunk in reasoning_parts if chunk]).strip() or None
+
+        return {
+            "text": "".join(text_parts),
+            "parsed_candidates": [candidate for candidate in parsed_candidates if candidate is not None],
+            "reasoning": reasoning_text,
+            "usage": payload.get("usage", {}),
+        }
+
+    def _invoke_responses(
+        self,
+        messages: Sequence[Any],
+        *,
+        schema_entry: Optional[Any] = None,
+    ) -> Dict[str, Any]:
+        response = self._client.responses.create(**self._request_args(messages, schema_entry=schema_entry))
+        payload = self._payload_to_dict(response)
+        self._last_response_payload = payload
+        extracted = self._extract_output(payload)
+        extracted["raw"] = payload
+        return extracted
+
+    # ------------------------------------------------------------------
+    # Public LLM interface methods
+    # ------------------------------------------------------------------
+    def chat(self, messages: Sequence[Any], **_: Any) -> str:
+        result = self._invoke_responses(messages)
+        return result.get("text", "")
+
+    def complete(self, prompt: str, **kwargs: Any) -> str:
         messages = [{"role": "user", "content": prompt}]
         return self.chat(messages, **kwargs)
 
-    # Additional compatibility methods for LlamaIndex interface
+    def stream_chat(self, messages: Sequence[Any], **_: Any) -> Generator[str, None, None]:
+        request_args = self._request_args(messages)
+        stream_callable = getattr(self._client.responses, "stream", None)
+
+        if not callable(stream_callable):
+            result = self._invoke_responses(messages)
+            text = result.get("text")
+            if text:
+                yield text
+            return
+
+        aggregated_text: List[str] = []
+        final_payload: Optional[Dict[str, Any]] = None
+
+        with stream_callable(**request_args) as stream:
+            for event in stream:
+                event_type = getattr(event, "type", None)
+                if event_type is None and isinstance(event, dict):
+                    event_type = event.get("type")
+
+                if event_type == "response.output_text.delta":
+                    delta = getattr(event, "delta", None)
+                    if delta is None and isinstance(event, dict):
+                        delta = event.get("delta") or event.get("text")
+
+                    if isinstance(delta, dict):
+                        text_delta = delta.get("text")
+                    else:
+                        text_delta = str(delta) if delta else None
+
+                    if text_delta:
+                        aggregated_text.append(text_delta)
+                        yield text_delta
+                elif event_type == "response.error":
+                    message = getattr(event, "message", None) or getattr(event, "error", None)
+                    raise RuntimeError(f"OpenAI streaming error: {message}")
+
+            final_response = getattr(stream, "final_response", None)
+            if final_response is None:
+                getter = getattr(stream, "get_final_response", None)
+                if callable(getter):
+                    final_response = getter()
+
+        if final_response is not None:
+            final_payload = self._payload_to_dict(final_response)
+            self._last_response_payload = final_payload
+
+        if final_payload is not None and not aggregated_text:
+            extracted = self._extract_output(final_payload)
+            text = extracted.get("text")
+            if text:
+                yield text
+
+    def stream_complete(self, prompt: str, **kwargs: Any) -> Generator[str, None, None]:
+        messages = [{"role": "user", "content": prompt}]
+        yield from self.stream_chat(messages, **kwargs)
+
+    async def achat(self, messages: Sequence[Any], **kwargs: Any) -> str:
+        return self.chat(messages, **kwargs)
+
+    async def acomplete(self, prompt: str, **kwargs: Any) -> str:
+        return self.complete(prompt, **kwargs)
+
+    async def astream_chat(self, messages: Sequence[Any], **kwargs: Any) -> Generator[str, None, None]:
+        for chunk in self.stream_chat(messages, **kwargs):
+            yield chunk
+
+    async def astream_complete(self, prompt: str, **kwargs: Any) -> Generator[str, None, None]:
+        for chunk in self.stream_complete(prompt, **kwargs):
+            yield chunk
+
+    # ------------------------------------------------------------------
+    # Helpers for compatibility with legacy LlamaIndex expectations
+    # ------------------------------------------------------------------
     @property
     def model_name(self) -> str:
-        """Return the model name for compatibility."""
         return self.model
 
     @property
-    def metadata(self) -> dict:
-        """Return metadata dict for compatibility with LlamaIndex."""
+    def metadata(self) -> Dict[str, Any]:
         return {
             "model": self.model,
             "provider": self.provider,
             "model_name": self.model,
-            "max_tokens": None,  # We don't have this info in simplified implementation
-            "temperature": None,  # We don't have this info in simplified implementation
+            "max_tokens": None,
+            "temperature": None,
         }
 
     def class_name(self) -> str:
-        """Return class name for compatibility with LlamaIndex."""
         return self.__class__.__name__
 
     def __str__(self) -> str:
@@ -169,58 +339,26 @@ class SimpleOpenAILLM(LLM):
     def __repr__(self) -> str:
         return self.__str__()
 
-    def as_structured_llm(self, output_cls):
-        """
-        Return a structured LLM that can parse responses into Pydantic models.
-        This maintains compatibility with LlamaIndex structured output interface.
-        """
+    def as_structured_llm(self, output_cls: Type[BaseModel]):
         return StructuredSimpleOpenAILLM(self, output_cls)
-
-    # Abstract methods required by LlamaIndex LLM base class
-    def stream_chat(self, messages, **kwargs):
-        """Stream chat completion (required abstract method)."""
-        # For now, just return non-streaming result as single chunk
-        response = self.chat(messages, **kwargs)
-        yield response
-
-    def stream_complete(self, prompt: str, **kwargs):
-        """Stream text completion (required abstract method)."""
-        # For now, just return non-streaming result as single chunk
-        response = self.complete(prompt, **kwargs)
-        yield response
-
-    async def achat(self, messages, **kwargs):
-        """Async chat completion (required abstract method)."""
-        # For now, just call sync version
-        return self.chat(messages, **kwargs)
-
-    async def acomplete(self, prompt: str, **kwargs):
-        """Async text completion (required abstract method)."""
-        # For now, just call sync version
-        return self.complete(prompt, **kwargs)
-
-    async def astream_chat(self, messages, **kwargs):
-        """Async stream chat completion (required abstract method)."""
-        # For now, just yield sync result
-        response = self.chat(messages, **kwargs)
-        yield response
-
-    async def astream_complete(self, prompt: str, **kwargs):
-        """Async stream text completion (required abstract method)."""
-        # For now, just yield sync result
-        response = self.complete(prompt, **kwargs)
-        yield response
 
 
 class StructuredLLMResponse:
-    """
-    LlamaIndex-compatible structured LLM response object.
-    """
+    """LlamaIndex compatible wrapper for structured responses."""
 
-    def __init__(self, parsed_model, raw_text: str):
-        self.raw = parsed_model  # This is what the pipeline expects
+    def __init__(
+        self,
+        parsed_model: BaseModel,
+        raw_text: str,
+        *,
+        reasoning: Optional[str] = None,
+        usage: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        self.raw = parsed_model
         self.text = raw_text
-        self.message = type('Message', (), {'content': raw_text})()
+        self.message = type("Message", (), {"content": raw_text})()
+        self.reasoning = reasoning
+        self.token_usage = usage
 
     def __str__(self) -> str:
         return str(self.raw)
@@ -230,117 +368,57 @@ class StructuredLLMResponse:
 
 
 class StructuredSimpleOpenAILLM:
-    """
-    Wrapper that provides structured output capabilities for SimpleOpenAILLM.
-    Compatible with LlamaIndex structured LLM interface.
-    """
+    """Structured output adapter that leverages the schema registry."""
 
-    def __init__(self, base_llm: SimpleOpenAILLM, output_cls):
+    def __init__(self, base_llm: SimpleOpenAILLM, output_cls: Type[BaseModel]):
         self.base_llm = base_llm
         self.output_cls = output_cls
 
-    def chat(self, messages, **kwargs):
-        """
-        Chat with structured output parsing.
+    def _format_messages(self, messages: Sequence[Any]) -> List[Dict[str, Any]]:
+        formatted: List[Dict[str, Any]] = []
+        for message in messages:
+            formatted.append(_ensure_message_dict(message))
+        return formatted
 
-        Args:
-            messages: List of ChatMessage objects or message dicts
-            **kwargs: Additional parameters
-
-        Returns:
-            Parsed Pydantic model instance
-        """
-        # Convert ChatMessage objects to standard format if needed
-        if hasattr(messages[0], 'role') and hasattr(messages[0], 'content'):
-            # LlamaIndex ChatMessage format
-            formatted_messages = []
-            for msg in messages:
-                formatted_messages.append({
-                    "role": msg.role.lower() if hasattr(msg.role, 'lower') else str(msg.role).lower(),
-                    "content": msg.content
-                })
-        else:
-            # Already in dict format
-            formatted_messages = messages
-
-        # Build structured prompt
-        schema_prompt = f"""
-You must respond with valid JSON that matches this exact schema:
-{self.output_cls.model_json_schema()}
-
-Your response must be valid JSON only, no other text.
-"""
-
-        # Add schema instruction to the last user message
-        if formatted_messages and formatted_messages[-1]["role"] == "user":
-            formatted_messages[-1]["content"] += f"\n\n{schema_prompt}"
-        else:
-            formatted_messages.append({"role": "user", "content": schema_prompt})
-
-        try:
-            # Get response from base LLM
-            if self.base_llm.provider == "openai":
-                completion = self.base_llm._client.chat.completions.create(
-                    model=self.base_llm.model,
-                    messages=formatted_messages,
-                    response_format={"type": "json_object"}  # Force JSON mode
-                )
-                response_text = completion.choices[0].message.content
-            else:
-                # OpenRouter doesn't always support response_format
-                completion = self.base_llm._client.chat.completions.create(
-                    model=self.base_llm.model,
-                    messages=formatted_messages,
-                    extra_headers={
-                        "HTTP-Referer": "https://github.com/neoneye/PlanExe",
-                        "X-Title": "PlanExe"
-                    }
-                )
-                response_text = completion.choices[0].message.content
-
-            # Parse JSON response into Pydantic model
-            import json
+    def _parse_candidates(self, candidates: Iterable[Any], response_text: str) -> BaseModel:
+        errors: List[Exception] = []
+        for candidate in candidates:
+            if candidate is None:
+                continue
             try:
-                response_data = json.loads(response_text)
-                parsed_model = self.output_cls.model_validate(response_data)
+                return self.output_cls.model_validate(candidate)
+            except ValidationError as exc:
+                errors.append(exc)
 
-                # Create LlamaIndex-compatible response object
-                return StructuredLLMResponse(parsed_model, response_text)
-            except json.JSONDecodeError as e:
-                # Fallback: try to extract JSON from response
-                import re
-                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-                if json_match:
-                    response_data = json.loads(json_match.group())
-                    parsed_model = self.output_cls.model_validate(response_data)
-                    return StructuredLLMResponse(parsed_model, response_text)
-                else:
-                    raise ValueError(f"Could not parse JSON response: {response_text}") from e
-            except ValidationError:
-                # Fallback attempt: remind model to return data, not schema
-                fallback_messages = list(formatted_messages) + [{
-                    "role": "user",
-                    "content": "Respond again with ONLY a JSON object matching the requested fields. Do not include JSON schema definitions or comments."
-                }]
-                fallback_text = self.base_llm.chat(fallback_messages)
-                response_text = fallback_text if isinstance(fallback_text, str) else str(fallback_text)
-                response_data = json.loads(response_text)
-                parsed_model = self.output_cls.model_validate(response_data)
-                return StructuredLLMResponse(parsed_model, response_text)
+        if response_text:
+            try:
+                json_payload = json.loads(response_text)
+                return self.output_cls.model_validate(json_payload)
+            except (json.JSONDecodeError, ValidationError) as exc:
+                errors.append(exc)
 
-        except Exception as e:
-            raise Exception(f"Structured LLM completion failed for model {self.base_llm.model}: {str(e)}")
+        if errors:
+            raise ValueError(
+                f"Failed to parse structured response for {self.output_cls.__name__}: {errors[-1]}"
+            )
+        raise ValueError(f"Structured response for {self.output_cls.__name__} was empty")
 
-    def complete(self, prompt: str, **kwargs):
-        """
-        Complete a prompt with structured output parsing.
+    def chat(self, messages: Sequence[Any], **_: Any) -> StructuredLLMResponse:
+        formatted_messages = self._format_messages(messages)
+        schema_entry = get_schema_entry(self.output_cls)
+        result = self.base_llm._invoke_responses(formatted_messages, schema_entry=schema_entry)
 
-        Args:
-            prompt: The input prompt text
-            **kwargs: Additional parameters
+        parsed_model = self._parse_candidates(result.get("parsed_candidates", []), result.get("text", ""))
+        raw_text = result.get("text") or json.dumps(parsed_model.model_dump())
 
-        Returns:
-            Parsed Pydantic model instance
-        """
+        return StructuredLLMResponse(
+            parsed_model,
+            raw_text,
+            reasoning=result.get("reasoning"),
+            usage=result.get("usage"),
+        )
+
+    def complete(self, prompt: str, **kwargs: Any) -> StructuredLLMResponse:
         messages = [{"role": "user", "content": prompt}]
         return self.chat(messages, **kwargs)
+
