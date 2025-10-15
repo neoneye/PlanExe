@@ -1,26 +1,14 @@
 {
     "gpt-5-mini-2025-08-07": {
-        "comment": "Latest GPT-5 Nano model - primary choice",
+        "comment": "Primary GPT-5 Mini model (streaming + reasoning)",
         "priority": 1,
         "provider": "openai",
-        "model": "gpt-5-nano-2025-08-07"
+        "model": "gpt-5-mini-2025-08-07"
     },
-    "gpt-4.1-nano-2025-04-14": {
-        "comment": "GPT-4.1 Nano model - fast and efficient",
+    "gpt-5-nano-2025-08-07": {
+        "comment": "Fallback GPT-5 Nano model (used when Mini errors)",
         "priority": 2,
         "provider": "openai",
-        "model": "gpt-4.1-nano-2025-04-14"
-    },
-    "google/gemini-2.0-flash-001": {
-        "comment": "Gemini 2.0 Flash via OpenRouter - fallback 1",
-        "priority": 3,
-        "provider": "openrouter",
-        "model": "google/gemini-2.0-flash-001"
-    },
-    "google/gemini-2.5-flash": {
-        "comment": "Gemini 2.5 Flash via OpenRouter - fallback 2",
-        "priority": 4,
-        "provider": "openrouter",
-        "model": "google/gemini-2.5-flash"
+        "model": "gpt-5-nano-2025-08-07"
     }
 }

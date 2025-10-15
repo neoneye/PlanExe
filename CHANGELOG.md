@@ -1,3 +1,18 @@
+## [0.3.7] - 2025-10-18 - GPT-5 Responses API Migration (Phase 1)
+
+### ✅ Highlights
+- Promoted **gpt-5-mini-2025-08-07** to the default model with **gpt-5-nano-2025-08-07** as the enforced fallback in `llm_config.json`.
+- Replaced the legacy Chat Completions wrapper with a **Responses API** client that always requests high-effort, detailed reasoning with high-verbosity text streams.
+- Added a **schema registry** for structured Luigi tasks and updated `StructuredSimpleOpenAILLM` to send `text.format.json_schema` payloads while capturing reasoning summaries and token usage.
+- Added unit coverage for the registry so new Pydantic models are automatically registered and validated.
+
+### 📋 Follow-up
+- Wire streaming deltas into the Luigi → FastAPI WebSocket bridge.
+- Persist reasoning/token telemetry in `LLMInteraction` once executor hooks are in place.
+- Update frontend monitors to render reasoning vs. final text in real time.
+
+---
+
 ## [0.3.6] - 2025-10-15 - ACTUAL TypeScript Fix (Previous Developer Was Wrong)
 
 ### 🚨 **CRITICAL: Fixed TypeScript Errors That v0.3.5 Developer FAILED To Fix**
