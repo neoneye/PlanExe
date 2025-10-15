@@ -1,9 +1,8 @@
 /**
- * 
- * Author: Cascade using Claude (following frontend architecture fix plan)
- * Date: 2025-09-19T19:12:34-04:00
- * PURPOSE: Clean direct FastAPI client - NO compatibility layer, uses snake_case throughout to match backend exactly
- * SRP and DRY check: Pass - Single responsibility for FastAPI communication, no field translation complexity
+ * Author: Codex using GPT-5
+ * Date: 2025-03-15T00:00:00Z
+ * PURPOSE: Clean direct FastAPI client - NO compatibility layer, uses snake_case throughout to match backend exactly. Hardened download helpers now surface precise HTTP status codes for easier frontend error handling.
+ * SRP and DRY check: Pass - Single responsibility for FastAPI communication, no field translation complexity.
  */
 
 import { getApiBaseUrl } from '@/lib/utils/api-config';
@@ -325,7 +324,9 @@ export class FastAPIClient {
   async downloadFile(plan_id: string, filename: string): Promise<Blob> {
     const response = await fetch(`${this.baseURL}/api/plans/${plan_id}/files/${filename}`);
     if (!response.ok) {
-      throw new Error(`Failed to download file: ${response.statusText}`);
+      const bodyText = await response.text().catch(() => '');
+      const detail = bodyText.trim() || response.statusText || 'Unknown error';
+      throw new Error(`HTTP ${response.status} downloading file: ${detail}`);
     }
     return response.blob();
   }
@@ -334,7 +335,9 @@ export class FastAPIClient {
   async downloadReport(plan_id: string): Promise<Blob> {
     const response = await fetch(`${this.baseURL}/api/plans/${plan_id}/report`);
     if (!response.ok) {
-      throw new Error(`Failed to download report: ${response.statusText}`);
+      const bodyText = await response.text().catch(() => '');
+      const detail = bodyText.trim() || response.statusText || 'Unknown error';
+      throw new Error(`HTTP ${response.status} downloading report: ${detail}`);
     }
     return response.blob();
   }

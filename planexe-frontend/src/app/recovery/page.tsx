@@ -1,7 +1,7 @@
 /**
  * Author: Codex using GPT-5
- * Date: 2025-10-03T00:00:00Z
- * PURPOSE: Self-service recovery workspace for assembling plans from database artefacts with live status, report toggle, and file explorer.
+ * Date: 2025-03-15T00:00:00Z
+ * PURPOSE: Self-service recovery workspace for assembling plans from database artefacts with live status, report toggle, and file explorer. Updated to harden query parsing and error handling when canonical reports are absent.
  * SRP and DRY check: Pass - Orchestrates workspace UX; delegates artefact rendering to FileManager.
  */
 'use client';
@@ -247,8 +247,12 @@ const ReportPanel: React.FC<{
 
 const WorkspaceContent: React.FC = () => {
   const searchParams = useSearchParams();
-  const planIdFromQuery = searchParams.get('planId')?.trim() ?? '';
-  const planId = useMemo(() => planIdFromQuery.replace(/\s+/g, ''), [planIdFromQuery]);
+  const rawPlanId = searchParams?.get('planId');
+  const planIdFromQuery = typeof rawPlanId === 'string' ? rawPlanId.trim() : '';
+  const planId = useMemo(
+    () => (planIdFromQuery ? planIdFromQuery.replace(/\s+/g, '') : ''),
+    [planIdFromQuery]
+  );
   const [plan, setPlan] = useState<PlanResponse | null>(null);
   const [planError, setPlanError] = useState<string | null>(null);
   const [planLoading, setPlanLoading] = useState(false);
@@ -341,10 +345,11 @@ const WorkspaceContent: React.FC = () => {
     } catch (err) {
       // Handle 404 gracefully - report may not exist yet
       const message = err instanceof Error ? err.message : 'Canonical report unavailable.';
-      const is404 = message.includes('404') || message.includes('Not Found');
+      const normalizedMessage = message.toLowerCase();
+      const is404 = normalizedMessage.includes('404') || normalizedMessage.includes('not found');
       setCanonicalHtml(null);
       setCanonicalError(
-        is404 
+        is404
           ? 'Report not generated yet. The Luigi pipeline may still be running.' 
           : message
       );
