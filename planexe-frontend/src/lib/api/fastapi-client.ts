@@ -103,10 +103,55 @@ export interface HealthResponse {
   available_models: number;
 }
 
+// WebSocket Message Types
+export interface WebSocketLogMessage {
+  type: 'log';
+  message: string;
+  timestamp: string;
+}
+
+export interface WebSocketStatusMessage {
+  type: 'status';
+  status: string;
+  message?: string;
+  progress_percentage?: number;
+  timestamp: string;
+}
+
+export interface WebSocketErrorMessage {
+  type: 'error';
+  message: string;
+  timestamp: string;
+}
+
+export interface WebSocketStreamEndMessage {
+  type: 'stream_end';
+  message: string;
+  timestamp: string;
+}
+
+export interface WebSocketHeartbeatMessage {
+  type: 'heartbeat';
+  timestamp: string;
+}
+
+export interface WebSocketRawMessage {
+  type: 'raw';
+  message: string;
+}
+
+export type WebSocketMessage =
+  | WebSocketLogMessage
+  | WebSocketStatusMessage
+  | WebSocketErrorMessage
+  | WebSocketStreamEndMessage
+  | WebSocketHeartbeatMessage
+  | WebSocketRawMessage;
+
 // WebSocket Client for real-time progress (replaces unreliable SSE)
 export class WebSocketClient {
   private ws: WebSocket | null = null;
-  private listeners: Map<string, Array<(data: any) => void>> = new Map();
+  private listeners: Map<string, Array<(data: WebSocketMessage | CloseEvent) => void>> = new Map();
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
@@ -133,16 +178,16 @@ export class WebSocketClient {
 
         this.ws.onmessage = (event) => {
           try {
-            const data = JSON.parse(event.data);
+            const data = JSON.parse(event.data) as WebSocketMessage;
             this.emit('message', data);
-          } catch (error) {
+          } catch {
             // If not JSON, emit as raw message
             this.emit('message', { type: 'raw', message: event.data });
           }
         };
 
-        this.ws.onerror = (error) => {
-          this.emit('error', error);
+        this.ws.onerror = (error: Event) => {
+          this.emit('error', error as CloseEvent);
           reject(error);
         };
 
@@ -170,14 +215,14 @@ export class WebSocketClient {
     }, this.reconnectDelay);
   }
 
-  on(event: string, callback: (data: any) => void) {
+  on(event: string, callback: (data: WebSocketMessage | CloseEvent) => void) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
     }
     this.listeners.get(event)!.push(callback);
   }
 
-  off(event: string, callback: (data: any) => void) {
+  off(event: string, callback: (data: WebSocketMessage | CloseEvent) => void) {
     const callbacks = this.listeners.get(event);
     if (callbacks) {
       const index = callbacks.indexOf(callback);
@@ -187,7 +232,7 @@ export class WebSocketClient {
     }
   }
 
-  private emit(event: string, data: any) {
+  private emit(event: string, data: WebSocketMessage | CloseEvent) {
     const callbacks = this.listeners.get(event);
     if (callbacks) {
       callbacks.forEach(callback => callback(data));
