@@ -110,13 +110,20 @@ Output (JSON) — what the LLM must emit
     {
       "domain": "HumanStability",
       "status": "YELLOW",
-      "score": 60,
+      "score": {
+        "evidence": 2,
+        "risk": 3,
+        "fit": 3,
+        "average_likert": 2.67
+      },
       "reason_codes": ["STAFF_AVERSION"],
       "evidence_todo": ["Stakeholder survey baseline"]
     }
   ]
 }
 ```
+
+The nested `score` object must follow `DomainLikertScoreSchema` (per-factor Likert 1–5 plus the derived `average_likert`).
 
 **Example (GREEN with strength rationale):**
 ```json
@@ -125,7 +132,12 @@ Output (JSON) — what the LLM must emit
     {
       "domain": "HumanStability",
       "status": "GREEN",
-      "score": 85,
+      "score": {
+        "evidence": 4,
+        "risk": 4,
+        "fit": 5,
+        "average_likert": 4.33
+      },
       "reason_codes": ["STAKEHOLDER_ALIGNMENT"],
       "evidence_todo": [],
       "strength_rationale": "Strong stakeholder buy-in evidenced by baseline survey ≥80% support"
@@ -150,15 +162,15 @@ Interpretation & validation (spec — not emitted by the LLM)
 - status ∈ {"GREEN","YELLOW","RED","GRAY"}
 - domain ∈ DOMAIN_ENUM (unknown domain names → treated as GRAY)
 - reason_codes must come from the whitelist for that domain (enforced downstream)
-- Score bands
-- GREEN: 70–100
-- YELLOW: 40–69
-- RED: 0–39
-- GRAY: score must be null
+- Likert factors (`score` follows `DomainLikertScoreSchema` from `domains_assessment.py`)
+  - Factors are integers 1–5 (or null when unknown) for `evidence`, `risk`, `fit`.
+  - `average_likert` is derived; omit or set to null if any factor is missing.
+  - Status is deterministic: any factor ≤2 ⇒ RED; else worst factor ==3 ⇒ YELLOW; all factors ≥4 ⇒ GREEN; missing factors ⇒ GRAY.
 - Validator behavior
-- If status ≠ GRAY and score is missing or outside the band, the validator snaps to the band midpoint (GREEN:85, YELLOW:55, RED:20).
-- If status == GRAY, score must be null (validator will null it if present).
-- Unknown/unsupported domain values are coerced to { "status":"GRAY", "score":null }.
+- Normalizes the per-factor Likert scores (clamps 1–5, fills defaults per status).
+- Recomputes `average_likert` and aligns status with the factor rule.
+- If status == GRAY, factors are nulled out.
+- Unknown/unsupported domain values are coerced to { "status":"GRAY", "score":{"evidence":null,"risk":null,"fit":null,"average_likert":null} }.
 - Evidence gating
 - GREEN requires no open evidence items: evidence_todo must be empty.
 - YELLOW/RED may have evidence_todo entries.
@@ -255,7 +267,7 @@ Output (JSON)
 
 ```json
 {
-  "overall": {"score": 56, "status": "YELLOW", "confidence": "Medium"},
+  "overall": {"status": "YELLOW", "confidence": "Medium"},
   "viability_summary": {
     "recommendation": "PROCEED_WITH_CAUTION",
     "why": [
@@ -276,22 +288,51 @@ Validation & Auto-repair (run after each step)
 
 Implement a tiny validator that:
 	1.	Enum checks: drop unknown fields; coerce invalid enum values to GRAY/defaults.
-	2.	Status/score sync: enforce status_to_score bands; if score missing, set to band midpoint.
-	3.	Evidence gate: if status="GREEN" and evidence_todo not empty → downgrade to YELLOW.
+	2.	Status/factor sync: normalize to the Likert schema (1–5), derive status from factors, recompute `average_likert`.
+	3.	Evidence gate: if status="GREEN" and evidence_todo not empty → downgrade to YELLOW (and re-sync factors).
 	4.	ID integrity: verify blocker_ids exist; remove or flag extras.
 	5.	Defaults: back-fill rom missing with {"cost_band":"LOW","eta_days":14}.
 
 Pseudocode (Python):
 
 ```python
-def band_mid(status): return {"GREEN":85,"YELLOW":55,"RED":20}.get(status)
+LIKERT_KEYS = ("evidence", "risk", "fit")
+
+def normalize_likert(score):
+    factors = {key: None for key in LIKERT_KEYS}
+    if isinstance(score, dict):
+        for key in LIKERT_KEYS:
+            value = score.get(key)
+            if isinstance(value, (int, float)):
+                clamped = max(1, min(5, int(value)))
+                factors[key] = clamped
+    if all(factors[key] is not None for key in LIKERT_KEYS):
+        factors["average_likert"] = sum(factors[key] for key in LIKERT_KEYS) / len(LIKERT_KEYS)
+    else:
+        factors["average_likert"] = None
+    return factors
+
+def derive_status(factors):
+    values = [factors[key] for key in LIKERT_KEYS if factors[key] is not None]
+    if len(values) < len(LIKERT_KEYS):
+        return "GRAY"
+    if min(values) <= 2:
+        return "RED"
+    if min(values) == 3:
+        return "YELLOW"
+    return "GREEN"
+
 def validate_domains(domains):
     out=[]
     for p in domains:
         if p["domain"] not in DOMAIN_ENUM: p["domain"]="Rights_Legality"; p["status"]="GRAY"
         if p["status"]=="GREEN" and p.get("evidence_todo"): p["status"]="YELLOW"
-        if "score" not in p or not in_band(p["score"], p["status"]):
-            p["score"]=band_mid(p["status"])
+        p["score"]=normalize_likert(p.get("score", {}))
+        p["status"]=derive_status(p["score"])
+        if p["status"]=="GRAY":
+            for key in LIKERT_KEYS:
+                p["score"][key]=None
+            p["score"]["average_likert"]=None
         out.append(p)
     return out
 
@@ -346,8 +387,15 @@ type Status = "GREEN" | "YELLOW" | "RED" | "GRAY";
 type Domain = "HumanStability" | "EconomicResilience" | "EcologicalIntegrity" | "Rights_Legality";
 type CostBand = "LOW" | "MEDIUM" | "HIGH";
 
+interface DomainLikertScore {
+  evidence?: number | null;
+  risk?: number | null;
+  fit?: number | null;
+  average_likert?: number | null;
+}
+
 interface DomainItem {
-  domain: Domain; status: Status; score?: number;
+  domain: Domain; status: Status; score?: DomainLikertScore;
   reason_codes?: string[]; evidence_todo?: string[];
 }
 
@@ -371,7 +419,7 @@ interface Blocker {
 ## Viability Scoring — Likert, Rule‑Based (No Hidden Weights)
 
 
-**Why change?** The old 0–100 scoring was opaque and hard to troubleshoot (implicit weights, unclear math). The new system is **simple, auditable, and deterministic**. Every downgrade is tied to an explicit rule and logged.
+The new system is **simple, auditable, and deterministic**. Every downgrade is tied to an explicit rule and logged.
 
 
 ### Core Idea
@@ -409,7 +457,7 @@ The model (LLM) proposes **reason_codes** and mentions **artifacts**; the **scor
 
 **Overall status** is the **worst domain**. Optionally, we compute a display-only number: 
 
-`overall_likert = mean(domain_avg_likert)` and `overall_0_100 = round((overall_likert-1)/4*100)` for legacy dashboards.
+`overall_likert = mean(domain_avg_likert)` for dashboards that want a single roll-up indicator.
 
 
 ### How rules work (transparent caps)
