@@ -25,14 +25,14 @@ from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from planexe.markdown_util.escape_markdown import escape_markdown
 from planexe.markdown_util.fix_bullet_lists import fix_bullet_lists
-from planexe.viability.model_pillar import PillarEnum
+from planexe.viability.model_domain import DomainEnum
 from planexe.viability.model_status import StatusEnum
 
 logger = logging.getLogger(__name__)
 
 class Blocker(BaseModel):
     id: str = Field(description="Unique ID like 'B1', 'B2', etc.")
-    pillar: str = Field(description="The pillar name from PillarEnum.")
+    pillar: str = Field(description="The pillar name from DomainEnum.")
     title: str = Field(description="A concise, descriptive title for the blocker.")
     reason_codes: Optional[List[str]] = Field(default_factory=list, description="Subset of reason codes from the pillar's issues.")
     acceptance_tests: Optional[List[str]] = Field(default_factory=list, description="1-3 verifiable acceptance tests (e.g., '>=10% contingency approved').")
@@ -44,7 +44,7 @@ class BlockersOutput(BaseModel):
     source_pillars: List[str] = Field(description=f"Array of pillar names that are {StatusEnum.YELLOW.value}, {StatusEnum.RED.value}, or {StatusEnum.GRAY.value}.")
     blockers: List[Blocker] = Field(description="3-5 blockers derived from source_pillars.")
 
-PILLAR_ENUM = PillarEnum.value_list()
+PILLAR_ENUM = DomainEnum.value_list()
 REASON_CODE_ENUM = [
     # Budget/Finance
     "CONTINGENCY_LOW", "SINGLE_CUSTOMER", "ALT_COST_UNKNOWN",
@@ -69,7 +69,7 @@ You are an expert risk assessor specializing in deriving actionable blockers fro
 The JSON object must include exactly the following keys:
 
 {{
-  "source_pillars": ["HumanStability", "EconomicResilience"],  // Array of pillar names from PillarEnum that have status YELLOW, RED, or GRAY
+  "source_pillars": ["HumanStability", "EconomicResilience"],  // Array of pillar names from DomainEnum that have status YELLOW, RED, or GRAY
   "blockers": [  // Array of 3-5 Blocker objects, only from source_pillars
     {{
       "id": "B1",
@@ -85,7 +85,7 @@ The JSON object must include exactly the following keys:
 }}
 
 Instructions:
-- source_pillars: List only pillars from the input assessment where status is {StatusEnum.YELLOW.value}, {StatusEnum.RED.value}, or {StatusEnum.GRAY.value}. Use exact names from PillarEnum: {', '.join(PILLAR_ENUM)}.
+- source_pillars: List only pillars from the input assessment where status is {StatusEnum.YELLOW.value}, {StatusEnum.RED.value}, or {StatusEnum.GRAY.value}. Use exact names from DomainEnum: {', '.join(PILLAR_ENUM)}.
 - blockers: Derive 3-5 blockers total (cap at 5) only from source_pillars. Distribute across pillars logically. For each:
   - id: Sequential like "B1", "B2", etc.
   - pillar: Match one from source_pillars.

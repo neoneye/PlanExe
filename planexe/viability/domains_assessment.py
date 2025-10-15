@@ -25,7 +25,7 @@ from pydantic import BaseModel, Field
 
 from planexe.markdown_util.fix_bullet_lists import fix_bullet_lists
 from planexe.viability.domains_prompt import make_pillars_system_prompt
-from planexe.viability.model_pillar import PillarEnum
+from planexe.viability.model_domain import DomainEnum
 from planexe.viability.model_status import StatusEnum
 
 logger = logging.getLogger(__name__)
@@ -34,11 +34,11 @@ logger = logging.getLogger(__name__)
 # Constants & enums
 # ---------------------------------------------------------------------------
 
-PILLAR_ORDER: List[str] = PillarEnum.value_list()
+PILLAR_ORDER: List[str] = DomainEnum.value_list()
 
 # This list is not exhaustive, more items are likely to be added over time.
 REASON_CODES_BY_PILLAR: Dict[str, List[str]] = {
-    PillarEnum.HumanStability.value: [
+    DomainEnum.HumanStability.value: [
         "TALENT_UNKNOWN",
         "STAFF_AVERSION",
         "GOVERNANCE_WEAK",
@@ -47,7 +47,7 @@ REASON_CODES_BY_PILLAR: Dict[str, List[str]] = {
         "STAKEHOLDER_CONFLICT",
         "SAFETY_CULTURE_WEAK",
     ],
-    PillarEnum.EconomicResilience.value: [
+    DomainEnum.EconomicResilience.value: [
         "CONTINGENCY_LOW",
         "SINGLE_CUSTOMER",
         "ALT_COST_UNKNOWN",
@@ -59,7 +59,7 @@ REASON_CODES_BY_PILLAR: Dict[str, List[str]] = {
         "BIA_MISSING",
         "DR_TEST_GAPS",
     ],
-    PillarEnum.EcologicalIntegrity.value: [
+    DomainEnum.EcologicalIntegrity.value: [
         "CLOUD_CARBON_UNKNOWN",
         "CLIMATE_UNQUANTIFIED",
         "WATER_STRESS",
@@ -68,7 +68,7 @@ REASON_CODES_BY_PILLAR: Dict[str, List[str]] = {
         "WASTE_MANAGEMENT_GAPS",
         "WATER_PERMIT_RISK",
     ],
-    PillarEnum.Rights_Legality.value: [
+    DomainEnum.Rights_Legality.value: [
         "DPIA_GAPS",
         "LICENSE_GAPS",
         "ABS_UNDEFINED",
@@ -88,19 +88,19 @@ NEGATIVE_REASON_CODES: List[str] = sorted(
 )
 
 DEFAULT_EVIDENCE_BY_PILLAR = {
-    PillarEnum.HumanStability.value: [
+    DomainEnum.HumanStability.value: [
         "Stakeholder map + skills gap snapshot",
         "Change plan v1 (communications, training, adoption KPIs)",
     ],
-    PillarEnum.EconomicResilience.value: [
+    DomainEnum.EconomicResilience.value: [
         "Assumption ledger v1 + sensitivity table",
         "Cost model v2 (on-prem vs cloud TCO)",
     ],
-    PillarEnum.EcologicalIntegrity.value: [
+    DomainEnum.EcologicalIntegrity.value: [
         "Environmental baseline note (scope, metrics)",
         "Cloud carbon estimate v1 (regions/services)",
     ],
-    PillarEnum.Rights_Legality.value: [
+    DomainEnum.Rights_Legality.value: [
         "Regulatory mapping v1 + open questions list",
         "Licenses & permits inventory + gaps list",
     ],
@@ -564,7 +564,7 @@ class PillarLikertScoreSchema(BaseModel):
 
 
 class PillarItemSchema(BaseModel):
-    pillar: str = Field(..., description="Pillar name from PillarEnum")
+    pillar: str = Field(..., description="Pillar name from DomainEnum")
     status: str = Field(..., description="Status indicator")
     score: Optional[PillarLikertScoreSchema] = Field(
         None,
@@ -891,7 +891,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
 
     for pillar_index, pillar in enumerate(pillars, start=1):
         name = pillar.get("pillar", "Unknown")
-        display_name = PillarEnum.get_display_name(name)
+        display_name = DomainEnum.get_display_name(name)
         status = pillar.get("status", StatusEnum.GRAY.value)
         score = pillar.get("score") or {}
         reason_codes = pillar.get("reason_codes", []) or []

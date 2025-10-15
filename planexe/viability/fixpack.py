@@ -23,7 +23,7 @@ from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, conlist
 
-from planexe.viability.model_pillar import PillarEnum
+from planexe.viability.model_domain import DomainEnum
 from planexe.viability.model_status import StatusEnum
 
 logger = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ MUST_FIX_REASON_CODES = {"DPIA_GAPS", "CONTINGENCY_LOW", "ETHICS_VAGUE"}
 class PillarItem(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    pillar: PillarEnum
+    pillar: DomainEnum
     status: StatusEnum
     reason_codes: List[str] = Field(default_factory=list)
     evidence_todo: List[str] = Field(default_factory=list)
@@ -414,25 +414,25 @@ if __name__ == "__main__":
     pillars_example = {
         "pillars": [
             {
-                "pillar": PillarEnum.HumanStability.value,
+                "pillar": DomainEnum.HumanStability.value,
                 "status": "YELLOW",
                 "reason_codes": ["STAFF_AVERSION"],
                 "evidence_todo": ["Stakeholder interviews"]
             },
             {
-                "pillar": PillarEnum.EconomicResilience.value,
+                "pillar": DomainEnum.EconomicResilience.value,
                 "status": "GRAY",
                 "reason_codes": ["CONTINGENCY_LOW"],
                 "evidence_todo": ["Budget scenario analysis"]
             },
             {
-                "pillar": PillarEnum.EcologicalIntegrity.value,
+                "pillar": DomainEnum.EcologicalIntegrity.value,
                 "status": "YELLOW",
                 "reason_codes": ["WATER_STRESS"],
                 "evidence_todo": ["Water sourcing assessment"]
             },
             {
-                "pillar": PillarEnum.Rights_Legality.value,
+                "pillar": DomainEnum.Rights_Legality.value,
                 "status": "RED",
                 "reason_codes": ["DPIA_GAPS", "ETHICS_VAGUE"],
                 "evidence_todo": ["Run DPIA v1"]
@@ -441,11 +441,11 @@ if __name__ == "__main__":
     }
 
     blockers_example = {
-        "source_pillars": [PillarEnum.EconomicResilience.value, PillarEnum.Rights_Legality.value, PillarEnum.HumanStability.value],
+        "source_pillars": [DomainEnum.EconomicResilience.value, DomainEnum.Rights_Legality.value, DomainEnum.HumanStability.value],
         "blockers": [
             {
                 "id": "B1",
-                "pillar": PillarEnum.EconomicResilience.value,
+                "pillar": DomainEnum.EconomicResilience.value,
                 "title": "Budget contingency below policy floor",
                 "reason_codes": ["CONTINGENCY_LOW"],
                 "acceptance_tests": ["15% contingency approved"],
@@ -455,7 +455,7 @@ if __name__ == "__main__":
             },
             {
                 "id": "B2",
-                "pillar": PillarEnum.Rights_Legality.value,
+                "pillar": DomainEnum.Rights_Legality.value,
                 "title": "DPIA not initiated for launch regions",
                 "reason_codes": ["DPIA_GAPS"],
                 "acceptance_tests": ["DPIA submitted for all regions"],
@@ -465,7 +465,7 @@ if __name__ == "__main__":
             },
             {
                 "id": "B3",
-                "pillar": PillarEnum.HumanStability.value,
+                "pillar": DomainEnum.HumanStability.value,
                 "title": "Stakeholder readiness unclear",
                 "reason_codes": ["STAFF_AVERSION"],
                 "acceptance_tests": ["Stakeholder survey ≥70% positive"],
@@ -475,7 +475,7 @@ if __name__ == "__main__":
             },
             {
                 "id": "B4",
-                "pillar": PillarEnum.EcologicalIntegrity.value,
+                "pillar": DomainEnum.EcologicalIntegrity.value,
                 "title": "Water sourcing plan incomplete",
                 "reason_codes": ["WATER_STRESS"],
                 "acceptance_tests": ["Signed water supply MOU"],

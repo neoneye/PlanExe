@@ -1,7 +1,7 @@
 """
-Pillar model definitions for the viability assessment system.
+Domain model definitions for the viability assessment system.
 
-This module contains the PillarEnum that represents the four CAS pillars
+This module contains the DomainEnum that represents the four CAS domains
 used in viability assessment: HumanStability, EconomicResilience, 
 EcologicalIntegrity, and Rights_Legality.
 
@@ -14,8 +14,8 @@ In the context of project viability assessment, CAS theory helps evaluate
 whether a proposed project can thrive within the complex, interconnected
 systems of human society, economy, and environment.
 
-The four CAS pillars used in this system represent a custom application
-of CAS theory to project viability assessment. These pillars are the
+The four CAS domains used in this system represent a custom application
+of CAS theory to project viability assessment. These domains are the
 fundamental dimensions that must be stable and resilient for a project
 to be viable:
 
@@ -30,8 +30,8 @@ to be viable:
 """
 from enum import Enum
 
-class PillarEnum(str, Enum):
-    """Canonical set of pillars for viability assessment."""
+class DomainEnum(str, Enum):
+    """Canonical set of domains for viability assessment."""
     HumanStability = "HumanStability"
     EconomicResilience = "EconomicResilience"
     EcologicalIntegrity = "EcologicalIntegrity"
@@ -41,22 +41,22 @@ class PillarEnum(str, Enum):
     def display_name(self) -> str:
         """Human-readable title for UI."""
         return {
-            PillarEnum.HumanStability: "Human Stability",
-            PillarEnum.EconomicResilience: "Economic Resilience",
-            PillarEnum.EcologicalIntegrity: "Ecological Integrity",
-            PillarEnum.Rights_Legality: "Rights & Legality",
+            DomainEnum.HumanStability: "Human Stability",
+            DomainEnum.EconomicResilience: "Economic Resilience",
+            DomainEnum.EcologicalIntegrity: "Ecological Integrity",
+            DomainEnum.Rights_Legality: "Rights & Legality",
         }[self]
 
     @classmethod
     def value_list(cls) -> list[str]:
-        """Ordered list of all pillar values."""
+        """Ordered list of all domain values."""
         return [m.value for m in cls]
     
     @classmethod
-    def get_display_name(cls, pillar_name: str) -> str:
-        """Get display name for a pillar string value."""
+    def get_display_name(cls, domain_name: str) -> str:
+        """Get display name for a domain string value."""
         try:
-            pillar_enum = cls(pillar_name)
-            return pillar_enum.display_name
+            domain_enum = cls(domain_name)
+            return domain_enum.display_name
         except ValueError:
-            return pillar_name  # Fallback to original name if not found
+            return domain_name  # Fallback to original name if not found

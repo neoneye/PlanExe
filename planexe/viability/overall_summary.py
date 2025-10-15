@@ -21,7 +21,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from planexe.markdown_util.escape_markdown import escape_markdown
-from planexe.viability.model_pillar import PillarEnum
+from planexe.viability.model_domain import DomainEnum
 from planexe.viability.model_status import StatusEnum
 
 # ---------------------------------------------------------------------------
@@ -460,7 +460,7 @@ def _build_why_list(*, pillars: Sequence[PillarItem], max_items: int) -> List[Wh
         if status == StatusEnum.GREEN.value:
             continue
 
-        display = PillarEnum.get_display_name(pillar.pillar)
+        display = DomainEnum.get_display_name(pillar.pillar)
         
         # Extract reason codes or evidence items
         if pillar.reason_codes:
@@ -525,22 +525,22 @@ if __name__ == "__main__":
     example_pillars = {
         "pillars": [
             {
-                "pillar": PillarEnum.HumanStability.value,
+                "pillar": DomainEnum.HumanStability.value,
                 "status": StatusEnum.YELLOW.value,
                 "reason_codes": ["STAFF_AVERSION"],
                 "evidence_todo": ["Stakeholder survey"]
             },
             {
-                "pillar": PillarEnum.EconomicResilience.value,
+                "pillar": DomainEnum.EconomicResilience.value,
                 "status": StatusEnum.RED.value,
                 "reason_codes": ["CONTINGENCY_LOW"]
             },
             {
-                "pillar": PillarEnum.EcologicalIntegrity.value,
+                "pillar": DomainEnum.EcologicalIntegrity.value,
                 "status": StatusEnum.GREEN.value
             },
             {
-                "pillar": PillarEnum.Rights_Legality.value,
+                "pillar": DomainEnum.Rights_Legality.value,
                 "status": StatusEnum.GRAY.value,
                 "evidence_todo": ["DPIA"]
             },
@@ -551,17 +551,17 @@ if __name__ == "__main__":
         "blockers": [
             {
                 "id": "B1",
-                "pillar": PillarEnum.EconomicResilience.value,
+                "pillar": DomainEnum.EconomicResilience.value,
                 "acceptance_tests": [">=10% contingency approved"]
             },
             {
                 "id": "B2",
-                "pillar": PillarEnum.Rights_Legality.value,
+                "pillar": DomainEnum.Rights_Legality.value,
                 "acceptance_tests": ["Finalize DPIA"]
             },
             {
                 "id": "B3",
-                "pillar": PillarEnum.HumanStability.value,
+                "pillar": DomainEnum.HumanStability.value,
                 "acceptance_tests": ["Stakeholder plan signed"]
             },
         ]
