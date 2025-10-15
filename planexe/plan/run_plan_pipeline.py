@@ -3648,13 +3648,13 @@ class DomainsAssessmentTask(PlanTask):
         )
 
         # Invoke the LLM
-        pillars_assessment = DomainsAssessment.execute(llm, query)
+        domains_assessment = DomainsAssessment.execute(llm, query)
 
         # Save the results.
         json_path = self.output()['raw'].path
-        pillars_assessment.save_raw(json_path)
+        domains_assessment.save_raw(json_path)
         markdown_path = self.output()['markdown'].path
-        pillars_assessment.save_markdown(markdown_path)
+        domains_assessment.save_markdown(markdown_path)
 
 class BlockersTask(PlanTask):
     def output(self):
@@ -3715,7 +3715,7 @@ class BlockersTask(PlanTask):
         with self.input()['premortem']['markdown'].open("r") as f:
             premortem_markdown = f.read()
         with self.input()['domains_assessment']['markdown'].open("r") as f:
-            pillars_assessment_markdown = f.read()
+            domains_assessment_markdown = f.read()
 
         # Build the query.
         query = (
@@ -3733,7 +3733,7 @@ class BlockersTask(PlanTask):
             f"File 'review-plan.md':\n{review_plan_markdown}\n\n"
             f"File 'questions-and-answers.md':\n{questions_and_answers_markdown}\n\n"
             f"File 'premortem.md':\n{premortem_markdown}\n\n"
-            f"File 'domains-assessment.md':\n{pillars_assessment_markdown}"
+            f"File 'domains-assessment.md':\n{domains_assessment_markdown}"
         )
 
         # Invoke the LLM
@@ -3805,9 +3805,9 @@ class FixPacksTask(PlanTask):
         with self.input()['premortem']['markdown'].open("r") as f:
             premortem_markdown = f.read()
         with self.input()['domains_assessment']['markdown'].open("r") as f:
-            pillars_assessment_markdown = f.read()
+            domains_assessment_markdown = f.read()
         with self.input()['domains_assessment']['raw'].open("r") as f:
-            pillars_assessment_raw = f.read()
+            domains_assessment_raw = f.read()
         with self.input()['blockers']['markdown'].open("r") as f:
             blockers_markdown = f.read()
         with self.input()['blockers']['raw'].open("r") as f:
@@ -3829,7 +3829,7 @@ class FixPacksTask(PlanTask):
             f"File 'review-plan.md':\n{review_plan_markdown}\n\n"
             f"File 'questions-and-answers.md':\n{questions_and_answers_markdown}\n\n"
             f"File 'premortem.md':\n{premortem_markdown}\n\n"
-            f"File 'domains-assessment.md':\n{pillars_assessment_markdown}\n\n"
+            f"File 'domains-assessment.md':\n{domains_assessment_markdown}\n\n"
             f"File 'blockers.md':\n{blockers_markdown}"
         )
 
@@ -3837,7 +3837,7 @@ class FixPacksTask(PlanTask):
         fix_packs = FixPack.execute(
             llm=llm, 
             user_prompt=query, 
-            domains_assessment_json=pillars_assessment_raw, 
+            domains_assessment_json=domains_assessment_raw, 
             blockers_json=blockers_raw
         )
 
@@ -3864,14 +3864,14 @@ class ViabilityOverallSummaryTask(PlanTask):
     def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
         with self.input()['domains_assessment']['raw'].open("r") as f:
-            pillars_assessment_raw = f.read()
+            domains_assessment_raw = f.read()
         with self.input()['blockers']['raw'].open("r") as f:
             blockers_raw = f.read()
         with self.input()['fix_packs']['raw'].open("r") as f:
             fix_packs_raw = f.read()
 
         summary = OverallSummary.execute(
-            domains_payload=pillars_assessment_raw,
+            domains_payload=domains_assessment_raw,
             blockers_payload=blockers_raw,
             fix_packs_payload=fix_packs_raw,
         )
@@ -3946,7 +3946,7 @@ class ReportTask(PlanTask):
         rg.append_markdown_with_tables('Premortem', self.input()['premortem']['markdown'].path)
         rg.append_viability(
             document_title='Viability',
-            pillars_markdown_file_path=Path(self.input()['domains_assessment']['markdown'].path),
+            domains_markdown_file_path=Path(self.input()['domains_assessment']['markdown'].path),
             blockers_markdown_file_path=Path(self.input()['blockers']['markdown'].path),
             fixpack_markdown_file_path=Path(self.input()['fix_packs']['markdown'].path),
             overall_markdown_file_path=Path(self.input()['viability_overall_summary']['markdown'].path),

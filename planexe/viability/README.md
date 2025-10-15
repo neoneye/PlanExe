@@ -60,7 +60,7 @@ Why four steps? Weak LLMs often fail strict schemas. Breaking the task into sequ
 ## Data Flow
 
 ```
-Plan text ──> Step 1: PILLARS ──> Step 2: BLOCKERS ──> Step 3: FIX_PACKS ──> Step 4: OVERALL+SUMMARY
+Plan text ──> Step 1: DOMAINS ──> Step 2: BLOCKERS ──> Step 3: FIX_PACKS ──> Step 4: OVERALL+SUMMARY
                      ▲                  ▲                      ▲
                      │                  │                      │
                  validator           validator               validator
