@@ -8,7 +8,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, ControllerRenderProps, FieldPath, FieldValues } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -121,7 +121,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                   <FormField
                     control={form.control}
                     name="title"
-                    render={({ field }) => (
+                    render={({ field }: { field: ControllerRenderProps<PlanFormData, 'title'> }) => (
                       <FormItem>
                         <FormLabel htmlFor="plan-title">Plan Title (Optional)</FormLabel>
                         <FormControl>
@@ -144,7 +144,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                   <FormField
                     control={form.control}
                     name="prompt"
-                    render={({ field }) => (
+                    render={({ field }: { field: ControllerRenderProps<PlanFormData, 'prompt'> }) => (
                       <FormItem>
                         <FormLabel htmlFor="plan-prompt">Plan Description *</FormLabel>
                         <FormControl>
@@ -168,7 +168,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                   <FormField
                     control={form.control}
                     name="llm_model"
-                    render={({ field }) => (
+                    render={({ field }: { field: ControllerRenderProps<PlanFormData, 'llm_model'> }) => (
                       <FormItem>
                         <FormLabel htmlFor="llm-model-select">AI Model *</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting || isLoadingModels} name="llm_model">
@@ -285,7 +285,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                   <FormField
                     control={form.control}
                     name="speed_vs_detail"
-                    render={({ field }) => (
+                    render={({ field }: { field: ControllerRenderProps<PlanFormData, 'speed_vs_detail'> }) => (
                       <FormItem className="space-y-3">
                         <FormLabel>Planning Detail Level *</FormLabel>
                         <FormControl>
