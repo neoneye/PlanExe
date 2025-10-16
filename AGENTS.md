@@ -272,7 +272,7 @@ The API server provides a **clean REST interface** over the Luigi pipeline with 
 7. **Use fallback report assembly** for robust report generation (v0.3.2)
 
 ### **When Modifying Backend**
-1. **NEVER modify Luigi pipeline** unless you understand the full dependency graph
+1. **carefully modify Luigi pipeline** only if you understand the full dependency graph
 2. **Maintain FastAPI endpoint compatibility** with frontend
 3. **Test with SQLite first**, then PostgreSQL
 4. **Preserve WebSocket implementation** (reliable v0.2.0)
@@ -284,17 +284,15 @@ The API server provides a **clean REST interface** over the Luigi pipeline with 
 1. **DO NOT MODIFY** unless absolutely critical - extremely complex dependencies
 2. **Use development mode** (`FAST_BUT_SKIP_DETAILS`) for testing
 3. **Check `run_plan_pipeline_documentation.md`** for detailed guidance
-4. **Monitor memory usage** - pipeline can be resource-intensive
-5. **Test with multiple LLM models** to ensure fallback logic works
-6. **Verify database writes** occur during execution (v0.3.0)
-7. **Use Responses API models** for structured outputs (v0.3.7)
+4. **Verify database writes** occur during execution (v0.3.0)
+5. **Use Responses API models** for structured outputs (v0.3.7)
 
 ## 📚 **Essential Reading**
 
 ### **Before Making Changes**
 1. **`CHANGELOG.md`** - Current status and recent changes
 2. **`docs/run_plan_pipeline_documentation.md`** - Luigi pipeline deep dive
-3. **`docs/FRONTEND-ARCHITECTURE-FIX-PLAN.md`** - Frontend architecture decisions
+
 
 ### **For Frontend Development**
 1. **`planexe-frontend/src/lib/api/fastapi-client.ts`** - API client implementation
@@ -343,7 +341,7 @@ curl -X POST \
 sqlite3 planexe.db "SELECT * FROM plan_content WHERE plan_id='your-plan-id' ORDER BY created_at DESC LIMIT 5;"
 
 ### **Automated Testing**
-- **Old Plans**: D:\1Projects\PlanExe\run has logs of failed runs!!  use it for testing!!!  Do not make fake data!
+
 - **No Over-Engineering**: Do not over-engineer testing or create simulated data!  Use the old plans for testing!
 - **No Mocking**: Do not mock any dependencies or external services!  Use the old plans for testing!
 - **No Simulated Data**: Do not create simulated data!  Use the old plans for testing!
@@ -353,12 +351,7 @@ sqlite3 planexe.db "SELECT * FROM plan_content WHERE plan_id='your-plan-id' ORDE
 
 ## ⚠️ **Critical Warnings**
 
-### **DO NOT**
-1. **Modify Luigi pipeline** without deep understanding of 61-task dependency graph
-2. **Break database-first architecture** - all tasks must write to database during execution (v0.3.0)
-3. **Use port 8001** - backend actually runs on port 8080
-4. **Create Next.js API proxy routes** - use direct FastAPI client
-5. **Ignore TypeScript errors** - should be clean in v0.3.6
+
 
 ### **DO**
 1. **Test incrementally** with both services running
