@@ -620,9 +620,9 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         elif status in (StatusEnum.YELLOW.value, StatusEnum.RED.value):
             if reason_codes:
                 rows.append("**Issues:**\n")
-                for item in reason_codes:
-                    human_readable = _translate_reason_code_to_human_readable(item)
-                    rows.append(f"- {human_readable}")
+                for reason_code in reason_codes:
+                    human_readable = _translate_reason_code_to_human_readable(reason_code)
+                    rows.append(f"- <code>{reason_code}</code>: {human_readable}")
                 rows.append("")
             if evidence:
                 rows.append("**Evidence Needed:**\n")
