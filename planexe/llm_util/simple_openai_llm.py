@@ -1,8 +1,13 @@
 """
-Author: ChatGPT gpt-5-codex
-Date: 2025-10-18
-PURPOSE: Responses API-backed OpenAI client with reasoning-aware streaming and structured output helpers.
-SRP and DRY check: Pass - single module orchestrates raw and structured GPT-5 calls without duplicating schema logic.
+/**
+ * Author: ChatGPT gpt-5-codex
+ * Date: 2025-10-19
+ * PURPOSE: Responses API-backed OpenAI client with reasoning-aware streaming hooks that
+ *          emit Luigi stdout envelopes for WebSocket broadcasting while preserving
+ *          structured output helpers.
+ * SRP and DRY check: Pass - single adapter orchestrates raw/structured GPT-5 calls and
+ *          funnels telemetry to shared stream helpers without duplicating envelope logic.
+ */
 """
 
 from __future__ import annotations
@@ -18,6 +23,11 @@ from openai import OpenAI
 from pydantic import BaseModel, Field, PrivateAttr, ValidationError
 
 from planexe.llm_util.schema_registry import get_schema_entry
+from planexe.llm_util import (
+    record_final_payload,
+    record_reasoning_delta,
+    record_text_delta,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -229,6 +239,12 @@ class SimpleOpenAILLM(LLM):
         self._last_response_payload = payload
         extracted = self._extract_output(payload)
         extracted["raw"] = payload
+        record_final_payload(
+            text=extracted.get("text"),
+            reasoning=extracted.get("reasoning"),
+            usage=extracted.get("usage"),
+            raw_payload=payload,
+        )
         return extracted
 
     # ------------------------------------------------------------------
@@ -274,7 +290,18 @@ class SimpleOpenAILLM(LLM):
 
                     if text_delta:
                         aggregated_text.append(text_delta)
+                        record_text_delta(text_delta)
                         yield text_delta
+                elif event_type and "reasoning" in event_type and "delta" in event_type:
+                    reasoning_delta = getattr(event, "delta", None)
+                    if reasoning_delta is None and isinstance(event, dict):
+                        reasoning_delta = event.get("delta") or event.get("text")
+                    if isinstance(reasoning_delta, dict):
+                        reasoning_text = reasoning_delta.get("text") or reasoning_delta.get("value")
+                    else:
+                        reasoning_text = str(reasoning_delta) if reasoning_delta else None
+                    if reasoning_text:
+                        record_reasoning_delta(reasoning_text)
                 elif event_type == "response.error":
                     message = getattr(event, "message", None) or getattr(event, "error", None)
                     raise RuntimeError(f"OpenAI streaming error: {message}")
@@ -288,6 +315,13 @@ class SimpleOpenAILLM(LLM):
         if final_response is not None:
             final_payload = self._payload_to_dict(final_response)
             self._last_response_payload = final_payload
+            extracted = self._extract_output(final_payload)
+            record_final_payload(
+                text=extracted.get("text"),
+                reasoning=extracted.get("reasoning"),
+                usage=extracted.get("usage"),
+                raw_payload=final_payload,
+            )
 
         if final_payload is not None and not aggregated_text:
             extracted = self._extract_output(final_payload)

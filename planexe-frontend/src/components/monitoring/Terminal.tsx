@@ -1,18 +1,22 @@
 /**
- * Author: Claude Code using Sonnet 4
- * Date: 2025-09-27
- * PURPOSE: Terminal-like UI component for displaying real-time Luigi pipeline logs via WebSocket
- * SRP and DRY check: Pass - Single responsibility for terminal display with thread-safe WebSocket connection
+ * Author: ChatGPT gpt-5-codex
+ * Date: 2025-10-19
+ * PURPOSE: Augment terminal monitor with Responses reasoning stream panels so operators see
+ *          token deltas, reasoning traces, and final outputs alongside raw Luigi logs.
+ * SRP and DRY check: Pass - keeps monitoring responsibilities cohesive by layering
+ *          telemetry visualization without duplicating WebSocket wiring. Previous
+ *          baseline provided by Claude Code using Sonnet 4 (2025-09-27).
  */
 
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Copy, Download, Search, Trash2, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import type { WebSocketLLMStreamMessage } from '@/lib/api/fastapi-client';
 
 interface TerminalProps {
   planId: string;
@@ -27,6 +31,25 @@ interface LogLine {
   level?: 'info' | 'error' | 'warn' | 'debug';
 }
 
+type StreamStatus = 'running' | 'completed' | 'failed';
+
+interface LLMStreamState {
+  interactionId: number;
+  planId: string;
+  stage: string;
+  textDeltas: string[];
+  reasoningDeltas: string[];
+  finalText?: string;
+  finalReasoning?: string;
+  usage?: Record<string, unknown>;
+  status: StreamStatus;
+  error?: string;
+  lastUpdated: number;
+  promptPreview?: string | null;
+}
+
+const MAX_STREAM_DELTAS = 200;
+
 export const Terminal: React.FC<TerminalProps> = ({
   planId,
   onComplete,
@@ -40,6 +63,7 @@ export const Terminal: React.FC<TerminalProps> = ({
   const [autoScroll, setAutoScroll] = useState(true);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [fallbackToPolling, setFallbackToPolling] = useState(false);
+  const [llmStreams, setLlmStreams] = useState<Record<number, LLMStreamState>>({});
 
   const terminalRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -51,6 +75,96 @@ export const Terminal: React.FC<TerminalProps> = ({
     const timestamp = new Date().toLocaleTimeString();
     setLogs(prev => [...prev, { timestamp, text, level }]);
   }, []);
+
+  const handleLlmStreamMessage = useCallback((message: WebSocketLLMStreamMessage) => {
+    setLlmStreams(prev => {
+      const existing = prev[message.interaction_id];
+      const promptPreview = typeof message.data?.prompt_preview === 'string' ? message.data.prompt_preview : undefined;
+      const baseState: LLMStreamState = existing ?? {
+        interactionId: message.interaction_id,
+        planId: message.plan_id,
+        stage: message.stage,
+        textDeltas: [],
+        reasoningDeltas: [],
+        status: 'running',
+        lastUpdated: Date.now(),
+        promptPreview: promptPreview ?? null,
+      };
+
+      const updated: LLMStreamState = {
+        ...baseState,
+        lastUpdated: Date.now(),
+        promptPreview: baseState.promptPreview ?? promptPreview ?? null,
+      };
+
+      switch (message.event) {
+        case 'start':
+          updated.status = 'running';
+          break;
+        case 'text_delta': {
+          const delta = typeof message.data?.delta === 'string' ? message.data.delta : '';
+          if (delta) {
+            const next = [...updated.textDeltas, delta];
+            if (next.length > MAX_STREAM_DELTAS) {
+              next.splice(0, next.length - MAX_STREAM_DELTAS);
+            }
+            updated.textDeltas = next;
+          }
+          break;
+        }
+        case 'reasoning_delta': {
+          const delta = typeof message.data?.delta === 'string' ? message.data.delta : '';
+          if (delta) {
+            const next = [...updated.reasoningDeltas, delta];
+            if (next.length > MAX_STREAM_DELTAS) {
+              next.splice(0, next.length - MAX_STREAM_DELTAS);
+            }
+            updated.reasoningDeltas = next;
+          }
+          break;
+        }
+        case 'final': {
+          if (typeof message.data?.text === 'string') {
+            updated.finalText = message.data.text;
+          }
+          if (typeof message.data?.reasoning === 'string') {
+            updated.finalReasoning = message.data.reasoning;
+          }
+          if (message.data?.usage && typeof message.data.usage === 'object') {
+            updated.usage = message.data.usage as Record<string, unknown>;
+          }
+          break;
+        }
+        case 'end': {
+          const status = typeof message.data?.status === 'string' ? message.data.status.toLowerCase() : 'completed';
+          updated.status = status === 'failed' ? 'failed' : 'completed';
+          updated.error = typeof message.data?.error === 'string' ? message.data.error : undefined;
+          break;
+        }
+        default:
+          break;
+      }
+
+      return { ...prev, [message.interaction_id]: updated };
+    });
+
+    if (message.event === 'final') {
+      const fullText = typeof message.data?.text === 'string' ? message.data.text : '';
+      const snippet = fullText.slice(0, 160);
+      if (snippet) {
+        addLog(`🧠 [${message.stage}] Final output received: ${snippet}${snippet.length < fullText.length ? '…' : ''}`, 'info');
+      } else {
+        addLog(`🧠 [${message.stage}] Final output payload received.`, 'info');
+      }
+    } else if (message.event === 'end') {
+      const statusLabel = typeof message.data?.status === 'string' ? message.data.status.toUpperCase() : 'COMPLETED';
+      if (statusLabel === 'FAILED') {
+        addLog(`❌ [${message.stage}] LLM stream failed: ${typeof message.data?.error === 'string' ? message.data.error : 'unknown error'}`, 'error');
+      } else {
+        addLog(`✅ [${message.stage}] LLM stream ${statusLabel.toLowerCase()}.`, 'info');
+      }
+    }
+  }, [addLog]);
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
@@ -96,7 +210,9 @@ export const Terminal: React.FC<TerminalProps> = ({
           const data = JSON.parse(event.data);
 
           // Handle different message types from WebSocket
-          if (data.type === 'log' && data.message) {
+          if (data.type === 'llm_stream') {
+            handleLlmStreamMessage(data as WebSocketLLMStreamMessage);
+          } else if (data.type === 'log' && data.message) {
             addLog(data.message, detectLogLevel(data.message));
           } else if (data.type === 'error' && data.message) {
             addLog(`ERROR: ${data.message}`, 'error');
@@ -161,7 +277,7 @@ export const Terminal: React.FC<TerminalProps> = ({
       addLog(`❌ Failed to create WebSocket connection: ${error}`, 'error');
       scheduleReconnect();
     }
-  }, [planId, addLog, onComplete, onError]);
+  }, [planId, addLog, onComplete, onError, handleLlmStreamMessage]);
 
   // REST polling fallback when WebSocket fails
   const startPollingFallback = useCallback(() => {
@@ -325,6 +441,17 @@ export const Terminal: React.FC<TerminalProps> = ({
     }
   };
 
+  const streamEntries = useMemo(() => {
+    return Object.values(llmStreams).sort((a, b) => b.lastUpdated - a.lastUpdated);
+  }, [llmStreams]);
+
+  const formatTokenValue = (value: unknown) => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value.toLocaleString();
+    }
+    return '—';
+  };
+
   // Filter logs based on search
   const filteredLogs = searchFilter
     ? logs.filter(log => log.text.toLowerCase().includes(searchFilter.toLowerCase()))
@@ -446,6 +573,84 @@ export const Terminal: React.FC<TerminalProps> = ({
             >
               New logs available - click to scroll to bottom
             </Button>
+          </div>
+        )}
+
+        {streamEntries.length > 0 && (
+          <div className="border-t border-gray-800 bg-gray-950/60">
+            <div className="px-4 py-3 border-b border-gray-800">
+              <h3 className="text-sm font-semibold text-slate-200">Live LLM Streams</h3>
+              <p className="text-xs text-slate-400">
+                Structured deltas arrive before the model finalizes JSON output so you can audit reasoning in-flight.
+              </p>
+            </div>
+            <div className="divide-y divide-gray-800">
+              {streamEntries.map((entry) => {
+                const statusStyles =
+                  entry.status === 'completed'
+                    ? 'bg-emerald-600/20 text-emerald-300 border border-emerald-500/40'
+                    : entry.status === 'failed'
+                    ? 'bg-red-600/20 text-red-300 border border-red-500/40'
+                    : 'bg-blue-600/20 text-blue-300 border border-blue-500/40 animate-pulse';
+                const assembledText = entry.finalText ?? entry.textDeltas.join('');
+                const assembledReasoning = entry.finalReasoning ?? entry.reasoningDeltas.join('\n');
+                const usageRecord = (entry.usage ?? {}) as Record<string, unknown>;
+
+                return (
+                  <div key={entry.interactionId} className="px-4 py-3 grid gap-4 md:grid-cols-2">
+                    <div>
+                      <div className="flex items-center justify-between text-xs text-slate-400">
+                        <span className="font-semibold text-slate-100">{entry.stage}</span>
+                        <span className={`px-2 py-0.5 rounded-full uppercase tracking-wide text-[10px] ${statusStyles}`}>
+                          {entry.status}
+                        </span>
+                      </div>
+                      {entry.promptPreview && (
+                        <p className="mt-1 text-[11px] text-slate-500 truncate">
+                          Prompt: {entry.promptPreview}
+                        </p>
+                      )}
+                      <div className="mt-3 space-y-1">
+                        <p className="text-[11px] uppercase text-slate-500 tracking-wide">Model Output</p>
+                        <div className="bg-slate-950/80 border border-slate-800 rounded p-2 text-xs text-slate-200 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                          {assembledText || '—'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 md:border-l md:border-gray-800 md:pl-4">
+                      <div>
+                        <p className="text-[11px] uppercase text-slate-500 tracking-wide">Reasoning Trace</p>
+                        <div className="bg-slate-950/80 border border-slate-800 rounded p-2 text-xs text-slate-300 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                          {assembledReasoning || '—'}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-500">
+                        <div>
+                          Input tokens:
+                          <span className="ml-1 text-slate-300">{formatTokenValue(usageRecord['input_tokens'])}</span>
+                        </div>
+                        <div>
+                          Output tokens:
+                          <span className="ml-1 text-slate-300">{formatTokenValue(usageRecord['output_tokens'])}</span>
+                        </div>
+                        <div>
+                          Total tokens:
+                          <span className="ml-1 text-slate-300">{formatTokenValue(usageRecord['total_tokens'])}</span>
+                        </div>
+                        <div>
+                          Reasoning tokens:
+                          <span className="ml-1 text-slate-300">{formatTokenValue(usageRecord['reasoning_tokens'])}</span>
+                        </div>
+                      </div>
+                      {entry.error && (
+                        <p className="text-[11px] text-red-400">Error: {entry.error}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </CardContent>

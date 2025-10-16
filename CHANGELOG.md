@@ -5,11 +5,14 @@
 - Replaced the legacy Chat Completions wrapper with a **Responses API** client that always requests high-effort, detailed reasoning with high-verbosity text streams.
 - Added a **schema registry** for structured Luigi tasks and updated `StructuredSimpleOpenAILLM` to send `text.format.json_schema` payloads while capturing reasoning summaries and token usage.
 - Added unit coverage for the registry so new Pydantic models are automatically registered and validated.
+- Streamed Responses telemetry through Luigi stdout, FastAPI WebSocket, and the monitoring UI so reasoning deltas, final text, and token usage render in real time.
+- Persisted `_last_response_payload` metadata (reasoning traces, token counters, raw payloads) automatically into `llm_interactions` for every stage run.
+- Refreshed the pipeline terminal with a **Live LLM Streams** panel that separates reasoning from final output and surfaces usage analytics.
 
 ### 📋 Follow-up
-- Wire streaming deltas into the Luigi → FastAPI WebSocket bridge.
-- Persist reasoning/token telemetry in `LLMInteraction` once executor hooks are in place.
-- Update frontend monitors to render reasoning vs. final text in real time.
+- Run an end-to-end smoke test against GPT-5 mini/nano once sanitized API keys are available to the CI/container runtime.
+- Backfill reasoning/token metadata for historical `llm_interactions` so legacy plans gain the same telemetry.
+- Monitor WebSocket stability under concurrent plan runs and adjust heartbeat cadence if needed.
 
 ---
 
