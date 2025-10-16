@@ -1,9 +1,10 @@
 /**
- * Author: Codex using GPT-5
- * Date: 2024-06-08
+ * Author: ChatGPT gpt-5-codex (updates; original by Codex using GPT-5)
+ * Date: 2025-10-19
  * PURPOSE: Augment terminal monitor with Responses reasoning stream panels so operators see
  *          token deltas, reasoning traces, and final outputs alongside raw Luigi logs while
- *          sharing websocket URL construction with other realtime clients.
+ *          sharing websocket URL construction with other realtime clients. Latest revision surfaces
+ *          every usage metric emitted by the backend so the UI mirrors streamed telemetry exactly.
  * SRP and DRY check: Pass - keeps monitoring responsibilities cohesive by layering telemetry
  *          visualization without duplicating WebSocket wiring. Previous baseline provided by
  *          Claude Code using Sonnet 4 (2025-09-27).
@@ -51,6 +52,13 @@ interface LLMStreamState {
 }
 
 const MAX_STREAM_DELTAS = 200;
+const STANDARD_USAGE_KEYS = ['input_tokens', 'output_tokens', 'total_tokens', 'reasoning_tokens'] as const;
+const STANDARD_USAGE_LABELS: Record<(typeof STANDARD_USAGE_KEYS)[number], string> = {
+  input_tokens: 'Input tokens',
+  output_tokens: 'Output tokens',
+  total_tokens: 'Total tokens',
+  reasoning_tokens: 'Reasoning tokens'
+};
 
 export const Terminal: React.FC<TerminalProps> = ({
   planId,
@@ -450,7 +458,40 @@ export const Terminal: React.FC<TerminalProps> = ({
     if (typeof value === 'number' && Number.isFinite(value)) {
       return value.toLocaleString();
     }
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+    if (typeof value === 'boolean') {
+      return value ? 'true' : 'false';
+    }
+    if (value === 0) {
+      return '0';
+    }
     return '—';
+  };
+
+  const renderUsageDetailValue = (value: unknown) => {
+    if (value === null || value === undefined) {
+      return <span className="text-slate-400">—</span>;
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return <span className="text-slate-300">{value.toLocaleString()}</span>;
+    }
+    if (typeof value === 'string') {
+      return <span className="text-slate-300">{value}</span>;
+    }
+    if (typeof value === 'boolean') {
+      return <span className="text-slate-300">{value ? 'true' : 'false'}</span>;
+    }
+    try {
+      return (
+        <pre className="mt-1 rounded bg-slate-950/70 p-2 text-[11px] text-slate-300 whitespace-pre-wrap break-words">
+          {JSON.stringify(value, null, 2)}
+        </pre>
+      );
+    } catch (error) {
+      return <span className="text-slate-300">{String(value)}</span>;
+    }
   };
 
   // Filter logs based on search
@@ -596,6 +637,10 @@ export const Terminal: React.FC<TerminalProps> = ({
                 const assembledText = entry.finalText ?? entry.textDeltas.join('');
                 const assembledReasoning = entry.finalReasoning ?? entry.reasoningDeltas.join('\n');
                 const usageRecord = (entry.usage ?? {}) as Record<string, unknown>;
+                const extraUsageEntries = Object.entries(usageRecord).filter(
+                  ([key]) => !STANDARD_USAGE_KEYS.includes(key as (typeof STANDARD_USAGE_KEYS)[number])
+                );
+                const hasUsageData = Object.keys(usageRecord).length > 0;
 
                 return (
                   <div key={entry.interactionId} className="px-4 py-3 grid gap-4 md:grid-cols-2">
@@ -626,24 +671,31 @@ export const Terminal: React.FC<TerminalProps> = ({
                           {assembledReasoning || '—'}
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-500">
-                        <div>
-                          Input tokens:
-                          <span className="ml-1 text-slate-300">{formatTokenValue(usageRecord['input_tokens'])}</span>
+                      {hasUsageData && (
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-500">
+                            {STANDARD_USAGE_KEYS.map((key) => (
+                              <div key={key}>
+                                {STANDARD_USAGE_LABELS[key]}:
+                                <span className="ml-1 text-slate-300">{formatTokenValue(usageRecord[key])}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {extraUsageEntries.length > 0 && (
+                            <div>
+                              <p className="text-[10px] uppercase tracking-wide text-slate-600">Additional usage telemetry</p>
+                              <div className="mt-1 space-y-1 text-[11px] text-slate-500">
+                                {extraUsageEntries.map(([key, value]) => (
+                                  <div key={key}>
+                                    <span className="font-semibold text-slate-400">{key}</span>
+                                    <div>{renderUsageDetailValue(value)}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          Output tokens:
-                          <span className="ml-1 text-slate-300">{formatTokenValue(usageRecord['output_tokens'])}</span>
-                        </div>
-                        <div>
-                          Total tokens:
-                          <span className="ml-1 text-slate-300">{formatTokenValue(usageRecord['total_tokens'])}</span>
-                        </div>
-                        <div>
-                          Reasoning tokens:
-                          <span className="ml-1 text-slate-300">{formatTokenValue(usageRecord['reasoning_tokens'])}</span>
-                        </div>
-                      </div>
+                      )}
                       {entry.error && (
                         <p className="text-[11px] text-red-400">Error: {entry.error}</p>
                       )}

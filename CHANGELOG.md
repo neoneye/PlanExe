@@ -12,6 +12,7 @@
 - Tightened PlanForm spacing, scaled labels, and streamlined prompt example selection for quicker scanning and submission.
 - Added contextual primer content and compact error handling so the workflow feels less cartoonish and more operational.
 - Hardened the lint workflow with an ESLint-or-fallback script so CI can run locally even when registry access is restricted.
+- Synced the monitoring UI with backend telemetry so Responses usage metrics (including nested token details) render alongside reasoning and output streams.
 
 ### 🧪 Testing
 - `npm run lint`
