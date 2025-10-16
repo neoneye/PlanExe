@@ -1,8 +1,8 @@
 /**
  * Author: ChatGPT (gpt-5-codex)
- * Date: 2025-10-15
- * PURPOSE: Landing screen for PlanExe that orchestrates plan creation, surfaces system health, and links into the recovery workspace.
- * SRP and DRY check: Pass - this file owns only landing-page layout/orchestration while delegating form logic and queues to shared components.
+ * Date: 2025-10-23
+ * PURPOSE: Landing screen for PlanExe that orchestrates plan creation, surfaces system health, and now syncs the release badge with the CHANGELOG on GitHub.
+ * SRP and DRY check: Pass - this file owns only landing-page layout/orchestration while delegating form logic, queues, and data fetching helpers to shared components.
  */
 
 'use client';
@@ -17,16 +17,65 @@ import { PlansQueue } from '@/components/PlansQueue';
 import { useConfigStore } from '@/lib/stores/config';
 import { CreatePlanRequest, fastApiClient } from '@/lib/api/fastapi-client';
 
+const CHANGELOG_URL = 'https://github.com/PlanExe/PlanExe/blob/main/CHANGELOG.md';
+const RAW_CHANGELOG_URL = 'https://raw.githubusercontent.com/PlanExe/PlanExe/main/CHANGELOG.md';
+
 const HomePage: React.FC = () => {
   const router = useRouter();
   const { llmModels, promptExamples, modelsError, isLoadingModels, loadLLMModels, loadPromptExamples } = useConfigStore();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [latestVersion, setLatestVersion] = useState<string | null>(null);
+  const [versionError, setVersionError] = useState<string | null>(null);
 
   useEffect(() => {
     loadLLMModels();
     loadPromptExamples();
   }, [loadLLMModels, loadPromptExamples]);
+
+  useEffect(() => {
+    let canceled = false;
+
+    const extractLatestVersion = (changelog: string): string | null => {
+      const match = changelog.match(/##\s*\[(\d+\.\d+\.\d+)\]/);
+      return match?.[1] ?? null;
+    };
+
+    const fetchLatestVersion = async () => {
+      try {
+        const response = await fetch(RAW_CHANGELOG_URL, { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`Failed to load changelog (HTTP ${response.status})`);
+        }
+
+        const changelogText = await response.text();
+        const version = extractLatestVersion(changelogText);
+
+        if (!canceled) {
+          if (version) {
+            setLatestVersion(version);
+            setVersionError(null);
+          } else {
+            setVersionError('Unable to parse version from changelog.');
+          }
+        }
+      } catch (err) {
+        if (!canceled) {
+          const message = err instanceof Error ? err.message : 'Unknown error fetching changelog.';
+          setVersionError(message);
+        }
+      }
+    };
+
+    fetchLatestVersion();
+
+    const refreshInterval = window.setInterval(fetchLatestVersion, 15 * 60 * 1000);
+
+    return () => {
+      canceled = true;
+      window.clearInterval(refreshInterval);
+    };
+  }, []);
 
   const handlePlanSubmit = async (planData: CreatePlanRequest) => {
     setIsCreating(true);
@@ -84,8 +133,21 @@ const HomePage: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span className="hidden sm:inline">Workspace build</span>
-            <Badge variant="outline" className="border-slate-200 font-semibold uppercase tracking-wide">v1.0.0</Badge>
+            <a
+              href={CHANGELOG_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline text-indigo-600 hover:text-indigo-500"
+            >
+              Workspace build changelog
+            </a>
+            <Badge
+              variant="outline"
+              className="border-slate-200 font-semibold uppercase tracking-wide"
+              title={versionError ?? undefined}
+            >
+              v{latestVersion ?? '…'}
+            </Badge>
           </div>
         </div>
       </header>
