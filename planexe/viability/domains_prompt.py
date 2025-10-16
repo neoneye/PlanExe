@@ -1,10 +1,8 @@
 import json
 from typing import Dict, List, Optional
+from planexe.viability.taxonomy import DOMAIN_ORDER, REASON_CODES_BY_DOMAIN, DEFAULT_EVIDENCE_BY_DOMAIN
 
 def make_domains_system_prompt(
-    DOMAIN_ORDER: List[str],
-    REASON_CODES_BY_DOMAIN: Dict[str, List[str]],
-    DEFAULT_EVIDENCE_BY_DOMAIN: Optional[Dict[str, List[str]]] = None,
     FORBID_FIRST_WORDS: Optional[List[str]] = None,
 ) -> str:
     """
@@ -26,27 +24,6 @@ def make_domains_system_prompt(
             "conduct", "ensure", "perform", "create", "update",
             "implement", "analyze", "review"
         ]
-
-    # Provide robust defaults for GRAY evidence if caller doesn't supply them.
-    if DEFAULT_EVIDENCE_BY_DOMAIN is None:
-        DEFAULT_EVIDENCE_BY_DOMAIN = {
-            "HumanStability": [
-                "Stakeholder map + skills gap snapshot",
-                "Change plan v1 (communications, training, adoption KPIs)"
-            ],
-            "EconomicResilience": [
-                "Assumption ledger v1 + sensitivity table",
-                "Cost model v2 (on-prem vs cloud TCO)"
-            ],
-            "EcologicalIntegrity": [
-                "Environmental baseline note (scope, metrics)",
-                "Cloud carbon estimate v1 (regions/services)"
-            ],
-            "Rights_Legality": [
-                "Regulatory mapping v1 + open questions list",
-                "Licenses & permits inventory + gaps list"
-            ],
-        }
 
     # Ensure every domain in order has at least 2 default items (fallbacks).
     for p in DOMAIN_ORDER:

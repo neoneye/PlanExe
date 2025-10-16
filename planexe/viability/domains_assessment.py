@@ -3,8 +3,6 @@ Domains assessment
 
 Auto-repair that enforces status/score bands, evidence gating, and reason-code whitelists.
 
-IDEA: Extract the REASON_CODES_BY_DOMAIN, DEFAULT_EVIDENCE_BY_DOMAIN, EVIDENCE_TEMPLATES into a JSON file.
-
 PROMPT> python -u -m planexe.viability.domains_assessment | tee output.txt
 """
 from __future__ import annotations
@@ -26,333 +24,30 @@ from planexe.viability.domains_prompt import make_domains_system_prompt
 from planexe.viability.model_domain import DomainEnum
 from planexe.viability.model_status import StatusEnum
 
+from planexe.viability.taxonomy import (
+    DOMAIN_ORDER,
+    REASON_CODES_BY_DOMAIN,
+    DEFAULT_EVIDENCE_BY_DOMAIN,
+    EVIDENCE_TEMPLATES,
+    STRENGTH_REASON_CODES,
+    FALLBACK_REASON_CODE_BY_DOMAIN_AND_FACTOR,
+    EVIDENCE_DONE_WHEN,
+    LIKERT_MIN, LIKERT_MAX, LIKERT_FACTOR_KEYS,
+    DEFAULT_LIKERT_BY_STATUS, FACTOR_ORDER_INDEX,
+    reason_code_factor_set,
+)
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Constants & enums
 # ---------------------------------------------------------------------------
 
-DOMAIN_ORDER: List[str] = DomainEnum.value_list()
-
-# This list is not exhaustive, more items are likely to be added over time.
-REASON_CODES_BY_DOMAIN: Dict[str, List[str]] = {
-    DomainEnum.HumanStability.value: [
-        "TALENT_UNKNOWN",
-        "STAFF_AVERSION",
-        "GOVERNANCE_WEAK",
-        "CHANGE_MGMT_GAPS",
-        "TRAINING_GAPS",
-        "STAKEHOLDER_CONFLICT",
-        "SAFETY_CULTURE_WEAK",
-    ],
-    DomainEnum.EconomicResilience.value: [
-        "CONTINGENCY_LOW",
-        "SINGLE_CUSTOMER",
-        "ALT_COST_UNKNOWN",
-        "LEGACY_IT",
-        "INTEGRATION_RISK",
-        "UNIT_ECON_UNKNOWN",
-        "SUPPLIER_CONCENTRATION",
-        "SPOF_DEPENDENCY",
-        "BIA_MISSING",
-        "DR_TEST_GAPS",
-    ],
-    DomainEnum.EcologicalIntegrity.value: [
-        "CLOUD_CARBON_UNKNOWN",
-        "CLIMATE_UNQUANTIFIED",
-        "WATER_STRESS",
-        "EIA_MISSING",
-        "BIODIVERSITY_RISK_UNSET",
-        "WASTE_MANAGEMENT_GAPS",
-        "WATER_PERMIT_RISK",
-    ],
-    DomainEnum.Rights_Legality.value: [
-        "DPIA_GAPS",
-        "LICENSE_GAPS",
-        "ABS_UNDEFINED",
-        "PERMIT_COMPLEXITY",
-        "BIOSECURITY_GAPS",
-        "ETHICS_VAGUE",
-        "INFOSEC_GAPS",
-        "DATA_QUALITY_WEAK",
-        "MODEL_RISK_UNQUANTIFIED",
-        "CROSSBORDER_RISK",
-        "CONSENT_MODEL_WEAK",
-    ],
-}
-
 NEGATIVE_REASON_CODES: List[str] = sorted(
     {code for codes in REASON_CODES_BY_DOMAIN.values() for code in codes}
 )
 
-DEFAULT_EVIDENCE_BY_DOMAIN = {
-    DomainEnum.HumanStability.value: [
-        "Stakeholder map + skills gap snapshot",
-        "Change plan v1 (communications, training, adoption KPIs)",
-    ],
-    DomainEnum.EconomicResilience.value: [
-        "Assumption ledger v1 + sensitivity table",
-        "Cost model v2 (on-prem vs cloud TCO)",
-    ],
-    DomainEnum.EcologicalIntegrity.value: [
-        "Environmental baseline note (scope, metrics)",
-        "Cloud carbon estimate v1 (regions/services)",
-    ],
-    DomainEnum.Rights_Legality.value: [
-        "Regulatory mapping v1 + open questions list",
-        "Licenses & permits inventory + gaps list",
-    ],
-}
-
-LIKERT_MIN = 1
-LIKERT_MAX = 5
-LIKERT_FACTOR_KEYS: Tuple[str, ...] = ("evidence", "risk", "fit")
-ALL_FACTORS = tuple(LIKERT_FACTOR_KEYS)
-FACTOR_ORDER_INDEX = {key: idx for idx, key in enumerate(("risk", "evidence", "fit"))}
-
-DEFAULT_LIKERT_BY_STATUS: Dict[str, Dict[str, Optional[int]]] = {
-    StatusEnum.GREEN.value: {key: 4 for key in LIKERT_FACTOR_KEYS},
-    StatusEnum.YELLOW.value: {
-        "evidence": 2,
-        "risk": 3,
-        "fit": 3,
-    },
-    StatusEnum.RED.value: {
-        "evidence": 3,
-        "risk": 2,
-        "fit": 3,
-    },
-    StatusEnum.GRAY.value: {key: None for key in LIKERT_FACTOR_KEYS},
-}
-
 DEFAULT_EVIDENCE_ITEM = "Gather evidence for assessment"
-
-# --- strength codes allowed for GREEN status and canonical evidence templates ---
-STRENGTH_REASON_CODES = {
-    # Use positive signals that justify GREEN
-    "HITL_GOVERNANCE_OK",
-}
-
-# Map reason codes to the factors they primarily stress. Unknown codes default to all factors.
-REASON_CODE_FACTOR: Dict[str, Set[str]] = {
-    "GOVERNANCE_WEAK": {"risk"},
-    "STAKEHOLDER_CONFLICT": {"risk", "fit"},
-    "CHANGE_MGMT_GAPS": {"risk"},
-    "CONTINGENCY_LOW": {"risk", "fit"},
-    "UNIT_ECON_UNKNOWN": {"fit", "evidence"},
-    "EIA_MISSING": {"risk", "evidence"},
-    "BIODIVERSITY_RISK_UNSET": {"risk", "evidence"},
-    "WASTE_MANAGEMENT_GAPS": {"fit", "evidence"},
-    "DPIA_GAPS": {"evidence"},
-    "ETHICS_VAGUE": {"evidence", "fit"},
-    "INFOSEC_GAPS": {"risk", "evidence"},
-    "TRAINING_GAPS": {"risk", "fit"},
-    "SAFETY_CULTURE_WEAK": {"risk"},
-    "SUPPLIER_CONCENTRATION": {"risk", "fit"},
-    "SPOF_DEPENDENCY": {"risk"},
-    "BIA_MISSING": {"risk", "evidence"},
-    "DR_TEST_GAPS": {"risk"},
-    "CLOUD_CARBON_UNKNOWN": {"risk", "evidence"},
-    "CLIMATE_UNQUANTIFIED": {"risk", "evidence"},
-    "WATER_STRESS": {"risk"},
-    "WATER_PERMIT_RISK": {"risk"},
-    "MODEL_RISK_UNQUANTIFIED": {"risk"},
-    "CROSSBORDER_RISK": {"risk", "evidence"},
-    "CONSENT_MODEL_WEAK": {"evidence"},
-    "DATA_QUALITY_WEAK": {"evidence"},
-    "ABS_UNDEFINED": {"fit", "evidence"},
-    "LICENSE_GAPS": {"evidence"},
-}
-
-
-def _reason_code_factor_set(code: str) -> Set[str]:
-    mapped = REASON_CODE_FACTOR.get(code)
-    if mapped:
-        return mapped
-    return set(ALL_FACTORS)
-
-
-def _build_reason_code_fallbacks() -> Dict[str, Dict[str, str]]:
-    fallbacks: Dict[str, Dict[str, str]] = {domain: {} for domain in DOMAIN_ORDER}
-    for domain, codes in REASON_CODES_BY_DOMAIN.items():
-        for code in codes:
-            factors = _reason_code_factor_set(code)
-            weight = len(factors)
-            for factor in factors:
-                existing = fallbacks[domain].get(factor)
-                if existing is None:
-                    fallbacks[domain][factor] = code
-                else:
-                    existing_weight = len(_reason_code_factor_set(existing))
-                    if weight < existing_weight:
-                        fallbacks[domain][factor] = code
-    return fallbacks
-
-
-FALLBACK_REASON_CODE_BY_DOMAIN_AND_FACTOR = _build_reason_code_fallbacks()
-
-# Canonical evidence templates per reason code (artifact-first, not actions)
-# EVIDENCE_TEMPLATES
-# Dict[str, List[str]] mapping a reason code -> ordered list of evidence templates.
-# We intentionally use List[str] even when there is only one template for a key.
-# Rationale:
-#  - Future-proof: adding a second/third template needs no migration or refactor.
-#  - Ordering encodes priority: first item is the most canonical form.
-# Invariants:
-#  - Values are lists of unique, non-empty strings (singleton lists are OK).
-#  - Missing keys must be treated by consumers as an empty list, not an error.
-# This dict with templates is not exhaustive, more items are likely to be added over time.
-# Note: downstream code may dedupe/cap at read time, but the source remains a list.
-EVIDENCE_TEMPLATES: Dict[str, List[str]] = {
-    # Example:
-    # "reason_code": ["template 1", "template 2 (optional)"],
-    "TALENT_UNKNOWN": [
-        "Talent market scan report (availability, salary ranges, channels)"
-    ],
-    "CLOUD_CARBON_UNKNOWN": [
-        "Cloud carbon baseline (last 30 days) using CCF method (kWh, kgCO2e)"
-    ],
-    "LEGACY_IT": [
-        "IT integration audit (systems map, gap analysis)"
-    ],
-    "INTEGRATION_RISK": [
-        "Middleware integration POC report (data transfer ≥80% on sample)"
-    ],
-    "DPIA_GAPS": [
-        "Bundle the license files for the top data sources and the corresponding DPIAs."
-    ],
-    "LICENSE_GAPS": [
-        "License registry (source, terms, expiry)"
-    ],
-    "ABS_UNDEFINED": [
-        "ABS/benefit-sharing term sheet + playbook"
-    ],
-    "CLIMATE_UNQUANTIFIED": [
-        "Climate exposure maps (2030/2040/2050) + site vulnerability memo"
-    ],
-    "WATER_STRESS": [
-        "Water budget & drought plan baseline for target sites"
-    ],
-    "CONTINGENCY_LOW": [
-        "Budget v2 with ≥10% contingency + Monte Carlo risk workbook"
-    ],
-    "SINGLE_CUSTOMER": [
-        "Market expansion memo (3 jurisdictions) + risk/opportunity analysis"
-    ],
-    "ETHICS_VAGUE": [
-        "Normative Charter v1.0 with auditable rules & dissent logging"
-    ],
-    "GOVERNANCE_WEAK": [
-        "RACI + decision log v1 (scope: this plan)"
-    ],
-    "CHANGE_MGMT_GAPS": [
-        "Change plan v1 (communications, training, adoption KPIs)"
-    ],
-    "TRAINING_GAPS": [
-        "Training needs assessment + skill gap analysis report"
-    ],
-    "STAKEHOLDER_CONFLICT": [
-        "Stakeholder conflict resolution framework + escalation matrix"
-    ],
-    "SAFETY_CULTURE_WEAK": [
-        "Safety culture assessment report (survey, incident analysis)"
-    ],
-    "UNIT_ECON_UNKNOWN": [
-        "Unit economics model v1 + sensitivity table (key drivers)"
-    ],
-    "SUPPLIER_CONCENTRATION": [
-        "Supplier risk register v1 + diversification plan"
-    ],
-    "SPOF_DEPENDENCY": [
-        "SPOF analysis note + mitigation options"
-    ],
-    "BIA_MISSING": [
-        "Business impact analysis v1 (RTO/RPO, critical processes)"
-    ],
-    "DR_TEST_GAPS": [
-        "DR/BCP test report (last test + outcomes)"
-    ],
-    "EIA_MISSING": [
-        "Environmental impact assessment scope + baseline metrics"
-    ],
-    "BIODIVERSITY_RISK_UNSET": [
-        "Biodiversity screening memo (species/habitat, mitigation)"
-    ],
-    "WASTE_MANAGEMENT_GAPS": [
-        "Waste management plan v1 (types, handling, compliance)"
-    ],
-    "WATER_PERMIT_RISK": [
-        "Water permit inventory + compliance status"
-    ],
-    "INFOSEC_GAPS": [
-        "Threat model + control mapping (e.g., STRIDE mapped to CIS/NIST)"
-    ],
-    "DATA_QUALITY_WEAK": [
-        "Data profiling report (completeness, accuracy, drift)"
-    ],
-    "MODEL_RISK_UNQUANTIFIED": [
-        "Model card + evaluation report (intended use, metrics, limits)"
-    ],
-    "CROSSBORDER_RISK": [
-        "Data flow map + transfer mechanism memo (SCCs/BCRs)"
-    ],
-    "CONSENT_MODEL_WEAK": [
-        "Consent/permission model spec + audit sample"
-    ],
-}
-
-EVIDENCE_DONE_WHEN: Dict[str, str] = {
-    "Stakeholder map + skills gap snapshot": "top 20 stakeholders include influence/interest scores, critical role gaps quantified, and HR lead sign-off captured.",
-    "Change plan v1 (communications, training, adoption KPIs)": "communications calendar, training modules, and baseline adoption KPIs documented with exec sponsor approval.",
-    "Assumption ledger v1 + sensitivity table": "ledger lists top 10 assumptions with owners and rationale, sensitivity table shows +/-20% scenario impact, and file stored in shared workspace.",
-    "Cost model v2 (on-prem vs cloud TCO)": "three-year capex/opex comparison completed with currency assumptions, variance notes, and CFO review recorded.",
-    "Environmental baseline note (scope, metrics)": "scope, metrics, measurement methods, and data sources detailed with sustainability lead sign-off.",
-    "Cloud carbon estimate v1 (regions/services)": "regional/service mix applied, monthly kgCO2e calculated with methodology notes, and results published to shared dashboard.",
-    "Regulatory mapping v1 + open questions list": "applicable regulations by jurisdiction linked to control owners, open questions assigned with due dates, and compliance counsel acknowledged.",
-    "Licenses & permits inventory + gaps list": "inventory captures license IDs, terms, expiry, owners, gaps flagged with remediation owners, and legal review logged.",
-    "Talent market scan report (availability, salary ranges, channels)": "report covers at least three geographies with supply/demand stats, salary bands, sourcing channels, and talent lead approval.",
-    "Cloud carbon baseline (last 30 days) using CCF method (kWh, kgCO2e)": "provider telemetry ingested for the last 30 days, kWh to kgCO2e conversion factors cited, and QA sign-off completed.",
-    "IT integration audit (systems map, gap analysis)": "systems map includes data flows and auth patterns, gap analysis rated per interface, and architecture lead sign-off captured.",
-    "Middleware integration POC report (data transfer >=80% on sample)": "POC moves >=80% of representative records end-to-end, error rate logged, rollback documented, and integration owner approval noted.",
-    "Bundle the license files for the top data sources and the corresponding DPIAs.": "zip archive contains current license PDFs plus matching DPIAs for top data sources with compliance lead acknowledgement.",
-    "License registry (source, terms, expiry)": "registry details each source, key terms, renewal dates, and accountable owners with legal confirmation recorded.",
-    "ABS/benefit-sharing term sheet + playbook": "term sheet reviewed by legal, playbook lists trigger events and benefit percentages, and stakeholder contacts confirmed.",
-    "Climate exposure maps (2030/2040/2050) + site vulnerability memo": "maps cover priority sites, memo rates exposure per scenario, and risk officer sign-off logged.",
-    "Water budget & drought plan baseline for target sites": "baseline shows monthly demand vs supply, drought triggers defined, and operations lead approval documented.",
-    "Budget v2 with >=10% contingency + Monte Carlo risk workbook": "workbook runs >=1000 simulations, contingency coverage summarized, and finance team review attached.",
-    "Market expansion memo (3 jurisdictions) + risk/opportunity analysis": "memo compares TAM, regulatory hurdles, partner landscape for three jurisdictions with go/no-go recommendation and strategy lead approval.",
-    "Normative Charter v1.0 with auditable rules & dissent logging": "charter states enforceable principles, audit trail process, dissent logging workflow, and ethics board endorsement noted.",
-    "RACI + decision log v1 (scope: this plan)": "RACI lists workstreams with named owners, decision log captures at least five key decisions with timestamps, and sponsor sign-off recorded.",
-    "Training needs assessment + skill gap analysis report": "assessment covers >70% of targeted staff, skill gap heatmap provided, and L&D lead approval logged.",
-    "Stakeholder conflict resolution framework + escalation matrix": "framework defines triggers, escalation tiers include contacts/SLAs, and legal review acknowledged.",
-    "Safety culture assessment report (survey, incident analysis)": "survey response rate >=70%, incident trends analyzed over 12 months, and HSE lead sign-off recorded.",
-    "Unit economics model v1 + sensitivity table (key drivers)": "model includes CAC, LTV, gross margin, sensitivity table covers +/-20% price and COGS, and CFO sign-off attached.",
-    "Supplier risk register v1 + diversification plan": "register lists top 10 suppliers with risk scores and mitigations, diversification actions dated, and procurement lead approval noted.",
-    "SPOF analysis note + mitigation options": "note catalogs each single point of failure with RTO, proposes two mitigations per SPOF, and engineering lead approval captured.",
-    "Business impact analysis v1 (RTO/RPO, critical processes)": "BIA lists critical processes with RTO/RPO targets, impact scoring completed, and continuity manager sign-off logged.",
-    "DR/BCP test report (last test + outcomes)": "report documents scenario, execution date, pass/fail metrics, remediation actions with owners, and QA validation recorded.",
-    "Environmental impact assessment scope + baseline metrics": "EIA scope aligns to regulatory threshold, baseline metrics sourced with citations, and environmental consultant approval noted.",
-    "Biodiversity screening memo (species/habitat, mitigation)": "memo identifies protected species/habitats, mitigation actions prioritized, and ecological advisor sign-off captured.",
-    "Waste management plan v1 (types, handling, compliance)": "plan inventories waste streams, handling partners, compliance obligations, and EHS manager approval logged.",
-    "Water permit inventory + compliance status": "inventory lists permit IDs, expiry, usage limits, compliance status evidence linked, and legal sign-off recorded.",
-    "Threat model + control mapping (e.g., STRIDE mapped to CIS/NIST)": "threat model covers all STRIDE categories, controls mapped to CIS/NIST references, and security architect approval noted.",
-    "Data profiling report (completeness, accuracy, drift)": "profiling executed on latest dataset, completeness/accuracy/drift metrics charted, and data steward sign-off recorded.",
-    "Model card + evaluation report (intended use, metrics, limits)": "model card documents intended use, metrics, limitations, evaluation report includes fairness/performance results, and risk board acknowledgement attached.",
-    "Data flow map + transfer mechanism memo (SCCs/BCRs)": "map traces cross-border flows, memo states legal mechanism per transfer, and privacy officer approval logged.",
-    "Consent/permission model spec + audit sample": "spec defines consent states and retention rules, audit sample verifies 10 records, and compliance sign-off captured.",
-    "Issue analysis memo v1": "memo states problem, root-cause hypotheses, recommended next steps, and reviewer assignment confirmed.",
-    "Baseline note v1 (scope, metrics)": "note defines scope, baseline metrics with source timestamp, and accountable owner approval logged.",
-    "Resident satisfaction survey v1 (anonymized)": ">=60% response rate across key cohorts, anonymization method documented, results and anonymized dataset stored, and privacy review sign-off attached.",
-    "Conflict resolution log v1 (summary of cases)": "covers last 6 months with counts by severity, median time-to-resolution, escalation paths, and governance owner sign-off recorded.",
-    "Contingency budget breakdown v1": "stress-tested under at least three downside scenarios, shows >=6 months runway in worst case, and CFO sign-off recorded.",
-    "Unit economics model v2 (sensitivity analysis)": "includes price -20% and COGS +20% scenarios, base case LTV/CAC >= 3, assumptions ledger linked, and finance review sign-off captured.",
-    "Ecosystem baseline study v1 (biodiversity, air/water quality)": "methodology and sampling plan documented, third-party data sources cited, QA checklist complete, and environmental lead sign-off logged.",
-    "Waste management plan v1 (closed-loop design)": "material flow diagram provided, target diversion rate >=80%, vendor agreements attached, and compliance mapping completed.",
-    "Top-N data sources: licenses + DPIAs bundle": "each top data source includes license file, DPIA (v2+ for high-risk), retention policy link, and DPO sign-off recorded.",
-    "Ethics framework v1 (resident rights, data governance)": "principles enumerated, decision rights and escalations defined, adoption plan approved by exec sponsor, and training plan attached.",
-    "Gather evidence for assessment": "at least one canonical artifact uploaded with owner and review date recorded in workspace.",
-}
-
 
 def _empty_likert_score() -> Dict[str, Optional[int]]:
     return {key: None for key in LIKERT_FACTOR_KEYS}
@@ -572,11 +267,7 @@ class DomainsSchema(BaseModel):
 # Prompt assembly
 # ---------------------------------------------------------------------------
 
-DOMAINS_SYSTEM_PROMPT = make_domains_system_prompt(
-    DOMAIN_ORDER,
-    REASON_CODES_BY_DOMAIN,
-    DEFAULT_EVIDENCE_BY_DOMAIN,
-)
+DOMAINS_SYSTEM_PROMPT = make_domains_system_prompt()
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -633,7 +324,7 @@ def enforce_colored_evidence(
 
 def _reason_codes_support_factor(reason_codes: List[str], factor: str) -> bool:
     return any(
-        factor in _reason_code_factor_set(code)
+        factor in reason_code_factor_set(code)
         for code in reason_codes
     )
 
@@ -780,7 +471,7 @@ def _select_factor_with_reason_support(candidates: List[str], reason_codes: List
 def _reason_keywords_for_factor(reason_codes: List[str], factor: str, limit: int = 4) -> List[str]:
     keywords: List[str] = []
     for code in reason_codes:
-        if factor not in _reason_code_factor_set(code):
+        if factor not in reason_code_factor_set(code):
             continue
         parts = [segment for segment in code.lower().split("_") if segment]
         if not parts:
