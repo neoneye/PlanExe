@@ -1,14 +1,14 @@
 /**
- * Author: Codex using GPT-5
- * Date: `2025-09-28T21:31:26-04:00`
- * PURPOSE: Renders the primary plan creation workflow, wiring FastAPI-backed model selection, prompt examples, and submission flow into the Next.js UI; integrates shadcn form primitives with shared schema/types so the dashboard stays consistent.
- * SRP and DRY check: Pass - Single component handles plan creation UI; validated against shared form utilities to avoid duplication.
+ * Author: ChatGPT (gpt-5-codex)
+ * Date: 2025-10-15
+ * PURPOSE: Compact plan creation workflow that connects FastAPI-backed model selection, prompt examples, and submission flow into the landing experience.
+ * SRP and DRY check: Pass - component is responsible only for plan creation inputs, reusing shared schemas and API types.
  */
 
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useForm, ControllerRenderProps, FieldPath, FieldValues } from 'react-hook-form';
+import { useForm, ControllerRenderProps } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -96,26 +96,26 @@ export const PlanForm: React.FC<PlanFormProps> = ({
   ];
 
   return (
-    <div className={`space-y-6 ${className}`}>
+    <div className={`space-y-4 ${className}`}>
       <Card>
-        <CardHeader>
-          <CardTitle>Create New Plan</CardTitle>
-          <CardDescription>
-            Describe your project or idea and let AI create a comprehensive plan
+        <CardHeader className="space-y-1 pb-3">
+          <CardTitle className="text-base font-semibold text-slate-800">Create new plan</CardTitle>
+          <CardDescription className="text-xs text-slate-500">
+            Describe your project or idea and let AI assemble the execution pipeline.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4 pt-0">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
               
               {/* Prompt Examples Tab */}
               <Tabs defaultValue="create" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="create">Create Plan</TabsTrigger>
-                  <TabsTrigger value="examples">Example Prompts</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 gap-1">
+                  <TabsTrigger value="create" className="text-sm">Create</TabsTrigger>
+                  <TabsTrigger value="examples" className="text-sm">Examples</TabsTrigger>
                 </TabsList>
-                
-                <TabsContent value="create" className="space-y-6">
+
+                <TabsContent value="create" className="space-y-4">
                   
                   {/* Plan Title */}
                   <FormField
@@ -123,7 +123,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                     name="title"
                     render={({ field }: { field: ControllerRenderProps<PlanFormData, 'title'> }) => (
                       <FormItem>
-                        <FormLabel htmlFor="plan-title">Plan Title (Optional)</FormLabel>
+                        <FormLabel htmlFor="plan-title" className="text-sm text-slate-700">Plan title (optional)</FormLabel>
                         <FormControl>
                           <Input
                             id="plan-title"
@@ -132,7 +132,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                             disabled={isSubmitting}
                           />
                         </FormControl>
-                        <FormDescription>
+                        <FormDescription className="text-xs text-slate-500">
                           Give your plan a memorable name
                         </FormDescription>
                         <FormMessage />
@@ -146,17 +146,17 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                     name="prompt"
                     render={({ field }: { field: ControllerRenderProps<PlanFormData, 'prompt'> }) => (
                       <FormItem>
-                        <FormLabel htmlFor="plan-prompt">Plan Description *</FormLabel>
+                        <FormLabel htmlFor="plan-prompt" className="text-sm text-slate-700">Plan description *</FormLabel>
                         <FormControl>
                           <Textarea
                             id="plan-prompt"
                             placeholder="Describe your project, goal, or idea in detail. The more context you provide, the better the plan will be..."
-                            className="min-h-[120px]"
+                            className="min-h-[100px]"
                             {...field}
                             disabled={isSubmitting}
                           />
                         </FormControl>
-                        <FormDescription>
+                        <FormDescription className="text-xs text-slate-500">
                           Minimum 10 characters. Be specific about goals, constraints, timeline, and resources.
                         </FormDescription>
                         <FormMessage />
@@ -170,7 +170,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                     name="llm_model"
                     render={({ field }: { field: ControllerRenderProps<PlanFormData, 'llm_model'> }) => (
                       <FormItem>
-                        <FormLabel htmlFor="llm-model-select">AI Model *</FormLabel>
+                        <FormLabel htmlFor="llm-model-select" className="text-sm text-slate-700">AI model *</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting || isLoadingModels} name="llm_model">
                           <FormControl>
                             <SelectTrigger id="llm-model-select">
@@ -287,45 +287,44 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                     name="speed_vs_detail"
                     render={({ field }: { field: ControllerRenderProps<PlanFormData, 'speed_vs_detail'> }) => (
                       <FormItem className="space-y-3">
-                        <FormLabel>Planning Detail Level *</FormLabel>
+                        <FormLabel className="text-sm text-slate-700">Speed vs detail *</FormLabel>
                         <FormControl>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid gap-3 md:grid-cols-2">
                             {speedOptions.map((option) => (
-                              <Card 
+                              <button
                                 key={option.value}
-                                className={`cursor-pointer transition-colors ${
-                                  field.value === option.value 
-                                    ? 'border-blue-500 bg-blue-50' 
-                                    : 'hover:border-gray-300'
+                                type="button"
+                                className={`flex h-full w-full flex-col rounded-md border border-slate-200 p-3 text-left transition ${
+                                  field.value === option.value
+                                    ? 'border-indigo-500 bg-indigo-50'
+                                    : 'hover:border-indigo-200'
                                 }`}
                                 onClick={() => field.onChange(option.value)}
                               >
-                                <CardContent className="p-4">
-                                  <div className="flex items-center space-x-2">
-                                    <input
-                                      id={`speed-${option.value}`}
-                                      name="speed_vs_detail"
-                                      type="radio"
-                                      value={option.value}
-                                      checked={field.value === option.value}
-                                      onChange={() => field.onChange(option.value)}
-                                      disabled={isSubmitting}
-                                      className="w-4 h-4"
-                                    />
-                                    <div className="flex-1">
-                                      <div className="font-medium">{option.label}</div>
-                                      <div className="text-sm text-gray-600">{option.description}</div>
-                                      <Badge variant="outline" className="mt-1">
-                                        {option.duration}
-                                      </Badge>
-                                    </div>
+                                <div className="flex items-start gap-3">
+                                  <input
+                                    id={`speed-${option.value}`}
+                                    name="speed_vs_detail"
+                                    type="radio"
+                                    value={option.value}
+                                    checked={field.value === option.value}
+                                    onChange={() => field.onChange(option.value)}
+                                    disabled={isSubmitting}
+                                    className="mt-1 h-4 w-4"
+                                  />
+                                  <div className="flex-1 space-y-1">
+                                    <div className="text-sm font-semibold text-slate-800">{option.label}</div>
+                                    <div className="text-xs text-slate-600">{option.description}</div>
+                                    <span className="inline-flex rounded bg-white px-2 py-0.5 text-xs font-medium text-indigo-600 shadow-sm">
+                                      {option.duration}
+                                    </span>
                                   </div>
-                                </CardContent>
-                              </Card>
+                                </div>
+                              </button>
                             ))}
                           </div>
                         </FormControl>
-                        <FormDescription>
+                        <FormDescription className="text-xs text-slate-500">
                           Choose between comprehensive planning or quick results
                         </FormDescription>
                         <FormMessage />
@@ -335,54 +334,68 @@ export const PlanForm: React.FC<PlanFormProps> = ({
 
                 </TabsContent>
 
-                <TabsContent value="examples" className="space-y-4">
-                  <div className="text-sm text-gray-600 mb-4">
-                    Click on any example to use it as a starting point for your plan:
+                <TabsContent value="examples" className="space-y-3">
+                  <div className="text-xs text-slate-500">
+                    Click any example to seed the form. You can still edit before submitting.
                   </div>
-                  
-                  <div className="grid gap-4 max-h-96 overflow-y-auto">
-                    {promptExamples.map((example) => (
-                      <Card 
-                        key={example.uuid}
-                        className={`cursor-pointer transition-colors hover:border-blue-300 ${
-                          selectedExample === example.uuid ? 'border-blue-500 bg-blue-50' : ''
-                        }`}
-                        onClick={() => handleExampleSelect(example)}
-                      >
-                        <CardContent className="p-4">
-                          <div className="font-medium mb-2">{example.title}</div>
-                          <div className="text-sm text-gray-600">{example.prompt}</div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+
+                  {promptExamples.length === 0 ? (
+                    <Card className="border-dashed">
+                      <CardContent className="py-4 text-center text-sm text-slate-500">
+                        No saved prompts yet. Provide your own context above.
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid max-h-80 gap-3 overflow-y-auto">
+                      {promptExamples.map((example) => (
+                        <button
+                          key={example.uuid}
+                          type="button"
+                          className={`flex flex-col items-start gap-2 rounded-md border border-slate-200 p-3 text-left transition ${
+                            selectedExample === example.uuid
+                              ? 'border-indigo-500 bg-indigo-50'
+                              : 'hover:border-indigo-200'
+                          }`}
+                          onClick={() => handleExampleSelect(example)}
+                        >
+                          <span className="text-sm font-semibold text-slate-800">{example.title}</span>
+                          <span className="text-xs text-slate-600 line-clamp-3">{example.prompt}</span>
+                          <Badge variant="secondary" className="mt-1 text-xs">Use this prompt</Badge>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
 
               {/* Submit Button */}
-              <div className="flex justify-end space-x-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => form.reset()}
-                  disabled={isSubmitting}
-                >
-                  Clear Form
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className="min-w-32"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Plan...
-                    </>
-                  ) : (
-                    'Create Plan'
-                  )}
-                </Button>
+              <div className="flex flex-col items-start gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-slate-500">Plans open in the Workspace automatically for live monitoring.</p>
+                <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => form.reset()}
+                    disabled={isSubmitting}
+                    className="text-sm"
+                  >
+                    Clear
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="min-w-32 text-sm"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      'Create plan'
+                    )}
+                  </Button>
+                </div>
               </div>
 
             </form>

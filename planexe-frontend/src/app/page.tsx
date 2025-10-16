@@ -1,15 +1,15 @@
 /**
- * Author: Codex using GPT-5
- * Date: 2025-10-03T00:00:00Z
- * PURPOSE: Minimal entry page that collects a prompt and routes users directly to the Workspace for plan assembly.
- * SRP and DRY check: Pass - Focused on initial UX; delegates monitoring/recovery to the Workspace route.
+ * Author: ChatGPT (gpt-5-codex)
+ * Date: 2025-10-15
+ * PURPOSE: Landing screen for PlanExe that orchestrates plan creation, surfaces system health, and links into the recovery workspace.
+ * SRP and DRY check: Pass - this file owns only landing-page layout/orchestration while delegating form logic and queues to shared components.
  */
 
 'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Brain, Sparkles } from 'lucide-react';
+import { Brain, LayoutGrid, Rocket, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PlanForm } from '@/components/planning/PlanForm';
@@ -53,38 +53,108 @@ const HomePage: React.FC = () => {
     }
   };
 
+  const modelSummary = (() => {
+    if (isLoadingModels) {
+      return 'Loading models…';
+    }
+    if (modelsError) {
+      return 'Model load issue';
+    }
+    if (!llmModels || llmModels.length === 0) {
+      return 'No models available';
+    }
+    return `${llmModels.length} models ready`;
+  })();
+
+  const promptSummary = promptExamples && promptExamples.length > 0
+    ? `${promptExamples.length} curated prompts`
+    : 'Add your own context';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 px-6 py-6 sticky top-0 z-40">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-              <Brain className="h-6 w-6 text-white" />
+    <div className="min-h-screen bg-slate-50">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-sky-600">
+              <Brain className="h-5 w-5 text-white" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                PlanExe
-              </h1>
-              <p className="text-sm text-gray-600 font-medium">AI-powered strategic planning workspace</p>
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-semibold text-slate-900">PlanExe</h1>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Strategic Planning Control Center</p>
             </div>
           </div>
-          <Badge variant="outline" className="text-xs">v1.0.0</Badge>
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span className="hidden sm:inline">Workspace build</span>
+            <Badge variant="outline" className="border-slate-200 font-semibold uppercase tracking-wide">v1.0.0</Badge>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-5xl flex-col gap-8 px-6 py-10">
-        <section className="flex flex-col gap-6">
-          <Card className="border-blue-200 bg-blue-50/70">
-            <CardHeader className="space-y-2">
-              <CardTitle className="flex items-center gap-2 text-2xl text-blue-900">
-                <Sparkles className="h-5 w-5 text-blue-600" />
-                Describe your plan idea
+      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Card className="border-slate-200">
+            <CardHeader className="space-y-1 pb-3">
+              <CardTitle className="flex items-center gap-2 text-base text-slate-700">
+                <Sparkles className="h-4 w-4 text-indigo-600" />
+                Plan pipeline
               </CardTitle>
-              <CardDescription className="text-base text-blue-800">
-                Submit a prompt and jump straight into the Workspace to watch the pipeline populate artefacts in real time.
+              <CardDescription className="text-xs text-slate-500">
+                Kick off a plan and jump directly to workspace monitoring when ready.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0 text-sm text-slate-600">
+              <p className="font-medium text-slate-700">{modelSummary}</p>
+              <p className="mt-1 text-xs text-slate-500">Health updates auto-refresh as models load.</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200">
+            <CardHeader className="space-y-1 pb-3">
+              <CardTitle className="flex items-center gap-2 text-base text-slate-700">
+                <LayoutGrid className="h-4 w-4 text-indigo-600" />
+                Prompt library
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-500">
+                Use a curated starting point or craft a focused brief of your own.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0 text-sm text-slate-600">
+              <p className="font-medium text-slate-700">{promptSummary}</p>
+              <p className="mt-1 text-xs text-slate-500">Switch to Examples to drop in one instantly.</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200 sm:col-span-2 lg:col-span-1">
+            <CardHeader className="space-y-1 pb-3">
+              <CardTitle className="flex items-center gap-2 text-base text-slate-700">
+                <Rocket className="h-4 w-4 text-indigo-600" />
+                Recent activity
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-500">
+                Pick up where you left off or audit a teammate&apos;s run.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <PlansQueue
+                className="w-full"
+                onPlanSelect={(planId) => router.push(`/recovery?planId=${encodeURIComponent(planId)}`)}
+              />
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          <Card className="border-slate-200">
+            <CardHeader className="space-y-1 pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg text-slate-800">
+                <Sparkles className="h-5 w-5 text-indigo-600" />
+                Launch a new plan
+              </CardTitle>
+              <CardDescription className="text-sm text-slate-500">
+                Provide context, pick the model, and we&apos;ll orchestrate the full 60-task pipeline for you.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
               <PlanForm
                 onSubmit={handlePlanSubmit}
                 isSubmitting={isCreating}
@@ -96,29 +166,35 @@ const HomePage: React.FC = () => {
               />
               {error && (
                 <Card className="mt-4 border-red-300 bg-red-50">
-                  <CardHeader>
-                    <CardTitle className="text-red-700 text-sm">Plan creation failed</CardTitle>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-sm font-semibold text-red-700">Plan creation failed</CardTitle>
                   </CardHeader>
                   <CardContent className="text-sm text-red-700">{error}</CardContent>
                 </Card>
               )}
             </CardContent>
           </Card>
-        </section>
 
-        <section>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Recent Plans</CardTitle>
-              <CardDescription>
-                Open any plan in the Workspace to inspect artefacts, fallback reports, and stage progress - even if it is pending or failed.
+          <Card className="border-slate-200">
+            <CardHeader className="space-y-1 pb-4">
+              <CardTitle className="text-lg text-slate-800">Workspace primer</CardTitle>
+              <CardDescription className="text-sm text-slate-500">
+                Orient yourself before the pipeline begins streaming updates.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <PlansQueue
-                className="w-full"
-                onPlanSelect={(planId) => router.push(`/recovery?planId=${encodeURIComponent(planId)}`)}
-              />
+            <CardContent className="space-y-4 pt-0 text-sm text-slate-600">
+              <div>
+                <h3 className="font-medium text-slate-700">Timeline &amp; status</h3>
+                <p className="text-xs text-slate-500">Monitor each stage&apos;s completion and retry failed nodes without leaving the run.</p>
+              </div>
+              <div>
+                <h3 className="font-medium text-slate-700">Reports &amp; artefacts</h3>
+                <p className="text-xs text-slate-500">Download canonical reports, inspect fallback drafts, and review generated files in one place.</p>
+              </div>
+              <div>
+                <h3 className="font-medium text-slate-700">Live reasoning</h3>
+                <p className="text-xs text-slate-500">Use the console stream to understand decisions and catch blockers early.</p>
+              </div>
             </CardContent>
           </Card>
         </section>

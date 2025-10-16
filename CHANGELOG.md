@@ -1,3 +1,23 @@
+/**
+ * Author: ChatGPT (gpt-5-codex)
+ * Date: 2025-10-15
+ * PURPOSE: Project changelog tracking release notes, testing, and context for PlanExe iterations.
+ * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
+ */
+
+## [0.3.8] - 2025-10-15 - Landing Page Density Refresh
+
+### ✅ Highlights
+- Rebuilt the landing layout with a denser information grid, surfacing model availability, prompt inventory, and workspace tips up front.
+- Tightened PlanForm spacing, scaled labels, and streamlined prompt example selection for quicker scanning and submission.
+- Added contextual primer content and compact error handling so the workflow feels less cartoonish and more operational.
+- Hardened the lint workflow with an ESLint-or-fallback script so CI can run locally even when registry access is restricted.
+
+### 🧪 Testing
+- `npm run lint`
+
+---
+
 ## [0.3.7] - 2025-10-18 - GPT-5 Responses API Migration (Phase 1)
 
 ### ✅ Highlights

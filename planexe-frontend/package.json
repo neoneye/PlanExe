@@ -14,7 +14,7 @@
     "start:full": "concurrently \"npm run dev:backend\" \"npm run start\" --names \"backend,frontend\" --prefix-colors \"blue,green\"",
     "build:static": "npm run build",
     "serve:single": "cd .. && PLANEXE_CLOUD_MODE=true python -m uvicorn planexe_api.api:app --host 0.0.0.0 --port ${PORT:-8080}",
-    "lint": "eslint",
+    "lint": "node scripts/run-lint.mjs",
     "test": "node test/run-tests.js",
     "test:integration": "node test/integration/luigi-pipeline-test.js"
   },
