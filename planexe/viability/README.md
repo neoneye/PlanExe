@@ -69,7 +69,7 @@ Why four steps? Weak LLMs often fail strict schemas. Breaking the task into sequ
 
 ## Viability Scoring — Likert, Rule‑Based (No Hidden Weights)
 
-The new system is **simple, auditable, and deterministic**. Every downgrade is tied to an explicit rule and logged.
+The system is **simple, auditable, and deterministic**. Every downgrade is tied to an explicit rule and logged.
 
 
 ### Core Idea
