@@ -1,10 +1,11 @@
 # PlanExe
 
-What if you could plan a dystopian police state from a single prompt?
+**What does PlanExe do:** Turn your idea into a comprehensive plan in minutes, not months.
 
-That's what PlanExe does. It took a two-sentence idea about deploying police robots in Brussels and generated a multi-faceted, 50-page strategic and tactical plan.
-
-[See the "Police Robots" plan here →](https://neoneye.github.io/PlanExe-web/20250824_police_robots_report.html)
+- An business plan for a [Minecraft-themed escape room](https://neoneye.github.io/PlanExe-web/20251016_minecraft_escape_report.html).
+- An business plan for a [Faraday cage manufacturing company](https://neoneye.github.io/PlanExe-web/20250720_faraday_enclosure_report.html).
+- An pilot project for a [Human as-a Service](https://neoneye.github.io/PlanExe-web/20251012_human_as_a_service_protocol_report.html).
+- See more [examples here](https://neoneye.github.io/PlanExe-web/examples/).
 
 ---
 
@@ -12,7 +13,7 @@ That's what PlanExe does. It took a two-sentence idea about deploying police rob
 <summary><strong> Try it out now (Click to expand)</strong></summary>
 <br>
 
-If you are not a developer. You can generate 1 plan for free, beyond that it cost money.
+You can generate 1 plan for free.
 
 [Try it here →](https://app.mach-ai.com/planexe_early_access)
 
