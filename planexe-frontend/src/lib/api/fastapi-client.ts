@@ -1,8 +1,10 @@
 /**
- * Author: Codex using GPT-5
- * Date: 2025-03-15T00:00:00Z
- * PURPOSE: Clean direct FastAPI client - NO compatibility layer, uses snake_case throughout to match backend exactly. Hardened download helpers now surface precise HTTP status codes for easier frontend error handling.
- * SRP and DRY check: Pass - Single responsibility for FastAPI communication, no field translation complexity.
+ * Author: ChatGPT gpt-5-codex
+ * Date: 2025-10-19
+ * PURPOSE: Extend FastAPI client typings with Responses streaming envelopes so the UI can
+ *          display reasoning traces alongside standard log traffic without ad-hoc parsing.
+ * SRP and DRY check: Pass - keeps API typings centralized while noting previous authorship
+ *          (Codex using GPT-5 on 2025-03-15T00:00:00Z for baseline client implementation).
  */
 
 import { getApiBaseUrl } from '@/lib/utils/api-config';
@@ -139,12 +141,32 @@ export interface WebSocketRawMessage {
   message: string;
 }
 
+export interface WebSocketLLMStreamMessage {
+  type: 'llm_stream';
+  plan_id: string;
+  stage: string;
+  interaction_id: number;
+  event: 'start' | 'text_delta' | 'reasoning_delta' | 'final' | 'end';
+  sequence: number;
+  timestamp: string;
+  data: Record<string, unknown> & {
+    delta?: string;
+    text?: string;
+    reasoning?: string;
+    usage?: Record<string, unknown>;
+    status?: string;
+    error?: string;
+    prompt_preview?: string;
+  };
+}
+
 export type WebSocketMessage =
   | WebSocketLogMessage
   | WebSocketStatusMessage
   | WebSocketErrorMessage
   | WebSocketStreamEndMessage
   | WebSocketHeartbeatMessage
+  | WebSocketLLMStreamMessage
   | WebSocketRawMessage;
 
 // WebSocket Client for real-time progress (replaces unreliable SSE)

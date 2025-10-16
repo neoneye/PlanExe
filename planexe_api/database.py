@@ -1,17 +1,24 @@
 """
-Author: Claude Code (claude-opus-4-1-20250805)
-Date: 2025-09-19
-PURPOSE: Database models and connection for PlanExe API - provides persistent storage for plans and LLM interactions
-SRP and DRY check: Pass - Single responsibility of data persistence layer, DRY database operations
+/**
+ * Author: ChatGPT gpt-5-codex
+ * Date: 2025-10-19
+ * PURPOSE: Database models and connection for PlanExe API with streaming-aware telemetry
+ *          integration so Responses deltas persist alongside traditional artefacts.
+ * SRP and DRY check: Pass - central persistence layer with added helpers that reuse
+ *          shared stream context utilities instead of duplicating envelope logic.
+ * Original Author: Claude Code (claude-opus-4-1-20250805) on 2025-09-19.
+ */
 """
 import os
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, JSON, Float, Boolean, Index
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
+
+from planexe.llm_util import push_llm_stream_context, pop_llm_stream_context
 
 # Database URL from environment variable - default to SQLite for development
 DATABASE_URL = os.getenv(
@@ -230,16 +237,73 @@ class DatabaseService:
         self.db.add(interaction)
         self.db.commit()
         self.db.refresh(interaction)
+
+        prompt_preview = (interaction.prompt_text or "")[:400]
+        try:
+            push_llm_stream_context(
+                plan_id=interaction.plan_id,
+                stage=interaction.stage,
+                interaction_id=interaction.id,
+                prompt_preview=prompt_preview,
+            )
+        except Exception as exc:
+            print(f"LLM stream context push failed for interaction {interaction.id}: {exc}")
+
         return interaction
 
     def update_llm_interaction(self, interaction_id: int, update_data: dict) -> Optional[LLMInteraction]:
         """Update LLM interaction with response data"""
         interaction = self.db.query(LLMInteraction).filter(LLMInteraction.id == interaction_id).first()
-        if interaction:
-            for key, value in update_data.items():
-                setattr(interaction, key, value)
-            self.db.commit()
-            self.db.refresh(interaction)
+        if not interaction:
+            status_value = update_data.get("status")
+            if status_value and status_value.lower() in {"completed", "failed", "cancelled"}:
+                pop_llm_stream_context(interaction_id, status=status_value, error=update_data.get("error_message"))
+            return None
+
+        status_value = update_data.get("status")
+        metadata: Optional[Dict[str, Any]] = None
+        if status_value and status_value.lower() in {"completed", "failed", "cancelled"}:
+            metadata = pop_llm_stream_context(
+                interaction_id,
+                status=status_value,
+                error=update_data.get("error_message"),
+            )
+
+        if metadata:
+            response_metadata: Dict[str, Any] = {}
+            if interaction.response_metadata:
+                response_metadata.update(interaction.response_metadata)
+            if update_data.get("response_metadata"):
+                response_metadata.update(update_data.get("response_metadata"))
+
+            if metadata.get("final_reasoning"):
+                response_metadata.setdefault("reasoning_text", metadata["final_reasoning"])
+            if metadata.get("reasoning_deltas"):
+                response_metadata.setdefault("reasoning_deltas", metadata["reasoning_deltas"])
+            if metadata.get("text_deltas"):
+                response_metadata.setdefault("text_deltas", metadata["text_deltas"])
+            if metadata.get("raw_payload"):
+                response_metadata.setdefault("raw_response", metadata["raw_payload"])
+            if metadata.get("prompt_preview"):
+                response_metadata.setdefault("prompt_preview", metadata["prompt_preview"])
+
+            usage = metadata.get("usage") or {}
+            for token_key in ("input_tokens", "output_tokens", "total_tokens"):
+                if update_data.get(token_key) is None and usage.get(token_key) is not None:
+                    update_data[token_key] = usage[token_key]
+            if usage.get("reasoning_tokens") is not None:
+                response_metadata.setdefault("reasoning_tokens", usage.get("reasoning_tokens"))
+
+            if not update_data.get("response_text") and metadata.get("final_text"):
+                update_data["response_text"] = metadata["final_text"]
+
+            update_data["response_metadata"] = response_metadata
+
+        for key, value in update_data.items():
+            setattr(interaction, key, value)
+
+        self.db.commit()
+        self.db.refresh(interaction)
         return interaction
 
     def get_plan_interactions(self, plan_id: str) -> List[LLMInteraction]:

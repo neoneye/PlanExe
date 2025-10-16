@@ -1,20 +1,17 @@
 """
 /**
- * Author: Codex using GPT-4o (CLI)
- * Date: 2025-10-02T00:00:00Z
- * PURPOSE: Add OS-aware subprocess environment fixes to avoid Windows Unicode/console crashes and set
- *          writable HOME/cache paths on Windows, while preserving Linux/Railway behavior. Also ensure
- *          UTF-8 encoding for Python IO in the Luigi subprocess.
- * SRP and DRY check: Pass. This file remains responsible for pipeline execution orchestration; changes
- *          are minimal, localized to environment setup, and reuse existing mechanisms.
+ * Author: ChatGPT gpt-5-codex
+ * Date: 2025-10-19
+ * PURPOSE: Extend Luigi pipeline execution service with Responses delta forwarding so
+ *          WebSocket clients render reasoning telemetry without extra subprocess hooks.
+ * SRP and DRY check: Pass - maintains single execution service while layering stream-aware
+ *          parsing on top of existing WebSocket broadcast loop.
+ * Previous Authors:
+ *   - Codex using GPT-4o (CLI) on 2025-10-02T00:00:00Z (OS-aware subprocess fixes)
+ *   - Claude Code using Sonnet 4 on 2025-09-27 (Thread-safe WebSocket integration)
  */
-
-Author: Claude Code using Sonnet 4
-Date: 2025-09-27
-PURPOSE: Thread-safe Luigi pipeline execution service using WebSocket broadcasting
-         Replaces broken global dictionary architecture with proper thread-safe communication
-SRP and DRY check: Pass - Single responsibility of pipeline execution with thread-safe WebSocket integration
 """
+import json
 import os
 import subprocess
 import threading
@@ -380,6 +377,25 @@ class PipelineExecutionService:
                 for line in iter(process.stdout.readline, ''):
                     line = line.strip()
                     if not line:
+                        continue
+
+                    if line.startswith("LLM_STREAM|"):
+                        _, _, payload_text = line.partition("|")
+                        try:
+                            stream_payload = json.loads(payload_text)
+                        except json.JSONDecodeError:
+                            stream_payload = {
+                                "type": "log",
+                                "message": f"[LLM_STREAM PARSE ERROR] {payload_text}",
+                                "timestamp": datetime.utcnow().isoformat(),
+                            }
+                        if isinstance(stream_payload, dict):
+                            stream_payload.setdefault("timestamp", datetime.utcnow().isoformat())
+                            stream_payload.setdefault("type", "llm_stream")
+                            try:
+                                await websocket_manager.broadcast_to_plan(plan_id, stream_payload)
+                            except Exception as e:
+                                print(f"WebSocket stream payload error for plan {plan_id}: {e}")
                         continue
 
                     # Broadcast log line via WebSocket

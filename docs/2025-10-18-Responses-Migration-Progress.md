@@ -16,12 +16,13 @@
 - ✅ Added a **schema registry** (`planexe/llm_util/schema_registry.py`) so each Luigi task’s Pydantic model is registered once and reused for the new `text.format.json_schema` payloads.
 - ✅ Upgraded `StructuredSimpleOpenAILLM` to request structured streaming natively via the Responses API and to return reasoning/token metadata alongside the parsed model.
 - ✅ Added regression tests for the schema registry to catch drift when new models are introduced.
+- ✅ Luigi stdout now emits `LLM_STREAM` envelopes through a shared context helper; the FastAPI WebSocket service recognizes those frames and rebroadcasts them without losing sequence metadata.
+- ✅ `LLMInteraction` persistence auto-merges reasoning traces, deltas, and token counters from `_last_response_payload`, ensuring every task run stores audit-ready telemetry.
+- ✅ The monitoring terminal renders a **Live LLM Streams** panel that separates reasoning from final text and surfaces token usage in real time so operators can verify fallbacks and effort settings.
 
 ## Follow-up actions for the next iteration
 
-1. **Wire streaming deltas to the WebSocket layer.** Instrument Luigi output handlers to emit `LLM_STREAM` events now that the base client returns real-time chunks.
-2. **Persist reasoning traces.** Capture `reasoning_tokens` and text deltas from `_last_response_payload` and store them in `LLMInteraction` once the executor is updated.
-3. **Frontend rendering.** Teach the monitoring UI to display reasoning vs. final text using the upcoming WebSocket envelope.
-4. **End-to-end smoke test.** Run the full pipeline against GPT-5 mini/nano to validate fallback behavior and collect token analytics.
+1. **End-to-end smoke test.** Run the full pipeline against GPT-5 mini/nano to validate fallback behavior and collect token analytics once sanitized API keys are available in the CI environment (currently blocked in container).
+2. **Backfill telemetry.** Write a one-off migration that replays existing `llm_interactions` to populate reasoning/text delta metadata for legacy runs.
 
 Refer to `docs/RESPONSES-API-OCT2025.md` and `docs/15OctPlanExeResponsesAPI.md` for the full architectural background.
