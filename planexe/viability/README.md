@@ -1,3 +1,9 @@
+# What this is / isn't
+
+- **This is** the working spec for the ViabilityAssessor protocol: how domains, blockers, fix packs, and the overall verdict hang together so an LLM+validator pipeline can stay deterministic.
+- **This is** guidance for engineers wiring PlanExe components or weaker LLMs into the viability workflow—expect JSON shapes, enums, and guardrails you can drop straight into code.
+- **This isn't** a generic risk-management playbook, human-readable report, or policy doc; it assumes you are instrumenting software and already have domain experts feeding the inputs.
+
 # Why this exists
 
 Big plans die from two things: cognitive overload and fuzzy follow-through. A 20-page plan and a 200-row risk register can make a team feel like everything is broken, so nothing moves. In reality, most plans are a few fixes away from viable—yet a long, undifferentiated list of risks is demotivating and stalls execution.
