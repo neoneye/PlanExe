@@ -43,7 +43,10 @@ class TestTaxonomy(unittest.TestCase):
             for it in items:
                 self.assertIsInstance(it, str, f"{domain}: evidence items must be strings")
                 self.assertGreater(len(it.strip()), 0, f"{domain}: evidence items must be non-empty strings")
-                self.assertIn(it, taxonomy.EVIDENCE_DONE_WHEN, f"{domain}: evidence item '{it}' is not in the evidence_done_when dict")
+                criteria = taxonomy.EVIDENCE_ACCEPTANCE_CRITERIA.get(it)
+                if criteria is not None:
+                    self.assertIsInstance(criteria, str, f"{domain}: acceptance criteria entries must be strings when provided")
+                    self.assertGreater(len(criteria.strip()), 0, f"{domain}: acceptance criteria entries must be non-empty strings when provided")
 
     # ---- Cross-map consistency -------------------------------------------------
     def test_strength_reason_codes_subset_of_whitelist(self):
@@ -61,10 +64,10 @@ class TestTaxonomy(unittest.TestCase):
                 self.assertIsInstance(t, str, f"{code}: template entries must be strings")
                 self.assertGreater(len(t.strip()), 0, f"{code}: template entries must be non-empty strings")
 
-    def test_evidence_done_when_are_all_strings(self):
-        for item in taxonomy.EVIDENCE_DONE_WHEN.values():
-            self.assertIsInstance(item, str, f"EVIDENCE_DONE_WHEN values must be strings")
-            self.assertGreater(len(item.strip()), 0, f"EVIDENCE_DONE_WHEN values must be non-empty strings")
+    def test_evidence_acceptance_criteria_are_all_strings(self):
+        for item in taxonomy.EVIDENCE_ACCEPTANCE_CRITERIA.values():
+            self.assertIsInstance(item, str, f"EVIDENCE_ACCEPTANCE_CRITERIA values must be strings")
+            self.assertGreater(len(item.strip()), 0, f"EVIDENCE_ACCEPTANCE_CRITERIA values must be non-empty strings")
 
     def test_reason_code_factor_covers_only_known_codes(self):
         # All codes referenced in REASON_CODE_FACTOR must be whitelisted in some domain

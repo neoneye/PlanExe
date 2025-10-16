@@ -31,7 +31,7 @@ from planexe.viability.taxonomy import (
     EVIDENCE_TEMPLATES,
     STRENGTH_REASON_CODES,
     FALLBACK_REASON_CODE_BY_DOMAIN_AND_FACTOR,
-    EVIDENCE_DONE_WHEN,
+    EVIDENCE_ACCEPTANCE_CRITERIA,
     LIKERT_MIN, LIKERT_MAX, LIKERT_FACTOR_KEYS,
     DEFAULT_LIKERT_BY_STATUS, FACTOR_ORDER_INDEX,
     reason_code_factor_set,
@@ -166,27 +166,27 @@ def _compute_derived_metrics(factors: Dict[str, Optional[int]]) -> Dict[str, Any
     return {key: factors.get(key) for key in LIKERT_FACTOR_KEYS}
 
 
-def _attach_done_when(item: str) -> str:
+def _attach_acceptance_criteria(item: str) -> str:
     text = item.strip()
     if not text:
         return text
-    if "done when:" in text.lower():
+    if "acceptance criteria:" in text.lower():
         return text
-    criteria = EVIDENCE_DONE_WHEN.get(
+    criteria = EVIDENCE_ACCEPTANCE_CRITERIA.get(
         text,
         "artifact is published to the workspace with an owner, acceptance evidence, and review date recorded.",
     )
-    return f"{text} — done when: {criteria}"
+    return f"{text} — acceptance criteria: {criteria}"
 
 
-def _apply_done_when(items: List[str]) -> List[str]:
-    return [_attach_done_when(item) for item in items if isinstance(item, str) and item.strip()]
+def _apply_acceptance_criteria(items: List[str]) -> List[str]:
+    return [_attach_acceptance_criteria(item) for item in items if isinstance(item, str) and item.strip()]
 
 
 def _base_evidence_name(text: str) -> str:
     if not isinstance(text, str):
         return ""
-    base = text.split(" — done when:")[0]
+    base = text.split(" — acceptance criteria:")[0]
     return base.strip()
 
 
@@ -225,7 +225,7 @@ def _canonicalize_evidence(domain: str, reason_codes: List[str], evidence_todo: 
             base_seen.add(base)
             out.append(tmpl)
     # Cap to 2 items
-    return _apply_done_when(out[:2])
+    return _apply_acceptance_criteria(out[:2])
 
 # ---------------------------------------------------------------------------
 # Lightweight schema for structured output
@@ -279,7 +279,7 @@ def _default_domain(domain: str) -> Dict[str, Any]:
         "status": StatusEnum.GRAY.value,
         "score": _compute_derived_metrics(_empty_likert_score()),
         "reason_codes": [],
-        "evidence_todo": _apply_done_when([DEFAULT_EVIDENCE_ITEM]),
+        "evidence_todo": _apply_acceptance_criteria([DEFAULT_EVIDENCE_ITEM]),
     }
 
 def enforce_gray_evidence(
@@ -299,7 +299,7 @@ def enforce_gray_evidence(
             if not ev:
                 domain = str(it.get("domain", ""))
                 ev = list(defaults.get(domain, GENERIC_FALLBACK))[:2]
-            it["evidence_todo"] = _apply_done_when(ev[:2])
+            it["evidence_todo"] = _apply_acceptance_criteria(ev[:2])
     return items
 
 def enforce_colored_evidence(
@@ -318,7 +318,7 @@ def enforce_colored_evidence(
             ev: List[str] = [e for e in raw_ev if isinstance(e, str) and e.strip()]
             if not ev:
                 ev = DEFAULT_EVIDENCE[:1]
-            it["evidence_todo"] = _apply_done_when(ev[:2])
+            it["evidence_todo"] = _apply_acceptance_criteria(ev[:2])
     return items
 
 

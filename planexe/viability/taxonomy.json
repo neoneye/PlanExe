@@ -137,7 +137,7 @@
         "Consent/permission model spec + audit sample"
       ]
     },
-    "evidence_done_when": {
+    "evidence_acceptance_criteria": {
         "Stakeholder map + skills gap snapshot": "top 20 stakeholders include influence/interest scores, critical role gaps quantified, and HR lead sign-off captured.",
         "Change plan v1 (communications, training, adoption KPIs)": "communications calendar, training modules, and baseline adoption KPIs documented with exec sponsor approval.",
         "Assumption ledger v1 + sensitivity table": "ledger lists top 10 assumptions with owners and rationale, sensitivity table shows +/-20% scenario impact, and file stored in shared workspace.",

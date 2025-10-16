@@ -51,7 +51,7 @@ class Taxonomy(BaseModel):
     #  - Missing keys must be treated by consumers as an empty list, not an error.
     # This dict with templates is not exhaustive, more items are likely to be added over time.
     evidence_templates: Dict[str, List[str]]
-    evidence_done_when: Dict[str, str] = Field(default_factory=dict)
+    evidence_acceptance_criteria: Dict[str, str] = Field(default_factory=dict)
     normalization: Normalization = Field(default_factory=Normalization)
     scoring_policy: ScoringPolicy
 
@@ -96,7 +96,7 @@ STRENGTH_REASON_CODES = TX.strength_reason_codes
 REASON_CODE_FACTOR = TX.reason_code_factor
 DEFAULT_EVIDENCE_BY_DOMAIN = TX.default_evidence_by_domain
 EVIDENCE_TEMPLATES = TX.evidence_templates
-EVIDENCE_DONE_WHEN = TX.evidence_done_when
+EVIDENCE_ACCEPTANCE_CRITERIA = TX.evidence_acceptance_criteria
 EVIDENCE_REWRITES = TX.normalization.evidence_rewrites
 LIKERT_MIN = TX.scoring_policy.likert_min
 LIKERT_MAX = TX.scoring_policy.likert_max
