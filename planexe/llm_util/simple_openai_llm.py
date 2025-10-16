@@ -66,6 +66,7 @@ class SimpleOpenAILLM(LLM):
     provider: str = Field(description="Only 'openai' is supported after Responses migration")
     _client: OpenAI = PrivateAttr()
     _last_response_payload: Optional[Dict[str, Any]] = PrivateAttr(default=None)
+    _last_extracted_output: Optional[Dict[str, Any]] = PrivateAttr(default=None)
 
     def __init__(self, model: str, provider: str, **kwargs: Any):
         super().__init__(model=model, provider=provider, **kwargs)
@@ -234,11 +235,14 @@ class SimpleOpenAILLM(LLM):
         *,
         schema_entry: Optional[Any] = None,
     ) -> Dict[str, Any]:
+        self._last_response_payload = None
+        self._last_extracted_output = None
         response = self._client.responses.create(**self._request_args(messages, schema_entry=schema_entry))
         payload = self._payload_to_dict(response)
         self._last_response_payload = payload
         extracted = self._extract_output(payload)
         extracted["raw"] = payload
+        self._last_extracted_output = extracted
         record_final_payload(
             text=extracted.get("text"),
             reasoning=extracted.get("reasoning"),
@@ -250,20 +254,40 @@ class SimpleOpenAILLM(LLM):
     # ------------------------------------------------------------------
     # Public LLM interface methods
     # ------------------------------------------------------------------
-    def chat(self, messages: Sequence[Any], **_: Any) -> str:
-        result = self._invoke_responses(messages)
-        return result.get("text", "")
+    def chat(self, messages: Sequence[Any], **kwargs: Any) -> str:
+        chunks: List[str] = []
+        for piece in self.stream_chat(messages, **kwargs):
+            if piece:
+                chunks.append(piece)
+
+        if chunks:
+            return "".join(chunks)
+
+        if self._last_extracted_output:
+            text = self._last_extracted_output.get("text")
+            if text:
+                return text
+
+        return ""
 
     def complete(self, prompt: str, **kwargs: Any) -> str:
         messages = [{"role": "user", "content": prompt}]
         return self.chat(messages, **kwargs)
 
-    def stream_chat(self, messages: Sequence[Any], **_: Any) -> Generator[str, None, None]:
-        request_args = self._request_args(messages)
+    def stream_chat(
+        self,
+        messages: Sequence[Any],
+        *,
+        schema_entry: Optional[Any] = None,
+        **_: Any,
+    ) -> Generator[str, None, None]:
+        self._last_response_payload = None
+        self._last_extracted_output = None
+        request_args = self._request_args(messages, schema_entry=schema_entry)
         stream_callable = getattr(self._client.responses, "stream", None)
 
         if not callable(stream_callable):
-            result = self._invoke_responses(messages)
+            result = self._invoke_responses(messages, schema_entry=schema_entry)
             text = result.get("text")
             if text:
                 yield text
@@ -316,6 +340,8 @@ class SimpleOpenAILLM(LLM):
             final_payload = self._payload_to_dict(final_response)
             self._last_response_payload = final_payload
             extracted = self._extract_output(final_payload)
+            extracted["raw"] = final_payload
+            self._last_extracted_output = extracted
             record_final_payload(
                 text=extracted.get("text"),
                 reasoning=extracted.get("reasoning"),
@@ -440,16 +466,39 @@ class StructuredSimpleOpenAILLM:
     def chat(self, messages: Sequence[Any], **_: Any) -> StructuredLLMResponse:
         formatted_messages = self._format_messages(messages)
         schema_entry = get_schema_entry(self.output_cls)
-        result = self.base_llm._invoke_responses(formatted_messages, schema_entry=schema_entry)
+        text_chunks: List[str] = []
 
-        parsed_model = self._parse_candidates(result.get("parsed_candidates", []), result.get("text", ""))
-        raw_text = result.get("text") or json.dumps(parsed_model.model_dump())
+        for delta in self.base_llm.stream_chat(formatted_messages, schema_entry=schema_entry):
+            if delta:
+                text_chunks.append(delta)
+
+        last_payload = self.base_llm._last_response_payload or {}
+        last_extracted = getattr(self.base_llm, "_last_extracted_output", None)
+
+        if last_extracted is None and last_payload:
+            extracted = self.base_llm._extract_output(last_payload)
+            extracted["raw"] = last_payload
+            last_extracted = extracted
+
+        aggregated_text = "".join(text_chunks)
+        if not aggregated_text and last_extracted:
+            aggregated_text = last_extracted.get("text", "")
+
+        parsed_candidates = []
+        if last_extracted:
+            parsed_candidates = last_extracted.get("parsed_candidates", []) or []
+
+        parsed_model = self._parse_candidates(parsed_candidates, aggregated_text)
+        raw_text = aggregated_text or json.dumps(parsed_model.model_dump())
+
+        reasoning = last_extracted.get("reasoning") if last_extracted else None
+        usage = last_extracted.get("usage") if last_extracted else None
 
         return StructuredLLMResponse(
             parsed_model,
             raw_text,
-            reasoning=result.get("reasoning"),
-            usage=result.get("usage"),
+            reasoning=reasoning,
+            usage=usage,
         )
 
     def complete(self, prompt: str, **kwargs: Any) -> StructuredLLMResponse:
