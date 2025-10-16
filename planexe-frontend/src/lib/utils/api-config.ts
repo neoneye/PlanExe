@@ -1,8 +1,11 @@
 /**
- * Author: Claude Code using Sonnet 4
- * Date: 2025-09-26
+ * Author: Codex using GPT-5
+ * Date: 2024-06-08
  * PURPOSE: Central API configuration for handling development vs production URL differences
- * SRP and DRY check: Pass - Single responsibility for API URL configuration
+ *          and shared websocket URL construction so realtime clients avoid duplicating
+ *          protocol/origin logic.
+ * SRP and DRY check: Pass - Single responsibility for API URL configuration helpers shared
+ *          across REST and websocket consumers.
  */
 
 /**
@@ -36,4 +39,38 @@ export function createApiUrl(endpoint: string): string {
   const baseUrl = getApiBaseUrl();
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   return `${baseUrl}${cleanEndpoint}`;
+}
+
+const websocketSegments = (planId: string, basePath: string): string => {
+  const cleanedBase = basePath
+    .replace(/^\/+/, '')
+    .replace(/\/+$/, '')
+    .trim();
+  const segments = cleanedBase ? [cleanedBase, 'ws', 'plans', planId, 'progress'] : ['ws', 'plans', planId, 'progress'];
+  return `/${segments.filter(Boolean).join('/')}`;
+};
+
+export function createWebSocketUrl(planId: string): string {
+  const baseUrl = getApiBaseUrl().trim();
+  const isAbsolute = /^https?:\/\//i.test(baseUrl);
+
+  if (isAbsolute) {
+    const url = new URL(baseUrl);
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+    url.pathname = websocketSegments(planId, url.pathname);
+    url.search = '';
+    url.hash = '';
+    return url.toString().replace(/\/$/, '');
+  }
+
+  if (typeof window === 'undefined' || !window.location?.origin) {
+    throw new Error('Unable to resolve WebSocket URL without window.location origin.');
+  }
+
+  const originUrl = new URL(window.location.origin);
+  originUrl.protocol = originUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+  originUrl.pathname = websocketSegments(planId, baseUrl);
+  originUrl.search = '';
+  originUrl.hash = '';
+  return originUrl.toString().replace(/\/$/, '');
 }
