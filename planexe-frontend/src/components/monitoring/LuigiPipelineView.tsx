@@ -1,8 +1,10 @@
 /**
- * Author: Claude Code using Sonnet 4
- * Date: 2025-09-26
- * PURPOSE: Real-time Luigi pipeline visualization showing actual 61 tasks from LUIGI.md
- * SRP and DRY check: Pass - Single responsibility for Luigi pipeline display with real SSE integration
+ * Author: Codex using GPT-5
+ * Date: 2024-06-08
+ * PURPOSE: Real-time Luigi pipeline visualization showing actual 61 tasks from LUIGI.md while
+ *          reusing shared websocket URL construction across monitoring components.
+ * SRP and DRY check: Pass - Single responsibility for Luigi pipeline display with shared helper
+ *          usage to avoid duplicated connection logic.
  */
 
 'use client';
@@ -16,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { createLuigiTaskPhases } from '@/lib/luigi-tasks';
+import { createWebSocketUrl } from '@/lib/utils/api-config';
 
 // Status icons matching existing TaskList component
 const statusIcons: Record<TaskStatus, React.ReactNode> = {
@@ -106,8 +109,7 @@ export const LuigiPipelineView: React.FC<LuigiPipelineViewProps> = ({
     }
 
     try {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws/plans/${planId}/progress`;
+      const wsUrl = createWebSocketUrl(planId);
 
       console.log(`🔌 Luigi Pipeline connecting to WebSocket: ${wsUrl}`);
 

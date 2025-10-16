@@ -1,11 +1,12 @@
 /**
- * Author: ChatGPT gpt-5-codex
- * Date: 2025-10-19
+ * Author: Codex using GPT-5
+ * Date: 2024-06-08
  * PURPOSE: Augment terminal monitor with Responses reasoning stream panels so operators see
- *          token deltas, reasoning traces, and final outputs alongside raw Luigi logs.
- * SRP and DRY check: Pass - keeps monitoring responsibilities cohesive by layering
- *          telemetry visualization without duplicating WebSocket wiring. Previous
- *          baseline provided by Claude Code using Sonnet 4 (2025-09-27).
+ *          token deltas, reasoning traces, and final outputs alongside raw Luigi logs while
+ *          sharing websocket URL construction with other realtime clients.
+ * SRP and DRY check: Pass - keeps monitoring responsibilities cohesive by layering telemetry
+ *          visualization without duplicating WebSocket wiring. Previous baseline provided by
+ *          Claude Code using Sonnet 4 (2025-09-27).
  */
 
 'use client';
@@ -17,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Copy, Download, Search, Trash2, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import type { WebSocketLLMStreamMessage } from '@/lib/api/fastapi-client';
+import { createWebSocketUrl } from '@/lib/utils/api-config';
 
 interface TerminalProps {
   planId: string;
@@ -190,8 +192,7 @@ export const Terminal: React.FC<TerminalProps> = ({
     }
 
     try {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws/plans/${planId}/progress`;
+      const wsUrl = createWebSocketUrl(planId);
 
       addLog(`🔌 Connecting to WebSocket: ${wsUrl}`, 'info');
 

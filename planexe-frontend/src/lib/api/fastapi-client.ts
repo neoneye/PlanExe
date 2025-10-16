@@ -1,13 +1,14 @@
 /**
- * Author: ChatGPT gpt-5-codex
- * Date: 2025-10-19
+ * Author: Codex using GPT-5
+ * Date: 2024-06-08
  * PURPOSE: Extend FastAPI client typings with Responses streaming envelopes so the UI can
  *          display reasoning traces alongside standard log traffic without ad-hoc parsing.
- * SRP and DRY check: Pass - keeps API typings centralized while noting previous authorship
- *          (Codex using GPT-5 on 2025-03-15T00:00:00Z for baseline client implementation).
+ *          Also centralizes websocket URL construction to share helper logic with monitoring UI.
+ * SRP and DRY check: Pass - keeps API typings centralized while reusing websocket helpers to
+ *          avoid duplicated origin/protocol handling.
  */
 
-import { getApiBaseUrl } from '@/lib/utils/api-config';
+import { createWebSocketUrl, getApiBaseUrl } from '@/lib/utils/api-config';
 
 // FastAPI Backend Types (EXACT match with backend)
 export interface CreatePlanRequest {
@@ -177,18 +178,15 @@ export class WebSocketClient {
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
   private planId: string;
-  private baseURL: string;
 
-  constructor(planId: string, baseURL?: string) {
+  constructor(planId: string) {
     this.planId = planId;
-    this.baseURL = baseURL || '';
   }
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}${this.baseURL}/ws/plans/${this.planId}/progress`;
+        const wsUrl = createWebSocketUrl(this.planId);
 
         this.ws = new WebSocket(wsUrl);
 
@@ -380,7 +378,7 @@ export class FastAPIClient {
 
   // WebSocket for Real-time Progress (replaces unreliable SSE)
   streamProgress(plan_id: string): WebSocketClient {
-    return new WebSocketClient(plan_id, this.baseURL);
+    return new WebSocketClient(plan_id);
   }
 
   // Utility: Download blob as file
