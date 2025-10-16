@@ -1,77 +1,14 @@
 {
-    "gpt-4o-mini": {
-        "comment": "Latest fast OpenAI model. 128K context. Cost-effective for production.",
+    "gpt-5-mini-2025-08-07": {
+        "comment": "Primary GPT-5 Mini model (streaming + reasoning)",
         "priority": 1,
-        "class": "OpenAI",
-        "arguments": {
-            "model": "gpt-4o-mini",
-            "api_key": "${OPENAI_API_KEY}",
-            "temperature": 0.1,
-            "timeout": 60.0,
-            "is_function_calling_model": true,
-            "is_chat_model": true,
-            "max_tokens": 16384,
-            "max_retries": 3
-        }
+        "provider": "openai",
+        "model": "gpt-5-mini-2025-08-07"
     },
-    "gpt-4o": {
-        "comment": "Latest OpenAI flagship model. 128K context. Best quality.",
+    "gpt-5-nano-2025-08-07": {
+        "comment": "Fallback GPT-5 Nano model (used when Mini errors)",
         "priority": 2,
-        "class": "OpenAI",
-        "arguments": {
-            "model": "gpt-4o",
-            "api_key": "${OPENAI_API_KEY}",
-            "temperature": 0.1,
-            "timeout": 90.0,
-            "is_function_calling_model": true,
-            "is_chat_model": true,
-            "max_tokens": 16384,
-            "max_retries": 3
-        }
-    },
-    "gpt-4-turbo": {
-        "comment": "OpenAI GPT-4 Turbo. 128K context. Reliable performance.",
-        "priority": 3,
-        "class": "OpenAI",
-        "arguments": {
-            "model": "gpt-4-turbo",
-            "api_key": "${OPENAI_API_KEY}",
-            "temperature": 0.1,
-            "timeout": 90.0,
-            "is_function_calling_model": true,
-            "is_chat_model": true,
-            "max_tokens": 16384,
-            "max_retries": 3
-        }
-    },
-    "qwen-qwen3-max": {
-        "comment": "High-performance Qwen model via OpenRouter. Excellent reasoning.",
-        "priority": 4,
-        "class": "OpenRouter",
-        "arguments": {
-            "model": "qwen/qwen3-max",
-            "api_key": "${OPENROUTER_API_KEY}",
-            "temperature": 0.1,
-            "timeout": 120.0,
-            "is_function_calling_model": false,
-            "is_chat_model": true,
-            "max_tokens": 8192,
-            "max_retries": 3
-        }
-    },
-    "x-ai-grok-4-fast-free": {
-        "comment": "Free high-speed Grok model via OpenRouter. Good for testing.",
-        "priority": 5,
-        "class": "OpenRouter",
-        "arguments": {
-            "model": "x-ai/grok-4-fast:free",
-            "api_key": "${OPENROUTER_API_KEY}",
-            "temperature": 0.1,
-            "timeout": 90.0,
-            "is_function_calling_model": false,
-            "is_chat_model": true,
-            "max_tokens": 8192,
-            "max_retries": 3
-        }
+        "provider": "openai",
+        "model": "gpt-5-nano-2025-08-07"
     }
 }

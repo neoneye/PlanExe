@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(copy llm_config.json planexe_apillm_config.json)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
