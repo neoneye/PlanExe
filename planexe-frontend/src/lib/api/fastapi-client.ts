@@ -1,11 +1,10 @@
 /**
- * Author: Codex using GPT-5
- * Date: 2024-06-08
- * PURPOSE: Extend FastAPI client typings with Responses streaming envelopes so the UI can
- *          display reasoning traces alongside standard log traffic without ad-hoc parsing.
- *          Also centralizes websocket URL construction to share helper logic with monitoring UI.
- * SRP and DRY check: Pass - keeps API typings centralized while reusing websocket helpers to
- *          avoid duplicated origin/protocol handling.
+ * Author: ChatGPT using gpt-5-codex
+ * Date: 2024-11-23T00:00:00Z
+ * PURPOSE: Central FastAPI client typings/helpers, now including plan relaunch utilities
+ *          and resilient streaming support for recovery tooling.
+ * SRP and DRY check: Pass - continues to encapsulate HTTP/WebSocket concerns without duplicating
+ *          request logic across components.
  */
 
 import { createWebSocketUrl, getApiBaseUrl } from '@/lib/utils/api-config';
@@ -16,6 +15,12 @@ export interface CreatePlanRequest {
   llm_model?: string;
   speed_vs_detail: 'fast_but_skip_details' | 'balanced_speed_and_detail' | 'all_details_but_slow';
   openrouter_api_key?: string;
+}
+
+export interface RelaunchPlanOptions {
+  llmModel?: string | null;
+  speedVsDetail?: CreatePlanRequest['speed_vs_detail'];
+  openrouterApiKey?: string | null;
 }
 
 export interface PlanResponse {
@@ -316,6 +321,27 @@ export class FastAPIClient {
       body: JSON.stringify(request),
     });
     return this.handleResponse<PlanResponse>(response);
+  }
+
+  async relaunchPlan(previousPlan: PlanResponse, options: RelaunchPlanOptions = {}): Promise<PlanResponse> {
+    if (!previousPlan?.prompt) {
+      throw new Error('Cannot relaunch plan without the original prompt text.');
+    }
+
+    const request: CreatePlanRequest = {
+      prompt: previousPlan.prompt,
+      speed_vs_detail: options.speedVsDetail ?? 'balanced_speed_and_detail',
+    };
+
+    if (options.llmModel) {
+      request.llm_model = options.llmModel;
+    }
+
+    if (options.openrouterApiKey) {
+      request.openrouter_api_key = options.openrouterApiKey;
+    }
+
+    return this.createPlan(request);
   }
 
   // Get plan status

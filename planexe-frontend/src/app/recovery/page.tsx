@@ -1,15 +1,13 @@
 /**
  * Author: ChatGPT using gpt-5-codex
- * Date: 2025-03-16T00:00:00Z
- * PURPOSE: Recovery workspace UI that now favours a single smooth page scroll by flattening nested cards and embedding reports
- * directly. Artefact, report, and pipeline views share the same viewport without competing scrollbars.
- * SRP and DRY check: Pass - Coordinates data loading and high-level layout while delegating rendering to focused components
- * already present in the project.
+ * Date: 2024-11-23T00:00:00Z
+ * PURPOSE: Recovery workspace UI with streamlined scrolling, relaunch controls, and inline artefact preview support.
+ * SRP and DRY check: Pass - Orchestrates data loading and layout while delegating rendering to focused components.
  */
 'use client';
 
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Card,
@@ -28,6 +26,7 @@ import {
   PlanArtefact,
   PlanArtefactListResponse,
   PlanResponse,
+  CreatePlanRequest,
 } from '@/lib/api/fastapi-client';
 import { PlanFile } from '@/lib/types/pipeline';
 import { ReportTaskFallback } from '@/components/files/ReportTaskFallback';
@@ -38,7 +37,7 @@ import {
   CheckCircle2,
   Clock,
   Home,
-  RefreshCcw,
+  Loader2,
   XCircle,
 } from 'lucide-react';
 
@@ -246,6 +245,7 @@ const ReportPanel: React.FC<{
 };
 
 const WorkspaceContent: React.FC = () => {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const rawPlanId = searchParams?.get('planId');
   const planIdFromQuery = typeof rawPlanId === 'string' ? rawPlanId.trim() : '';
@@ -263,6 +263,10 @@ const WorkspaceContent: React.FC = () => {
   const [canonicalHtml, setCanonicalHtml] = useState<string | null>(null);
   const [canonicalError, setCanonicalError] = useState<string | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [previewFile, setPreviewFile] = useState<PlanFile | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewData, setPreviewData] = useState<{ mode: 'text' | 'html'; content: string } | null>(null);
 
   const loadPlan = useCallback(async () => {
     if (!planId) {
@@ -375,6 +379,95 @@ const WorkspaceContent: React.FC = () => {
     fetchReports();
   }, [fetchReports]);
 
+  useEffect(() => {
+    if (!previewFile) {
+      setPreviewData(null);
+      setPreviewError(null);
+      setPreviewLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const isTextLike = (file: PlanFile) => {
+      const contentType = file.contentType.toLowerCase();
+      if (contentType.startsWith('text/')) {
+        return true;
+      }
+      return (
+        contentType.includes('json') ||
+        contentType.includes('csv') ||
+        contentType.includes('xml') ||
+        contentType.includes('html') ||
+        /\.(md|txt|json|csv|html?)$/i.test(file.filename)
+      );
+    };
+
+    const loadPreview = async () => {
+      setPreviewLoading(true);
+      setPreviewError(null);
+      setPreviewData(null);
+      try {
+        if (!isTextLike(previewFile)) {
+          if (!cancelled) {
+            setPreviewError('This file type cannot be previewed. Use download instead.');
+          }
+          return;
+        }
+        const blob = await fastApiClient.downloadFile(planId, previewFile.filename);
+        if (cancelled) {
+          return;
+        }
+        const maxPreviewSize = 2 * 1024 * 1024; // 2 MB
+        if (blob.size > maxPreviewSize) {
+          setPreviewError('File is too large to preview inline. Download it instead.');
+          return;
+        }
+        const raw = await blob.text();
+        if (cancelled) {
+          return;
+        }
+        const contentType = previewFile.contentType.toLowerCase();
+        if (contentType.includes('json') || previewFile.filename.toLowerCase().endsWith('.json')) {
+          try {
+            const parsed = JSON.parse(raw);
+            setPreviewData({ mode: 'text', content: JSON.stringify(parsed, null, 2) });
+            return;
+          } catch (jsonError) {
+            console.warn('Failed to format JSON preview', jsonError);
+          }
+        }
+        if (contentType.includes('html') || /\.html?$/i.test(previewFile.filename)) {
+          setPreviewData({ mode: 'html', content: raw });
+          return;
+        }
+        setPreviewData({ mode: 'text', content: raw });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unable to preview file.';
+        if (!cancelled) {
+          setPreviewError(message);
+        }
+      } finally {
+        if (!cancelled) {
+          setPreviewLoading(false);
+        }
+      }
+    };
+
+    void loadPreview();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [planId, previewFile]);
+
+  const clearPreview = useCallback(() => {
+    setPreviewFile(null);
+    setPreviewData(null);
+    setPreviewError(null);
+    setPreviewLoading(false);
+  }, []);
+
   const stageSummary: StageSummary[] = useMemo(() => {
     const counts = new Map<string, number>();
     artefacts.forEach((file) => {
@@ -405,6 +498,46 @@ const WorkspaceContent: React.FC = () => {
       count: counts.get(stage) ?? 0,
     }));
   }, [artefacts]);
+
+  const handleRelaunch = useCallback(async () => {
+    if (!plan) {
+      return;
+    }
+
+    try {
+      const llmModelInput = typeof window !== 'undefined'
+        ? window.prompt('Enter LLM model ID to use for relaunch (leave blank for default):', '') ?? ''
+        : '';
+      const speedDefault: CreatePlanRequest['speed_vs_detail'] = 'balanced_speed_and_detail';
+      const speedInput = typeof window !== 'undefined'
+        ? window.prompt(
+            'Speed vs detail (fast_but_skip_details | balanced_speed_and_detail | all_details_but_slow):',
+            speedDefault
+          ) ?? speedDefault
+        : speedDefault;
+      const normalizedSpeed = (speedInput || speedDefault).trim() as CreatePlanRequest['speed_vs_detail'];
+      const allowedSpeeds: CreatePlanRequest['speed_vs_detail'][] = [
+        'fast_but_skip_details',
+        'balanced_speed_and_detail',
+        'all_details_but_slow',
+      ];
+      const speedVsDetail = allowedSpeeds.includes(normalizedSpeed) ? normalizedSpeed : speedDefault;
+
+      const newPlan = await fastApiClient.relaunchPlan(plan, {
+        llmModel: llmModelInput.trim() || undefined,
+        speedVsDetail,
+      });
+
+      clearPreview();
+      router.replace(`/recovery?planId=${encodeURIComponent(newPlan.plan_id)}`);
+    } catch (error) {
+      console.error('Failed to relaunch plan from workspace', error);
+    }
+  }, [plan, router, clearPreview]);
+
+  useEffect(() => {
+    clearPreview();
+  }, [planId, clearPreview]);
 
   if (!planId) {
     return (
@@ -459,6 +592,14 @@ const WorkspaceContent: React.FC = () => {
             </Button>
             <Button variant="default" size="sm" onClick={loadPlan} disabled={planLoading}>
               {planLoading ? 'Refreshing...' : 'Refresh Plan'}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleRelaunch}
+              disabled={!plan || planLoading}
+            >
+              Relaunch Plan
             </Button>
           </div>
         </div>
@@ -517,7 +658,69 @@ const WorkspaceContent: React.FC = () => {
               error={artefactError}
               lastUpdated={artefactLastUpdated}
               onRefresh={fetchArtefacts}
+              onPreview={setPreviewFile}
             />
+            {previewFile && (
+              <Card>
+                <CardHeader className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-lg">Preview: {previewFile.filename}</CardTitle>
+                    <CardDescription>
+                      {previewFile.contentType.toUpperCase()} ·{' '}
+                      {previewFile.sizeBytes.toLocaleString()} bytes
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={previewLoading}
+                      onClick={async () => {
+                        try {
+                          const blob = await fastApiClient.downloadFile(planId, previewFile.filename);
+                          fastApiClient.downloadBlob(blob, previewFile.filename);
+                        } catch (err) {
+                          console.error('Download from preview failed', err);
+                        }
+                      }}
+                    >
+                      Download
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={clearPreview}>
+                      Close
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {previewLoading && (
+                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading preview…
+                    </div>
+                  )}
+                  {!previewLoading && previewError && (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                      {previewError}
+                    </div>
+                  )}
+                  {!previewLoading && !previewError && previewData && previewData.mode === 'text' && (
+                    <div className="max-h-96 overflow-auto rounded-md border bg-slate-950/90 p-4 font-mono text-xs text-slate-100">
+                      <pre className="whitespace-pre-wrap">{previewData.content}</pre>
+                    </div>
+                  )}
+                  {!previewLoading && !previewError && previewData && previewData.mode === 'html' && (
+                    <div className="max-h-[30rem] overflow-hidden rounded-md border">
+                      <iframe
+                        title={`Preview of ${previewFile.filename}`}
+                        className="h-[30rem] w-full"
+                        sandbox="allow-same-origin"
+                        srcDoc={previewData.content}
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </main>
