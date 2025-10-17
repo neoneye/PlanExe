@@ -1,9 +1,11 @@
 /**
- * Author: Codex using GPT-5
- * Date: 2024-06-08
+ * Author: ChatGPT gpt-5-codex (updates; original by Codex using GPT-5)
+ * Date: 2025-10-20
  * PURPOSE: Augment terminal monitor with Responses reasoning stream panels so operators see
  *          token deltas, reasoning traces, and final outputs alongside raw Luigi logs while
- *          sharing websocket URL construction with other realtime clients.
+ *          sharing websocket URL construction with other realtime clients. Latest revision surfaces
+ *          every usage metric emitted by the backend so the UI mirrors streamed telemetry exactly
+ *          and now exposes the raw Responses payload forwarded in final stream events.
  * SRP and DRY check: Pass - keeps monitoring responsibilities cohesive by layering telemetry
  *          visualization without duplicating WebSocket wiring. Previous baseline provided by
  *          Claude Code using Sonnet 4 (2025-09-27).
@@ -41,16 +43,61 @@ interface LLMStreamState {
   stage: string;
   textDeltas: string[];
   reasoningDeltas: string[];
+  textBuffer: string;
+  reasoningBuffer: string;
   finalText?: string;
   finalReasoning?: string;
   usage?: Record<string, unknown>;
+  rawPayload?: Record<string, unknown> | null;
   status: StreamStatus;
   error?: string;
   lastUpdated: number;
   promptPreview?: string | null;
+  events: StreamEventRecord[];
 }
 
 const MAX_STREAM_DELTAS = 200;
+const MAX_STREAM_EVENTS = 300;
+const STANDARD_USAGE_KEYS = ['input_tokens', 'output_tokens', 'total_tokens', 'reasoning_tokens'] as const;
+const STANDARD_USAGE_LABELS: Record<(typeof STANDARD_USAGE_KEYS)[number], string> = {
+  input_tokens: 'Input tokens',
+  output_tokens: 'Output tokens',
+  total_tokens: 'Total tokens',
+  reasoning_tokens: 'Reasoning tokens'
+};
+
+interface StreamEventRecord {
+  sequence: number;
+  event: string;
+  timestamp: string;
+  payload: Record<string, unknown>;
+}
+
+const sanitizeStreamPayload = (value: unknown): Record<string, unknown> => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
+};
+
+const cloneEventPayload = (payload: Record<string, unknown>): Record<string, unknown> => {
+  try {
+    return JSON.parse(JSON.stringify(payload));
+  } catch (error) {
+    return { ...payload };
+  }
+};
+
+const appendReasoningChunk = (buffer: { text: string; reasoning: string }, chunk: string) => {
+  if (!chunk) {
+    return;
+  }
+  if (buffer.reasoning) {
+    buffer.reasoning = `${buffer.reasoning}${buffer.reasoning.endsWith('\n') ? '' : '\n'}${chunk}`;
+  } else {
+    buffer.reasoning = chunk;
+  }
+};
 
 export const Terminal: React.FC<TerminalProps> = ({
   planId,
@@ -72,6 +119,7 @@ export const Terminal: React.FC<TerminalProps> = ({
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const streamBuffersRef = useRef<Map<number, { text: string; reasoning: string }>>(new Map());
 
   const addLog = useCallback((text: string, level: LogLine['level'] = 'info') => {
     const timestamp = new Date().toLocaleTimeString();
@@ -79,24 +127,34 @@ export const Terminal: React.FC<TerminalProps> = ({
   }, []);
 
   const handleLlmStreamMessage = useCallback((message: WebSocketLLMStreamMessage) => {
+    const sanitizedData = sanitizeStreamPayload(message.data);
+    const buffer = streamBuffersRef.current.get(message.interaction_id) ?? { text: '', reasoning: '' };
+
     setLlmStreams(prev => {
       const existing = prev[message.interaction_id];
-      const promptPreview = typeof message.data?.prompt_preview === 'string' ? message.data.prompt_preview : undefined;
+      const promptPreview = typeof sanitizedData.prompt_preview === 'string' ? sanitizedData.prompt_preview : undefined;
       const baseState: LLMStreamState = existing ?? {
         interactionId: message.interaction_id,
         planId: message.plan_id,
         stage: message.stage,
         textDeltas: [],
         reasoningDeltas: [],
+        textBuffer: buffer.text,
+        reasoningBuffer: buffer.reasoning,
         status: 'running',
         lastUpdated: Date.now(),
         promptPreview: promptPreview ?? null,
+        rawPayload: null,
+        events: [],
       };
 
       const updated: LLMStreamState = {
         ...baseState,
         lastUpdated: Date.now(),
         promptPreview: baseState.promptPreview ?? promptPreview ?? null,
+        textBuffer: buffer.text,
+        reasoningBuffer: buffer.reasoning,
+        rawPayload: baseState.rawPayload ?? null,
       };
 
       switch (message.event) {
@@ -104,54 +162,83 @@ export const Terminal: React.FC<TerminalProps> = ({
           updated.status = 'running';
           break;
         case 'text_delta': {
-          const delta = typeof message.data?.delta === 'string' ? message.data.delta : '';
+          const delta = typeof sanitizedData.delta === 'string' ? sanitizedData.delta : '';
           if (delta) {
             const next = [...updated.textDeltas, delta];
             if (next.length > MAX_STREAM_DELTAS) {
               next.splice(0, next.length - MAX_STREAM_DELTAS);
             }
             updated.textDeltas = next;
+            buffer.text = `${buffer.text}${delta}`;
           }
           break;
         }
         case 'reasoning_delta': {
-          const delta = typeof message.data?.delta === 'string' ? message.data.delta : '';
+          const delta = typeof sanitizedData.delta === 'string' ? sanitizedData.delta : '';
           if (delta) {
             const next = [...updated.reasoningDeltas, delta];
             if (next.length > MAX_STREAM_DELTAS) {
               next.splice(0, next.length - MAX_STREAM_DELTAS);
             }
             updated.reasoningDeltas = next;
+            appendReasoningChunk(buffer, delta);
           }
           break;
         }
         case 'final': {
-          if (typeof message.data?.text === 'string') {
-            updated.finalText = message.data.text;
+          if (typeof sanitizedData.text === 'string') {
+            updated.finalText = sanitizedData.text;
+            buffer.text = sanitizedData.text;
           }
-          if (typeof message.data?.reasoning === 'string') {
-            updated.finalReasoning = message.data.reasoning;
+          if (typeof sanitizedData.reasoning === 'string') {
+            updated.finalReasoning = sanitizedData.reasoning;
+            buffer.reasoning = sanitizedData.reasoning;
           }
-          if (message.data?.usage && typeof message.data.usage === 'object') {
-            updated.usage = message.data.usage as Record<string, unknown>;
+          if (sanitizedData.usage && typeof sanitizedData.usage === 'object' && !Array.isArray(sanitizedData.usage)) {
+            updated.usage = sanitizedData.usage as Record<string, unknown>;
+          }
+          const rawPayload = sanitizeStreamPayload((sanitizedData as Record<string, unknown>).raw_payload);
+          if (Object.keys(rawPayload).length > 0) {
+            updated.rawPayload = rawPayload;
           }
           break;
         }
         case 'end': {
-          const status = typeof message.data?.status === 'string' ? message.data.status.toLowerCase() : 'completed';
+          const status = typeof sanitizedData.status === 'string' ? sanitizedData.status.toLowerCase() : 'completed';
           updated.status = status === 'failed' ? 'failed' : 'completed';
-          updated.error = typeof message.data?.error === 'string' ? message.data.error : undefined;
+          updated.error = typeof sanitizedData.error === 'string' ? sanitizedData.error : undefined;
           break;
         }
         default:
           break;
       }
 
+      streamBuffersRef.current.set(message.interaction_id, {
+        text: buffer.text,
+        reasoning: buffer.reasoning,
+      });
+
+      updated.textBuffer = buffer.text;
+      updated.reasoningBuffer = buffer.reasoning;
+
+      const eventRecord: StreamEventRecord = {
+        sequence: typeof message.sequence === 'number' ? message.sequence : Date.now(),
+        event: message.event,
+        timestamp: message.timestamp,
+        payload: cloneEventPayload(sanitizedData),
+      };
+
+      const nextEvents = [...baseState.events, eventRecord];
+      if (nextEvents.length > MAX_STREAM_EVENTS) {
+        nextEvents.splice(0, nextEvents.length - MAX_STREAM_EVENTS);
+      }
+      updated.events = nextEvents;
+
       return { ...prev, [message.interaction_id]: updated };
     });
 
     if (message.event === 'final') {
-      const fullText = typeof message.data?.text === 'string' ? message.data.text : '';
+      const fullText = typeof sanitizedData.text === 'string' ? sanitizedData.text : '';
       const snippet = fullText.slice(0, 160);
       if (snippet) {
         addLog(`🧠 [${message.stage}] Final output received: ${snippet}${snippet.length < fullText.length ? '…' : ''}`, 'info');
@@ -159,9 +246,9 @@ export const Terminal: React.FC<TerminalProps> = ({
         addLog(`🧠 [${message.stage}] Final output payload received.`, 'info');
       }
     } else if (message.event === 'end') {
-      const statusLabel = typeof message.data?.status === 'string' ? message.data.status.toUpperCase() : 'COMPLETED';
+      const statusLabel = typeof sanitizedData.status === 'string' ? sanitizedData.status.toUpperCase() : 'COMPLETED';
       if (statusLabel === 'FAILED') {
-        addLog(`❌ [${message.stage}] LLM stream failed: ${typeof message.data?.error === 'string' ? message.data.error : 'unknown error'}`, 'error');
+        addLog(`❌ [${message.stage}] LLM stream failed: ${typeof sanitizedData.error === 'string' ? sanitizedData.error : 'unknown error'}`, 'error');
       } else {
         addLog(`✅ [${message.stage}] LLM stream ${statusLabel.toLowerCase()}.`, 'info');
       }
@@ -450,7 +537,67 @@ export const Terminal: React.FC<TerminalProps> = ({
     if (typeof value === 'number' && Number.isFinite(value)) {
       return value.toLocaleString();
     }
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+    if (typeof value === 'boolean') {
+      return value ? 'true' : 'false';
+    }
+    if (value === 0) {
+      return '0';
+    }
     return '—';
+  };
+
+  const renderUsageDetailValue = (value: unknown) => {
+    if (value === null || value === undefined) {
+      return <span className="text-slate-400">—</span>;
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return <span className="text-slate-300">{value.toLocaleString()}</span>;
+    }
+    if (typeof value === 'string') {
+      return <span className="text-slate-300">{value}</span>;
+    }
+    if (typeof value === 'boolean') {
+      return <span className="text-slate-300">{value ? 'true' : 'false'}</span>;
+    }
+    try {
+      return (
+        <pre className="mt-1 rounded bg-slate-950/70 p-2 text-[11px] text-slate-300 whitespace-pre-wrap break-words">
+          {JSON.stringify(value, null, 2)}
+        </pre>
+      );
+    } catch (error) {
+      return <span className="text-slate-300">{String(value)}</span>;
+    }
+  };
+
+  const renderEventPayload = (payload: Record<string, unknown>) => {
+    try {
+      return JSON.stringify(payload, null, 2);
+    } catch (error) {
+      return String(payload);
+    }
+  };
+
+  const renderRawPayload = (payload: Record<string, unknown> | null | undefined) => {
+    if (!payload || Object.keys(payload).length === 0) {
+      return '—';
+    }
+    try {
+      return JSON.stringify(payload, null, 2);
+    } catch (error) {
+      return String(payload);
+    }
+  };
+
+  const formatEventTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) {
+      return timestamp;
+    }
+    return date.toLocaleTimeString();
   };
 
   // Filter logs based on search
@@ -593,9 +740,14 @@ export const Terminal: React.FC<TerminalProps> = ({
                     : entry.status === 'failed'
                     ? 'bg-red-600/20 text-red-300 border border-red-500/40'
                     : 'bg-blue-600/20 text-blue-300 border border-blue-500/40 animate-pulse';
-                const assembledText = entry.finalText ?? entry.textDeltas.join('');
-                const assembledReasoning = entry.finalReasoning ?? entry.reasoningDeltas.join('\n');
+                const assembledText = entry.finalText ?? entry.textBuffer ?? entry.textDeltas.join('');
+                const assembledReasoning = entry.finalReasoning ?? entry.reasoningBuffer ?? entry.reasoningDeltas.join('\n');
                 const usageRecord = (entry.usage ?? {}) as Record<string, unknown>;
+                const extraUsageEntries = Object.entries(usageRecord).filter(
+                  ([key]) => !STANDARD_USAGE_KEYS.includes(key as (typeof STANDARD_USAGE_KEYS)[number])
+                );
+                const hasUsageData = Object.keys(usageRecord).length > 0;
+                const rawPayload = entry.rawPayload ?? null;
 
                 return (
                   <div key={entry.interactionId} className="px-4 py-3 grid gap-4 md:grid-cols-2">
@@ -626,24 +778,66 @@ export const Terminal: React.FC<TerminalProps> = ({
                           {assembledReasoning || '—'}
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-500">
-                        <div>
-                          Input tokens:
-                          <span className="ml-1 text-slate-300">{formatTokenValue(usageRecord['input_tokens'])}</span>
+                      {hasUsageData && (
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-500">
+                            {STANDARD_USAGE_KEYS.map((key) => (
+                              <div key={key}>
+                                {STANDARD_USAGE_LABELS[key]}:
+                                <span className="ml-1 text-slate-300">{formatTokenValue(usageRecord[key])}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {extraUsageEntries.length > 0 && (
+                            <div>
+                              <p className="text-[10px] uppercase tracking-wide text-slate-600">Additional usage telemetry</p>
+                              <div className="mt-1 space-y-1 text-[11px] text-slate-500">
+                                {extraUsageEntries.map(([key, value]) => (
+                                  <div key={key}>
+                                    <span className="font-semibold text-slate-400">{key}</span>
+                                    <div>{renderUsageDetailValue(value)}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
+                      )}
+                      {rawPayload && (
                         <div>
-                          Output tokens:
-                          <span className="ml-1 text-slate-300">{formatTokenValue(usageRecord['output_tokens'])}</span>
+                          <details className="group rounded border border-slate-800 bg-slate-950/70 p-2">
+                            <summary className="cursor-pointer text-[11px] font-semibold text-slate-400 outline-none transition group-open:text-slate-200">
+                              Final raw payload
+                            </summary>
+                            <pre className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap break-words rounded bg-slate-950/90 p-2 text-[11px] text-slate-300">
+                              {renderRawPayload(rawPayload)}
+                            </pre>
+                          </details>
                         </div>
+                      )}
+                      {entry.events.length > 0 && (
                         <div>
-                          Total tokens:
-                          <span className="ml-1 text-slate-300">{formatTokenValue(usageRecord['total_tokens'])}</span>
+                          <details className="group rounded border border-slate-800 bg-slate-950/70 p-2">
+                            <summary className="cursor-pointer text-[11px] font-semibold text-slate-400 outline-none transition group-open:text-slate-200">
+                              Raw stream events ({entry.events.length})
+                            </summary>
+                            <div className="mt-2 space-y-2">
+                              {entry.events.map((eventRecord) => (
+                                <div key={`${eventRecord.sequence}-${eventRecord.timestamp}`} className="rounded border border-slate-900/60 bg-slate-950/80 p-2">
+                                  <div className="flex items-center justify-between text-[10px] text-slate-500">
+                                    <span className="uppercase tracking-wide text-slate-400">{eventRecord.event}</span>
+                                    <span>#{eventRecord.sequence}</span>
+                                  </div>
+                                  <div className="mt-1 text-[10px] text-slate-500">{formatEventTimestamp(eventRecord.timestamp)}</div>
+                                  <pre className="mt-2 max-h-32 overflow-y-auto whitespace-pre-wrap break-words rounded bg-slate-950/90 p-2 text-[11px] text-slate-300">
+                                    {renderEventPayload(eventRecord.payload)}
+                                  </pre>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
                         </div>
-                        <div>
-                          Reasoning tokens:
-                          <span className="ml-1 text-slate-300">{formatTokenValue(usageRecord['reasoning_tokens'])}</span>
-                        </div>
-                      </div>
+                      )}
                       {entry.error && (
                         <p className="text-[11px] text-red-400">Error: {entry.error}</p>
                       )}

@@ -1,10 +1,12 @@
 """
 /**
  * Author: ChatGPT gpt-5-codex
- * Date: 2025-10-19
+ * Date: 2025-10-20
  * PURPOSE: Responses API-backed OpenAI client with reasoning-aware streaming hooks that
  *          emit Luigi stdout envelopes for WebSocket broadcasting while preserving
- *          structured output helpers.
+ *          structured output helpers. Latest revision forwards full raw payloads alongside
+ *          normalized reasoning and usage telemetry so downstream monitors can display every
+ *          field emitted by GPT-5.
  * SRP and DRY check: Pass - single adapter orchestrates raw/structured GPT-5 calls and
  *          funnels telemetry to shared stream helpers without duplicating envelope logic.
  */
@@ -114,6 +116,7 @@ class SimpleOpenAILLM(LLM):
         messages: Sequence[Any],
         *,
         schema_entry: Optional[Any] = None,
+        stream: bool = False,
     ) -> Dict[str, Any]:
         request: Dict[str, Any] = {
             "model": self.model,
@@ -125,6 +128,9 @@ class SimpleOpenAILLM(LLM):
         text_format = self._build_text_format(schema_entry)
         if text_format:
             request["text"]["format"] = text_format
+
+        if stream:
+            request["stream"] = True
 
         return request
 
@@ -148,32 +154,80 @@ class SimpleOpenAILLM(LLM):
         raise TypeError(f"Unsupported response payload type: {type(response)!r}")
 
     @staticmethod
-    def _extract_reasoning_chunks(block: Dict[str, Any]) -> List[str]:
+    def _collect_text_values(value: Any) -> List[str]:
+        texts: List[str] = []
+        if value is None:
+            return texts
+        if isinstance(value, str):
+            if value:
+                texts.append(value)
+            return texts
+        if isinstance(value, (int, float)):
+            texts.append(str(value))
+            return texts
+        if isinstance(value, list):
+            for item in value:
+                texts.extend(SimpleOpenAILLM._collect_text_values(item))
+            return [text for text in texts if text]
+        if isinstance(value, dict):
+            for key in (
+                "text",
+                "content",
+                "value",
+                "summary",
+                "delta",
+                "message",
+                "part",
+            ):
+                if key in value:
+                    texts.extend(SimpleOpenAILLM._collect_text_values(value[key]))
+            if "parts" in value:
+                texts.extend(SimpleOpenAILLM._collect_text_values(value["parts"]))
+            return [text for text in texts if text]
+        return texts
+
+    @classmethod
+    def _extract_reasoning_chunks(cls, block: Dict[str, Any]) -> List[str]:
         chunks: List[str] = []
         reasoning = block.get("reasoning")
-        if isinstance(reasoning, dict):
-            summary = reasoning.get("summary")
-            if summary:
-                chunks.append(summary)
-            details = reasoning.get("details")
-            if isinstance(details, list):
-                for detail in details:
-                    if isinstance(detail, dict):
-                        text_value = detail.get("text") or detail.get("value")
-                        if text_value:
-                            chunks.append(text_value)
-                    elif isinstance(detail, str):
-                        chunks.append(detail)
+        if reasoning is not None:
+            chunks.extend(cls._collect_text_values(reasoning))
+        summary = block.get("summary")
+        if summary is not None:
+            chunks.extend(cls._collect_text_values(summary))
         content = block.get("content")
-        if isinstance(content, list):
-            for item in content:
-                if isinstance(item, dict):
-                    text_value = item.get("text") or item.get("value")
-                    if text_value:
-                        chunks.append(text_value)
-                elif isinstance(item, str):
-                    chunks.append(item)
-        return chunks
+        if content is not None:
+            chunks.extend(cls._collect_text_values(content))
+        text = block.get("text")
+        if text is not None:
+            chunks.extend(cls._collect_text_values(text))
+        return [chunk for chunk in chunks if chunk]
+
+    @staticmethod
+    def _normalize_usage(usage: Any) -> Dict[str, Any]:
+        if not isinstance(usage, dict):
+            return {}
+
+        normalized: Dict[str, Any] = dict(usage)
+        details = normalized.get("output_tokens_details")
+        if isinstance(details, dict):
+            for key, value in details.items():
+                if key not in normalized and value is not None:
+                    normalized[key] = value
+            reasoning_tokens = details.get("reasoning_tokens")
+            if reasoning_tokens is not None:
+                normalized.setdefault("reasoning_tokens", reasoning_tokens)
+
+        input_tokens = normalized.get("input_tokens")
+        output_tokens = normalized.get("output_tokens")
+        if (
+            normalized.get("total_tokens") is None
+            and isinstance(input_tokens, (int, float))
+            and isinstance(output_tokens, (int, float))
+        ):
+            normalized["total_tokens"] = input_tokens + output_tokens
+
+        return normalized
 
     @classmethod
     def _extract_output(cls, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -184,21 +238,43 @@ class SimpleOpenAILLM(LLM):
         output = payload.get("output", [])
         if isinstance(output, dict):
             output = [output]
-        for block in output:
-            if not isinstance(block, dict):
-                continue
-            block_type = block.get("type")
-            if block_type == "message":
-                for content in block.get("content", []):
-                    if not isinstance(content, dict):
-                        continue
-                    content_type = content.get("type")
-                    if content_type == "output_text":
-                        text_parts.append(content.get("text", ""))
-                    elif content_type == "output_parsed":
-                        parsed_candidates.append(content.get("parsed"))
-            elif block_type == "reasoning":
-                reasoning_parts.extend(cls._extract_reasoning_chunks(block))
+        if isinstance(output, list):
+            for block in output:
+                if not isinstance(block, dict):
+                    continue
+                block_type = str(block.get("type", "")).lower()
+                if block_type in {"message", "text"}:
+                    contents = block.get("content")
+                    if isinstance(contents, list):
+                        for part in contents:
+                            if isinstance(part, dict):
+                                part_type = str(part.get("type", "")).lower()
+                                if part_type in {"output_text", "text"}:
+                                    text_parts.extend(
+                                        cls._collect_text_values(part.get("text") or part.get("content"))
+                                    )
+                                elif part_type in {"output_parsed", "parsed"}:
+                                    parsed_value = part.get("parsed")
+                                    if parsed_value is not None:
+                                        parsed_candidates.append(parsed_value)
+                                elif "reasoning" in part_type:
+                                    reasoning_parts.extend(cls._collect_text_values(part))
+                                else:
+                                    text_parts.extend(cls._collect_text_values(part))
+                            elif isinstance(part, str):
+                                text_parts.append(part)
+                    else:
+                        text_parts.extend(cls._collect_text_values(contents))
+                elif block_type == "reasoning":
+                    reasoning_parts.extend(cls._extract_reasoning_chunks(block))
+                elif block_type in {"output_text", "assistant"}:
+                    text_parts.extend(cls._collect_text_values(block.get("text") or block.get("content")))
+                elif block_type in {"output_parsed", "parsed"}:
+                    parsed_value = block.get("parsed")
+                    if parsed_value is not None:
+                        parsed_candidates.append(parsed_value)
+                else:
+                    text_parts.extend(cls._collect_text_values(block.get("content") or block.get("text")))
 
         if not text_parts:
             fallback_text = payload.get("output_text")
@@ -216,17 +292,22 @@ class SimpleOpenAILLM(LLM):
 
         reasoning_summary = payload.get("output_reasoning")
         if isinstance(reasoning_summary, dict):
-            summary_text = reasoning_summary.get("summary")
-            if summary_text:
-                reasoning_parts.append(summary_text)
+            reasoning_parts.extend(cls._collect_text_values(reasoning_summary.get("summary")))
+            reasoning_parts.extend(cls._collect_text_values(reasoning_summary.get("items")))
+        elif isinstance(reasoning_summary, list):
+            reasoning_parts.extend(cls._collect_text_values(reasoning_summary))
+        elif isinstance(reasoning_summary, str):
+            reasoning_parts.append(reasoning_summary)
 
-        reasoning_text = "\n".join([chunk for chunk in reasoning_parts if chunk]).strip() or None
+        reasoning_text = "\n\n".join([chunk for chunk in reasoning_parts if chunk]).strip() or None
+
+        usage = cls._normalize_usage(payload.get("usage"))
 
         return {
             "text": "".join(text_parts),
             "parsed_candidates": [candidate for candidate in parsed_candidates if candidate is not None],
             "reasoning": reasoning_text,
-            "usage": payload.get("usage", {}),
+            "usage": usage,
         }
 
     def _invoke_responses(
@@ -237,7 +318,9 @@ class SimpleOpenAILLM(LLM):
     ) -> Dict[str, Any]:
         self._last_response_payload = None
         self._last_extracted_output = None
-        response = self._client.responses.create(**self._request_args(messages, schema_entry=schema_entry))
+        response = self._client.responses.create(
+            **self._request_args(messages, schema_entry=schema_entry, stream=False)
+        )
         payload = self._payload_to_dict(response)
         self._last_response_payload = payload
         extracted = self._extract_output(payload)
@@ -283,7 +366,7 @@ class SimpleOpenAILLM(LLM):
     ) -> Generator[str, None, None]:
         self._last_response_payload = None
         self._last_extracted_output = None
-        request_args = self._request_args(messages, schema_entry=schema_entry)
+        request_args = self._request_args(messages, schema_entry=schema_entry, stream=True)
         stream_callable = getattr(self._client.responses, "stream", None)
 
         if not callable(stream_callable):
@@ -295,6 +378,7 @@ class SimpleOpenAILLM(LLM):
 
         aggregated_text: List[str] = []
         final_payload: Optional[Dict[str, Any]] = None
+        final_response: Optional[Any] = None
 
         with stream_callable(**request_args) as stream:
             for event in stream:
@@ -302,7 +386,35 @@ class SimpleOpenAILLM(LLM):
                 if event_type is None and isinstance(event, dict):
                     event_type = event.get("type")
 
-                if event_type == "response.output_text.delta":
+                if event_type in {"response.content_part.added", "response.content_part.delta"}:
+                    part = getattr(event, "part", None)
+                    if part is None and isinstance(event, dict):
+                        part = event.get("part")
+                    text_chunks: List[str] = []
+                    reasoning_chunks: List[str] = []
+                    if part is not None:
+                        if isinstance(part, dict):
+                            part_type = str(part.get("type", "")).lower()
+                            if part_type in {"output_text", "text", "assistant"}:
+                                text_chunks = self._collect_text_values(part.get("text") or part.get("content"))
+                            elif "reasoning" in part_type:
+                                reasoning_chunks = self._collect_text_values(part)
+                            else:
+                                text_chunks = self._collect_text_values(part.get("text") or part)
+                        else:
+                            text_attr = getattr(part, "text", None)
+                            if text_attr:
+                                text_chunks = [str(text_attr)]
+                            elif isinstance(part, str):
+                                text_chunks = [part]
+                    if text_chunks:
+                        text_delta = "".join(text_chunks)
+                        aggregated_text.append(text_delta)
+                        record_text_delta(text_delta)
+                        yield text_delta
+                    for chunk in reasoning_chunks:
+                        record_reasoning_delta(chunk)
+                elif event_type == "response.output_text.delta":
                     delta = getattr(event, "delta", None)
                     if delta is None and isinstance(event, dict):
                         delta = event.get("delta") or event.get("text")
@@ -316,6 +428,22 @@ class SimpleOpenAILLM(LLM):
                         aggregated_text.append(text_delta)
                         record_text_delta(text_delta)
                         yield text_delta
+                elif event_type == "response.reasoning_summary_text.delta":
+                    reasoning_delta = getattr(event, "delta", None)
+                    if reasoning_delta is None and isinstance(event, dict):
+                        reasoning_delta = event.get("delta") or event.get("text")
+                    if isinstance(reasoning_delta, dict):
+                        reasoning_text = reasoning_delta.get("text") or reasoning_delta.get("value")
+                    else:
+                        reasoning_text = str(reasoning_delta) if reasoning_delta else None
+                    if reasoning_text:
+                        record_reasoning_delta(reasoning_text)
+                elif event_type == "response.reasoning_summary_part.added":
+                    part = getattr(event, "part", None)
+                    if part is None and isinstance(event, dict):
+                        part = event.get("part")
+                    for chunk in self._collect_text_values(part):
+                        record_reasoning_delta(chunk)
                 elif event_type and "reasoning" in event_type and "delta" in event_type:
                     reasoning_delta = getattr(event, "delta", None)
                     if reasoning_delta is None and isinstance(event, dict):
@@ -326,11 +454,23 @@ class SimpleOpenAILLM(LLM):
                         reasoning_text = str(reasoning_delta) if reasoning_delta else None
                     if reasoning_text:
                         record_reasoning_delta(reasoning_text)
-                elif event_type == "response.error":
-                    message = getattr(event, "message", None) or getattr(event, "error", None)
+                elif event_type in {"response.failed", "response.error", "error"}:
+                    message = (
+                        getattr(event, "error", None)
+                        or getattr(event, "message", None)
+                        or (
+                            event.get("error")
+                            if isinstance(event, dict)
+                            else None
+                        )
+                    )
                     raise RuntimeError(f"OpenAI streaming error: {message}")
 
-            final_response = getattr(stream, "final_response", None)
+            final_response_attr = getattr(stream, "final_response", None)
+            if callable(final_response_attr):
+                final_response = final_response_attr()
+            else:
+                final_response = final_response_attr
             if final_response is None:
                 getter = getattr(stream, "get_final_response", None)
                 if callable(getter):
