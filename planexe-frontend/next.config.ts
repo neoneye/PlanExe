@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
   // Railway deployment: FastAPI serves both static files and API, no separate API URL needed
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || '',
+    NEXT_PUBLIC_STREAMING_ENABLED:
+      process.env.NEXT_PUBLIC_STREAMING_ENABLED ??
+      process.env.STREAMING_ENABLED ??
+      'true',
   },
 
   // Optimize for production deployment

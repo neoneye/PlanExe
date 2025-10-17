@@ -110,6 +110,94 @@ export interface HealthResponse {
   available_models: number;
 }
 
+export type AnalysisStreamChunkKind = 'text' | 'reasoning' | 'json';
+
+export interface AnalysisStreamRequestPayload {
+  taskId: string;
+  modelKey: string;
+  prompt: string;
+  context?: string;
+  metadata?: Record<string, unknown>;
+  temperature?: number;
+  maxOutputTokens?: number;
+  reasoningEffort?: 'medium' | 'high';
+  reasoningSummary?: string;
+  textVerbosity?: string;
+  schemaName?: string;
+  schema?: Record<string, unknown>;
+  previousResponseId?: string;
+  systemPrompt?: string;
+  stage?: string;
+}
+
+export interface AnalysisStreamSession {
+  sessionId: string;
+  taskId: string;
+  modelKey: string;
+  expiresAt: string;
+  ttlSeconds: number;
+}
+
+export interface AnalysisStreamInitPayload {
+  sessionId: string;
+  connectedAt: string;
+  expiresAt: string;
+  taskId: string;
+  modelKey: string;
+}
+
+export interface AnalysisStreamStatusPayload {
+  status: string;
+  message?: string;
+  startedAt?: string;
+  interactionId?: number;
+  taskId: string;
+  modelKey: string;
+}
+
+export interface AnalysisStreamChunkPayload {
+  kind: AnalysisStreamChunkKind;
+  delta: string;
+  timestamp: string;
+  taskId: string;
+  modelKey: string;
+}
+
+export interface AnalysisStreamSummary {
+  analysis?: string | null;
+  reasoning?: string | null;
+  parsed?: unknown;
+  tokenUsage?: Record<string, unknown>;
+  responseId?: string | null;
+  previousResponseId?: string | null;
+}
+
+export interface AnalysisStreamCompletePayload {
+  sessionId: string;
+  taskId: string;
+  modelKey: string;
+  responseSummary: AnalysisStreamSummary;
+  deltas: Record<string, string[]>;
+  metadata: Record<string, unknown>;
+}
+
+export interface AnalysisStreamErrorPayload {
+  error: string | Record<string, unknown>;
+  timestamp: string;
+  taskId: string;
+  modelKey: string;
+}
+
+export type AnalysisStreamServerEvent =
+  | { event: 'stream.init'; data: AnalysisStreamInitPayload }
+  | { event: 'stream.status'; data: AnalysisStreamStatusPayload }
+  | { event: 'stream.chunk'; data: AnalysisStreamChunkPayload }
+  | { event: 'stream.complete'; data: AnalysisStreamCompletePayload }
+  | { event: 'stream.error'; data: AnalysisStreamErrorPayload };
+
+export const STREAMING_ENABLED =
+  (process.env.NEXT_PUBLIC_STREAMING_ENABLED ?? 'true').toLowerCase() === 'true';
+
 // WebSocket Message Types
 export interface WebSocketLogMessage {
   type: 'log';
@@ -400,6 +488,43 @@ export class FastAPIClient {
   async getPlans(): Promise<PlanResponse[]> {
     const response = await fetch(`${this.baseURL}/api/plans`);
     return this.handleResponse<PlanResponse[]>(response);
+  }
+
+  async createAnalysisStream(
+    payload: AnalysisStreamRequestPayload,
+  ): Promise<AnalysisStreamSession> {
+    const body: Record<string, unknown> = {
+      task_id: payload.taskId,
+      model_key: payload.modelKey,
+      prompt: payload.prompt,
+      reasoning_effort: payload.reasoningEffort ?? 'high',
+      reasoning_summary: payload.reasoningSummary ?? 'detailed',
+      text_verbosity: payload.textVerbosity ?? 'high',
+    };
+
+    if (payload.context) body.context = payload.context;
+    if (payload.metadata) body.metadata = payload.metadata;
+    if (typeof payload.temperature === 'number') body.temperature = payload.temperature;
+    if (typeof payload.maxOutputTokens === 'number') {
+      body.max_output_tokens = payload.maxOutputTokens;
+    }
+    if (payload.schemaName) body.schema_name = payload.schemaName;
+    if (payload.schema) body.schema = payload.schema;
+    if (payload.previousResponseId) {
+      body.previous_response_id = payload.previousResponseId;
+    }
+    if (payload.systemPrompt) body.system_prompt = payload.systemPrompt;
+    if (payload.stage) body.stage = payload.stage;
+
+    const response = await fetch(`${this.baseURL}/api/stream/analyze`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    return this.handleResponse<AnalysisStreamSession>(response);
   }
 
   // WebSocket for Real-time Progress (replaces unreliable SSE)
