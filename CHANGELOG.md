@@ -5,6 +5,18 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [0.3.9] - 2025-10-16 - Recovery Workspace Layout Flattening
+
+### ✅ Highlights
+- Flattened the recovery workspace layout so reports, artefacts, and pipeline telemetry share a two-column grid without overlapping scroll regions.
+- Embedded both canonical and fallback reports directly in the DOM instead of within nested iframes, eliminating stacked scrollbars.
+- Simplified the fallback report card styling to match the lighter recovery workspace visual language.
+
+### 🧪 Testing
+- `npm run lint`
+
+---
+
 ## [0.3.8] - 2025-10-15 - Landing Page Density Refresh
 
 ### ✅ Highlights

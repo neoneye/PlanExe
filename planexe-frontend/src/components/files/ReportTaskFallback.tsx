@@ -1,12 +1,9 @@
 /**
- * Author: Cascade (Claude Sonnet 4)
- * Date: 2025-10-02T23:58:10-04:00
- * PURPOSE: Fallback component for displaying report task information when the main report fails to load.
- *          Recovers sections from plan_content database and assembles them into a viewable HTML report.
- *          Provides download capabilities for both HTML and missing sections JSON.
- *          Used when Luigi pipeline fails to generate 029-report.html.
- * SRP and DRY check: Pass - Single responsibility of displaying fallback report assembly.
- *                     No duplication - unique fallback report component.
+ * Author: ChatGPT using gpt-5-codex
+ * Date: 2025-03-16T00:00:00Z
+ * PURPOSE: Fallback report viewer embedded by the recovery workspace. It now renders assembled HTML inline instead of relying
+ * on an iframe and keeps the surrounding card lightweight so the page scroll remains unified.
+ * SRP and DRY check: Pass - Dedicated to fetching and presenting fallback report data without duplicating logic elsewhere.
  */
 
 'use client';
@@ -197,12 +194,10 @@ export const ReportTaskFallback: React.FC<ReportTaskFallbackProps> = ({ planId, 
 
             <section className="space-y-2">
               <h3 className="text-sm font-semibold text-slate-700">Preview</h3>
-              <div className="rounded-lg border border-slate-200 shadow-inner overflow-hidden bg-white">
-                <iframe
-                  title="Recovered Plan Report"
-                  srcDoc={report.assembled_html}
-                  sandbox=""
-                  className="h-[480px] w-full border-0"
+              <div className="rounded-xl border border-slate-200 bg-white px-6 py-6">
+                <div
+                  className="prose max-w-none text-sm leading-relaxed text-slate-700"
+                  dangerouslySetInnerHTML={{ __html: report.assembled_html }}
                 />
               </div>
             </section>
