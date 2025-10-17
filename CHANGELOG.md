@@ -5,6 +5,18 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [0.3.11] - 2025-10-27 - Streaming Modal Integration
+
+### ✅ Highlights
+- Added `/api/stream/analyze` handshake plus SSE endpoint to relay Responses API reasoning deltas with persisted summaries.
+- Shipped reusable React hooks and message boxes for streaming modals, wiring GPT-5 reasoning into the recovery workspace.
+- Introduced a streaming analysis panel on the recovery screen to monitor live chunks, reasoning text, and structured deltas.
+
+### 🧪 Testing
+- ✅ `pytest test_minimal_create.py`
+
+---
+
 ## [0.3.10] - 2025-10-17 - Recovery Workspace UX Hardening
 
 ### ✅ Highlights

@@ -34,7 +34,8 @@ from planexe_api.models import (
     CreatePlanRequest, PlanResponse, PlanProgressEvent, LLMModel,
     PromptExample, PlanFilesResponse, PlanArtefactListResponse, PlanArtefact, APIError, HealthResponse,
     PlanStatus, SpeedVsDetail, PipelineDetailsResponse, StreamStatusResponse,
-    FallbackReportResponse, ReportSection, MissingSection
+    FallbackReportResponse, ReportSection, MissingSection,
+    AnalysisStreamRequest, AnalysisStreamSessionResponse,
 )
 from planexe_api.database import (
     get_database, get_database_service, create_tables, DatabaseService, Plan, LLMInteraction,
@@ -42,6 +43,7 @@ from planexe_api.database import (
 )
 from planexe_api.services.pipeline_execution_service import PipelineExecutionService
 from planexe_api.websocket_manager import websocket_manager
+from planexe_api.streaming import AnalysisStreamSessionStore, AnalysisStreamService
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -52,6 +54,14 @@ app = FastAPI(
 
 # Environment detection
 IS_DEVELOPMENT = os.environ.get("PLANEXE_CLOUD_MODE", "false").lower() != "true"
+
+STREAMING_FLAG_VALUE = (
+    os.environ.get("STREAMING_ENABLED")
+    or os.environ.get("PLANEXE_STREAMING_ENABLED")
+    or os.environ.get("NEXT_PUBLIC_STREAMING_ENABLED")
+    or ("true" if IS_DEVELOPMENT else "false")
+)
+STREAMING_ENABLED = STREAMING_FLAG_VALUE.lower() == "true"
 
 # CORS configuration - only enable for local development
 if IS_DEVELOPMENT:
@@ -115,6 +125,14 @@ prompt_catalog.load_simple_plan_prompts()
 llm_info = LLMInfo.obtain_info()
 llm_config = PlanExeLLMConfig.load()
 pipeline_service = PipelineExecutionService(planexe_project_root)
+
+analysis_session_store = AnalysisStreamSessionStore(ttl_seconds=45)
+analysis_stream_service = AnalysisStreamService(session_store=analysis_session_store)
+
+if STREAMING_ENABLED:
+    print("Streaming analysis enabled - Responses SSE harness ready")
+else:
+    print("Streaming analysis disabled - set STREAMING_ENABLED=true to enable")
 
 # Database initialization
 create_tables()
@@ -186,6 +204,44 @@ async def ping():
         "railway_deployment_test": "latest_code_deployed",
         "api_routes_working": True
     }
+
+
+@app.post("/api/stream/analyze", response_model=AnalysisStreamSessionResponse)
+async def create_analysis_stream_endpoint(
+    request: AnalysisStreamRequest,
+):
+    """Cache streaming payloads before upgrading to SSE."""
+
+    if not STREAMING_ENABLED:
+        raise HTTPException(status_code=403, detail="STREAMING_DISABLED")
+
+    cached = await analysis_stream_service.create_session(request)
+    ttl_seconds = int(max(0, round((cached.expires_at - cached.created_at).total_seconds())))
+    return AnalysisStreamSessionResponse(
+        session_id=cached.session_id,
+        task_id=cached.task_id,
+        model_key=cached.model_key,
+        expires_at=cached.expires_at,
+        ttl_seconds=ttl_seconds,
+    )
+
+
+@app.get("/api/stream/analyze/{task_id}/{model_key}/{session_id}")
+async def stream_analysis_endpoint(task_id: str, model_key: str, session_id: str):
+    """Upgrade cached analysis payload into an SSE stream."""
+
+    if not STREAMING_ENABLED:
+        raise HTTPException(status_code=403, detail="STREAMING_DISABLED")
+
+    async def event_generator():
+        async for event in analysis_stream_service.stream(
+            task_id=task_id,
+            model_key=model_key,
+            session_id=session_id,
+        ):
+            yield event
+
+    return EventSourceResponse(event_generator(), ping=10000)
 
 
 # LLM models endpoint

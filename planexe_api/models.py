@@ -4,7 +4,7 @@ Date: 2025-09-19
 PURPOSE: Pydantic models for API request/response schemas - ensures type safety and validation
 SRP and DRY check: Pass - Single responsibility of data validation, DRY approach to schema definitions
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional, List, Dict, Any
 from enum import Enum
 from datetime import datetime
@@ -149,3 +149,69 @@ class FallbackReportResponse(BaseModel):
     sections: List[ReportSection] = Field(..., description="Sections successfully recovered from plan_content")
     missing_sections: List[MissingSection] = Field(..., description="Sections that could not be recovered")
     assembled_html: str = Field(..., description="HTML fallback report assembled from available content")
+
+
+class ReasoningEffort(str, Enum):
+    """Reasoning effort levels supported by the Responses API."""
+
+    minimal = "minimal"
+    medium = "medium"
+    high = "high"
+
+
+class AnalysisStreamRequest(BaseModel):
+    """Request payload for initializing a streaming analysis session."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    task_id: str = Field(..., description="Identifier for the analysis task or plan context")
+    model_key: str = Field(..., description="LLM configuration key to execute the analysis")
+    prompt: str = Field(..., min_length=1, max_length=8000, description="Primary analysis instructions")
+    context: Optional[str] = Field(None, description="Supplementary context to prepend to the prompt")
+    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional caller metadata for auditing")
+    temperature: Optional[float] = Field(0.2, ge=0.0, le=2.0, description="Sampling temperature override")
+    max_output_tokens: Optional[int] = Field(
+        4096,
+        ge=512,
+        le=32768,
+        description="Maximum tokens budget allocated to the response",
+    )
+    reasoning_effort: ReasoningEffort = Field(
+        ReasoningEffort.high, description="Reasoning effort level for the Responses API"
+    )
+    reasoning_summary: str = Field("detailed", description="Reasoning summary granularity")
+    text_verbosity: str = Field("high", description="Text verbosity configuration for streaming deltas")
+    schema_name: Optional[str] = Field(
+        None, description="Optional schema label when requesting structured output"
+    )
+    output_schema: Optional[Dict[str, Any]] = Field(
+        None,
+        alias="schema",
+        description="Optional JSON schema to request structured responses",
+    )
+    previous_response_id: Optional[str] = Field(
+        None, description="Responses API conversation chaining identifier"
+    )
+    system_prompt: Optional[str] = Field(
+        None, description="Override for the default analysis system instructions"
+    )
+    stage: Optional[str] = Field(
+        None, description="Logical stage identifier used for persistence/telemetry"
+    )
+
+    @field_validator("reasoning_effort")
+    @classmethod
+    def ensure_reasoning_not_minimal(cls, value: ReasoningEffort) -> ReasoningEffort:
+        if value == ReasoningEffort.minimal:
+            raise ValueError("reasoning_effort must be medium or high for streaming analyses")
+        return value
+
+
+class AnalysisStreamSessionResponse(BaseModel):
+    """Handshake response containing session metadata for SSE connection."""
+
+    session_id: str = Field(..., description="Opaque session identifier for SSE upgrade")
+    task_id: str = Field(..., description="Task identifier echoed from the request")
+    model_key: str = Field(..., description="Model key echoed from the request")
+    expires_at: datetime = Field(..., description="Expiry timestamp for the cached payload")
+    ttl_seconds: int = Field(..., description="Time-to-live for the session in seconds")
