@@ -152,8 +152,86 @@ const HomePage: React.FC = () => {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Main Action Section - Form and Queue */}
+        <section className="grid gap-6 lg:grid-cols-2">
+          <Card className="border-slate-200">
+            <CardHeader className="space-y-1 pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg text-slate-800">
+                <Sparkles className="h-5 w-5 text-indigo-600" />
+                Launch a new plan
+              </CardTitle>
+              <CardDescription className="text-sm text-slate-500">
+                Provide context, pick the model, and we&apos;ll orchestrate the full 60-task pipeline for you.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <PlanForm
+                onSubmit={handlePlanSubmit}
+                isSubmitting={isCreating}
+                llmModels={llmModels}
+                promptExamples={promptExamples}
+                modelsError={modelsError}
+                isLoadingModels={isLoadingModels}
+                loadLLMModels={loadLLMModels}
+              />
+              {error && (
+                <Card className="mt-4 border-red-300 bg-red-50">
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-sm font-semibold text-red-700">Plan creation failed</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-red-700">{error}</CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="space-y-6">
+            <Card className="border-slate-200">
+              <CardHeader className="space-y-1 pb-3">
+                <CardTitle className="flex items-center gap-2 text-base text-slate-700">
+                  <Rocket className="h-4 w-4 text-indigo-600" />
+                  Recent activity
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Pick up where you left off or audit a teammate&apos;s run.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <PlansQueue
+                  className="w-full"
+                  onPlanSelect={(planId) => router.push(`/recovery?planId=${encodeURIComponent(planId)}`)}
+                />
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200">
+              <CardHeader className="space-y-1 pb-4">
+                <CardTitle className="text-lg text-slate-800">Workspace primer</CardTitle>
+                <CardDescription className="text-sm text-slate-500">
+                  Orient yourself before the pipeline begins streaming updates.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-0 text-sm text-slate-600">
+                <div>
+                  <h3 className="font-medium text-slate-700">Timeline &amp; status</h3>
+                  <p className="text-xs text-slate-500">Monitor each stage&apos;s completion and retry failed nodes without leaving the run.</p>
+                </div>
+                <div>
+                  <h3 className="font-medium text-slate-700">Reports &amp; artefacts</h3>
+                  <p className="text-xs text-slate-500">Download canonical reports, inspect fallback drafts, and review generated files in one place.</p>
+                </div>
+                <div>
+                  <h3 className="font-medium text-slate-700">Live reasoning</h3>
+                  <p className="text-xs text-slate-500">Use the console stream to understand decisions and catch blockers early.</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        {/* Info Cards Section */}
+        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Card className="border-slate-200">
             <CardHeader className="space-y-1 pb-3">
               <CardTitle className="flex items-center gap-2 text-base text-slate-700">
@@ -186,77 +264,21 @@ const HomePage: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200 sm:col-span-2 lg:col-span-1">
+          <Card className="border-slate-200">
             <CardHeader className="space-y-1 pb-3">
               <CardTitle className="flex items-center gap-2 text-base text-slate-700">
-                <Rocket className="h-4 w-4 text-indigo-600" />
-                Recent activity
+                <Brain className="h-4 w-4 text-indigo-600" />
+                System status
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                Pick up where you left off or audit a teammate&apos;s run.
+                Live status of models and pipeline infrastructure.
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-0">
-              <PlansQueue
-                className="w-full"
-                onPlanSelect={(planId) => router.push(`/recovery?planId=${encodeURIComponent(planId)}`)}
-              />
-            </CardContent>
-          </Card>
-        </section>
-
-        <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          <Card className="border-slate-200">
-            <CardHeader className="space-y-1 pb-4">
-              <CardTitle className="flex items-center gap-2 text-lg text-slate-800">
-                <Sparkles className="h-5 w-5 text-indigo-600" />
-                Launch a new plan
-              </CardTitle>
-              <CardDescription className="text-sm text-slate-500">
-                Provide context, pick the model, and we&apos;ll orchestrate the full 60-task pipeline for you.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <PlanForm
-                onSubmit={handlePlanSubmit}
-                isSubmitting={isCreating}
-                llmModels={llmModels}
-                promptExamples={promptExamples}
-                modelsError={modelsError}
-                isLoadingModels={isLoadingModels}
-                loadLLMModels={loadLLMModels}
-              />
-              {error && (
-                <Card className="mt-4 border-red-300 bg-red-50">
-                  <CardHeader className="py-3">
-                    <CardTitle className="text-sm font-semibold text-red-700">Plan creation failed</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm text-red-700">{error}</CardContent>
-                </Card>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200">
-            <CardHeader className="space-y-1 pb-4">
-              <CardTitle className="text-lg text-slate-800">Workspace primer</CardTitle>
-              <CardDescription className="text-sm text-slate-500">
-                Orient yourself before the pipeline begins streaming updates.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-0 text-sm text-slate-600">
-              <div>
-                <h3 className="font-medium text-slate-700">Timeline &amp; status</h3>
-                <p className="text-xs text-slate-500">Monitor each stage&apos;s completion and retry failed nodes without leaving the run.</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-slate-700">Reports &amp; artefacts</h3>
-                <p className="text-xs text-slate-500">Download canonical reports, inspect fallback drafts, and review generated files in one place.</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-slate-700">Live reasoning</h3>
-                <p className="text-xs text-slate-500">Use the console stream to understand decisions and catch blockers early.</p>
-              </div>
+            <CardContent className="pt-0 text-sm text-slate-600">
+              <p className="font-medium text-slate-700">
+                {isLoadingModels ? 'Initializing...' : 'All systems operational'}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">Ready to process your strategic plans.</p>
             </CardContent>
           </Card>
         </section>

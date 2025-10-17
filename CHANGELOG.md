@@ -5,6 +5,29 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [0.3.13] - 2025-10-17 - Landing Page Layout Redesign
+
+### ✅ Highlights
+- Completely restructured landing page layout to prioritize important components
+- Removed hardcoded `minmax()` grid values that forced components to awkward positions
+- Changed layout hierarchy: Form and Queue now appear at top in clean 2-column layout
+- Info cards (Pipeline, Prompt Library, System Status) moved to bottom as supporting context
+- Increased max-width from 6xl to 7xl for better space utilization
+- Added new "System status" info card replacing redundant "Recent activity" card in info section
+
+### 🎨 UI/UX Improvements
+- **Before**: Complex nested grid with `lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]` forcing form to bottom
+- **After**: Simple `lg:grid-cols-2` grid with form and queue prominently displayed at top
+- Better visual hierarchy: Action items first, contextual info second
+- Cleaner responsive behavior without weird column spanning
+
+### 🧪 Testing
+- ✅ Visual inspection of landing page layout
+- ✅ Form functionality preserved
+- ✅ Queue interaction working correctly
+
+---
+
 ## [0.3.12] - 2025-10-17 - Responses API Migration Build Fixes
 
 ### ✅ Highlights
