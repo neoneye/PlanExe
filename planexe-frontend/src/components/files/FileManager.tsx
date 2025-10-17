@@ -126,7 +126,7 @@ const createZipArchive = (files: Array<{ filename: string; data: Uint8Array; dat
   endView.setUint32(endPointer, centralOffset, true); endPointer += 4;
   endView.setUint16(endPointer, 0, true);
 
-  return new Blob([...localChunks, ...centralChunks, endRecord], { type: 'application/zip' });
+  return new Blob([...localChunks, ...centralChunks, endRecord] as BlobPart[], { type: 'application/zip' });
 };
 
 interface FileManagerProps {

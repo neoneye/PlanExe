@@ -21,6 +21,9 @@ import {
 } from '@/lib/api/fastapi-client';
 import { createApiUrl } from '@/lib/utils/api-config';
 
+// Re-export types for component convenience
+export type { AnalysisStreamCompletePayload, AnalysisStreamChunkPayload, AnalysisStreamErrorPayload };
+
 export type AnalysisStreamStatus = 'idle' | 'connecting' | 'running' | 'completed' | 'error';
 
 export interface AnalysisStreamHandlers {
@@ -113,8 +116,9 @@ export function useAnalysisStreaming() {
 
         source.addEventListener('stream.init', (event) => {
           const parsed = parseEvent(event as MessageEvent);
+          const initPayload = parsed.data as import('@/lib/api/fastapi-client').AnalysisStreamInitPayload;
           handlersRef.current.onInit?.(parsed as AnalysisStreamServerEvent & { event: 'stream.init' });
-          setState((prev) => ({ ...prev, status: 'running', lastEventAt: parsed.data.connectedAt }));
+          setState((prev) => ({ ...prev, status: 'running', lastEventAt: initPayload.connectedAt }));
         });
 
         source.addEventListener('stream.status', (event) => {

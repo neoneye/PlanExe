@@ -40,6 +40,7 @@ class PlanResponse(BaseModel):
     status: PlanStatus = Field(..., description="Current status of the plan")
     created_at: datetime = Field(..., description="When the plan was created")
     prompt: str = Field(..., description="The original planning prompt")
+    llm_model: Optional[str] = Field(None, description="LLM model used for this plan")
     progress_percentage: int = Field(0, description="Completion percentage (0-100)")
     progress_message: str = Field("", description="Current progress description")
     error_message: Optional[str] = Field(None, description="Error message if failed")

@@ -28,6 +28,7 @@ export interface PlanResponse {
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   created_at: string;
   prompt: string;
+  llm_model?: string | null;
   progress_percentage: number;
   progress_message: string;
   error_message?: string;

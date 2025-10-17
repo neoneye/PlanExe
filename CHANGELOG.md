@@ -5,6 +5,26 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [0.3.12] - 2025-10-17 - Responses API Migration Build Fixes
+
+### ✅ Highlights
+- Fixed TypeScript compilation errors introduced during Responses API migration
+- Added missing `llm_model` field to `PlanResponse` model in both backend and frontend to match database schema
+- Re-exported streaming analysis types (`AnalysisStreamCompletePayload`, etc.) for component imports
+- Added missing Terminal component utilities: `StreamEventRecord` interface, `MAX_STREAM_EVENTS` constant, `sanitizeStreamPayload()`, `cloneEventPayload()`, `appendReasoningChunk()`
+- Fixed FileManager Blob constructor type error with explicit `BlobPart[]` cast
+- Fixed streaming analysis `connectedAt` property access with proper type assertion
+
+### 🧪 Testing
+- ✅ `npx tsc --noEmit` - TypeScript compilation passes with no errors
+- ✅ Python imports verified: `SimpleOpenAILLM`, `AnalysisStreamService`, `AnalysisStreamRequest`, FastAPI app
+
+### 🐛 Bug Fixes
+- **Backend**: `PlanResponse` now includes `llm_model` field for recovery workspace analysis model defaulting
+- **Frontend**: Type alignment across `fastapi-client.ts`, `analysis-streaming.ts`, `Terminal.tsx`, `FileManager.tsx`
+
+---
+
 ## [0.3.11] - 2025-10-27 - Streaming Modal Integration
 
 ### ✅ Highlights

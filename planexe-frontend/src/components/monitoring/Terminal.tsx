@@ -36,6 +36,13 @@ interface LogLine {
 
 type StreamStatus = 'running' | 'completed' | 'failed';
 
+interface StreamEventRecord {
+  sequence: number;
+  event: string;
+  timestamp: string;
+  payload: Record<string, unknown>;
+}
+
 interface LLMStreamState {
   interactionId: number;
   planId: string;
@@ -56,6 +63,31 @@ interface LLMStreamState {
 }
 
 const MAX_STREAM_DELTAS = 200;
+const MAX_STREAM_EVENTS = 100;
+
+// Utility functions for stream processing
+function sanitizeStreamPayload(data: unknown): Record<string, unknown> {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return {};
+  }
+  return data as Record<string, unknown>;
+}
+
+function cloneEventPayload(data: Record<string, unknown>): Record<string, unknown> {
+  try {
+    return JSON.parse(JSON.stringify(data));
+  } catch {
+    return {};
+  }
+}
+
+function appendReasoningChunk(buffer: { text: string; reasoning: string }, delta: string): void {
+  if (buffer.reasoning) {
+    buffer.reasoning = `${buffer.reasoning}\n${delta}`;
+  } else {
+    buffer.reasoning = delta;
+  }
+}
 const STANDARD_USAGE_KEYS = ['input_tokens', 'output_tokens', 'total_tokens', 'reasoning_tokens'] as const;
 const STANDARD_USAGE_LABELS: Record<(typeof STANDARD_USAGE_KEYS)[number], string> = {
   input_tokens: 'Input tokens',
