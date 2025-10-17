@@ -5,6 +5,21 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [0.3.10] - 2025-10-17 - Recovery Workspace UX Hardening
+
+### ✅ Highlights
+- Normalised pipeline stage/file payloads in `PipelineDetails` so mismatched API schemas no longer blank the UI or crash when
+  timestamps/size fields are missing.
+- Replaced the dead `/retry` call with the shared `relaunchPlan` helper and surfaced relaunch controls in both the plans queue
+  and recovery header.
+- Added a dependency-free ZIP bundler plus inline artefact preview panel so recovery operators can inspect or download outputs
+  without leaving the workspace.
+
+### 🧪 Testing
+- ⚠️ `npm run lint` *(skipped: registry access forbidden in container)*
+
+---
+
 ## [0.3.9] - 2025-10-16 - Recovery Workspace Layout Flattening
 
 ### ✅ Highlights

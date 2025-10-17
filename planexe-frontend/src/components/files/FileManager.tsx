@@ -1,8 +1,9 @@
 /**
- * Author: Codex using GPT-5
- * Date: 2025-10-03T00:00:00Z
- * PURPOSE: ASCII-safe artefact browser driven by plan_content metadata supplied via the workspace.
- * SRP and DRY check: Pass - Presentational component for artefact exploration; delegates data fetching to parent.
+ * Author: ChatGPT using gpt-5-codex
+ * Date: 2024-11-23T00:00:00Z
+ * PURPOSE: Artefact browser with client-side ZIP bundling and preview hooks for the recovery workspace.
+ * SRP and DRY check: Pass - Focuses on artefact presentation while delegating data fetching to parents
+ *          and leveraging shared API helpers for downloads.
  */
 
 'use client';
@@ -17,6 +18,116 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDistanceToNow } from 'date-fns';
 import { PlanFile } from '@/lib/types/pipeline';
 import { FileCode2, FileJson, FileSpreadsheet, FileText, FileType } from 'lucide-react';
+import { fastApiClient } from '@/lib/api/fastapi-client';
+
+const CRC32_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let index = 0; index < 256; index += 1) {
+    let value = index;
+    for (let bit = 0; bit < 8; bit += 1) {
+      value = (value & 1) ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
+    }
+    table[index] = value >>> 0;
+  }
+  return table;
+})();
+
+const crc32 = (input: Uint8Array): number => {
+  let crc = -1;
+  for (let i = 0; i < input.length; i += 1) {
+    crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ input[i]) & 0xff];
+  }
+  return (crc ^ -1) >>> 0;
+};
+
+const getDosDateTime = (timestamp: Date): { time: number; date: number } => {
+  const year = Math.max(timestamp.getFullYear(), 1980);
+  const dosTime =
+    ((timestamp.getHours() & 0x1f) << 11) |
+    ((timestamp.getMinutes() & 0x3f) << 5) |
+    Math.floor((timestamp.getSeconds() & 0x3f) / 2);
+  const dosDate =
+    (((year - 1980) & 0x7f) << 9) |
+    (((timestamp.getMonth() + 1) & 0x0f) << 5) |
+    (timestamp.getDate() & 0x1f);
+  return { time: dosTime & 0xffff, date: dosDate & 0xffff };
+};
+
+const createZipArchive = (files: Array<{ filename: string; data: Uint8Array; date?: Date }>): Blob => {
+  const encoder = new TextEncoder();
+  const localChunks: Uint8Array[] = [];
+  const centralChunks: Uint8Array[] = [];
+  let offset = 0;
+
+  files.forEach(({ filename, data, date }) => {
+    const nameBytes = encoder.encode(filename);
+    const statsDate = getDosDateTime(date ?? new Date());
+    const crc = crc32(data);
+    const size = data.length;
+
+    const localHeader = new Uint8Array(30 + nameBytes.length + size);
+    const localView = new DataView(localHeader.buffer);
+    let pointer = 0;
+    localView.setUint32(pointer, 0x04034b50, true); pointer += 4;
+    localView.setUint16(pointer, 20, true); pointer += 2;
+    localView.setUint16(pointer, 0, true); pointer += 2;
+    localView.setUint16(pointer, 0, true); pointer += 2;
+    localView.setUint16(pointer, statsDate.time, true); pointer += 2;
+    localView.setUint16(pointer, statsDate.date, true); pointer += 2;
+    localView.setUint32(pointer, crc, true); pointer += 4;
+    localView.setUint32(pointer, size, true); pointer += 4;
+    localView.setUint32(pointer, size, true); pointer += 4;
+    localView.setUint16(pointer, nameBytes.length, true); pointer += 2;
+    localView.setUint16(pointer, 0, true); pointer += 2;
+    localHeader.set(nameBytes, pointer);
+    pointer += nameBytes.length;
+    localHeader.set(data, pointer);
+
+    localChunks.push(localHeader);
+
+    const centralHeader = new Uint8Array(46 + nameBytes.length);
+    const centralView = new DataView(centralHeader.buffer);
+    let centralPointer = 0;
+    centralView.setUint32(centralPointer, 0x02014b50, true); centralPointer += 4;
+    centralView.setUint16(centralPointer, 20, true); centralPointer += 2;
+    centralView.setUint16(centralPointer, 20, true); centralPointer += 2;
+    centralView.setUint16(centralPointer, 0, true); centralPointer += 2;
+    centralView.setUint16(centralPointer, 0, true); centralPointer += 2;
+    centralView.setUint16(centralPointer, statsDate.time, true); centralPointer += 2;
+    centralView.setUint16(centralPointer, statsDate.date, true); centralPointer += 2;
+    centralView.setUint32(centralPointer, crc, true); centralPointer += 4;
+    centralView.setUint32(centralPointer, size, true); centralPointer += 4;
+    centralView.setUint32(centralPointer, size, true); centralPointer += 4;
+    centralView.setUint16(centralPointer, nameBytes.length, true); centralPointer += 2;
+    centralView.setUint16(centralPointer, 0, true); centralPointer += 2;
+    centralView.setUint16(centralPointer, 0, true); centralPointer += 2;
+    centralView.setUint16(centralPointer, 0, true); centralPointer += 2;
+    centralView.setUint16(centralPointer, 0, true); centralPointer += 2;
+    centralView.setUint32(centralPointer, 0, true); centralPointer += 4;
+    centralView.setUint32(centralPointer, offset, true); centralPointer += 4;
+    centralHeader.set(nameBytes, centralPointer);
+
+    centralChunks.push(centralHeader);
+    offset += localHeader.length;
+  });
+
+  const centralSize = centralChunks.reduce((total, chunk) => total + chunk.length, 0);
+  const centralOffset = offset;
+
+  const endRecord = new Uint8Array(22);
+  const endView = new DataView(endRecord.buffer);
+  let endPointer = 0;
+  endView.setUint32(endPointer, 0x06054b50, true); endPointer += 4;
+  endView.setUint16(endPointer, 0, true); endPointer += 2;
+  endView.setUint16(endPointer, 0, true); endPointer += 2;
+  endView.setUint16(endPointer, files.length, true); endPointer += 2;
+  endView.setUint16(endPointer, files.length, true); endPointer += 2;
+  endView.setUint32(endPointer, centralSize, true); endPointer += 4;
+  endView.setUint32(endPointer, centralOffset, true); endPointer += 4;
+  endView.setUint16(endPointer, 0, true);
+
+  return new Blob([...localChunks, ...centralChunks, endRecord], { type: 'application/zip' });
+};
 
 interface FileManagerProps {
   planId: string;
@@ -115,6 +226,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
   const [selectedStage, setSelectedStage] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
+  const [zipStatus, setZipStatus] = useState<string | null>(null);
 
   const stageOptions = useMemo(() => {
     const stages = new Set<string>();
@@ -168,19 +280,8 @@ export const FileManager: React.FC<FileManagerProps> = ({
 
   const downloadFile = async (file: PlanFile) => {
     try {
-      const response = await fetch(`/api/plans/${planId}/files/${file.filename}`);
-      if (!response.ok) {
-        throw new Error('Failed to download file');
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = file.filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const blob = await fastApiClient.downloadFile(planId, file.filename);
+      fastApiClient.downloadBlob(blob, file.filename);
     } catch (err) {
       console.error('Download failed:', err);
     }
@@ -189,23 +290,42 @@ export const FileManager: React.FC<FileManagerProps> = ({
   const downloadZip = async () => {
     try {
       setIsDownloadingZip(true);
-      const response = await fetch(`/api/plans/${planId}/download`);
-      if (!response.ok) {
-        throw new Error('Failed to create ZIP archive');
+      if (!artefacts.length) {
+        setZipStatus('No artefacts available to bundle.');
+        return;
       }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `plan-${planId}-files.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+
+      const entries: Array<{ filename: string; data: Uint8Array; date?: Date }> = [];
+      let processed = 0;
+
+      for (const file of artefacts) {
+        processed += 1;
+        setZipStatus(`Fetching ${file.filename} (${processed}/${artefacts.length})`);
+        try {
+          const blob = await fastApiClient.downloadFile(planId, file.filename);
+          const buffer = await blob.arrayBuffer();
+          const parsedDate = Number.isNaN(Date.parse(file.createdAt)) ? undefined : new Date(file.createdAt);
+          entries.push({ filename: file.filename, data: new Uint8Array(buffer), date: parsedDate });
+        } catch (fileError) {
+          console.error(`Failed to fetch ${file.filename}`, fileError);
+        }
+      }
+
+      if (!entries.length) {
+        setZipStatus('Unable to download any artefacts for bundling.');
+        return;
+      }
+
+      setZipStatus('Assembling archive...');
+      const archive = createZipArchive(entries);
+      fastApiClient.downloadBlob(archive, `plan-${planId}-artefacts.zip`);
+      setZipStatus('Download ready.');
     } catch (err) {
       console.error('ZIP download failed:', err);
+      setZipStatus('Unable to assemble ZIP archive.');
     } finally {
       setIsDownloadingZip(false);
+      setTimeout(() => setZipStatus(null), 4000);
     }
   };
 
@@ -225,10 +345,15 @@ export const FileManager: React.FC<FileManagerProps> = ({
                 Refresh
               </Button>
               <Button variant="ghost" size="sm" onClick={downloadZip} disabled={isDownloadingZip || isLoading}>
-                {isDownloadingZip ? 'Preparing...' : 'Download ZIP'}
+                {isDownloadingZip ? 'Preparing…' : 'Download ZIP'}
               </Button>
             </div>
           </div>
+          {zipStatus && (
+            <div className="text-xs text-slate-500" aria-live="polite">
+              {zipStatus}
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-3">
             <Input
               placeholder="Search by filename, description, or task"

@@ -1,8 +1,10 @@
 /**
- * Author: Codex using GPT-5
- * Date: 2025-10-03T00:00:00Z
- * PURPOSE: Plans queue with recovery workspace shortcut; keeps polling/retry behaviour intact.
- * SRP and DRY check: Pass - Focused on queue management, reusing central API client without duplication.
+ * Author: ChatGPT using gpt-5-codex
+ * Date: 2024-11-23T00:00:00Z
+ * PURPOSE: Plans queue with workspace shortcuts and interactive relaunch controls backed by
+ *          the shared FastAPI client helper.
+ * SRP and DRY check: Pass - Manages list fetching and retry orchestration without duplicating
+ *          request logic handled by the API client.
  */
 
 'use client'
@@ -13,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, RotateCcw, Monitor } from 'lucide-react'
-import { fastApiClient, PlanResponse } from '@/lib/api/fastapi-client'
+import { fastApiClient, PlanResponse, RelaunchPlanOptions, CreatePlanRequest } from '@/lib/api/fastapi-client'
 
 // Use the PlanResponse type from fastapi-client instead of local interface
 
@@ -42,23 +44,38 @@ export function PlansQueue({ className, onPlanSelect, onPlanRetry }: PlansQueueP
   }
 
   // Retry a plan
-  const retryPlan = async (planId: string) => {
-    setRetryingPlanId(planId)
+  const retryPlan = async (plan: PlanResponse) => {
+    setRetryingPlanId(plan.plan_id)
     try {
-      const response = await fetch(`/api/plans/${planId}/retry`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      })
-      if (response.ok) {
-        const newPlan = await response.json();
-        // Refresh plans to show updated status
-        await fetchPlans();
-        if (onPlanRetry) {
-          // Pass the NEW planId to the handler
-          onPlanRetry(newPlan.plan_id);
-        }
-      } else {
-        console.error('Failed to retry plan')
+      const llmModelInput = typeof window !== 'undefined'
+        ? window.prompt('Enter LLM model ID to use for relaunch (leave blank for default):')
+        : null
+
+      const speedDefault = 'balanced_speed_and_detail'
+      const speedInput = typeof window !== 'undefined'
+        ? window.prompt(
+            'Speed vs detail (fast_but_skip_details | balanced_speed_and_detail | all_details_but_slow):',
+            speedDefault
+          )
+        : speedDefault
+
+      const normalizedSpeed = (speedInput || speedDefault).trim() as CreatePlanRequest['speed_vs_detail']
+      const allowedSpeeds = new Set<CreatePlanRequest['speed_vs_detail']>([
+        'fast_but_skip_details',
+        'balanced_speed_and_detail',
+        'all_details_but_slow',
+      ])
+
+      const options: RelaunchPlanOptions = {
+        llmModel: llmModelInput ? llmModelInput.trim() : undefined,
+        speedVsDetail: allowedSpeeds.has(normalizedSpeed) ? normalizedSpeed : speedDefault,
+      }
+
+      const newPlan = await fastApiClient.relaunchPlan(plan, options)
+
+      await fetchPlans()
+      if (onPlanRetry) {
+        onPlanRetry(newPlan.plan_id)
       }
     } catch (error) {
       console.error('Error retrying plan:', error)
@@ -202,7 +219,7 @@ export function PlansQueue({ className, onPlanSelect, onPlanRetry }: PlansQueueP
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => retryPlan(plan.plan_id)}
+                        onClick={() => retryPlan(plan)}
                         disabled={retryingPlanId === plan.plan_id}
                         aria-label="Retry plan"
                       >
