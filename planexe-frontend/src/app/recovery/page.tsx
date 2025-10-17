@@ -1,8 +1,10 @@
 /**
- * Author: Codex using GPT-5
- * Date: 2025-03-15T00:00:00Z
- * PURPOSE: Self-service recovery workspace for assembling plans from database artefacts with live status, report toggle, and file explorer. Updated to harden query parsing and error handling when canonical reports are absent.
- * SRP and DRY check: Pass - Orchestrates workspace UX; delegates artefact rendering to FileManager.
+ * Author: ChatGPT using gpt-5-codex
+ * Date: 2025-03-16T00:00:00Z
+ * PURPOSE: Recovery workspace UI that now favours a single smooth page scroll by flattening nested cards and embedding reports
+ * directly. Artefact, report, and pipeline views share the same viewport without competing scrollbars.
+ * SRP and DRY check: Pass - Coordinates data loading and high-level layout while delegating rendering to focused components
+ * already present in the project.
  */
 'use client';
 
@@ -207,23 +209,25 @@ const ReportPanel: React.FC<{
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as 'canonical' | 'fallback')}
+          className="space-y-4"
         >
-          <TabsList>
+          <TabsList className="w-full justify-start overflow-x-auto">
             <TabsTrigger value="canonical" disabled={!canonicalAvailable}>
               Canonical Report
             </TabsTrigger>
             <TabsTrigger value="fallback">Fallback Report</TabsTrigger>
           </TabsList>
-          <TabsContent value="canonical" className="mt-4">
+          <TabsContent value="canonical">
             {canonicalHtml ? (
-              <div className="rounded-lg border border-slate-200 shadow-inner overflow-hidden">
-                <iframe
-                  title={`${planId}-canonical-report`}
-                  srcDoc={canonicalHtml}
-                  sandbox=""
-                  className="h-[520px] w-full border-0"
+              <section
+                aria-label="Canonical plan report"
+                className="rounded-xl border border-slate-200 bg-white shadow-sm"
+              >
+                <div
+                  className="prose max-w-none px-6 py-6 text-slate-700"
+                  dangerouslySetInnerHTML={{ __html: canonicalHtml }}
                 />
-              </div>
+              </section>
             ) : (
               <Card className="border-amber-200 bg-amber-50">
                 <CardContent className="py-6 text-sm text-amber-700">
@@ -232,12 +236,8 @@ const ReportPanel: React.FC<{
               </Card>
             )}
           </TabsContent>
-          <TabsContent value="fallback" className="mt-4">
-            <Card className="border-slate-200">
-              <CardContent className="p-0">
-                <ReportTaskFallback planId={fallbackPlanId} className="border-0" />
-              </CardContent>
-            </Card>
+          <TabsContent value="fallback">
+            <ReportTaskFallback planId={fallbackPlanId} />
           </TabsContent>
         </Tabs>
       </CardContent>
@@ -493,9 +493,12 @@ const WorkspaceContent: React.FC = () => {
             </div>
           </CardHeader>
         </Card>
-        <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <StageTimeline stages={stageSummary} />
-          <div className="space-y-6">
+        <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="flex flex-col gap-6">
+            <StageTimeline stages={stageSummary} />
+            <PipelineDetails planId={planId} className="h-fit" />
+          </div>
+          <div className="flex flex-col gap-6">
             <ReportPanel
               planId={planId}
               canonicalHtml={canonicalHtml}
@@ -515,7 +518,6 @@ const WorkspaceContent: React.FC = () => {
               lastUpdated={artefactLastUpdated}
               onRefresh={fetchArtefacts}
             />
-            <PipelineDetails planId={planId} />
           </div>
         </div>
       </main>
