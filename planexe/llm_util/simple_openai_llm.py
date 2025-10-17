@@ -1,10 +1,12 @@
 """
 /**
  * Author: ChatGPT gpt-5-codex
- * Date: 2025-10-19
+ * Date: 2025-10-20
  * PURPOSE: Responses API-backed OpenAI client with reasoning-aware streaming hooks that
  *          emit Luigi stdout envelopes for WebSocket broadcasting while preserving
- *          structured output helpers.
+ *          structured output helpers. Latest revision forwards full raw payloads alongside
+ *          normalized reasoning and usage telemetry so downstream monitors can display every
+ *          field emitted by GPT-5.
  * SRP and DRY check: Pass - single adapter orchestrates raw/structured GPT-5 calls and
  *          funnels telemetry to shared stream helpers without duplicating envelope logic.
  */

@@ -42,13 +42,17 @@ interface LLMStreamState {
   stage: string;
   textDeltas: string[];
   reasoningDeltas: string[];
+  textBuffer: string;
+  reasoningBuffer: string;
   finalText?: string;
   finalReasoning?: string;
   usage?: Record<string, unknown>;
+  rawPayload?: Record<string, unknown> | null;
   status: StreamStatus;
   error?: string;
   lastUpdated: number;
   promptPreview?: string | null;
+  events: StreamEventRecord[];
 }
 
 const MAX_STREAM_DELTAS = 200;
@@ -80,6 +84,7 @@ export const Terminal: React.FC<TerminalProps> = ({
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const streamBuffersRef = useRef<Map<number, { text: string; reasoning: string }>>(new Map());
 
   const addLog = useCallback((text: string, level: LogLine['level'] = 'info') => {
     const timestamp = new Date().toLocaleTimeString();
@@ -87,24 +92,34 @@ export const Terminal: React.FC<TerminalProps> = ({
   }, []);
 
   const handleLlmStreamMessage = useCallback((message: WebSocketLLMStreamMessage) => {
+    const sanitizedData = sanitizeStreamPayload(message.data);
+    const buffer = streamBuffersRef.current.get(message.interaction_id) ?? { text: '', reasoning: '' };
+
     setLlmStreams(prev => {
       const existing = prev[message.interaction_id];
-      const promptPreview = typeof message.data?.prompt_preview === 'string' ? message.data.prompt_preview : undefined;
+      const promptPreview = typeof sanitizedData.prompt_preview === 'string' ? sanitizedData.prompt_preview : undefined;
       const baseState: LLMStreamState = existing ?? {
         interactionId: message.interaction_id,
         planId: message.plan_id,
         stage: message.stage,
         textDeltas: [],
         reasoningDeltas: [],
+        textBuffer: buffer.text,
+        reasoningBuffer: buffer.reasoning,
         status: 'running',
         lastUpdated: Date.now(),
         promptPreview: promptPreview ?? null,
+        rawPayload: null,
+        events: [],
       };
 
       const updated: LLMStreamState = {
         ...baseState,
         lastUpdated: Date.now(),
         promptPreview: baseState.promptPreview ?? promptPreview ?? null,
+        textBuffer: buffer.text,
+        reasoningBuffer: buffer.reasoning,
+        rawPayload: baseState.rawPayload ?? null,
       };
 
       switch (message.event) {
@@ -112,54 +127,83 @@ export const Terminal: React.FC<TerminalProps> = ({
           updated.status = 'running';
           break;
         case 'text_delta': {
-          const delta = typeof message.data?.delta === 'string' ? message.data.delta : '';
+          const delta = typeof sanitizedData.delta === 'string' ? sanitizedData.delta : '';
           if (delta) {
             const next = [...updated.textDeltas, delta];
             if (next.length > MAX_STREAM_DELTAS) {
               next.splice(0, next.length - MAX_STREAM_DELTAS);
             }
             updated.textDeltas = next;
+            buffer.text = `${buffer.text}${delta}`;
           }
           break;
         }
         case 'reasoning_delta': {
-          const delta = typeof message.data?.delta === 'string' ? message.data.delta : '';
+          const delta = typeof sanitizedData.delta === 'string' ? sanitizedData.delta : '';
           if (delta) {
             const next = [...updated.reasoningDeltas, delta];
             if (next.length > MAX_STREAM_DELTAS) {
               next.splice(0, next.length - MAX_STREAM_DELTAS);
             }
             updated.reasoningDeltas = next;
+            appendReasoningChunk(buffer, delta);
           }
           break;
         }
         case 'final': {
-          if (typeof message.data?.text === 'string') {
-            updated.finalText = message.data.text;
+          if (typeof sanitizedData.text === 'string') {
+            updated.finalText = sanitizedData.text;
+            buffer.text = sanitizedData.text;
           }
-          if (typeof message.data?.reasoning === 'string') {
-            updated.finalReasoning = message.data.reasoning;
+          if (typeof sanitizedData.reasoning === 'string') {
+            updated.finalReasoning = sanitizedData.reasoning;
+            buffer.reasoning = sanitizedData.reasoning;
           }
-          if (message.data?.usage && typeof message.data.usage === 'object') {
-            updated.usage = message.data.usage as Record<string, unknown>;
+          if (sanitizedData.usage && typeof sanitizedData.usage === 'object' && !Array.isArray(sanitizedData.usage)) {
+            updated.usage = sanitizedData.usage as Record<string, unknown>;
+          }
+          const rawPayload = sanitizeStreamPayload((sanitizedData as Record<string, unknown>).raw_payload);
+          if (Object.keys(rawPayload).length > 0) {
+            updated.rawPayload = rawPayload;
           }
           break;
         }
         case 'end': {
-          const status = typeof message.data?.status === 'string' ? message.data.status.toLowerCase() : 'completed';
+          const status = typeof sanitizedData.status === 'string' ? sanitizedData.status.toLowerCase() : 'completed';
           updated.status = status === 'failed' ? 'failed' : 'completed';
-          updated.error = typeof message.data?.error === 'string' ? message.data.error : undefined;
+          updated.error = typeof sanitizedData.error === 'string' ? sanitizedData.error : undefined;
           break;
         }
         default:
           break;
       }
 
+      streamBuffersRef.current.set(message.interaction_id, {
+        text: buffer.text,
+        reasoning: buffer.reasoning,
+      });
+
+      updated.textBuffer = buffer.text;
+      updated.reasoningBuffer = buffer.reasoning;
+
+      const eventRecord: StreamEventRecord = {
+        sequence: typeof message.sequence === 'number' ? message.sequence : Date.now(),
+        event: message.event,
+        timestamp: message.timestamp,
+        payload: cloneEventPayload(sanitizedData),
+      };
+
+      const nextEvents = [...baseState.events, eventRecord];
+      if (nextEvents.length > MAX_STREAM_EVENTS) {
+        nextEvents.splice(0, nextEvents.length - MAX_STREAM_EVENTS);
+      }
+      updated.events = nextEvents;
+
       return { ...prev, [message.interaction_id]: updated };
     });
 
     if (message.event === 'final') {
-      const fullText = typeof message.data?.text === 'string' ? message.data.text : '';
+      const fullText = typeof sanitizedData.text === 'string' ? sanitizedData.text : '';
       const snippet = fullText.slice(0, 160);
       if (snippet) {
         addLog(`🧠 [${message.stage}] Final output received: ${snippet}${snippet.length < fullText.length ? '…' : ''}`, 'info');
@@ -167,9 +211,9 @@ export const Terminal: React.FC<TerminalProps> = ({
         addLog(`🧠 [${message.stage}] Final output payload received.`, 'info');
       }
     } else if (message.event === 'end') {
-      const statusLabel = typeof message.data?.status === 'string' ? message.data.status.toUpperCase() : 'COMPLETED';
+      const statusLabel = typeof sanitizedData.status === 'string' ? sanitizedData.status.toUpperCase() : 'COMPLETED';
       if (statusLabel === 'FAILED') {
-        addLog(`❌ [${message.stage}] LLM stream failed: ${typeof message.data?.error === 'string' ? message.data.error : 'unknown error'}`, 'error');
+        addLog(`❌ [${message.stage}] LLM stream failed: ${typeof sanitizedData.error === 'string' ? sanitizedData.error : 'unknown error'}`, 'error');
       } else {
         addLog(`✅ [${message.stage}] LLM stream ${statusLabel.toLowerCase()}.`, 'info');
       }
@@ -634,8 +678,8 @@ export const Terminal: React.FC<TerminalProps> = ({
                     : entry.status === 'failed'
                     ? 'bg-red-600/20 text-red-300 border border-red-500/40'
                     : 'bg-blue-600/20 text-blue-300 border border-blue-500/40 animate-pulse';
-                const assembledText = entry.finalText ?? entry.textDeltas.join('');
-                const assembledReasoning = entry.finalReasoning ?? entry.reasoningDeltas.join('\n');
+                const assembledText = entry.finalText ?? entry.textBuffer ?? entry.textDeltas.join('');
+                const assembledReasoning = entry.finalReasoning ?? entry.reasoningBuffer ?? entry.reasoningDeltas.join('\n');
                 const usageRecord = (entry.usage ?? {}) as Record<string, unknown>;
                 const extraUsageEntries = Object.entries(usageRecord).filter(
                   ([key]) => !STANDARD_USAGE_KEYS.includes(key as (typeof STANDARD_USAGE_KEYS)[number])

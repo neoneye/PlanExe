@@ -13,6 +13,8 @@
 - Added contextual primer content and compact error handling so the workflow feels less cartoonish and more operational.
 - Hardened the lint workflow with an ESLint-or-fallback script so CI can run locally even when registry access is restricted.
 - Synced the monitoring UI with backend telemetry so Responses usage metrics (including nested token details) render alongside reasoning and output streams.
+- Buffered streaming terminals with ref-backed accumulators and raw event inspectors so every Responses payload the backend emits is visible in the monitoring UI without dropping deltas.
+- Surfaced the final Responses raw payload within each Live LLM Stream card so frontend reviewers can diff backend envelopes without leaving the UI.
 
 ### 🧪 Testing
 - `npm run lint`

@@ -1,10 +1,12 @@
 """
 /**
  * Author: ChatGPT gpt-5-codex
- * Date: 2025-10-19
+ * Date: 2025-10-20
  * PURPOSE: Thread-local LLM streaming context helpers shared between Luigi pipeline
  *          workers and the FastAPI layer so streaming deltas can be surfaced to the
- *          WebSocket transport and persisted as rich telemetry.
+ *          WebSocket transport and persisted as rich telemetry. Latest revision forwards
+ *          raw Responses payloads in the final event so monitoring tools mirror backend
+ *          envelopes without losing fields.
  * SRP and DRY check: Pass - single module that centralizes shared helpers instead of
  *          duplicating JSON envelope logic across pipeline and API services.
  */
@@ -131,6 +133,7 @@ def record_final_payload(
                 "text": text,
                 "reasoning": reasoning,
                 "usage": usage,
+                "raw_payload": raw_payload,
             },
         )
         context["final_emitted"] = True
