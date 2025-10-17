@@ -1,11 +1,10 @@
 /**
  * Author: ChatGPT gpt-5-codex (updates; original by Codex using GPT-5)
- * Date: 2025-10-20
+ * Date: 2025-10-19
  * PURPOSE: Augment terminal monitor with Responses reasoning stream panels so operators see
  *          token deltas, reasoning traces, and final outputs alongside raw Luigi logs while
  *          sharing websocket URL construction with other realtime clients. Latest revision surfaces
- *          every usage metric emitted by the backend so the UI mirrors streamed telemetry exactly
- *          and now exposes the raw Responses payload forwarded in final stream events.
+ *          every usage metric emitted by the backend so the UI mirrors streamed telemetry exactly.
  * SRP and DRY check: Pass - keeps monitoring responsibilities cohesive by layering telemetry
  *          visualization without duplicating WebSocket wiring. Previous baseline provided by
  *          Claude Code using Sonnet 4 (2025-09-27).
@@ -57,46 +56,12 @@ interface LLMStreamState {
 }
 
 const MAX_STREAM_DELTAS = 200;
-const MAX_STREAM_EVENTS = 300;
 const STANDARD_USAGE_KEYS = ['input_tokens', 'output_tokens', 'total_tokens', 'reasoning_tokens'] as const;
 const STANDARD_USAGE_LABELS: Record<(typeof STANDARD_USAGE_KEYS)[number], string> = {
   input_tokens: 'Input tokens',
   output_tokens: 'Output tokens',
   total_tokens: 'Total tokens',
   reasoning_tokens: 'Reasoning tokens'
-};
-
-interface StreamEventRecord {
-  sequence: number;
-  event: string;
-  timestamp: string;
-  payload: Record<string, unknown>;
-}
-
-const sanitizeStreamPayload = (value: unknown): Record<string, unknown> => {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-  return {};
-};
-
-const cloneEventPayload = (payload: Record<string, unknown>): Record<string, unknown> => {
-  try {
-    return JSON.parse(JSON.stringify(payload));
-  } catch (error) {
-    return { ...payload };
-  }
-};
-
-const appendReasoningChunk = (buffer: { text: string; reasoning: string }, chunk: string) => {
-  if (!chunk) {
-    return;
-  }
-  if (buffer.reasoning) {
-    buffer.reasoning = `${buffer.reasoning}${buffer.reasoning.endsWith('\n') ? '' : '\n'}${chunk}`;
-  } else {
-    buffer.reasoning = chunk;
-  }
 };
 
 export const Terminal: React.FC<TerminalProps> = ({
@@ -573,33 +538,6 @@ export const Terminal: React.FC<TerminalProps> = ({
     }
   };
 
-  const renderEventPayload = (payload: Record<string, unknown>) => {
-    try {
-      return JSON.stringify(payload, null, 2);
-    } catch (error) {
-      return String(payload);
-    }
-  };
-
-  const renderRawPayload = (payload: Record<string, unknown> | null | undefined) => {
-    if (!payload || Object.keys(payload).length === 0) {
-      return '—';
-    }
-    try {
-      return JSON.stringify(payload, null, 2);
-    } catch (error) {
-      return String(payload);
-    }
-  };
-
-  const formatEventTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    if (Number.isNaN(date.getTime())) {
-      return timestamp;
-    }
-    return date.toLocaleTimeString();
-  };
-
   // Filter logs based on search
   const filteredLogs = searchFilter
     ? logs.filter(log => log.text.toLowerCase().includes(searchFilter.toLowerCase()))
@@ -747,7 +685,6 @@ export const Terminal: React.FC<TerminalProps> = ({
                   ([key]) => !STANDARD_USAGE_KEYS.includes(key as (typeof STANDARD_USAGE_KEYS)[number])
                 );
                 const hasUsageData = Object.keys(usageRecord).length > 0;
-                const rawPayload = entry.rawPayload ?? null;
 
                 return (
                   <div key={entry.interactionId} className="px-4 py-3 grid gap-4 md:grid-cols-2">
@@ -801,41 +738,6 @@ export const Terminal: React.FC<TerminalProps> = ({
                               </div>
                             </div>
                           )}
-                        </div>
-                      )}
-                      {rawPayload && (
-                        <div>
-                          <details className="group rounded border border-slate-800 bg-slate-950/70 p-2">
-                            <summary className="cursor-pointer text-[11px] font-semibold text-slate-400 outline-none transition group-open:text-slate-200">
-                              Final raw payload
-                            </summary>
-                            <pre className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap break-words rounded bg-slate-950/90 p-2 text-[11px] text-slate-300">
-                              {renderRawPayload(rawPayload)}
-                            </pre>
-                          </details>
-                        </div>
-                      )}
-                      {entry.events.length > 0 && (
-                        <div>
-                          <details className="group rounded border border-slate-800 bg-slate-950/70 p-2">
-                            <summary className="cursor-pointer text-[11px] font-semibold text-slate-400 outline-none transition group-open:text-slate-200">
-                              Raw stream events ({entry.events.length})
-                            </summary>
-                            <div className="mt-2 space-y-2">
-                              {entry.events.map((eventRecord) => (
-                                <div key={`${eventRecord.sequence}-${eventRecord.timestamp}`} className="rounded border border-slate-900/60 bg-slate-950/80 p-2">
-                                  <div className="flex items-center justify-between text-[10px] text-slate-500">
-                                    <span className="uppercase tracking-wide text-slate-400">{eventRecord.event}</span>
-                                    <span>#{eventRecord.sequence}</span>
-                                  </div>
-                                  <div className="mt-1 text-[10px] text-slate-500">{formatEventTimestamp(eventRecord.timestamp)}</div>
-                                  <pre className="mt-2 max-h-32 overflow-y-auto whitespace-pre-wrap break-words rounded bg-slate-950/90 p-2 text-[11px] text-slate-300">
-                                    {renderEventPayload(eventRecord.payload)}
-                                  </pre>
-                                </div>
-                              ))}
-                            </div>
-                          </details>
                         </div>
                       )}
                       {entry.error && (
