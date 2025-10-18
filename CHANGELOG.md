@@ -5,6 +5,17 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [0.3.16] - 2025-10-27 - Streaming Defaults & Version Badge Fix
+
+### ✅ Highlights
+- Enabled analysis streaming by default across environments unless explicitly disabled so the conversation modal handshake no longer returns HTTP 403 during production builds.
+- Updated the landing page release badge to read the PlanExe version from the FastAPI health endpoint, eliminating external `raw.githubusercontent.com` fetches that intermittently returned 404s.
+
+### 🧪 Testing
+- ⚠️ Not run (environment-only changes)
+
+---
+
 ## [0.3.15] - 2025-10-19 - Python Header Cleanup
 
 ### ✅ Highlights

@@ -55,13 +55,28 @@ app = FastAPI(
 # Environment detection
 IS_DEVELOPMENT = os.environ.get("PLANEXE_CLOUD_MODE", "false").lower() != "true"
 
-STREAMING_FLAG_VALUE = (
-    os.environ.get("STREAMING_ENABLED")
-    or os.environ.get("PLANEXE_STREAMING_ENABLED")
-    or os.environ.get("NEXT_PUBLIC_STREAMING_ENABLED")
-    or ("true" if IS_DEVELOPMENT else "false")
-)
-STREAMING_ENABLED = STREAMING_FLAG_VALUE.lower() == "true"
+def _resolve_streaming_flag() -> bool:
+    """Resolve streaming feature flag with safe defaults."""
+
+    streaming_env_keys = (
+        "STREAMING_ENABLED",
+        "PLANEXE_STREAMING_ENABLED",
+        "NEXT_PUBLIC_STREAMING_ENABLED",
+    )
+
+    for key in streaming_env_keys:
+        value = os.environ.get(key)
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"true", "false"}:
+                return normalized == "true"
+
+    # Default to enabled so production matches the frontend build configuration
+    # unless explicitly disabled via environment variables.
+    return True
+
+
+STREAMING_ENABLED = _resolve_streaming_flag()
 
 # CORS configuration - enable for both development and production
 if IS_DEVELOPMENT:
