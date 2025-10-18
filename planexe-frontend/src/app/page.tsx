@@ -20,7 +20,6 @@ import { CreatePlanRequest, fastApiClient } from '@/lib/api/fastapi-client';
 import { ConversationFinalizeResult } from '@/lib/conversation/useResponsesConversation';
 
 const CHANGELOG_URL = 'https://github.com/PlanExe/PlanExe/blob/main/CHANGELOG.md';
-const RAW_CHANGELOG_URL = 'https://raw.githubusercontent.com/PlanExe/PlanExe/main/CHANGELOG.md';
 
 const HomePage: React.FC = () => {
   const router = useRouter();
@@ -41,32 +40,23 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     let canceled = false;
 
-    const extractLatestVersion = (changelog: string): string | null => {
-      const match = changelog.match(/##\s*\[(\d+\.\d+\.\d+)\]/);
-      return match?.[1] ?? null;
-    };
-
     const fetchLatestVersion = async () => {
       try {
-        const response = await fetch(RAW_CHANGELOG_URL, { cache: 'no-store' });
-        if (!response.ok) {
-          throw new Error(`Failed to load changelog (HTTP ${response.status})`);
+        const health = await fastApiClient.getHealth();
+        if (canceled) {
+          return;
         }
 
-        const changelogText = await response.text();
-        const version = extractLatestVersion(changelogText);
-
-        if (!canceled) {
-          if (version) {
-            setLatestVersion(version);
-            setVersionError(null);
-          } else {
-            setVersionError('Unable to parse version from changelog.');
-          }
+        const nextVersion = health.planexe_version ?? health.version ?? null;
+        if (nextVersion) {
+          setLatestVersion(nextVersion);
+          setVersionError(null);
+        } else {
+          setVersionError('Health endpoint did not include a version string.');
         }
       } catch (err) {
         if (!canceled) {
-          const message = err instanceof Error ? err.message : 'Unknown error fetching changelog.';
+          const message = err instanceof Error ? err.message : 'Unknown error fetching PlanExe version.';
           setVersionError(message);
         }
       }
