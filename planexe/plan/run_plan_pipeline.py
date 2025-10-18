@@ -3945,7 +3945,7 @@ class ReportTask(PlanTask):
         rg.append_html('Questions & Answers', self.input()['questions_and_answers']['html'].path)
         rg.append_markdown_with_tables('Premortem', self.input()['premortem']['markdown'].path)
         rg.append_viability(
-            document_title='Viability',
+            document_title='Project Health Assessment',
             domains_markdown_file_path=Path(self.input()['domains_assessment']['markdown'].path),
             blockers_markdown_file_path=Path(self.input()['blockers']['markdown'].path),
             fixpack_markdown_file_path=Path(self.input()['fix_packs']['markdown'].path),
