@@ -1,6 +1,6 @@
 ### Legend: How to Read the Scores
 
-The viability of each domain is rated on a 1–5 scale across three key metrics. Higher scores are better.
+Each domain’s health is scored on a 1–5 scale across three key metrics. Higher scores are better.
 
 | Metric | Strong Negative (1) | Weak Negative (2) | Neutral (3) | Weak Positive (4) | Strong Positive (5) |
 |--------|--------------------|-------------------|-------------|-------------------|---------------------|
