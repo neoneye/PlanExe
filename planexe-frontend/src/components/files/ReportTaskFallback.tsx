@@ -41,6 +41,7 @@ export const ReportTaskFallback: React.FC<ReportTaskFallbackProps> = ({ planId, 
   const [report, setReport] = useState<FallbackReportResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasAttempted, setHasAttempted] = useState(false);
 
   const loadReport = useCallback(async () => {
     if (!planId) {
@@ -49,13 +50,18 @@ export const ReportTaskFallback: React.FC<ReportTaskFallbackProps> = ({ planId, 
 
     setIsLoading(true);
     setError(null);
+    setHasAttempted(true);
 
     try {
       const data = await fastApiClient.getFallbackReport(planId);
       setReport(data);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load fallback report.';
-      setError(message);
+      if (message.toLowerCase().includes('404')) {
+        setError('No fallback report is available for this plan yet. Luigi must persist content before recovery can assemble it.');
+      } else {
+        setError(message);
+      }
       setReport(null);
     } finally {
       setIsLoading(false);
@@ -63,8 +69,11 @@ export const ReportTaskFallback: React.FC<ReportTaskFallbackProps> = ({ planId, 
   }, [planId]);
 
   useEffect(() => {
-    loadReport();
-  }, [loadReport]);
+    setReport(null);
+    setError(null);
+    setHasAttempted(false);
+    setIsLoading(false);
+  }, [planId]);
 
   const recoveredSectionCount = useMemo(() => {
     if (!report) {
@@ -157,7 +166,7 @@ export const ReportTaskFallback: React.FC<ReportTaskFallbackProps> = ({ planId, 
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="outline" size="sm" onClick={loadReport} disabled={isLoading}>
             <RefreshCcw className="mr-2 h-4 w-4" />
-            {isLoading ? 'Refreshing...' : 'Refresh'}
+            {isLoading ? 'Refreshing...' : hasAttempted ? 'Refresh' : 'Check availability'}
           </Button>
           <Button variant="default" size="sm" onClick={handleDownloadHtml} disabled={!report || isLoading}>
             <Download className="mr-2 h-4 w-4" />
@@ -202,6 +211,14 @@ export const ReportTaskFallback: React.FC<ReportTaskFallbackProps> = ({ planId, 
               </div>
             </section>
           </>
+        )}
+
+        {!error && !isLoading && !report && (
+          <div className="rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+            {hasAttempted
+              ? 'Fallback report not yet available. Retry after the pipeline writes plan content.'
+              : 'No request sent yet. Select “Check availability” once the pipeline has created outputs.'}
+          </div>
         )}
 
         {isLoading && (
