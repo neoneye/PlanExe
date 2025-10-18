@@ -212,12 +212,13 @@ class MyFlaskApp:
 
                 for llm_name in llm_names:
                     # Send "pinging" status
-                    yield f"data: {json.dumps({
-                        'name': llm_name,
-                        'status': 'pinging',
-                        'response_time': 0,
-                        'response': 'Pinging model...'
-                    })}\n\n"
+                    ping_payload = {
+                        "name": llm_name,
+                        "status": "pinging",
+                        "response_time": 0,
+                        "response": "Pinging model...",
+                    }
+                    yield f"data: {json.dumps(ping_payload)}\n\n"
 
                     try:
                         start_time = time.time()
@@ -251,12 +252,13 @@ class MyFlaskApp:
                     yield f"data: {json.dumps(result)}\n\n"
 
                 # Send final "done" status
-                yield f"data: {json.dumps({
-                    'name': 'server',
-                    'status': 'done',
-                    'response_time': 0,
-                    'response': ''
-                })}\n\n"
+                done_payload = {
+                    "name": "server",
+                    "status": "done",
+                    "response_time": 0,
+                    "response": "",
+                }
+                yield f"data: {json.dumps(done_payload)}\n\n"
 
             response = Response(generate(), mimetype='text/event-stream')
             response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
