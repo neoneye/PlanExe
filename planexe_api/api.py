@@ -63,7 +63,7 @@ STREAMING_FLAG_VALUE = (
 )
 STREAMING_ENABLED = STREAMING_FLAG_VALUE.lower() == "true"
 
-# CORS configuration - only enable for local development
+# CORS configuration - enable for both development and production
 if IS_DEVELOPMENT:
     print("Development mode: CORS enabled for localhost:3000 and localhost:3001")
     app.add_middleware(
@@ -74,8 +74,20 @@ if IS_DEVELOPMENT:
         allow_headers=["*"],
     )
 else:
-    print("Production mode: CORS disabled, serving static UI")
-
+    # Production mode: Enable CORS for Railway production domain and allow API access
+    production_origins = [
+        "https://planexe-production.up.railway.app",
+        "https://*.railway.app",  # Allow all Railway subdomains
+    ]
+    print(f"Production mode: CORS enabled for {production_origins}")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=production_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        allow_headers=["*"],
+        allow_origin_regex=r"https://.*\.railway\.app",  # Regex pattern for Railway domains
+    )
 
 STATIC_UI_DIR: Optional[Path] = Path("/app/ui_static") if not IS_DEVELOPMENT else None
 
