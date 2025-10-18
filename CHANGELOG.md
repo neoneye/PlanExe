@@ -5,19 +5,6 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
-## [0.3.16] - 2025-10-19 - SSE Ping Stream Syntax Fix
-
-### ✅ Highlights
-- Reworked the Flask ping stream generator to build JSON payloads before formatting,
-  eliminating multi-line f-string expressions that previously broke Python parsing.
-- Confirmed there are no remaining TypeScript-style block comments inside Python
-  modules after a repository-wide search.
-
-### 🧪 Testing
-- ✅ `python -m compileall .`
-
----
-
 ## [0.3.15] - 2025-10-19 - Python Header Cleanup
 
 ### ✅ Highlights
