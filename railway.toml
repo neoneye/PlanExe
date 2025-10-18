@@ -1,9 +1,3 @@
-/**
- * Author: ChatGPT gpt-5-codex
- * Date: 2025-10-18T19:20:18Z
- * PURPOSE: Railway single-service deployment config with streaming flag documentation.
- * SRP and DRY check: Pass - documents deployment command and env expectations without duplicating env template.
- */
 
 [build]
 builder = "DOCKERFILE"
