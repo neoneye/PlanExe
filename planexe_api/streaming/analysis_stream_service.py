@@ -1,13 +1,4 @@
-"""
-/**
- * Author: ChatGPT gpt-5-codex
- * Date: 2025-10-27T00:00:00Z
- * PURPOSE: Streaming analysis orchestration bridging the Responses API to SSE clients
- *          with cached handshakes, normalized events, and persistence hooks.
- * SRP and DRY check: Pass - encapsulates streaming handshake, OpenAI event handling,
- *          and database recording without duplicating FastAPI router logic or UI code.
- */
-"""
+"""Streaming analysis orchestration bridging the Responses API to SSE clients."""
 
 from __future__ import annotations
 

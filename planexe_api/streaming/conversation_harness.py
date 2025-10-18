@@ -1,13 +1,4 @@
-"""
-/**
- * Author: ChatGPT gpt-5-codex
- * Date: 2024-10-18T00:00:00Z
- * PURPOSE: Domain harness for conversation streaming buffers, captures SSE-ready events,
- *          and produces structured summaries including token usage metadata.
- * SRP and DRY check: Pass - encapsulates conversation buffering logic without duplicating
- *                    session storage or SSE transport code already handled elsewhere.
- */
-"""
+"""Domain harness for streaming conversation buffers and SSE-ready events."""
 
 from __future__ import annotations
 
