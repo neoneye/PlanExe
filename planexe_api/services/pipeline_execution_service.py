@@ -21,6 +21,8 @@ from planexe_api.database import DatabaseService
 from planexe_api.websocket_manager import websocket_manager
 from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
 from planexe.plan.filenames import FilenameEnum
+from planexe.plan.start_time import StartTime
+from planexe.plan.plan_file import PlanFile
 
 # Thread-safe process management (replaces global dictionary)
 class ProcessRegistry:
@@ -280,16 +282,17 @@ class PipelineExecutionService:
             f.write(f"Cleanup function called from FastAPI process\n")
         logger.error(f"[PIPELINE][PIPELINE][PIPELINE] Wrote cleanup marker file: {cleanup_marker}")
 
-        # Write start time
+        # Write start time using canonical schema to satisfy downstream readers
+        localized_now = datetime.now().astimezone()
         start_time_file = run_id_dir / FilenameEnum.START_TIME.value
-        with open(start_time_file, "w", encoding="utf-8") as f:
-            f.write(datetime.utcnow().isoformat())
+        start_time_payload = StartTime.create(localized_now)
+        start_time_payload.save(str(start_time_file))
         print(f"[PIPELINE] Created {start_time_file.name}")
 
-        # Write initial plan prompt
+        # Write initial plan prompt with legacy PlanFile formatting
         initial_plan_file = run_id_dir / FilenameEnum.INITIAL_PLAN.value
-        with open(initial_plan_file, "w", encoding="utf-8") as f:
-            f.write(request.prompt)
+        plan_file_payload = PlanFile.create(request.prompt, localized_now)
+        plan_file_payload.save(str(initial_plan_file))
         print(f"[PIPELINE] Created {initial_plan_file.name}")
 
         # DIAGNOSTIC: Verify only expected files exist

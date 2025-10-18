@@ -13,9 +13,11 @@ import { Brain, LayoutGrid, Rocket, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PlanForm } from '@/components/planning/PlanForm';
+import { ConversationModal } from '@/components/planning/ConversationModal';
 import { PlansQueue } from '@/components/PlansQueue';
 import { useConfigStore } from '@/lib/stores/config';
 import { CreatePlanRequest, fastApiClient } from '@/lib/api/fastapi-client';
+import { ConversationFinalizeResult } from '@/lib/conversation/useResponsesConversation';
 
 const CHANGELOG_URL = 'https://github.com/PlanExe/PlanExe/blob/main/CHANGELOG.md';
 const RAW_CHANGELOG_URL = 'https://raw.githubusercontent.com/PlanExe/PlanExe/main/CHANGELOG.md';
@@ -24,6 +26,9 @@ const HomePage: React.FC = () => {
   const router = useRouter();
   const { llmModels, promptExamples, modelsError, isLoadingModels, loadLLMModels, loadPromptExamples } = useConfigStore();
   const [isCreating, setIsCreating] = useState(false);
+  const [isConversationOpen, setIsConversationOpen] = useState(false);
+  const [pendingRequest, setPendingRequest] = useState<CreatePlanRequest | null>(null);
+  const [isFinalizing, setIsFinalizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [versionError, setVersionError] = useState<string | null>(null);
@@ -80,25 +85,50 @@ const HomePage: React.FC = () => {
   const handlePlanSubmit = async (planData: CreatePlanRequest) => {
     setIsCreating(true);
     setError(null);
+    setPendingRequest(planData);
+    setIsConversationOpen(true);
+  };
+
+  const resetConversationState = () => {
+    setIsConversationOpen(false);
+    setPendingRequest(null);
+    setIsCreating(false);
+  };
+
+  const handleConversationClose = () => {
+    resetConversationState();
+  };
+
+  const handleConversationFinalize = async (
+    result: ConversationFinalizeResult,
+  ): Promise<void> => {
+    if (!pendingRequest) {
+      throw new Error('No pending request to finalise.');
+    }
+
+    setIsFinalizing(true);
+    setError(null);
+
     try {
-      console.log('[PlanExe] Creating plan with data:', planData);
-      const plan = await fastApiClient.createPlan(planData);
+      const payload: CreatePlanRequest = {
+        ...pendingRequest,
+        prompt: result.enrichedPrompt,
+      };
+
+      console.log('[PlanExe] Finalising plan with enriched prompt.');
+      const plan = await fastApiClient.createPlan(payload);
       console.log('[PlanExe] Plan created successfully:', plan);
-      console.log('[PlanExe] Navigating to workspace with plan_id:', plan.plan_id);
-      
-      // Navigate to workspace (recovery route) - use window.location for guaranteed navigation
+      resetConversationState();
+
       const workspaceUrl = `/recovery?planId=${encodeURIComponent(plan.plan_id)}`;
-      console.log('[PlanExe] Workspace URL:', workspaceUrl);
-      
-      // Use window.location to ensure navigation happens
-      // Next.js router.push() can sometimes be prevented by form submission
       window.location.href = workspaceUrl;
     } catch (err) {
-      console.error('[PlanExe] Plan creation failed:', err);
+      console.error('[PlanExe] Plan creation failed during conversation finalisation:', err);
       const message = err instanceof Error ? err.message : 'Failed to create plan.';
       setError(message);
+      throw err instanceof Error ? err : new Error(message);
     } finally {
-      setIsCreating(false);
+      setIsFinalizing(false);
     }
   };
 
@@ -168,7 +198,7 @@ const HomePage: React.FC = () => {
             <CardContent className="pt-0">
               <PlanForm
                 onSubmit={handlePlanSubmit}
-                isSubmitting={isCreating}
+                isSubmitting={isCreating || isFinalizing}
                 llmModels={llmModels}
                 promptExamples={promptExamples}
                 modelsError={modelsError}
@@ -283,6 +313,14 @@ const HomePage: React.FC = () => {
           </Card>
         </section>
       </main>
+
+      <ConversationModal
+        isOpen={isConversationOpen}
+        request={pendingRequest}
+        onClose={handleConversationClose}
+        onFinalize={handleConversationFinalize}
+        isFinalizing={isFinalizing}
+      />
     </div>
   );
 };
