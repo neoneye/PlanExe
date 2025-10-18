@@ -27,14 +27,14 @@ class ConversationSummary:
         """Return a JSON-serializable representation of the summary."""
 
         return {
-            "conversationId": self.conversation_id,
-            "modelKey": self.model_key,
-            "sessionId": self.session_id,
-            "reasoning": self.reasoning_text,
-            "content": self.content_text,
-            "json": self.json_chunks,
-            "startedAt": self.started_at.isoformat(),
-            "completedAt": self.completed_at.isoformat() if self.completed_at else None,
+            "conversation_id": self.conversation_id,
+            "model_key": self.model_key,
+            "session_id": self.session_id,
+            "reasoning_text": self.reasoning_text,
+            "content_text": self.content_text,
+            "json_chunks": self.json_chunks,
+            "started_at": self.started_at.isoformat(),
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "usage": self.usage,
             "error": self.error,
             "metadata": self.metadata,
@@ -74,14 +74,24 @@ class ConversationHarness:
             "event": event,
             "timestamp": self._timestamp(),
             "data": {
-                "conversationId": self.conversation_id,
-                "modelKey": self.model_key,
-                "sessionId": self.session_id,
+                "conversation_id": self.conversation_id,
+                "model_key": self.model_key,
+                "session_id": self.session_id,
                 **payload,
             },
         }
         self._events.append(envelope)
         return envelope
+
+    def emit_init(self, response_id: Optional[str] = None) -> Dict[str, Any]:
+        """Emit the initial event once OpenAI acknowledges the stream."""
+
+        payload: Dict[str, Any] = {
+            "connected_at": self.started_at.isoformat(),
+        }
+        if response_id:
+            payload["response_id"] = response_id
+        return self._record_event("stream.init", payload)
 
     def push_reasoning(self, delta: str) -> Dict[str, Any]:
         """Append a reasoning delta and return the SSE-ready envelope."""
@@ -90,8 +100,9 @@ class ConversationHarness:
             return {}
         self._reasoning_parts.append(delta)
         return self._record_event(
-            "stream.reasoning",
+            "stream.chunk",
             {
+                "kind": "reasoning",
                 "delta": delta,
                 "aggregated": "".join(self._reasoning_parts),
             },
@@ -104,8 +115,9 @@ class ConversationHarness:
             return {}
         self._content_parts.append(delta)
         return self._record_event(
-            "stream.content",
+            "stream.chunk",
             {
+                "kind": "text",
                 "delta": delta,
                 "aggregated": "".join(self._content_parts),
             },
@@ -117,7 +129,13 @@ class ConversationHarness:
         if not chunk:
             return {}
         self._json_chunks.append(chunk)
-        return self._record_event("stream.json", {"delta": chunk})
+        return self._record_event(
+            "stream.chunk",
+            {
+                "kind": "json",
+                "delta": chunk,
+            },
+        )
 
     def mark_error(self, message: str) -> Dict[str, Any]:
         """Record an error state and generate a stream event."""
@@ -167,16 +185,16 @@ class ConversationHarness:
         """Provide a lightweight snapshot without completing the stream."""
 
         return {
-            "conversationId": self.conversation_id,
-            "modelKey": self.model_key,
-            "sessionId": self.session_id,
-            "reasoning": "".join(self._reasoning_parts),
-            "content": "".join(self._content_parts),
-            "json": list(self._json_chunks),
+            "conversation_id": self.conversation_id,
+            "model_key": self.model_key,
+            "session_id": self.session_id,
+            "reasoning_text": "".join(self._reasoning_parts),
+            "content_text": "".join(self._content_parts),
+            "json_chunks": list(self._json_chunks),
             "events": list(self._events),
             "usage": dict(self._usage),
             "error": self._error,
             "metadata": self.metadata,
-            "startedAt": self.started_at.isoformat(),
-            "completedAt": self._completed_at.isoformat() if self._completed_at else None,
+            "started_at": self.started_at.isoformat(),
+            "completed_at": self._completed_at.isoformat() if self._completed_at else None,
         }

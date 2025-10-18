@@ -14,7 +14,7 @@ from html import escape
 from pathlib import Path
 from typing import Dict, Optional, List
 
-from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -35,15 +35,24 @@ from planexe_api.models import (
     PromptExample, PlanFilesResponse, PlanArtefactListResponse, PlanArtefact, APIError, HealthResponse,
     PlanStatus, SpeedVsDetail, PipelineDetailsResponse, StreamStatusResponse,
     FallbackReportResponse, ReportSection, MissingSection,
-    AnalysisStreamRequest, AnalysisStreamSessionResponse,
+    AnalysisStreamRequest,
+    AnalysisStreamSessionResponse,
+    ConversationTurnRequest,
+    ConversationSessionResponse,
+    ConversationFinalizeResponse,
 )
 from planexe_api.database import (
     get_database, get_database_service, create_tables, DatabaseService, Plan, LLMInteraction,
     PlanFile, PlanMetrics, PlanContent, SessionLocal
 )
 from planexe_api.services.pipeline_execution_service import PipelineExecutionService
+from planexe_api.services.conversation_service import ConversationService
 from planexe_api.websocket_manager import websocket_manager
-from planexe_api.streaming import AnalysisStreamSessionStore, AnalysisStreamService
+from planexe_api.streaming import (
+    AnalysisStreamSessionStore,
+    AnalysisStreamService,
+    ConversationSessionStore,
+)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -155,6 +164,8 @@ pipeline_service = PipelineExecutionService(planexe_project_root)
 
 analysis_session_store = AnalysisStreamSessionStore(ttl_seconds=45)
 analysis_stream_service = AnalysisStreamService(session_store=analysis_session_store)
+conversation_session_store = ConversationSessionStore(ttl_seconds=60)
+conversation_service = ConversationService(session_store=conversation_session_store)
 
 if STREAMING_ENABLED:
     print("Streaming analysis enabled - Responses SSE harness ready")
@@ -231,6 +242,56 @@ async def ping():
         "railway_deployment_test": "latest_code_deployed",
         "api_routes_working": True
     }
+
+
+@app.post("/api/conversations", response_model=ConversationSessionResponse)
+async def create_conversation_session(request: ConversationTurnRequest):
+    """Initialize or continue a conversation turn via POST→GET handshake."""
+
+    if not STREAMING_ENABLED:
+        raise HTTPException(status_code=403, detail="STREAMING_DISABLED")
+
+    cached = await conversation_service.create_session(request)
+    ttl_seconds = int(max(0, round((cached.expires_at - cached.created_at).total_seconds())))
+    return ConversationSessionResponse(
+        session_id=cached.session_id,
+        conversation_id=cached.conversation_id,
+        model_key=request.model_key,
+        expires_at=cached.expires_at,
+        ttl_seconds=ttl_seconds,
+    )
+
+
+@app.get("/api/conversations/{conversation_id}/stream")
+async def stream_conversation_endpoint(
+    conversation_id: str,
+    session_id: str = Query(..., alias="sessionId"),
+    model_key: str = Query(..., alias="modelKey"),
+):
+    """Relay Responses API events over SSE for the given conversation."""
+
+    if not STREAMING_ENABLED:
+        raise HTTPException(status_code=403, detail="STREAMING_DISABLED")
+
+    async def event_generator():
+        async for event in conversation_service.stream(
+            conversation_id=conversation_id,
+            model_key=model_key,
+            session_id=session_id,
+        ):
+            yield event
+
+    return EventSourceResponse(event_generator(), ping=10000)
+
+
+@app.post("/api/conversations/{conversation_id}/finalize", response_model=ConversationFinalizeResponse)
+async def finalize_conversation_endpoint(conversation_id: str):
+    """Return the server-side summary for the specified conversation."""
+
+    if not STREAMING_ENABLED:
+        raise HTTPException(status_code=403, detail="STREAMING_DISABLED")
+
+    return await conversation_service.finalize(conversation_id)
 
 
 @app.post("/api/stream/analyze", response_model=AnalysisStreamSessionResponse)
