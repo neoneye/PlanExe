@@ -113,6 +113,7 @@ STATUS_UPGRADE_MAP = {
 RECOMMENDATION_GO = "GO"
 RECOMMENDATION_GO_IF_FP0 = "GO_IF_FP0"
 RECOMMENDATION_PROCEED = "PROCEED_WITH_CAUTION"
+RECOMMENDATION_HOLD = "HOLD"
 
 
 def _coerce_payload_dict(payload: Any, *, expected_field: str, context: str) -> Dict[str, Any]:
@@ -428,15 +429,31 @@ def _determine_recommendation(
     statuses: Sequence[str],
     red_gray_covered: bool,
 ) -> str:
+    """Deterministic mapping from status severity + FP0 coverage to recommendation.
+
+    Rules:
+    - If ANY domain is RED and not fully covered by FP0 → HOLD.
+    - If any domain is RED/GRAY but ALL such blockers are in FP0 → GO_IF_FP0.
+    - Else if any domain is GRAY (unknowns) → PROCEED_WITH_CAUTION.
+    - Else → GO.
+    """
     normalized = [status.upper() for status in statuses]
     has_red = any(status == StatusEnum.RED.value for status in normalized)
     has_gray = any(status == StatusEnum.GRAY.value for status in normalized)
 
-    if has_red or has_gray:
-        if red_gray_covered:
-            return RECOMMENDATION_GO_IF_FP0
+    # Hard stop on uncovered RED
+    if has_red and not red_gray_covered:
+        return RECOMMENDATION_HOLD
+
+    # Gated go if RED/GRAY are covered by FP0
+    if (has_red or has_gray) and red_gray_covered:
+        return RECOMMENDATION_GO_IF_FP0
+
+    # Caution when unknowns remain (GRAY) without FP0 gating
+    if has_gray:
         return RECOMMENDATION_PROCEED
 
+    # Otherwise we're clear to GO
     return RECOMMENDATION_GO
 
 
