@@ -126,3 +126,27 @@ class TestTaxonomy(unittest.TestCase):
             self.assertIn(k, idx_map, f"Missing index for factor '{k}'")
             self.assertIsInstance(idx_map[k], int, f"Index for factor '{k}' must be int")
         self.assertEqual(set(idx_map.values()), set(range(len(keys))), "Indices must be 0..n-1 without gaps")
+
+    def test_translate_reason_code_to_human_readable_with_existing_code(self):
+        """Test that translate_reason_code_to_human_readable returns the correct template for existing reason codes."""
+        # Test with a reason code that exists in the taxonomy
+        reason_code = "CHANGE_MGMT_GAPS"
+        expected_template = "Change plan v1 (communications, training, adoption KPIs)"
+        
+        result = taxonomy.TX.translate_reason_code_to_human_readable(reason_code)
+        self.assertEqual(result, expected_template)
+        
+        # Verify it's actually in the evidence templates
+        self.assertIn(reason_code, taxonomy.EVIDENCE_TEMPLATES)
+        self.assertEqual(taxonomy.EVIDENCE_TEMPLATES[reason_code][0], expected_template)
+
+    def test_translate_reason_code_to_human_readable_with_missing_code(self):
+        """Test that translate_reason_code_to_human_readable returns the original code for non-existent reason codes."""
+        # Test with a reason code that doesn't exist in the taxonomy
+        reason_code = "NON_EXISTENT_CODE"
+        
+        result = taxonomy.TX.translate_reason_code_to_human_readable(reason_code)
+        self.assertEqual(result, reason_code)
+        
+        # Verify it's not in the evidence templates
+        self.assertNotIn(reason_code, taxonomy.EVIDENCE_TEMPLATES)

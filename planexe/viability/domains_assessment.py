@@ -35,29 +35,12 @@ from planexe.viability.taxonomy import (
     LIKERT_MIN, LIKERT_MAX, LIKERT_FACTOR_KEYS,
     DEFAULT_LIKERT_BY_STATUS, FACTOR_ORDER_INDEX,
     reason_code_factor_set,
+    TX,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def _translate_reason_code_to_human_readable(reason_code: str) -> str:
-    """
-    Translate a reason code to human-readable text using evidence templates.
-    
-    Args:
-        reason_code: The reason code (e.g., 'CHANGE_MGMT_GAPS')
-        
-    Returns:
-        Human-readable description from evidence templates, or the original code if not found
-    """
-    if reason_code in EVIDENCE_TEMPLATES:
-        # Get the first (most canonical) template for this reason code
-        templates = EVIDENCE_TEMPLATES[reason_code]
-        if templates and len(templates) > 0:
-            return templates[0]
-    
-    # Fallback to the original reason code if no template found
-    return reason_code
 
 # ---------------------------------------------------------------------------
 # Constants & enums
@@ -621,7 +604,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
             if reason_codes:
                 rows.append("**Issues:**\n")
                 for reason_code in reason_codes:
-                    human_readable = _translate_reason_code_to_human_readable(reason_code)
+                    human_readable = TX.translate_reason_code_to_human_readable(reason_code)
                     rows.append(f"- <code>{reason_code}</code>: {human_readable}")
                 rows.append("")
             if evidence:

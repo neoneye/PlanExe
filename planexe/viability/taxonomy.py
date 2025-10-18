@@ -12,7 +12,7 @@ from __future__ import annotations
 from functools import lru_cache
 from importlib.resources import files
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional, Set, Mapping, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 import json
 
 from .model_domain import DomainEnum
@@ -73,6 +73,25 @@ class Taxonomy(BaseModel):
                         if len(self.reason_code_factor_set(code)) < len(self.reason_code_factor_set(cur)):
                             fallbacks[domain][f] = code
         return fallbacks
+
+    def translate_reason_code_to_human_readable(self, reason_code: str) -> str:
+        """
+        Translate a reason code to human-readable text using evidence templates.
+        
+        Args:
+            reason_code: The reason code (e.g., 'CHANGE_MGMT_GAPS')
+            
+        Returns:
+            Human-readable description from evidence templates, or the original code if not found
+        """
+        if reason_code in self.evidence_templates:
+            # Get the first (most canonical) template for this reason code
+            templates = self.evidence_templates[reason_code]
+            if templates and len(templates) > 0:
+                return templates[0]
+        
+        # Fallback to the original reason code if no template found
+        return reason_code
 
 @lru_cache
 def load_taxonomy() -> Taxonomy:
