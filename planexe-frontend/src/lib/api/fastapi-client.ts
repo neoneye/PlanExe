@@ -199,6 +199,88 @@ export type AnalysisStreamServerEvent =
 export const STREAMING_ENABLED =
   (process.env.NEXT_PUBLIC_STREAMING_ENABLED ?? 'true').toLowerCase() === 'true';
 
+export interface ConversationTurnRequestPayload {
+  modelKey: string;
+  userMessage: string;
+  conversationId?: string;
+  previousResponseId?: string;
+  instructions?: string;
+  metadata?: Record<string, unknown>;
+  context?: string;
+  reasoningEffort?: 'medium' | 'high';
+  reasoningSummary?: string;
+  textVerbosity?: string;
+}
+
+export interface ConversationSession {
+  sessionId: string;
+  conversationId: string;
+  modelKey: string;
+  expiresAt: string;
+  ttlSeconds: number;
+}
+
+export interface ConversationStreamInitPayload {
+  conversationId: string;
+  modelKey: string;
+  sessionId: string;
+  connectedAt: string;
+  responseId?: string;
+}
+
+export type ConversationStreamChunkKind = 'text' | 'reasoning' | 'json';
+
+export interface ConversationStreamChunkPayload {
+  conversationId: string;
+  modelKey: string;
+  sessionId: string;
+  kind: ConversationStreamChunkKind;
+  delta: string | Record<string, unknown>;
+  aggregated?: string;
+}
+
+export interface ConversationStreamCompleteSummary {
+  conversationId: string;
+  modelKey: string;
+  sessionId: string;
+  reasoning: string;
+  content: string;
+  json: Array<Record<string, unknown>>;
+  startedAt: string;
+  completedAt: string | null;
+  usage: Record<string, unknown>;
+  error: string | null;
+  metadata: Record<string, unknown>;
+}
+
+export interface ConversationStreamCompletePayload {
+  summary: ConversationStreamCompleteSummary;
+}
+
+export interface ConversationStreamErrorPayload {
+  conversationId: string;
+  modelKey: string;
+  sessionId: string;
+  message: string;
+}
+
+export type ConversationStreamServerEvent =
+  | { event: 'stream.init'; data: ConversationStreamInitPayload }
+  | { event: 'stream.chunk'; data: ConversationStreamChunkPayload }
+  | { event: 'stream.complete'; data: ConversationStreamCompletePayload }
+  | { event: 'stream.error'; data: ConversationStreamErrorPayload };
+
+export interface ConversationFinalizeResponse {
+  conversationId: string;
+  responseId?: string | null;
+  modelKey: string;
+  aggregatedText: string;
+  reasoningText: string;
+  jsonChunks: Array<Record<string, unknown>>;
+  usage: Record<string, unknown>;
+  completedAt?: string | null;
+}
+
 // WebSocket Message Types
 export interface WebSocketLogMessage {
   type: 'log';
@@ -489,6 +571,53 @@ export class FastAPIClient {
   async getPlans(): Promise<PlanResponse[]> {
     const response = await fetch(`${this.baseURL}/api/plans`);
     return this.handleResponse<PlanResponse[]>(response);
+  }
+
+  async createConversationTurn(
+    payload: ConversationTurnRequestPayload,
+  ): Promise<ConversationSession> {
+    const body: Record<string, unknown> = {
+      model_key: payload.modelKey,
+      user_message: payload.userMessage,
+    };
+    if (payload.conversationId) body.conversation_id = payload.conversationId;
+    if (payload.previousResponseId) body.previous_response_id = payload.previousResponseId;
+    if (payload.instructions) body.instructions = payload.instructions;
+    if (payload.metadata) body.metadata = payload.metadata;
+    if (payload.context) body.context = payload.context;
+    if (payload.reasoningEffort) body.reasoning_effort = payload.reasoningEffort;
+    if (payload.reasoningSummary) body.reasoning_summary = payload.reasoningSummary;
+    if (payload.textVerbosity) body.text_verbosity = payload.textVerbosity;
+
+    const response = await fetch(`${this.baseURL}/api/conversations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    return this.handleResponse<ConversationSession>(response);
+  }
+
+  buildConversationStreamUrl(conversationId: string, sessionId: string, modelKey: string): string {
+    const params = new URLSearchParams({
+      sessionId,
+      modelKey,
+    });
+    return `${this.baseURL}/api/conversations/${encodeURIComponent(conversationId)}/stream?${params.toString()}`;
+  }
+
+  startConversationStream(conversationId: string, sessionId: string, modelKey: string): EventSource {
+    const url = this.buildConversationStreamUrl(conversationId, sessionId, modelKey);
+    return new EventSource(url);
+  }
+
+  async finalizeConversation(conversationId: string): Promise<ConversationFinalizeResponse> {
+    const response = await fetch(`${this.baseURL}/api/conversations/${encodeURIComponent(conversationId)}/finalize`, {
+      method: 'POST',
+    });
+    return this.handleResponse<ConversationFinalizeResponse>(response);
   }
 
   async createAnalysisStream(

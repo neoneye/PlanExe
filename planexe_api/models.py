@@ -216,3 +216,62 @@ class AnalysisStreamSessionResponse(BaseModel):
     model_key: str = Field(..., description="Model key echoed from the request")
     expires_at: datetime = Field(..., description="Expiry timestamp for the cached payload")
     ttl_seconds: int = Field(..., description="Time-to-live for the session in seconds")
+
+
+class ConversationTurnRequest(BaseModel):
+    """Request payload for initiating or continuing a conversation turn."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    model_key: str = Field(..., description="Configured model key to execute the turn")
+    user_message: str = Field(..., min_length=1, max_length=6000, description="Latest user utterance")
+    conversation_id: Optional[str] = Field(None, description="Existing conversation identifier")
+    previous_response_id: Optional[str] = Field(
+        None, description="Prior response identifier for lightweight chaining"
+    )
+    instructions: Optional[str] = Field(
+        None, description="System instructions override for the assistant"
+    )
+    metadata: Optional[Dict[str, Any]] = Field(
+        None, description="Arbitrary metadata for auditing or analytics"
+    )
+    context: Optional[str] = Field(
+        None, description="Optional local transcript for client-side enrichment"
+    )
+    reasoning_effort: ReasoningEffort = Field(
+        ReasoningEffort.high, description="Reasoning effort level for the turn"
+    )
+    reasoning_summary: str = Field("succinct", description="Reasoning summary verbosity")
+    text_verbosity: str = Field("concise", description="Assistant text verbosity")
+
+    @field_validator("user_message")
+    @classmethod
+    def ensure_user_message(cls, value: str) -> str:
+        if not value or not value.strip():
+            raise ValueError("user_message cannot be empty")
+        return value
+
+
+class ConversationSessionResponse(BaseModel):
+    """Handshake response payload for conversation streaming sessions."""
+
+    session_id: str = Field(..., description="Opaque session identifier")
+    conversation_id: str = Field(..., description="Conversations API identifier")
+    model_key: str = Field(..., description="Model key used for the turn")
+    expires_at: datetime = Field(..., description="Session expiration timestamp")
+    ttl_seconds: int = Field(..., description="Session time-to-live in seconds")
+
+
+class ConversationFinalizeResponse(BaseModel):
+    """Response payload when finalizing a conversation."""
+
+    conversation_id: str = Field(..., description="Conversations API identifier")
+    response_id: Optional[str] = Field(None, description="Final response identifier")
+    model_key: str = Field(..., description="Model key that produced the summary")
+    aggregated_text: str = Field("", description="Concatenated assistant reply text")
+    reasoning_text: str = Field("", description="Aggregated reasoning summary text")
+    json_chunks: List[Dict[str, Any]] = Field(default_factory=list, description="Structured output deltas")
+    usage: Dict[str, Any] = Field(default_factory=dict, description="Token usage metadata")
+    completed_at: Optional[datetime] = Field(
+        None, description="Timestamp the assistant finished streaming"
+    )

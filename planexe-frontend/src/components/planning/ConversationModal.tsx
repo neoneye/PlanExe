@@ -133,35 +133,35 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
         }
       }}
     >
-      <DialogContent className="max-h-[90vh] max-w-6xl overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-0 shadow-2xl">
-        <DialogHeader className="px-8 pt-6">
-          <DialogTitle className="flex items-center gap-3 text-2xl text-slate-900">
+      <DialogContent className="h-[92vh] w-[92vw] max-w-none overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 p-0 shadow-2xl">
+        <DialogHeader className="px-10 pt-8 pb-4">
+          <DialogTitle className="flex items-center gap-3 text-3xl font-semibold text-slate-900">
             <Sparkles className="h-6 w-6 text-indigo-600" />
             Enrich your plan request
           </DialogTitle>
-          <DialogDescription className="text-sm text-slate-600">
+          <DialogDescription className="max-w-3xl text-base text-slate-600">
             We send your initial brief to the planning agent, who will guide you through the must-have details before Luigi starts.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid h-full grid-cols-1 gap-6 px-8 pb-8 lg:grid-cols-[2fr_1fr]">
-          <section className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <header className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+        <div className="grid h-full grid-cols-1 gap-8 px-10 pb-10 xl:grid-cols-[2.5fr_1.5fr]">
+          <section className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <header className="flex items-center justify-between border-b border-slate-200 px-8 py-5">
+              <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-600">
                 <MessageCircle className="h-4 w-4 text-indigo-500" />
                 Conversation timeline
               </div>
-              <Badge variant="secondary" className="text-xs uppercase">
+              <Badge variant="secondary" className="rounded-full px-3 text-xs uppercase">
                 Model: {resolvedModel}
               </Badge>
             </header>
-            <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+            <div className="flex-1 space-y-5 overflow-y-auto px-8 py-6">
               {messages.map((message) => (
                 <article
                   key={message.id}
-                  className={`rounded-xl border px-4 py-3 text-sm leading-relaxed text-slate-800 ${MESSAGE_BG[message.role]}`}
+                  className={`rounded-xl border px-5 py-4 text-sm leading-relaxed text-slate-800 shadow-sm ${MESSAGE_BG[message.role]}`}
                 >
-                  <header className="mb-1 flex items-center justify-between text-xs uppercase tracking-wide text-slate-500">
+                  <header className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
                     <span>{message.role === 'assistant' ? 'PlanExe Agent' : 'You'}</span>
                     <span>{new Date(message.createdAt).toLocaleTimeString()}</span>
                   </header>
@@ -177,14 +177,14 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
                 </article>
               ))}
             </div>
-            <footer className="border-t border-slate-200 bg-slate-50 px-6 py-4">
+            <footer className="border-t border-slate-200 bg-slate-50 px-8 py-5">
               <div className="space-y-3">
                 <Textarea
                   value={draftMessage}
                   onChange={(event) => setDraftMessage(event.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Add constraints, dependencies, resources, dates…"
-                  className="min-h-[120px]"
+                  className="min-h-[140px] text-base"
                   disabled={isStreaming || isFinalizing}
                 />
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -227,12 +227,14 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
             </footer>
           </section>
 
-          <aside className="flex h-full flex-col gap-4">
+          <aside className="flex h-full flex-col gap-5">
             <Card className="flex-1 border-slate-200">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-slate-700">Agent notes</CardTitle>
+                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+                  Agent notes
+                </CardTitle>
               </CardHeader>
-              <CardContent className="h-full overflow-y-auto text-sm text-slate-700">
+              <CardContent className="h-full overflow-y-auto rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
                 {reasoningBuffer ? (
                   <pre className="whitespace-pre-wrap text-slate-700">{reasoningBuffer}</pre>
                 ) : (
@@ -243,15 +245,48 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
 
             <Card className="border-slate-200">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-slate-700">Conversation summary</CardTitle>
+                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+                  Conversation summary
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm text-slate-700">
-                {streamSummary?.responseSummary?.analysis ? (
-                  <p className="whitespace-pre-wrap">
-                    {streamSummary.responseSummary.analysis}
-                  </p>
+              <CardContent className="space-y-3 text-sm text-slate-700">
+                {streamSummary?.summary ? (
+                  <>
+                    <p className="whitespace-pre-wrap text-slate-800">
+                      {streamSummary.summary.content || 'The assistant did not provide a written recap.'}
+                    </p>
+                    {streamSummary.summary.metadata?.responseId && (
+                      <p className="text-xs uppercase tracking-wide text-slate-500">
+                        Response ID: {String(streamSummary.summary.metadata.responseId)}
+                      </p>
+                    )}
+                    {streamSummary.summary.usage && (
+                      <div className="text-xs text-slate-500">
+                        Tokens — input: {String(streamSummary.summary.usage.input_tokens ?? '–')}, output:{' '}
+                        {String(streamSummary.summary.usage.output_tokens ?? '–')}, reasoning:{' '}
+                        {String(streamSummary.summary.usage.reasoning_tokens ?? '–')}
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <p className="text-slate-500">Complete at least one exchange to view the rolling summary.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+                  Structured output
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="max-h-52 overflow-y-auto rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-700">
+                {streamSummary?.summary?.json && streamSummary.summary.json.length > 0 ? (
+                  <pre className="whitespace-pre-wrap">
+                    {JSON.stringify(streamSummary.summary.json, null, 2)}
+                  </pre>
+                ) : (
+                  <p className="text-slate-500">No structured deltas received yet.</p>
                 )}
               </CardContent>
             </Card>
