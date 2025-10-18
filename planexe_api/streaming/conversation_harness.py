@@ -83,6 +83,16 @@ class ConversationHarness:
         self._events.append(envelope)
         return envelope
 
+    def emit_init(self, response_id: Optional[str] = None) -> Dict[str, Any]:
+        """Emit the initial event once OpenAI acknowledges the stream."""
+
+        payload: Dict[str, Any] = {
+            "connectedAt": self.started_at.isoformat(),
+        }
+        if response_id:
+            payload["responseId"] = response_id
+        return self._record_event("stream.init", payload)
+
     def push_reasoning(self, delta: str) -> Dict[str, Any]:
         """Append a reasoning delta and return the SSE-ready envelope."""
 
@@ -90,8 +100,9 @@ class ConversationHarness:
             return {}
         self._reasoning_parts.append(delta)
         return self._record_event(
-            "stream.reasoning",
+            "stream.chunk",
             {
+                "kind": "reasoning",
                 "delta": delta,
                 "aggregated": "".join(self._reasoning_parts),
             },
@@ -104,8 +115,9 @@ class ConversationHarness:
             return {}
         self._content_parts.append(delta)
         return self._record_event(
-            "stream.content",
+            "stream.chunk",
             {
+                "kind": "text",
                 "delta": delta,
                 "aggregated": "".join(self._content_parts),
             },
@@ -117,7 +129,13 @@ class ConversationHarness:
         if not chunk:
             return {}
         self._json_chunks.append(chunk)
-        return self._record_event("stream.json", {"delta": chunk})
+        return self._record_event(
+            "stream.chunk",
+            {
+                "kind": "json",
+                "delta": chunk,
+            },
+        )
 
     def mark_error(self, message: str) -> Dict[str, Any]:
         """Record an error state and generate a stream event."""

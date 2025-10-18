@@ -5,6 +5,18 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [0.3.17] - 2025-10-30 - Conversations API Streaming
+
+### ✅ Highlights
+- Added dedicated FastAPI endpoints for `/api/conversations` with POST→GET SSE handshakes, Conversations API chaining, and server-side finalisation of response usage and metadata.
+- Persisted intake turns via the new conversation service, normalising Responses stream events and storing summaries/usage for audit and resume flows.
+- Updated the Next.js intake modal and `useResponsesConversation` hook to consume the official event taxonomy, surface reasoning/json panes, and expand the dialog layout for better readability.
+
+### 🧪 Testing
+- ⚠️ Not run (pending integrated backend/frontend verification)
+
+---
+
 ## [0.3.16] - 2025-10-27 - Streaming Defaults & Version Badge Fix
 
 ### ✅ Highlights

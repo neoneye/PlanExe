@@ -90,3 +90,80 @@ class AnalysisStreamSessionStore:
         async with self._lock:
             self._prune_locked()
             return dict(self._sessions)
+
+
+@dataclass
+class CachedConversationSession:
+    """Conversation session metadata preserved during POST→GET handshake."""
+
+    session_id: str
+    conversation_id: str
+    model_key: str
+    payload: Dict[str, Any]
+    created_at: datetime
+    expires_at: datetime
+
+    def is_expired(self, now: Optional[datetime] = None) -> bool:
+        reference = now or datetime.now(timezone.utc)
+        return reference >= self.expires_at
+
+
+class ConversationSessionStore:
+    """Thread-safe handshake store for intake conversation streaming sessions."""
+
+    def __init__(self, ttl_seconds: int = 45) -> None:
+        self._ttl = ttl_seconds
+        self._sessions: Dict[str, CachedConversationSession] = {}
+        self._lock = asyncio.Lock()
+
+    async def create_session(
+        self,
+        *,
+        conversation_id: str,
+        model_key: str,
+        payload: Dict[str, Any],
+    ) -> CachedConversationSession:
+        async with self._lock:
+            self._prune_locked()
+            session_id = uuid4().hex
+            now = datetime.now(timezone.utc)
+            expires_at = now + timedelta(seconds=self._ttl)
+            cached = CachedConversationSession(
+                session_id=session_id,
+                conversation_id=conversation_id,
+                model_key=model_key,
+                payload=payload,
+                created_at=now,
+                expires_at=expires_at,
+            )
+            self._sessions[session_id] = cached
+            return cached
+
+    async def pop_session(
+        self,
+        *,
+        conversation_id: str,
+        model_key: str,
+        session_id: str,
+    ) -> CachedConversationSession:
+        async with self._lock:
+            self._prune_locked()
+            cached = self._sessions.pop(session_id, None)
+            if not cached:
+                raise KeyError("SESSION_NOT_FOUND")
+            if cached.is_expired():
+                raise KeyError("SESSION_EXPIRED")
+            if cached.conversation_id != conversation_id or cached.model_key != model_key:
+                raise KeyError("SESSION_MISMATCH")
+            return cached
+
+    def _prune_locked(self) -> None:
+        now = datetime.now(timezone.utc)
+        expired = [key for key, session in self._sessions.items() if session.is_expired(now)]
+        for key in expired:
+            self._sessions.pop(key, None)
+
+    async def pending_sessions(self) -> Dict[str, CachedConversationSession]:
+        async with self._lock:
+            self._prune_locked()
+            return dict(self._sessions)
