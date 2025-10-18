@@ -191,7 +191,8 @@ class Blockers:
         rows = []
         for blocker in blockers_output.blockers:
             rows.append(f"### {blocker.id}: {blocker.title}\n")
-            rows.append(f"**Domain:** {blocker.domain}\n")
+            human_readable_domain: str = DomainEnum.get_display_name(blocker.domain)
+            rows.append(f"**Domain:** {human_readable_domain}\n")
             if blocker.reason_codes:
                 rows.append(f"\n**Reason Codes:** {', '.join(blocker.reason_codes)}\n")
             if blocker.acceptance_tests:
@@ -205,7 +206,7 @@ class Blockers:
             if blocker.owner:
                 rows.append(f"\n**Owner:** {blocker.owner}\n")
             if blocker.rom:
-                rows.append(f"\n**ROM:** {blocker.rom['cost_band']} cost, {blocker.rom['eta_days']} days\n")
+                rows.append(f"\n**Rough Order of Magnitude (ROM):** {blocker.rom['cost_band']} cost, {blocker.rom['eta_days']} days\n")
             rows.append("")
         markdown = "\n".join(rows)
         markdown = fix_bullet_lists(markdown)
