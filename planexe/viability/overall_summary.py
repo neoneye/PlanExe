@@ -463,11 +463,11 @@ class OverallSummary:
         lines.append(f"- Confidence: {escape_markdown(payload.overall.confidence)}")
         lines.append(f"- Recommendation: {escape_markdown(payload.viability_summary.recommendation)}")
         lines.append("")
-        lines.append("## Concerns Affecting Viability")
+        lines.append("### Summary of Critical Issues by Domain")
         if payload.viability_summary.why:
             # Build table header
-            lines.append("| Domain | Status | Reasoning Codes |")
-            lines.append("|--------|--------|-----------------|")
+            lines.append("| Domain | Status | Issue Codes |")
+            lines.append("|--------|--------|-------------|")
             # Build table rows
             for item in payload.viability_summary.why:
                 # Each item is a WhyItem dataclass or dict
@@ -488,7 +488,7 @@ class OverallSummary:
         else:
             lines.append("- No major viability flags identified.")
         lines.append("")
-        lines.append("## What Flips to GO")
+        lines.append("### What Flips to GO")
         if payload.viability_summary.what_flips_to_go:
             for item in payload.viability_summary.what_flips_to_go:
                 lines.append(f"- {escape_markdown(item)}")
