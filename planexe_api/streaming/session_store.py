@@ -1,12 +1,4 @@
-"""
-/**
- * Author: ChatGPT gpt-5-codex
- * Date: 2025-10-27T00:00:00Z
- * PURPOSE: In-memory expiring session cache for streaming analysis handshakes.
- * SRP and DRY check: Pass - dedicated to caching payloads between POST and SSE GET without
- *                    duplicating persistence logic elsewhere.
- */
-"""
+"""In-memory expiring session cache for streaming analysis handshakes."""
 
 from __future__ import annotations
 
