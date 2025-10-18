@@ -1,7 +1,9 @@
-# Railway Configuration for PlanExe Single-Service Deployment
-# Author: Claude Code using Sonnet 4
-# Date: 2025-09-27
-# PURPOSE: Railway.app single-service deployment - FastAPI serves both UI and API on port 8080
+/**
+ * Author: ChatGPT gpt-5-codex
+ * Date: 2025-10-18T19:20:18Z
+ * PURPOSE: Railway single-service deployment config with streaming flag documentation.
+ * SRP and DRY check: Pass - documents deployment command and env expectations without duplicating env template.
+ */
 
 [build]
 builder = "DOCKERFILE"
@@ -22,3 +24,5 @@ restartPolicyMaxRetries = 3
 # PORT - Automatically provided by Railway (8080)
 # PLANEXE_CLOUD_MODE - Set to "true" by Dockerfile
 # PLANEXE_RUN_DIR - Defaults to /app/run
+# STREAMING_ENABLED - Set to "true" to enable analysis streaming endpoints
+# NEXT_PUBLIC_STREAMING_ENABLED - Mirror flag for frontend build; defaults to true but set explicitly to avoid drift

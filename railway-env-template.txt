@@ -22,6 +22,11 @@ GOOGLE_API_KEY=your_google_key_here
 # === APPLICATION SETTINGS ===
 # Plan execution directory (writable location on Railway)
 PLANEXE_RUN_DIR=/tmp/planexe_runs
+# Enable streaming analysis endpoints across API and frontend
+STREAMING_ENABLED=true
+NEXT_PUBLIC_STREAMING_ENABLED=true
+PLANEXE_STREAMING_ENABLED=true
+
 
 # Python path for module imports
 PYTHONPATH=/app
