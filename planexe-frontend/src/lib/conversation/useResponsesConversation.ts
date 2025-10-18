@@ -190,8 +190,8 @@ export function useResponsesConversation(
             );
           },
           onComplete: (completePayload) => {
-            const aggregatedText = completePayload.summary.content || '';
-            const responseId = completePayload.summary.metadata?.responseId as string | undefined;
+            const aggregatedText = completePayload.summary.content_text || '';
+            const responseId = completePayload.summary.metadata?.response_id as string | undefined;
             if (responseId) {
               setPreviousResponseId(responseId);
             }
@@ -227,7 +227,7 @@ export function useResponsesConversation(
           },
         })
           .then((session) => {
-            setActiveConversationId(session.conversationId);
+            setActiveConversationId(session.conversation_id);
           })
           .catch((error) => {
             const errorMessage = error instanceof Error ? error.message : 'Failed to contact conversation service.';

@@ -116,9 +116,9 @@ export function useConversationStreaming() {
       }));
 
       const source = fastApiClient.startConversationStream(
-        session.conversationId,
-        session.sessionId,
-        session.modelKey,
+        session.conversation_id,
+        session.session_id,
+        session.model_key,
       );
       eventSourceRef.current = source;
 
@@ -133,8 +133,8 @@ export function useConversationStreaming() {
           setState((prev) => ({
             ...prev,
             status: 'running',
-            responseId: initData.responseId ?? prev.responseId,
-            lastEventAt: initData.connectedAt,
+            responseId: initData.response_id ?? prev.responseId,
+            lastEventAt: initData.connected_at,
           }));
         } else if (parsed.event === 'stream.chunk') {
           const chunk = parsed.data as ConversationStreamChunkPayload;
@@ -162,13 +162,13 @@ export function useConversationStreaming() {
           }
         } else if (parsed.event === 'stream.complete') {
           const complete = parsed.data as ConversationStreamCompletePayload;
-          const responseId = complete.summary.metadata?.responseId as string | undefined;
+          const responseId = complete.summary.metadata?.response_id as string | undefined;
           setState((prev) => ({
             ...prev,
             status: 'completed',
             summary: complete,
             responseId: responseId ?? prev.responseId,
-            lastEventAt: complete.summary.completedAt ?? new Date().toISOString(),
+            lastEventAt: complete.summary.completed_at ?? new Date().toISOString(),
           }));
           handlersRef.current.onComplete?.(complete);
           source.close();

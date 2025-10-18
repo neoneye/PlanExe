@@ -11,6 +11,7 @@
 - Added dedicated FastAPI endpoints for `/api/conversations` with POST→GET SSE handshakes, Conversations API chaining, and server-side finalisation of response usage and metadata.
 - Persisted intake turns via the new conversation service, normalising Responses stream events and storing summaries/usage for audit and resume flows.
 - Updated the Next.js intake modal and `useResponsesConversation` hook to consume the official event taxonomy, surface reasoning/json panes, and expand the dialog layout for better readability.
+- Normalised conversation session and stream payloads to snake_case end-to-end so FastAPI responses line up with the TypeScript client without runtime mismatches.
 
 ### 🧪 Testing
 - ⚠️ Not run (pending integrated backend/frontend verification)

@@ -82,7 +82,7 @@ class ConversationService:
         metadata.update(
             {
                 "context": request.context,
-                "previousResponseId": request.previous_response_id,
+                "previous_response_id": request.previous_response_id,
             }
         )
 
@@ -132,7 +132,7 @@ class ConversationService:
             if not interaction:
                 raise HTTPException(status_code=404, detail="CONVERSATION_NOT_FOUND")
             metadata = interaction.response_metadata or {}
-            completed_at = metadata.get("completedAt")
+            completed_at = metadata.get("completed_at")
             if isinstance(completed_at, str):
                 try:
                     completed_at = datetime.fromisoformat(completed_at)
@@ -140,11 +140,11 @@ class ConversationService:
                     completed_at = None
             summary = ConversationFinalizeResponse(
                 conversation_id=conversation_id,
-                response_id=metadata.get("responseId"),
+                response_id=metadata.get("response_id"),
                 model_key=interaction.llm_model,
                 aggregated_text=(interaction.response_text or ""),
-                reasoning_text=metadata.get("reasoningText", ""),
-                json_chunks=metadata.get("json", []),
+                reasoning_text=metadata.get("reasoning_text", ""),
+                json_chunks=metadata.get("json_chunks", []),
                 usage=metadata.get("usage", {}),
                 completed_at=completed_at,
             )
@@ -201,9 +201,9 @@ class ConversationService:
             usage = SimpleOpenAILLM._normalize_usage(final_payload.get("usage"))
             harness.set_usage(usage)
             summary = harness.complete()
-            summary.metadata.setdefault("responseId", handler.response_id)
+            summary.metadata.setdefault("response_id", handler.response_id)
             if summary.completed_at:
-                summary.metadata.setdefault("completedAt", summary.completed_at.isoformat())
+                summary.metadata.setdefault("completed_at", summary.completed_at.isoformat())
             manager.push(handler.emit_completion())
 
             await self._persist_summary(
@@ -224,12 +224,12 @@ class ConversationService:
                     "duration_seconds": duration,
                     "response_text": summary.content_text,
                     "response_metadata": {
-                        "reasoningText": summary.reasoning_text,
-                        "json": summary.json_chunks,
+                        "reasoning_text": summary.reasoning_text,
+                        "json_chunks": summary.json_chunks,
                         "usage": usage,
                         "metadata": summary.metadata,
-                        "responseId": handler.response_id,
-                        "completedAt": summary.completed_at.isoformat()
+                        "response_id": handler.response_id,
+                        "completed_at": summary.completed_at.isoformat()
                         if summary.completed_at
                         else None,
                     },
@@ -358,4 +358,3 @@ class ConversationService:
             if isinstance(conv_id, str):
                 return conv_id
         return None
-*** End

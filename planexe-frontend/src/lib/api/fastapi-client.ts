@@ -213,41 +213,41 @@ export interface ConversationTurnRequestPayload {
 }
 
 export interface ConversationSession {
-  sessionId: string;
-  conversationId: string;
-  modelKey: string;
-  expiresAt: string;
-  ttlSeconds: number;
+  session_id: string;
+  conversation_id: string;
+  model_key: string;
+  expires_at: string;
+  ttl_seconds: number;
 }
 
 export interface ConversationStreamInitPayload {
-  conversationId: string;
-  modelKey: string;
-  sessionId: string;
-  connectedAt: string;
-  responseId?: string;
+  conversation_id: string;
+  model_key: string;
+  session_id: string;
+  connected_at: string;
+  response_id?: string;
 }
 
 export type ConversationStreamChunkKind = 'text' | 'reasoning' | 'json';
 
 export interface ConversationStreamChunkPayload {
-  conversationId: string;
-  modelKey: string;
-  sessionId: string;
+  conversation_id: string;
+  model_key: string;
+  session_id: string;
   kind: ConversationStreamChunkKind;
   delta: string | Record<string, unknown>;
   aggregated?: string;
 }
 
 export interface ConversationStreamCompleteSummary {
-  conversationId: string;
-  modelKey: string;
-  sessionId: string;
-  reasoning: string;
-  content: string;
-  json: Array<Record<string, unknown>>;
-  startedAt: string;
-  completedAt: string | null;
+  conversation_id: string;
+  model_key: string;
+  session_id: string;
+  reasoning_text: string;
+  content_text: string;
+  json_chunks: Array<Record<string, unknown>>;
+  started_at: string;
+  completed_at: string | null;
   usage: Record<string, unknown>;
   error: string | null;
   metadata: Record<string, unknown>;
@@ -258,9 +258,9 @@ export interface ConversationStreamCompletePayload {
 }
 
 export interface ConversationStreamErrorPayload {
-  conversationId: string;
-  modelKey: string;
-  sessionId: string;
+  conversation_id: string;
+  model_key: string;
+  session_id: string;
   message: string;
 }
 
@@ -271,14 +271,14 @@ export type ConversationStreamServerEvent =
   | { event: 'stream.error'; data: ConversationStreamErrorPayload };
 
 export interface ConversationFinalizeResponse {
-  conversationId: string;
-  responseId?: string | null;
-  modelKey: string;
-  aggregatedText: string;
-  reasoningText: string;
-  jsonChunks: Array<Record<string, unknown>>;
+  conversation_id: string;
+  response_id?: string | null;
+  model_key: string;
+  aggregated_text: string;
+  reasoning_text: string;
+  json_chunks: Array<Record<string, unknown>>;
   usage: Record<string, unknown>;
-  completedAt?: string | null;
+  completed_at?: string | null;
 }
 
 // WebSocket Message Types
@@ -600,21 +600,21 @@ export class FastAPIClient {
     return this.handleResponse<ConversationSession>(response);
   }
 
-  buildConversationStreamUrl(conversationId: string, sessionId: string, modelKey: string): string {
+  buildConversationStreamUrl(conversation_id: string, session_id: string, model_key: string): string {
     const params = new URLSearchParams({
-      sessionId,
-      modelKey,
+      sessionId: session_id,
+      modelKey: model_key,
     });
-    return `${this.baseURL}/api/conversations/${encodeURIComponent(conversationId)}/stream?${params.toString()}`;
+    return `${this.baseURL}/api/conversations/${encodeURIComponent(conversation_id)}/stream?${params.toString()}`;
   }
 
-  startConversationStream(conversationId: string, sessionId: string, modelKey: string): EventSource {
-    const url = this.buildConversationStreamUrl(conversationId, sessionId, modelKey);
+  startConversationStream(conversation_id: string, session_id: string, model_key: string): EventSource {
+    const url = this.buildConversationStreamUrl(conversation_id, session_id, model_key);
     return new EventSource(url);
   }
 
-  async finalizeConversation(conversationId: string): Promise<ConversationFinalizeResponse> {
-    const response = await fetch(`${this.baseURL}/api/conversations/${encodeURIComponent(conversationId)}/finalize`, {
+  async finalizeConversation(conversation_id: string): Promise<ConversationFinalizeResponse> {
+    const response = await fetch(`${this.baseURL}/api/conversations/${encodeURIComponent(conversation_id)}/finalize`, {
       method: 'POST',
     });
     return this.handleResponse<ConversationFinalizeResponse>(response);

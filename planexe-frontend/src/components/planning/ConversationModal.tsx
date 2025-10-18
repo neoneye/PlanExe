@@ -253,11 +253,11 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
                 {streamSummary?.summary ? (
                   <>
                     <p className="whitespace-pre-wrap text-slate-800">
-                      {streamSummary.summary.content || 'The assistant did not provide a written recap.'}
+                      {streamSummary.summary.content_text || 'The assistant did not provide a written recap.'}
                     </p>
-                    {streamSummary.summary.metadata?.responseId && (
+                    {streamSummary.summary.metadata?.response_id && (
                       <p className="text-xs uppercase tracking-wide text-slate-500">
-                        Response ID: {String(streamSummary.summary.metadata.responseId)}
+                        Response ID: {String(streamSummary.summary.metadata.response_id)}
                       </p>
                     )}
                     {streamSummary.summary.usage && (
@@ -281,9 +281,9 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent className="max-h-52 overflow-y-auto rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-700">
-                {streamSummary?.summary?.json && streamSummary.summary.json.length > 0 ? (
+                {streamSummary?.summary?.json_chunks && streamSummary.summary.json_chunks.length > 0 ? (
                   <pre className="whitespace-pre-wrap">
-                    {JSON.stringify(streamSummary.summary.json, null, 2)}
+                    {JSON.stringify(streamSummary.summary.json_chunks, null, 2)}
                   </pre>
                 ) : (
                   <p className="text-slate-500">No structured deltas received yet.</p>
