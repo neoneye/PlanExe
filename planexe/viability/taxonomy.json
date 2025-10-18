@@ -34,7 +34,8 @@
       "CONSENT_MODEL_WEAK": ["evidence"],
       "DATA_QUALITY_WEAK": ["evidence"],
       "ABS_UNDEFINED": ["fit","evidence"],
-      "LICENSE_GAPS": ["evidence"]
+      "LICENSE_GAPS": ["evidence"],
+      "STAFF_AVERSION": ["risk","fit"]
     },
     "default_evidence_by_domain": {
       "HumanStability": ["Stakeholder map + skills gap snapshot","Change plan v1 (communications, training, adoption KPIs)"],
@@ -135,6 +136,9 @@
       ],
       "CONSENT_MODEL_WEAK": [
         "Consent/permission model spec + audit sample"
+      ],
+      "STAFF_AVERSION": [
+        "Change readiness survey v1 + incentive/retention plan"
       ]
     },
     "evidence_acceptance_criteria": {
@@ -186,7 +190,8 @@
         "Waste management plan v1 (closed-loop design)": "material flow diagram provided, target diversion rate >=80%, vendor agreements attached, and compliance mapping completed.",
         "Top-N data sources: licenses + DPIAs bundle": "each top data source includes license file, DPIA (v2+ for high-risk), retention policy link, and DPO sign-off recorded.",
         "Ethics framework v1 (resident rights, data governance)": "principles enumerated, decision rights and escalations defined, adoption plan approved by exec sponsor, and training plan attached.",
-        "Gather evidence for assessment": "at least one canonical artifact uploaded with owner and review date recorded in workspace."
+        "Gather evidence for assessment": "at least one canonical artifact uploaded with owner and review date recorded in workspace.",
+        "Change readiness survey v1 + incentive/retention plan": "≥70% response rate across targeted staff; ≥80% positive/neutral adoption intent or ≥15pp improvement vs baseline; incentive/retention plan approved by HR with owner, budget, and review date recorded."
     },
     "normalization": {
       "evidence_rewrites": {
