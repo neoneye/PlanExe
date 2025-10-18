@@ -1,7 +1,7 @@
 """
 /**
- * Author: ChatGPT gpt-5-codex
- * Date: 2025-10-20
+ * Author: Codex using GPT-5
+ * Date: 2025-10-18T02:01:53Z
  * PURPOSE: Responses API-backed OpenAI client with reasoning-aware streaming hooks that
  *          emit Luigi stdout envelopes for WebSocket broadcasting while preserving
  *          structured output helpers. Latest revision forwards full raw payloads alongside
@@ -67,6 +67,7 @@ class SimpleOpenAILLM(LLM):
     model: str = Field(description="The OpenAI model identifier")
     provider: str = Field(description="Only 'openai' is supported after Responses migration")
     _client: OpenAI = PrivateAttr()
+    _responses_client: Any = PrivateAttr(default=None)
     _last_response_payload: Optional[Dict[str, Any]] = PrivateAttr(default=None)
     _last_extracted_output: Optional[Dict[str, Any]] = PrivateAttr(default=None)
 
@@ -86,6 +87,33 @@ class SimpleOpenAILLM(LLM):
 
         logger.debug("Creating OpenAI Responses client for model %s", model)
         self._client = OpenAI(api_key=api_key)
+        self._responses_client = self._resolve_responses_client(self._client)
+        if self._responses_client is None:
+            raise RuntimeError(
+                "OpenAI client does not expose the Responses API; verify openai>=1.3 and that the Responses beta header is enabled."
+            )
+
+    @staticmethod
+    def _resolve_responses_client(client: OpenAI) -> Optional[Any]:
+        candidate_paths = (("responses",), ("beta", "responses"))
+        for path in candidate_paths:
+            resource: Any = client
+            for attr in path:
+                resource = getattr(resource, attr, None)
+                if resource is None:
+                    break
+            else:
+                if resource is not None:
+                    return resource
+
+        with suppress(ImportError, AttributeError, TypeError):
+            from openai.resources import responses as responses_module
+
+            responses_cls = getattr(responses_module, "Responses", None)
+            if responses_cls is not None:
+                return responses_cls(client)
+
+        return None
 
     # ------------------------------------------------------------------
     # Core request/response plumbing
@@ -318,7 +346,10 @@ class SimpleOpenAILLM(LLM):
     ) -> Dict[str, Any]:
         self._last_response_payload = None
         self._last_extracted_output = None
-        response = self._client.responses.create(
+        if self._responses_client is None:
+            raise RuntimeError("Responses client unavailable; cannot perform invoke.")
+
+        response = self._responses_client.create(
             **self._request_args(messages, schema_entry=schema_entry, stream=False)
         )
         payload = self._payload_to_dict(response)
@@ -367,7 +398,11 @@ class SimpleOpenAILLM(LLM):
         self._last_response_payload = None
         self._last_extracted_output = None
         request_args = self._request_args(messages, schema_entry=schema_entry, stream=True)
-        stream_callable = getattr(self._client.responses, "stream", None)
+        responses_client = self._responses_client
+        if responses_client is None:
+            raise RuntimeError("Responses client unavailable; cannot stream.")
+
+        stream_callable = getattr(responses_client, "stream", None)
 
         if not callable(stream_callable):
             result = self._invoke_responses(messages, schema_entry=schema_entry)
