@@ -5,6 +5,17 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [0.3.14] - 2025-10-18 - Responses Client Hardening
+
+### ✅ Highlights
+- Guarded OpenAI Responses client initialization so Luigi no longer crashes with `AttributeError: 'OpenAI' object has no attribute 'responses'` when the SDK nests the resource under `beta.responses`.
+- Standardized pipeline stdout markers by replacing double-encoded emoji prefixes with ASCII `[PIPELINE]` tags to keep Railway logs readable and prevent encoding regressions.
+
+### 🧪 Testing
+- ✅ `python3 -m compileall planexe/llm_util/simple_openai_llm.py`
+
+---
+
 ## [0.3.13] - 2025-10-17 - Landing Page Layout Redesign
 
 ### ✅ Highlights
