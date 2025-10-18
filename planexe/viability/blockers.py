@@ -27,6 +27,7 @@ from planexe.markdown_util.escape_markdown import escape_markdown
 from planexe.markdown_util.fix_bullet_lists import fix_bullet_lists
 from planexe.viability.model_domain import DomainEnum
 from planexe.viability.model_status import StatusEnum
+from planexe.viability.taxonomy import TX
 
 logger = logging.getLogger(__name__)
 
@@ -194,7 +195,10 @@ class Blockers:
             human_readable_domain: str = DomainEnum.get_display_name(blocker.domain)
             rows.append(f"**Domain:** {human_readable_domain}\n")
             if blocker.reason_codes:
-                rows.append(f"\n**Reason Codes:** {', '.join(blocker.reason_codes)}\n")
+                rows.append("**Issues:**\n")
+                for reason_code in blocker.reason_codes:
+                    human_readable = TX.translate_reason_code_to_human_readable(reason_code)
+                    rows.append(f"- <code>{reason_code}</code>: {human_readable}")
             if blocker.acceptance_tests:
                 rows.append("\n**Acceptance Tests:**\n")
                 for test in blocker.acceptance_tests:
