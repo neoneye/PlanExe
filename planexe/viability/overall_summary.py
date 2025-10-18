@@ -15,7 +15,7 @@ import json
 from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
-
+from enum import StrEnum
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from planexe.markdown_util.escape_markdown import escape_markdown
@@ -110,10 +110,111 @@ STATUS_UPGRADE_MAP = {
     StatusEnum.GREEN.value: StatusEnum.GREEN.value,
 }
 
-RECOMMENDATION_GO = "GO"
-RECOMMENDATION_GO_IF_FP0 = "GO_IF_FP0"
-RECOMMENDATION_PROCEED = "PROCEED_WITH_CAUTION"
-RECOMMENDATION_HOLD = "HOLD"
+class RecommendationEnum(StrEnum):
+    """
+    Canonical go/no-go style recommendation derived from per-domain statuses.
+
+    Values
+    ------
+    GO
+        No blocking (RED) or unknown (GRAY) findings remain. Proceed with normal
+        execution; no additional gating is required.
+
+    GO_IF_FP0
+        There are RED and/or GRAY findings, but *every* such item is explicitly
+        covered by the FP0 fixpack (i.e., there are concrete, owned, time-bound
+        actions with clear success criteria). Proceed **only if** FP0 is accepted
+        and treated as a gate—execution must include FP0 as an immediate, enforced
+        prerequisite or parallel track.
+
+    PROCEED_WITH_CAUTION
+        No RED remains, but at least one GRAY (unknown/insufficient signal) exists
+        that is **not** covered by FP0. You may proceed, but risks are active and
+        must be monitored/mitigated; this is not a hard stop.
+
+    HOLD
+        At least one RED finding remains **not** covered by FP0. Do not proceed
+        until the blocker is resolved or brought under FP0 coverage.
+
+    Notes
+    -----
+    - “FP0” (FixPack 0) is the first, minimal risk-reduction bundle of tasks that
+      must be executed immediately to unblock or de-risk the plan.
+    - “Covered by FP0” means there is a specific task in FP0 that addresses the
+      finding with an owner, time target, and acceptance criteria sufficient to
+      make the decision safe to proceed.
+    - Use `.value` at I/O boundaries (reports/JSON) to serialize the enum.
+    """
+    
+    GO = "GO"
+    GO_IF_FP0 = "GO_IF_FP0"
+    PROCEED_WITH_CAUTION = "PROCEED_WITH_CAUTION"
+    HOLD = "HOLD"
+
+    @classmethod
+    def determine(
+        cls,
+        *,
+        statuses: Sequence[str],
+        red_gray_covered: bool,
+    ) -> "RecommendationEnum":
+        """
+        Map domain statuses + FP0 coverage into a single RecommendationEnum.
+
+        Parameters
+        ----------
+        statuses :
+            Sequence of per-domain status strings (case-insensitive). Expected values:
+            "RED", "GRAY", "YELLOW", "GREEN". Unknown values are ignored (i.e., they
+            do not contribute to RED/GRAY detection).
+        red_gray_covered :
+            True if **all** RED and GRAY findings are explicitly covered by FP0
+            (see class docstring for what “covered” entails). If there are no RED/GRAY
+            findings, this flag has no effect.
+
+        Returns
+        -------
+        RecommendationEnum
+            One of: GO, GO_IF_FP0, PROCEED_WITH_CAUTION, HOLD.
+
+        Decision Rules (deterministic)
+        ------------------------------
+        - If ANY domain is RED and not fully covered by FP0 → HOLD.
+        - Else if any domain is RED or GRAY and all such items are covered by FP0 → GO_IF_FP0.
+        - Else if any domain is GRAY (unknowns) → PROCEED_WITH_CAUTION.
+        - Else → GO.
+
+        Examples
+        --------
+        >>> RecommendationEnum.determine(statuses=["GREEN", "YELLOW"], red_gray_covered=False)
+        <RecommendationEnum.GO: 'GO'>
+        >>> RecommendationEnum.determine(statuses=["GRAY"], red_gray_covered=False)
+        <RecommendationEnum.PROCEED_WITH_CAUTION: 'PROCEED_WITH_CAUTION'>
+        >>> RecommendationEnum.determine(statuses=["GRAY"], red_gray_covered=True)
+        <RecommendationEnum.GO_IF_FP0: 'GO_IF_FP0'>
+        >>> RecommendationEnum.determine(statuses=["RED"], red_gray_covered=False)
+        <RecommendationEnum.HOLD: 'HOLD'>
+        >>> RecommendationEnum.determine(statuses=["RED", "GRAY"], red_gray_covered=True)
+        <RecommendationEnum.GO_IF_FP0: 'GO_IF_FP0'>
+        """
+        normalized = [status.upper() for status in statuses]
+        has_red = any(status == StatusEnum.RED.value for status in normalized)
+        has_gray = any(status == StatusEnum.GRAY.value for status in normalized)
+
+        # Hard stop on uncovered RED
+        if has_red and not red_gray_covered:
+            return cls.HOLD
+
+        # Gated go if RED/GRAY are covered by FP0
+        if (has_red or has_gray) and red_gray_covered:
+            return cls.GO_IF_FP0
+
+        # Caution when unknowns remain (GRAY) without FP0 gating
+        if has_gray:
+            return cls.PROCEED_WITH_CAUTION
+
+        # Otherwise we're clear to GO
+        return cls.GO
 
 
 def _coerce_payload_dict(payload: Any, *, expected_field: str, context: str) -> Dict[str, Any]:
@@ -297,10 +398,11 @@ class OverallSummary:
 
         confidence = _confidence_from_statuses(statuses)
 
-        recommendation = _determine_recommendation(
+        recommendation_value: RecommendationEnum = RecommendationEnum.determine(
             statuses=statuses,
             red_gray_covered=red_gray_covered,
         )
+        recommendation: str = recommendation_value.value
 
         why_items = _build_why_list(
             domains=domains_model.domains,
@@ -423,38 +525,6 @@ class OverallSummary:
 # Helper builders for summary fields & metadata
 # ---------------------------------------------------------------------------
 
-
-def _determine_recommendation(
-    *,
-    statuses: Sequence[str],
-    red_gray_covered: bool,
-) -> str:
-    """Deterministic mapping from status severity + FP0 coverage to recommendation.
-
-    Rules:
-    - If ANY domain is RED and not fully covered by FP0 → HOLD.
-    - If any domain is RED/GRAY but ALL such blockers are in FP0 → GO_IF_FP0.
-    - Else if any domain is GRAY (unknowns) → PROCEED_WITH_CAUTION.
-    - Else → GO.
-    """
-    normalized = [status.upper() for status in statuses]
-    has_red = any(status == StatusEnum.RED.value for status in normalized)
-    has_gray = any(status == StatusEnum.GRAY.value for status in normalized)
-
-    # Hard stop on uncovered RED
-    if has_red and not red_gray_covered:
-        return RECOMMENDATION_HOLD
-
-    # Gated go if RED/GRAY are covered by FP0
-    if (has_red or has_gray) and red_gray_covered:
-        return RECOMMENDATION_GO_IF_FP0
-
-    # Caution when unknowns remain (GRAY) without FP0 gating
-    if has_gray:
-        return RECOMMENDATION_PROCEED
-
-    # Otherwise we're clear to GO
-    return RECOMMENDATION_GO
 
 
 def _build_why_list(*, domains: Sequence[DomainItem], max_items: int) -> List[WhyItem]:
