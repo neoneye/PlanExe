@@ -396,19 +396,37 @@ Guardrails
 
 ## Step 4 — Emit Overall & Viability Summary (mechanical roll-up)
 
-Computation rules (do these outside the LLM, in code)
-- Overall status: start with the worst domain status; upgrade one notch if FP0 fully covers all RED/GRAY blockers.
-- Recommendation:
-- Any RED domain → PROCEED_WITH_CAUTION
-(If FP0 neutralizes all RED/GRAY, use GO_IF_FP0.)
-- All domains GREEN/YELLOW → GO.
-- what_flips_to_go: union of acceptance_tests from all blockers in FP0 (dedup, ≤5).
+Computation rules
+
+Overall status
+- Compute the baseline as the worst (most severe) domain status using this order:
+RED > GRAY > YELLOW > GREEN.
+- If and only if every RED/GRAY finding is covered by FP0 (red_gray_covered=True), upgrade the baseline one notch using your STATUS_UPGRADE_MAP. (Do not upgrade more than once.)
+
+Recommendation
+
+Return a RecommendationEnum:
+- HOLD — At least one RED finding exists and it is not covered by FP0. Do not proceed.
+- GO_IF_FP0 — There are RED and/or GRAY findings, but all of them are covered by FP0. Proceed only if FP0 is accepted and treated as a gate (owned, time-bound tasks with clear acceptance criteria).
+- PROCEED_WITH_CAUTION — No RED remains, but at least one GRAY (unknown/insufficient signal) exists that is not covered by FP0.
+- GO — No RED/GRAY findings remain (i.e., all domains are GREEN/YELLOW).
+
+What does “covered by FP0” mean?
+- The finding is explicitly addressed by an FP0 task that has:
+- a clear owner,
+- a near-term target date,
+- acceptance criteria that, when met, neutralize the risk/unknown.
+
+red_gray_covered=True means all RED and GRAY items are covered as above. If there are no RED/GRAY items, the flag is irrelevant.
+
+what_flips_to_go
+- Build as the deduplicated union of acceptance_tests from all FP0 blockers, capped at ≤ 5 items.
 
 Output (JSON)
 
 ```json
 {
-  "overall": {"status": "YELLOW", "confidence": "Medium"},
+  "overall": { "status": "GRAY", "confidence": "Medium" },
   "viability_summary": {
     "recommendation": "PROCEED_WITH_CAUTION",
     "why": [
@@ -422,6 +440,10 @@ Output (JSON)
   }
 }
 ```
+
+Notes:
+- In this example, at least one GRAY exists and is not covered by FP0, so the recommendation is PROCEED_WITH_CAUTION and the overall baseline stays GRAY (no FP0 upgrade applies).
+- When serializing, emit the enum’s string value (e.g., RecommendationEnum.GO.value == "GO").
 
 ⸻
 
