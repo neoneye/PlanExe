@@ -145,10 +145,10 @@ class PipelineExecutionService:
             value = os.environ.get(key)
             if not value:
                 missing_keys.append(f"{key} (needed for {purpose})")
-                print(f"  ❌ {key}: NOT FOUND in os.environ")
+                print(f"  [MISSING] {key}: NOT FOUND in os.environ")
             else:
                 available_keys.append(key)
-                print(f"  ✅ {key}: Available (length: {len(value)})")
+                print(f"  [OK] {key}: Available (length: {len(value)})")
 
         if not available_keys:
             error_msg = f"No API keys available. At least one provider (OpenAI or OpenRouter) is required."
@@ -213,7 +213,9 @@ class PipelineExecutionService:
         environment[PipelineEnvironmentEnum.SPEED_VS_DETAIL.value] = speed_vs_detail_mapping.get(
             request.speed_vs_detail.value, "all_details_but_slow"  # Default to detailed mode
         )
-        environment[PipelineEnvironmentEnum.LLM_MODEL.value] = request.llm_model
+        # Only set LLM_MODEL if it's not None (subprocess environment requires all values to be strings)
+        if request.llm_model:
+            environment[PipelineEnvironmentEnum.LLM_MODEL.value] = request.llm_model
         
         # EXPLICIT: Re-add API keys to ensure they're in subprocess env
         for key in required_keys.keys():
@@ -244,36 +246,36 @@ class PipelineExecutionService:
         logger = logging.getLogger(__name__)
         
         # Use logger.error() to ensure these messages appear in Railway logs (print() gets lost)
-        logger.error(f"🔥🔥🔥 _write_pipeline_inputs() CALLED for: {run_id_dir}")
-        logger.error(f"🔥🔥🔥 Directory exists? {run_id_dir.exists()}")
-        print(f"🔥 _write_pipeline_inputs() called for run_id_dir: {run_id_dir}")
-        print(f"🔥 run_id_dir.exists() = {run_id_dir.exists()}")
+        logger.error(f"[PIPELINE] _write_pipeline_inputs() CALLED for: {run_id_dir}")
+        logger.error(f"[PIPELINE] Directory exists? {run_id_dir.exists()}")
+        print(f"[PIPELINE] _write_pipeline_inputs() called for run_id_dir: {run_id_dir}")
+        print(f"[PIPELINE] run_id_dir.exists() = {run_id_dir.exists()}")
         
         if run_id_dir.exists():
             existing_files = list(run_id_dir.iterdir())
-            logger.error(f"🔥🔥🔥 Directory EXISTS with {len(existing_files)} files - WILL DELETE!")
-            print(f"🔥 CRITICAL: Run directory EXISTS with {len(existing_files)} files!")
+            logger.error(f"[PIPELINE][PIPELINE][PIPELINE] Directory EXISTS with {len(existing_files)} files - WILL DELETE!")
+            print(f"[PIPELINE] CRITICAL: Run directory EXISTS with {len(existing_files)} files!")
             if len(existing_files) > 0:
-                print(f"🔥 First 10 files: {[f.name for f in existing_files[:10]]}")
-                print(f"🔥 Leftover files would cause Luigi to skip all tasks (thinks they're complete)")
-            print(f"🔥 DELETING entire run directory: {run_id_dir}")
+                print(f"[PIPELINE] First 10 files: {[f.name for f in existing_files[:10]]}")
+                print(f"[PIPELINE] Leftover files would cause Luigi to skip all tasks (thinks they're complete)")
+            print(f"[PIPELINE] DELETING entire run directory: {run_id_dir}")
             try:
                 shutil.rmtree(run_id_dir)
-                logger.error(f"🔥🔥🔥 Directory DELETED successfully")
-                print(f"🔥 ✅ Run directory DELETED successfully")
+                logger.error(f"[PIPELINE][PIPELINE][PIPELINE] Directory DELETED successfully")
+                print(f"[PIPELINE] [OK] Run directory DELETED successfully")
             except Exception as e:
-                logger.error(f"🔥🔥🔥 ERROR deleting directory: {e}")
-                print(f"🔥 ❌ ERROR deleting run directory: {e}")
+                logger.error(f"[PIPELINE][PIPELINE][PIPELINE] ERROR deleting directory: {e}")
+                print(f"[PIPELINE] [ERROR] ERROR deleting run directory: {e}")
                 raise
         else:
-            logger.error(f"🔥🔥🔥 Directory does NOT exist (fresh plan)")
-            print(f"🔥 Run directory does NOT exist (fresh plan)")
+            logger.error(f"[PIPELINE][PIPELINE][PIPELINE] Directory does NOT exist (fresh plan)")
+            print(f"[PIPELINE] Run directory does NOT exist (fresh plan)")
         
-        logger.error(f"🔥🔥🔥 Creating directory: {run_id_dir}")
-        print(f"🔥 Creating clean run directory: {run_id_dir}")
+        logger.error(f"[PIPELINE][PIPELINE][PIPELINE] Creating directory: {run_id_dir}")
+        print(f"[PIPELINE] Creating clean run directory: {run_id_dir}")
         run_id_dir.mkdir(parents=True, exist_ok=True)
-        logger.error(f"🔥🔥🔥 Directory created - writing input files...")
-        print(f"🔥 ✅ Run directory created successfully")
+        logger.error(f"[PIPELINE][PIPELINE][PIPELINE] Directory created - writing input files...")
+        print(f"[PIPELINE] [OK] Run directory created successfully")
 
         # PROOF OF CLEANUP: Write a marker file that Luigi can read to prove cleanup ran
         cleanup_marker = run_id_dir / "CLEANUP_RAN.txt"
@@ -281,23 +283,23 @@ class PipelineExecutionService:
             f.write(f"Directory cleanup executed at {datetime.utcnow().isoformat()}\n")
             f.write(f"Directory existed: {run_id_dir.exists()}\n")
             f.write(f"Cleanup function called from FastAPI process\n")
-        logger.error(f"🔥🔥🔥 Wrote cleanup marker file: {cleanup_marker}")
+        logger.error(f"[PIPELINE][PIPELINE][PIPELINE] Wrote cleanup marker file: {cleanup_marker}")
 
         # Write start time
         start_time_file = run_id_dir / FilenameEnum.START_TIME.value
         with open(start_time_file, "w", encoding="utf-8") as f:
             f.write(datetime.utcnow().isoformat())
-        print(f"🔥 Created {start_time_file.name}")
+        print(f"[PIPELINE] Created {start_time_file.name}")
 
         # Write initial plan prompt
         initial_plan_file = run_id_dir / FilenameEnum.INITIAL_PLAN.value
         with open(initial_plan_file, "w", encoding="utf-8") as f:
             f.write(request.prompt)
-        print(f"🔥 Created {initial_plan_file.name}")
+        print(f"[PIPELINE] Created {initial_plan_file.name}")
 
         # DIAGNOSTIC: Verify only expected files exist
         all_files = list(run_id_dir.iterdir())
-        print(f"🔥 Run directory now contains {len(all_files)} files: {[f.name for f in all_files]}")
+        print(f"[PIPELINE] Run directory now contains {len(all_files)} files: {[f.name for f in all_files]}")
 
     def _start_luigi_subprocess(self, plan_id: str, environment: Dict[str, str], db_service: DatabaseService) -> Optional[subprocess.Popen]:
         """Start Luigi pipeline subprocess"""
@@ -331,6 +333,17 @@ class PipelineExecutionService:
             except Exception:
                 pass
 
+            # DEBUG: Validate all environment variables are strings
+            non_string_vars = []
+            for key, value in environment.items():
+                if not isinstance(value, str):
+                    non_string_vars.append(f"{key}={type(value).__name__}:{repr(value)}")
+            
+            if non_string_vars:
+                print(f"DEBUG ENV ERROR: Found {len(non_string_vars)} non-string environment variables:")
+                for var in non_string_vars[:10]:  # Show first 10
+                    print(f"  - {var}")
+            
             # CRITICAL FIX: On Windows, avoid console encoding crashes (exit code 3221225794)
             # Match Gradio's working approach: merge stderr into stdout, use text mode
             popen_kwargs = {
@@ -458,7 +471,7 @@ class PipelineExecutionService:
                 success_data = {
                     "type": "status",
                     "status": "completed",
-                    "message": "✅ Pipeline completed successfully! All files generated.",
+                    "message": "[OK] Pipeline completed successfully! All files generated.",
                     "progress_percentage": 100,
                     "timestamp": datetime.utcnow().isoformat()
                 }
@@ -538,7 +551,7 @@ class PipelineExecutionService:
                 failure_data = {
                     "type": "status",
                     "status": "failed",
-                    "message": "❌ Pipeline completed but final output file not found",
+                    "message": "[ERROR] Pipeline completed but final output file not found",
                     "timestamp": datetime.utcnow().isoformat()
                 }
                 try:
@@ -566,7 +579,7 @@ class PipelineExecutionService:
                         await websocket_manager.broadcast_to_plan(plan_id, {
                             "type": "status",
                             "status": "completed",
-                            "message": "✅ Fallback completed. Minimal report generated.",
+                            "message": "[OK] Fallback completed. Minimal report generated.",
                             "progress_percentage": 100,
                             "timestamp": datetime.utcnow().isoformat()
                         })
@@ -597,7 +610,7 @@ class PipelineExecutionService:
             failure_data = {
                 "type": "status",
                 "status": "failed",
-                "message": f"❌ Pipeline failed with exit code {return_code}",
+                "message": f"[ERROR] Pipeline failed with exit code {return_code}",
                 "timestamp": datetime.utcnow().isoformat()
             }
             try:
