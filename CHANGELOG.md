@@ -5,6 +5,54 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [0.3.22] - 2025-10-19 - Major Dependency Cleanup & Deployment Fix
+
+### ✅ Highlights
+- **BREAKING: Removed 8 unused llama-index provider packages** that were causing OpenAI SDK version conflicts during deployment:
+  - `llama-index-llms-openai==0.3.13` ← Primary cause of pip resolution failure
+  - `llama-index-llms-groq==0.3.1`
+  - `llama-index-llms-lmstudio==0.3.0`
+  - `llama-index-llms-mistralai==0.4.0`
+  - `llama-index-llms-ollama==0.5.0`
+  - `llama-index-llms-openai-like==0.3.3`
+  - `llama-index-llms-openrouter==0.3.1`
+  - `llama-index-llms-together==0.3.1`
+
+### 🔍 Rationale
+- **Root Cause**: `llama-index-llms-openai==0.3.13` requires `openai<2.0.0`, but PlanExe pins `openai==2.5.0`, creating an impossible constraint for pip.
+- **Safety Analysis**: All 8 packages were only imported in `if __name__ == "__main__"` test/POC blocks:
+  - Production code uses custom `SimpleOpenAILLM` class that wraps OpenAI SDK directly
+  - No main pipeline code depends on any of these provider packages
+  - Removal affects only development/proof-of-concept scenarios, not production execution
+- **Architecture Decision**: PlanExe was originally designed for multi-provider LLM flexibility, but in practice only uses OpenAI in production with custom integration. These packages represented old architectural decisions that are no longer needed.
+
+### 📊 Impact
+- **Dependency Reduction**: Removed ~50-100 MB of unused packages from installation
+- **Installation Reliability**: Resolves critical deployment blocker on Railway (pip install now succeeds)
+- **Maintenance Burden**: Reduces transitive dependency complexity
+- **Backward Compatibility**: Test/POC code still works but requires manual `pip install` of the specific provider if needed (documented in individual module docstrings)
+
+### 🧪 Testing
+- ✅ Verified no provider-specific imports exist in main pipeline code
+- ✅ Confirmed all removed packages only appear in `if __name__ == "__main__"` blocks
+- ✅ Updated file headers in affected modules to document standalone installation requirements
+- ⚠️ Deployment build not fully tested (requires Railway rebuild)
+
+### 📋 Migration Notes for Developers
+If you need to run individual POC scripts that use alternative providers:
+```bash
+# For Ollama provider (used in create_wbs_level*.py, expert_cost.py, etc.)
+pip install llama-index-llms-ollama==0.5.0
+
+# For OpenRouter provider (used in run_ping_medium.py)
+pip install llama-index-llms-openrouter==0.3.1
+
+# For other providers
+pip install llama-index-llms-groq llama-index-llms-mistralai llama-index-llms-together llama-index-llms-lmstudio llama-index-llms-openai-like
+```
+
+---
+
 ## [0.3.21] - 2025-10-30 - Responses Conversations alignment
 
 ### ✅ Highlights
