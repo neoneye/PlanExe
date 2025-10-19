@@ -137,6 +137,20 @@ class ConversationHarness:
             },
         )
 
+    def set_remote_conversation_id(self, conversation_id: str) -> Dict[str, Any]:
+        """Persist the upstream conversation identifier when provided."""
+
+        if not conversation_id:
+            return {}
+        if "remote_conversation_id" not in self.metadata:
+            self.metadata["remote_conversation_id"] = conversation_id
+        return self._record_event(
+            "stream.metadata",
+            {
+                "remote_conversation_id": conversation_id,
+            },
+        )
+
     def mark_error(self, message: str) -> Dict[str, Any]:
         """Record an error state and generate a stream event."""
 

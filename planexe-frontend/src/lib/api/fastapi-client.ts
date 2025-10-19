@@ -264,9 +264,17 @@ export interface ConversationStreamErrorPayload {
   message: string;
 }
 
+export interface ConversationStreamMetadataPayload {
+  conversation_id: string;
+  model_key: string;
+  session_id: string;
+  remote_conversation_id?: string;
+}
+
 export type ConversationStreamServerEvent =
   | { event: 'stream.init'; data: ConversationStreamInitPayload }
   | { event: 'stream.chunk'; data: ConversationStreamChunkPayload }
+  | { event: 'stream.metadata'; data: ConversationStreamMetadataPayload }
   | { event: 'stream.complete'; data: ConversationStreamCompletePayload }
   | { event: 'stream.error'; data: ConversationStreamErrorPayload };
 

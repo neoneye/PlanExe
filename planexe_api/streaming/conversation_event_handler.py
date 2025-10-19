@@ -35,6 +35,9 @@ class ConversationEventHandler:
         if normalized_type == "response.created":
             self._response_id = self._extract_response_id(event)
             self._harness.emit_init(self._response_id)
+            remote_conversation = self._extract_conversation_id(event)
+            if remote_conversation:
+                self._harness.set_remote_conversation_id(remote_conversation)
             dispatch.extend(self._drain_events())
         elif normalized_type == "response.output_text.delta":
             delta = self._extract_text_delta(event)
@@ -89,6 +92,23 @@ class ConversationEventHandler:
             candidate = event.get("id")
             if isinstance(candidate, str):
                 return candidate
+        return None
+
+    @staticmethod
+    def _extract_conversation_id(event: Any) -> Optional[str]:
+        response = getattr(event, "response", None)
+        if response is None and isinstance(event, dict):
+            response = event.get("response") or event.get("data")
+        if isinstance(response, dict):
+            conversation_id = response.get("conversation_id") or response.get("conversation")
+            if isinstance(conversation_id, str) and conversation_id:
+                return conversation_id
+        if isinstance(event, dict):
+            payload = event.get("conversation")
+            if isinstance(payload, dict):
+                candidate = payload.get("id")
+                if isinstance(candidate, str) and candidate:
+                    return candidate
         return None
 
     @staticmethod
