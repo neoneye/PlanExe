@@ -140,13 +140,14 @@ class ReportGenerator:
 
         resolved_css_classes = css_classes or []
         sections: list[tuple[str, Path, list[str]]] = [
-            ("Project Health by Domain", domains_markdown_file_path, ['tables']),
+            ("Domain Diagnostics", domains_markdown_file_path, ['tables']),
             ("Blockers", blockers_markdown_file_path, []),
             ("Fix Packs", fixpack_markdown_file_path, ['tables']),
             ("Overall Summary", overall_markdown_file_path, ['tables']),
         ]
 
         html_sections: list[str] = []
+        html_sections.append('<p class="section-subtitle">Readiness, Risks, and Path to Green</p>')
         for section_title, file_path, extensions in sections:
             md_content = self.read_markdown_file(file_path)
             if not md_content:

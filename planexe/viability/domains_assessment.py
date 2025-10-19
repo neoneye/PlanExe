@@ -562,7 +562,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
 
     rows: List[str] = []
     rows.append(html)
-    rows.append("\n\n## Domain Details")
+    rows.append("\n\n")
     rows.append(_get_legend_markdown())
 
     for domain in domains:
