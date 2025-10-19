@@ -390,9 +390,13 @@ class SimpleOpenAILLM(LLM):
         if responses_client is None:
             raise RuntimeError("Responses client unavailable; cannot stream.")
 
-        stream_callable = getattr(responses_client, "stream", None)
-
-        if not callable(stream_callable):
+        # Create streaming response directly using client.responses.create()
+        # In OpenAI SDK v2.x, streaming is invoked via create(stream=True), not a separate stream() method
+        try:
+            stream = responses_client.create(**request_args)
+        except Exception as e:
+            # Fallback to non-streaming if streaming fails
+            logger.warning(f"Streaming failed, falling back to non-streaming: {e}")
             result = self._invoke_responses(messages, schema_entry=schema_entry)
             text = result.get("text")
             if text:
@@ -403,7 +407,8 @@ class SimpleOpenAILLM(LLM):
         final_payload: Optional[Dict[str, Any]] = None
         final_response: Optional[Any] = None
 
-        with stream_callable(**request_args) as stream:
+        # Iterate directly over stream (OpenAI SDK v2.x pattern)
+        try:
             for event in stream:
                 event_type = getattr(event, "type", None)
                 if event_type is None and isinstance(event, dict):
@@ -498,6 +503,19 @@ class SimpleOpenAILLM(LLM):
                 getter = getattr(stream, "get_final_response", None)
                 if callable(getter):
                     final_response = getter()
+        except Exception as stream_error:
+            logger.error(f"Error during streaming iteration: {stream_error}")
+            # If streaming fails mid-execution, try to extract whatever we got
+            if aggregated_text:
+                # Return the partial text we collected
+                pass
+            else:
+                # No text collected, try fallback
+                result = self._invoke_responses(messages, schema_entry=schema_entry)
+                text = result.get("text")
+                if text:
+                    yield text
+                return
 
         if final_response is not None:
             final_payload = self._payload_to_dict(final_response)
