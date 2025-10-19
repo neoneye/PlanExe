@@ -34,6 +34,7 @@ export interface ConversationStreamingState {
   status: ConversationStreamingStatus;
   session: ConversationSession | null;
   responseId: string | null;
+  remoteConversationId: string | null;
   textBuffer: string;
   reasoningBuffer: string;
   jsonChunks: Array<Record<string, unknown>>;
@@ -46,6 +47,7 @@ const INITIAL_STATE: ConversationStreamingState = {
   status: 'idle',
   session: null,
   responseId: null,
+  remoteConversationId: null,
   textBuffer: '',
   reasoningBuffer: '',
   jsonChunks: [],
@@ -113,6 +115,7 @@ export function useConversationStreaming() {
       setState((prev) => ({
         ...prev,
         session,
+        remoteConversationId: prev.remoteConversationId,
       }));
 
       const source = fastApiClient.startConversationStream(
@@ -136,6 +139,19 @@ export function useConversationStreaming() {
             responseId: initData.response_id ?? prev.responseId,
             lastEventAt: initData.connected_at,
           }));
+        } else if (parsed.event === 'stream.metadata') {
+          const metadata = parsed.data;
+          const remoteId =
+            typeof metadata === 'object' && metadata !== null
+              ? (metadata as { remote_conversation_id?: unknown }).remote_conversation_id
+              : undefined;
+          if (typeof remoteId === 'string' && remoteId) {
+            setState((prev) => ({
+              ...prev,
+              remoteConversationId: remoteId,
+              lastEventAt: new Date().toISOString(),
+            }));
+          }
         } else if (parsed.event === 'stream.chunk') {
           const chunk = parsed.data as ConversationStreamChunkPayload;
           if (chunk.kind === 'text') {
@@ -163,11 +179,17 @@ export function useConversationStreaming() {
         } else if (parsed.event === 'stream.complete') {
           const complete = parsed.data as ConversationStreamCompletePayload;
           const responseId = complete.summary.metadata?.response_id as string | undefined;
+          const remoteId = (() => {
+            const metadata = complete.summary?.metadata as Record<string, unknown> | undefined;
+            const candidate = metadata?.remote_conversation_id;
+            return typeof candidate === 'string' && candidate ? candidate : undefined;
+          })();
           setState((prev) => ({
             ...prev,
             status: 'completed',
             summary: complete,
             responseId: responseId ?? prev.responseId,
+            remoteConversationId: remoteId ?? prev.remoteConversationId,
             lastEventAt: complete.summary.completed_at ?? new Date().toISOString(),
           }));
           handlersRef.current.onComplete?.(complete);
@@ -190,6 +212,7 @@ export function useConversationStreaming() {
 
       source.addEventListener('stream.init', handleEvent);
       source.addEventListener('stream.chunk', handleEvent);
+      source.addEventListener('stream.metadata', handleEvent);
       source.addEventListener('stream.complete', handleEvent);
       source.addEventListener('stream.error', handleEvent);
       source.onerror = () => {

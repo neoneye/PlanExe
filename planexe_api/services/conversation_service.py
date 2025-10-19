@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import uuid
 from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Dict, Optional
 
@@ -41,9 +42,7 @@ class ConversationService:
             raise HTTPException(status_code=422, detail="MODEL_UNAVAILABLE")
 
         llm = get_llm(request.model_key)
-        conversation_id = request.conversation_id or self._create_conversation_id(llm, request.metadata)
-        if not conversation_id:
-            raise HTTPException(status_code=502, detail="CONVERSATION_INIT_FAILED")
+        conversation_id = request.conversation_id or self._generate_local_conversation_id()
 
         payload = {
             "request": request.model_dump(mode="python"),
@@ -198,6 +197,13 @@ class ConversationService:
                 handler,
                 manager,
             )
+            remote_conversation = final_payload.get("conversation_id")
+            if (
+                isinstance(remote_conversation, str)
+                and remote_conversation
+                and "remote_conversation_id" not in harness.metadata
+            ):
+                harness.metadata["remote_conversation_id"] = remote_conversation
             usage = SimpleOpenAILLM._normalize_usage(final_payload.get("usage"))
             harness.set_usage(usage)
             summary = harness.complete()
@@ -241,7 +247,19 @@ class ConversationService:
         except Exception as exc:  # pylint: disable=broad-except
             message = str(exc)
             harness.mark_error(message)
+            summary = harness.complete()
             manager.push(handler.emit_completion())
+            try:
+                await self._persist_summary(
+                    summary=summary,
+                    response_id=handler.response_id,
+                    model_key=llm.model,
+                )
+            except Exception as persist_exc:  # pylint: disable=broad-except
+                print(
+                    "[ConversationService] Failed to persist error summary:",
+                    persist_exc,
+                )
             db_service.update_llm_interaction(
                 interaction.id,
                 {
@@ -250,7 +268,7 @@ class ConversationService:
                     "error_message": message,
                 },
             )
-            raise
+            return
         finally:
             try:
                 db.close()
@@ -325,7 +343,6 @@ class ConversationService:
         input_segments = [{"role": "user", "content": [{"type": "text", "text": request.user_message}]}]
         payload: Dict[str, Any] = {
             "model": llm_model,
-            "conversation": conversation_id,
             "input": input_segments,
             "text": {"verbosity": request.text_verbosity},
             "reasoning": {
@@ -333,6 +350,8 @@ class ConversationService:
                 "summary": request.reasoning_summary,
             },
         }
+        if ConversationService._should_forward_conversation_id(conversation_id):
+            payload["conversation"] = conversation_id
         if request.instructions:
             payload["instructions"] = request.instructions
         if request.previous_response_id:
@@ -342,19 +361,12 @@ class ConversationService:
         return payload
 
     @staticmethod
-    def _create_conversation_id(llm: SimpleOpenAILLM, metadata: Optional[Dict[str, Any]]) -> Optional[str]:
-        client = getattr(llm._client, "conversations", None)  # pylint: disable=protected-access
-        if client is None:
-            beta = getattr(getattr(llm._client, "beta", None), "conversations", None)  # pylint: disable=protected-access
-            client = beta
-        if client is None:
-            return None
-        response = client.create(metadata=metadata or {})  # type: ignore[call-arg]
-        conversation_id = getattr(response, "id", None)
-        if isinstance(conversation_id, str):
-            return conversation_id
-        if isinstance(response, dict):
-            conv_id = response.get("id")
-            if isinstance(conv_id, str):
-                return conv_id
-        return None
+    def _should_forward_conversation_id(conversation_id: Optional[str]) -> bool:
+        if not conversation_id:
+            return False
+        normalized = str(conversation_id)
+        return normalized.startswith("conv_")
+
+    @staticmethod
+    def _generate_local_conversation_id() -> str:
+        return f"local-{uuid.uuid4()}"

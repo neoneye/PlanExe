@@ -5,6 +5,18 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [0.3.18] - 2025-11-02 - Conversation Stream Leniency
+
+### ✅ Highlights
+- Relaxed conversation handshakes by eliminating the Conversations API dependency and generating tolerant local identifiers for new sessions.
+- Forwarded upstream `conv_` identifiers only when provided, broadcasting remote conversation metadata over SSE so clients can opt into official state management without breaking local fallbacks.
+- Ensured streaming failures emit graceful SSE completions, persist error summaries, and avoid crashing the intake modal with HTTP 500 responses.
+
+### 🧪 Testing
+- ⚠️ `pytest test_api.py -k conversation` (no matching tests discovered)
+
+---
+
 ## [0.3.17] - 2025-10-30 - Conversations API Streaming
 
 ### ✅ Highlights
