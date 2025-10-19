@@ -34,7 +34,7 @@ class ConversationEventHandler:
 
         if normalized_type == "response.created":
             self._response_id = self._extract_response_id(event)
-            self._harness.emit_init(self._response_id)
+            self._harness.emit_created(self._response_id)
             remote_conversation = self._extract_conversation_id(event)
             if remote_conversation:
                 self._harness.set_remote_conversation_id(remote_conversation)

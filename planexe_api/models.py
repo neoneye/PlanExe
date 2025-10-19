@@ -31,7 +31,6 @@ class CreatePlanRequest(BaseModel):
     prompt: str = Field(..., description="The planning prompt/idea", min_length=1, max_length=10000)
     llm_model: Optional[str] = Field(None, description="LLM model ID to use")
     speed_vs_detail: SpeedVsDetail = Field(SpeedVsDetail.ALL_DETAILS_BUT_SLOW, description="Speed vs detail preference")
-    openrouter_api_key: Optional[str] = Field(None, description="OpenRouter API key for paid models")
 
 
 class PlanResponse(BaseModel):
@@ -218,6 +217,24 @@ class AnalysisStreamSessionResponse(BaseModel):
     ttl_seconds: int = Field(..., description="Time-to-live for the session in seconds")
 
 
+class ConversationCreateRequest(BaseModel):
+    """Request payload to create or resume a conversation thread."""
+
+    model_key: str = Field(..., description="Model configuration key to associate with the thread")
+    conversation_id: Optional[str] = Field(
+        None,
+        description="Existing OpenAI conversation identifier to reuse if already created",
+    )
+
+
+class ConversationCreateResponse(BaseModel):
+    """Response payload when creating or resuming a conversation thread."""
+
+    conversation_id: str = Field(..., description="OpenAI conversation identifier")
+    model_key: str = Field(..., description="Model key associated with the thread")
+    created: bool = Field(..., description="Whether a brand new conversation was created")
+
+
 class ConversationTurnRequest(BaseModel):
     """Request payload for initiating or continuing a conversation turn."""
 
@@ -243,6 +260,7 @@ class ConversationTurnRequest(BaseModel):
     )
     reasoning_summary: str = Field("succinct", description="Reasoning summary verbosity")
     text_verbosity: str = Field("concise", description="Assistant text verbosity")
+    store: bool = Field(True, description="Whether to store the response in OpenAI logs")
 
     @field_validator("user_message")
     @classmethod
@@ -252,10 +270,10 @@ class ConversationTurnRequest(BaseModel):
         return value
 
 
-class ConversationSessionResponse(BaseModel):
+class ConversationRequestResponse(BaseModel):
     """Handshake response payload for conversation streaming sessions."""
 
-    session_id: str = Field(..., description="Opaque session identifier")
+    token: str = Field(..., description="Opaque stream token for SSE upgrade")
     conversation_id: str = Field(..., description="Conversations API identifier")
     model_key: str = Field(..., description="Model key used for the turn")
     expires_at: datetime = Field(..., description="Session expiration timestamp")

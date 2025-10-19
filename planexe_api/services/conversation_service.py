@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import uuid
 from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Dict, Optional
@@ -35,14 +36,47 @@ class ConversationService:
         self._summaries: Dict[str, ConversationFinalizeResponse] = {}
         self._lock = asyncio.Lock()
 
-    async def create_session(self, request: ConversationTurnRequest) -> CachedConversationSession:
+    async def ensure_conversation(
+        self,
+        *,
+        model_key: str,
+        conversation_id: Optional[str] = None,
+    ) -> str:
+        """Create a new OpenAI conversation when none exists."""
+
+        if conversation_id and conversation_id.startswith("conv_"):
+            return conversation_id
+
+        if not is_valid_llm_name(model_key):
+            raise HTTPException(status_code=422, detail="MODEL_UNAVAILABLE")
+
+        llm = get_llm(model_key)
+        try:
+            conversation = llm._client.conversations.create()  # type: ignore[attr-defined]
+        except AttributeError as exc:  # pragma: no cover - defensive against SDK drift
+            raise HTTPException(status_code=500, detail="CONVERSATIONS_UNSUPPORTED") from exc
+
+        remote_id = getattr(conversation, "id", None)
+        if not remote_id and isinstance(conversation, dict):
+            remote_id = conversation.get("id")
+        if not isinstance(remote_id, str) or not remote_id:
+            raise HTTPException(status_code=500, detail="CONVERSATION_CREATE_FAILED")
+        return remote_id
+
+    async def create_session(
+        self,
+        *,
+        conversation_id: str,
+        request: ConversationTurnRequest,
+    ) -> CachedConversationSession:
         """Validate request, ensure conversation exists, and cache streaming payload."""
 
         if not is_valid_llm_name(request.model_key):
             raise HTTPException(status_code=422, detail="MODEL_UNAVAILABLE")
 
         llm = get_llm(request.model_key)
-        conversation_id = request.conversation_id or self._generate_local_conversation_id()
+        if not conversation_id:
+            raise HTTPException(status_code=400, detail="CONVERSATION_ID_REQUIRED")
 
         payload = {
             "request": request.model_dump(mode="python"),
@@ -62,7 +96,7 @@ class ConversationService:
         *,
         conversation_id: str,
         model_key: str,
-        session_id: str,
+        token: str,
     ) -> AsyncGenerator[Dict[str, str], None]:
         """Upgrade a cached session into a live SSE stream."""
 
@@ -70,7 +104,7 @@ class ConversationService:
             cached = await self._sessions.pop_session(
                 conversation_id=conversation_id,
                 model_key=model_key,
-                session_id=session_id,
+                token=token,
             )
         except KeyError as exc:
             detail = exc.args[0] if exc.args else "SESSION_ERROR"
@@ -88,7 +122,7 @@ class ConversationService:
         harness = ConversationHarness(
             conversation_id=conversation_id,
             model_key=model_key,
-            session_id=cached.session_id,
+            session_id=cached.token,
             metadata=metadata,
         )
         manager = ConversationSSEManager()
@@ -212,6 +246,10 @@ class ConversationService:
                 summary.metadata.setdefault("completed_at", summary.completed_at.isoformat())
             manager.push(handler.emit_completion())
 
+            final_event = harness.emit_final_response(final_payload)
+            if final_event:
+                manager.push([final_event])
+
             await self._persist_summary(
                 summary=summary,
                 response_id=handler.response_id,
@@ -249,6 +287,9 @@ class ConversationService:
             harness.mark_error(message)
             summary = harness.complete()
             manager.push(handler.emit_completion())
+            error_final = harness.emit_final_response({})
+            if error_final:
+                manager.push([error_final])
             try:
                 await self._persist_summary(
                     summary=summary,
@@ -349,6 +390,7 @@ class ConversationService:
                 "effort": request.reasoning_effort.value if hasattr(request.reasoning_effort, "value") else request.reasoning_effort,
                 "summary": request.reasoning_summary,
             },
+            "store": request.store,
         }
         if ConversationService._should_forward_conversation_id(conversation_id):
             payload["conversation"] = conversation_id
@@ -359,6 +401,41 @@ class ConversationService:
         if request.metadata:
             payload["metadata"] = request.metadata
         return payload
+
+    async def followup(
+        self,
+        *,
+        conversation_id: str,
+        request: ConversationTurnRequest,
+    ) -> ConversationFinalizeResponse:
+        """Execute a non-streaming follow-up by internally consuming the stream."""
+
+        cached = await self.create_session(conversation_id=conversation_id, request=request)
+        last_error: Optional[str] = None
+
+        async for event in self.stream(
+            conversation_id=conversation_id,
+            model_key=request.model_key,
+            token=cached.token,
+        ):
+            name = event.get("event")
+            data_payload: Dict[str, Any] = {}
+            if "data" in event:
+                raw_data = event.get("data")
+                if isinstance(raw_data, str):
+                    try:
+                        data_payload = json.loads(raw_data)
+                    except json.JSONDecodeError:
+                        data_payload = {}
+            if name == "response.error":
+                last_error = str(data_payload.get("message") or data_payload or "Conversation stream failed")
+            if name == "final":
+                break
+
+        if last_error:
+            raise HTTPException(status_code=502, detail=last_error)
+
+        return await self.finalize(conversation_id)
 
     @staticmethod
     def _should_forward_conversation_id(conversation_id: Optional[str]) -> bool:
