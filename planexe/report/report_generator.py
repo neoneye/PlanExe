@@ -147,7 +147,6 @@ class ReportGenerator:
         ]
 
         html_sections: list[str] = []
-        html_sections.append('<p class="section-subtitle">Readiness, Risks, and Path to Green</p>')
         for section_title, file_path, extensions in sections:
             md_content = self.read_markdown_file(file_path)
             if not md_content:
