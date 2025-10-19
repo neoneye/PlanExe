@@ -38,6 +38,7 @@ export interface UseResponsesConversationOptions {
   modelKey: string;
   taskId?: string;
   metadata?: Record<string, unknown>;
+  sessionKey?: string;
 }
 
 export interface UseResponsesConversationReturn {
@@ -77,10 +78,10 @@ function buildTranscript(messages: ConversationMessage[]): string {
 export function useResponsesConversation(
   options: UseResponsesConversationOptions,
 ): UseResponsesConversationReturn {
-  const { initialPrompt, modelKey, taskId, metadata } = options;
+  const { initialPrompt, modelKey, taskId, metadata, sessionKey } = options;
   const conversationKey = useMemo(
-    () => taskId ?? `prompt-intake-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    [taskId],
+    () => sessionKey ?? taskId ?? `prompt-intake-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    [sessionKey, taskId],
   );
 
   const { state: streamState, startStream, closeStream } = useConversationStreaming();
