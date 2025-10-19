@@ -5,6 +5,17 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [0.3.20] - 2025-11-05 - Pipeline bootstrap fix
+
+### ✅ Highlights
+- Restored hashing and persistence of request-supplied OpenRouter API keys so the backend can audit submissions without storing plaintext secrets.
+- Injected the request OpenRouter API key into the Luigi subprocess environment, ensuring initial plan files are seeded even when environment variables are unset.
+
+### 🧪 Testing
+- ⚠️ Not run (pipeline execution requires external LLM API credentials)
+
+---
+
 ## [0.3.19] - 2025-11-03 - Intake Modal Reliability
 
 ### ✅ Highlights
