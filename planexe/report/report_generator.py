@@ -140,9 +140,9 @@ class ReportGenerator:
 
         resolved_css_classes = css_classes or []
         sections: list[tuple[str, Path, list[str]]] = [
-            ("Domain Diagnostics", domains_markdown_file_path, ['tables']),
-            ("Blockers", blockers_markdown_file_path, []),
-            ("Fix Packs", fixpack_markdown_file_path, ['tables']),
+            ("Domain Health", domains_markdown_file_path, ['tables']),
+            ("Blockers (Required Actions)", blockers_markdown_file_path, []),
+            ("Fix Packs (Prioritized Action Groups)", fixpack_markdown_file_path, ['tables']),
             ("Overall Summary", overall_markdown_file_path, ['tables']),
         ]
 

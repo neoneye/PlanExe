@@ -488,7 +488,8 @@ class OverallSummary:
         else:
             lines.append("- No major viability flags identified.")
         lines.append("")
-        lines.append("### What Flips to GO")
+        lines.append("### What Flips to GO (Success Criteria)")
+        lines.append('<p class="section-subtitle">Observable criteria that confirm readiness.</p>')
         if payload.viability_summary.what_flips_to_go:
             for item in payload.viability_summary.what_flips_to_go:
                 lines.append(f"- {escape_markdown(item)}")

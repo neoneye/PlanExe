@@ -169,6 +169,7 @@ class FixPack:
     @staticmethod
     def convert_to_markdown(fix_packs_output: FixPacksOutput) -> str:
         rows: List[str] = []
+        rows.append('<p class="section-subtitle">Bundled tasks that reduce risk and move domains toward green.</p>')
 
         if not fix_packs_output.fix_packs:
             rows.append("No fix packs generated. All blockers were placed into FP0.")

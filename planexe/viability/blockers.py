@@ -190,6 +190,7 @@ class Blockers:
         Convert the raw blockers output to markdown.
         """
         rows = []
+        rows.append('<p class="section-subtitle">Actions that must be completed before proceeding.</p>')
         for blocker in blockers_output.blockers:
             rows.append(f"### {blocker.id}: {blocker.title}\n")
             human_readable_domain: str = DomainEnum.get_display_name(blocker.domain)
