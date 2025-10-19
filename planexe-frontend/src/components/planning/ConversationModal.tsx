@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, MessageCircle, Send, Sparkles } from 'lucide-react';
+import { AlertCircle, Loader2, MessageCircle, RefreshCcw, Send, Sparkles } from 'lucide-react';
 import {
   ConversationFinalizeResult,
   ConversationMessage,
@@ -72,23 +72,44 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
 
   const [draftMessage, setDraftMessage] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isOpen && initialPrompt.trim()) {
-      startConversation().catch((error) => {
-        const message = error instanceof Error ? error.message : 'Failed to start intake conversation.';
-        setLocalError(message);
-      });
-    }
-  }, [isOpen, initialPrompt, startConversation]);
+  const [hasAttemptedStart, setHasAttemptedStart] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
       setDraftMessage('');
       setLocalError(null);
+      setHasAttemptedStart(false);
       resetConversation();
     }
   }, [isOpen, resetConversation]);
+
+  useEffect(() => {
+    if (!isOpen || hasAttemptedStart) {
+      return;
+    }
+
+    const trimmedPrompt = initialPrompt.trim();
+    if (!trimmedPrompt) {
+      setLocalError('Cannot start conversation without an initial brief.');
+      return;
+    }
+
+    setHasAttemptedStart(true);
+    setLocalError(null);
+    startConversation().catch((error) => {
+      const message = error instanceof Error ? error.message : 'Failed to start intake conversation.';
+      setLocalError(message);
+    });
+  }, [hasAttemptedStart, initialPrompt, isOpen, startConversation]);
+
+  const handleRetryConversation = () => {
+    if (isStreaming) {
+      return;
+    }
+    resetConversation();
+    setLocalError(null);
+    setHasAttemptedStart(false);
+  };
 
   const handleSend = async () => {
     const trimmed = draftMessage.trim();
@@ -133,7 +154,7 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
         }
       }}
     >
-      <DialogContent className="h-[92vh] w-[92vw] max-w-none overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 p-0 shadow-2xl">
+      <DialogContent className="h-[calc(100vh-1.5rem)] w-[min(1440px,calc(100vw-1.5rem))] max-w-none overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 p-0 shadow-2xl sm:h-[calc(100vh-2rem)] sm:w-[min(1600px,calc(100vw-2rem))]">
         <DialogHeader className="px-10 pt-8 pb-4">
           <DialogTitle className="flex items-center gap-3 text-3xl font-semibold text-slate-900">
             <Sparkles className="h-6 w-6 text-indigo-600" />
@@ -144,8 +165,8 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid h-full grid-cols-1 gap-8 px-10 pb-10 xl:grid-cols-[2.5fr_1.5fr]">
-          <section className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="grid h-full grid-cols-1 gap-8 px-8 pb-8 md:px-10 md:pb-10 xl:grid-cols-[3fr_1.25fr]">
+          <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <header className="flex items-center justify-between border-b border-slate-200 px-8 py-5">
               <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-600">
                 <MessageCircle className="h-4 w-4 text-indigo-500" />
@@ -155,7 +176,7 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
                 Model: {resolvedModel}
               </Badge>
             </header>
-            <div className="flex-1 space-y-5 overflow-y-auto px-8 py-6">
+            <div className="flex-1 min-h-0 space-y-5 overflow-y-auto px-8 py-6">
               {messages.map((message) => (
                 <article
                   key={message.id}
@@ -220,21 +241,35 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
                 </div>
               </div>
               {(localError || streamError) && (
-                <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {localError ?? streamError}
+                <div className="mt-3 flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{localError ?? streamError}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRetryConversation}
+                      disabled={isStreaming}
+                    >
+                      <RefreshCcw className="mr-2 h-3 w-3" />
+                      Retry intake
+                    </Button>
+                  </div>
                 </div>
               )}
             </footer>
           </section>
 
-          <aside className="flex h-full flex-col gap-5">
-            <Card className="flex-1 border-slate-200">
+          <aside className="flex h-full min-h-0 flex-col gap-5">
+            <Card className="flex-1 min-h-0 border-slate-200">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-600">
                   Agent notes
                 </CardTitle>
               </CardHeader>
-              <CardContent className="h-full overflow-y-auto rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+              <CardContent className="h-full min-h-0 overflow-y-auto rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
                 {reasoningBuffer ? (
                   <pre className="whitespace-pre-wrap text-slate-700">{reasoningBuffer}</pre>
                 ) : (

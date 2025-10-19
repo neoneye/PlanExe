@@ -5,6 +5,18 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [0.3.19] - 2025-11-03 - Intake Modal Reliability
+
+### ✅ Highlights
+- Expanded the intake conversation modal to occupy nearly the full viewport, improving readability of long turns and side-panels.
+- Hardened the automatic conversation bootstrap with guarded retries so the assistant reliably greets users after submitting a plan.
+- Added an inline retry action when streaming fails, letting users restart the intake without refreshing the page.
+
+### 🧪 Testing
+- ⚠️ Not run (frontend UI adjustments only)
+
+---
+
 ## [0.3.18] - 2025-11-02 - Conversation Stream Leniency
 
 ### ✅ Highlights
