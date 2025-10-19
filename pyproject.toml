@@ -68,7 +68,7 @@ dependencies = [
     "nltk==3.9.1",
     "numpy==2.2.1",
     "ollama==0.4.5",
-    "openai==2.5.0",
+    "openai==1.58.1",
     "orjson==3.10.14",
     "packaging==24.2",
     "pandas==2.2.3",
