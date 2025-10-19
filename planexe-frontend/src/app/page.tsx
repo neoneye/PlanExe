@@ -27,6 +27,7 @@ const HomePage: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isConversationOpen, setIsConversationOpen] = useState(false);
   const [pendingRequest, setPendingRequest] = useState<CreatePlanRequest | null>(null);
+  const [conversationSessionKey, setConversationSessionKey] = useState<string | null>(null);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
@@ -72,9 +73,17 @@ const HomePage: React.FC = () => {
     };
   }, []);
 
+  const generateConversationSessionKey = () => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return `conversation-${crypto.randomUUID()}`;
+    }
+    return `conversation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  };
+
   const handlePlanSubmit = async (planData: CreatePlanRequest) => {
     setIsCreating(true);
     setError(null);
+    setConversationSessionKey(generateConversationSessionKey());
     setPendingRequest(planData);
     setIsConversationOpen(true);
   };
@@ -82,6 +91,7 @@ const HomePage: React.FC = () => {
   const resetConversationState = () => {
     setIsConversationOpen(false);
     setPendingRequest(null);
+    setConversationSessionKey(null);
     setIsCreating(false);
   };
 
@@ -307,6 +317,7 @@ const HomePage: React.FC = () => {
       <ConversationModal
         isOpen={isConversationOpen}
         request={pendingRequest}
+        sessionKey={conversationSessionKey}
         onClose={handleConversationClose}
         onFinalize={handleConversationFinalize}
         isFinalizing={isFinalizing}

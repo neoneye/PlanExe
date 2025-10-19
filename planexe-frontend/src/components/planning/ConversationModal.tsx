@@ -33,6 +33,7 @@ import { CreatePlanRequest } from '@/lib/api/fastapi-client';
 interface ConversationModalProps {
   isOpen: boolean;
   request: CreatePlanRequest | null;
+  sessionKey: string | null;
   onClose: () => void;
   onFinalize: (result: ConversationFinalizeResult) => Promise<void>;
   isFinalizing: boolean;
@@ -46,13 +47,20 @@ const MESSAGE_BG: Record<ConversationMessage['role'], string> = {
 export const ConversationModal: React.FC<ConversationModalProps> = ({
   isOpen,
   request,
+  sessionKey,
   onClose,
   onFinalize,
   isFinalizing,
 }) => {
   const initialPrompt = request?.prompt ?? '';
   const resolvedModel = request?.llm_model ?? 'gpt-4o-mini';
-  const metadata = useMemo(() => ({ speedVsDetail: request?.speed_vs_detail }), [request?.speed_vs_detail]);
+  const metadata = useMemo(
+    () => ({
+      speedVsDetail: request?.speed_vs_detail,
+      sessionKey: sessionKey ?? undefined,
+    }),
+    [request?.speed_vs_detail, sessionKey],
+  );
 
   const {
     messages,
@@ -68,6 +76,7 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
     initialPrompt,
     modelKey: resolvedModel,
     metadata,
+    sessionKey: sessionKey ?? undefined,
   });
 
   const [draftMessage, setDraftMessage] = useState('');
@@ -82,6 +91,10 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
       resetConversation();
     }
   }, [isOpen, resetConversation]);
+
+  useEffect(() => {
+    setHasAttemptedStart(false);
+  }, [sessionKey]);
 
   useEffect(() => {
     if (!isOpen || hasAttemptedStart) {
@@ -99,8 +112,9 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
     startConversation().catch((error) => {
       const message = error instanceof Error ? error.message : 'Failed to start intake conversation.';
       setLocalError(message);
+      setHasAttemptedStart(false);
     });
-  }, [hasAttemptedStart, initialPrompt, isOpen, startConversation]);
+  }, [hasAttemptedStart, initialPrompt, isOpen, sessionKey, startConversation]);
 
   const handleRetryConversation = () => {
     if (isStreaming) {
@@ -108,7 +122,12 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
     }
     resetConversation();
     setLocalError(null);
-    setHasAttemptedStart(false);
+    setHasAttemptedStart(true);
+    startConversation().catch((error) => {
+      const message = error instanceof Error ? error.message : 'Failed to start intake conversation.';
+      setLocalError(message);
+      setHasAttemptedStart(false);
+    });
   };
 
   const handleSend = async () => {
