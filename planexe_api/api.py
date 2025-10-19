@@ -5,6 +5,7 @@ PURPOSE: Clean FastAPI REST API for PlanExe - proper service architecture follow
 SRP and DRY check: Pass - Single responsibility of HTTP routing, delegates execution to services
 """
 import asyncio
+import hashlib
 import json
 import os
 import threading
@@ -417,13 +418,18 @@ async def create_plan(request: CreatePlanRequest):
         run_id_dir.mkdir(parents=True, exist_ok=True)
         print(f"DEBUG: Directory created successfully")
 
+        # Never persist the raw API key, but retain a hash for auditing
+        api_key_hash: Optional[str] = None
+        if request.openrouter_api_key:
+            api_key_hash = hashlib.sha256(request.openrouter_api_key.encode("utf-8")).hexdigest()
+
         # Create plan in database
         plan_data = {
             "plan_id": plan_id,
             "prompt": request.prompt,
             "llm_model": request.llm_model,
             "speed_vs_detail": request.speed_vs_detail.value,
-            "openrouter_api_key_hash": None,
+            "openrouter_api_key_hash": api_key_hash,
             "status": PlanStatus.pending.value,
             "progress_percentage": 0,
             "progress_message": "Plan queued for processing...",
