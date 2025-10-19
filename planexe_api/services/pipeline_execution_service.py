@@ -130,18 +130,12 @@ class PipelineExecutionService:
         print(f"DEBUG ENV: Starting environment setup for plan {plan_id}")
 
         # CRITICAL: Validate required API keys BEFORE subprocess creation
-        # Allow single provider usage - at least one of OpenAI or OpenRouter must be available
         required_keys = {
             "OPENAI_API_KEY": "OpenAI API calls",
-            "OPENROUTER_API_KEY": "OpenRouter API calls"
         }
 
         # Start from current environment so we can augment with request-supplied credentials
         environment = os.environ.copy()
-
-        if request.openrouter_api_key:
-            # Inject OpenRouter key provided at request time (without persisting globally)
-            environment["OPENROUTER_API_KEY"] = request.openrouter_api_key
 
         available_keys = []
         missing_keys = []
@@ -155,14 +149,14 @@ class PipelineExecutionService:
                 print(f"  [OK] {key}: Available (length: {len(value)})")
 
         if not available_keys:
-            error_msg = f"No API keys available. At least one provider (OpenAI or OpenRouter) is required."
+            error_msg = "No API keys available. OPENAI_API_KEY is required for plan execution."
             print(f"ERROR ENV: {error_msg}")
             raise ValueError(error_msg)
 
         print(f"INFO ENV: {len(available_keys)} API provider(s) available: {', '.join(available_keys)}")
 
         # Check API keys in current environment
-        api_keys_to_check = ["OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"]
+        api_keys_to_check = ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"]
         print("DEBUG ENV: API keys in execution environment:")
         for key in api_keys_to_check:
             value = environment.get(key)
@@ -329,9 +323,7 @@ class PipelineExecutionService:
             # Sanity: show which API keys we are passing (masked)
             try:
                 oa = environment.get('OPENAI_API_KEY')
-                orr = environment.get('OPENROUTER_API_KEY')
                 print(f"DEBUG ENV: OPENAI_API_KEY present? {bool(oa)} len={len(oa) if oa else 0}")
-                print(f"DEBUG ENV: OPENROUTER_API_KEY present? {bool(orr)} len={len(orr) if orr else 0}")
             except Exception:
                 pass
 

@@ -64,20 +64,31 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
 
   const {
     messages,
+    conversationId,
+    currentResponseId,
     startConversation,
     sendUserMessage,
     finalizeConversation,
     resetConversation,
     isStreaming,
-    streamSummary,
+    streamFinal,
     streamError,
+    textBuffer,
     reasoningBuffer,
+    jsonChunks,
+    usage,
   } = useResponsesConversation({
     initialPrompt,
     modelKey: resolvedModel,
     metadata,
     sessionKey: sessionKey ?? undefined,
   });
+
+  const tokenUsage = (usage ?? null) as {
+    input_tokens?: number;
+    output_tokens?: number;
+    reasoning_tokens?: number;
+  } | null;
 
   const [draftMessage, setDraftMessage] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
@@ -285,14 +296,40 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
             <Card className="flex-1 min-h-0 border-slate-200">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-600">
-                  Agent notes
+                  Answer
                 </CardTitle>
               </CardHeader>
               <CardContent className="h-full min-h-0 overflow-y-auto rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                {textBuffer ? (
+                  <p className="whitespace-pre-wrap text-slate-800">{textBuffer}</p>
+                ) : (
+                  <p className="text-slate-500">The assistant response will appear here once the stream completes.</p>
+                )}
+                <div className="mt-4 space-y-1 text-xs text-slate-500">
+                  {conversationId && <p>Conversation ID: {conversationId}</p>}
+                  {currentResponseId && <p>Response ID: {currentResponseId}</p>}
+                  {tokenUsage && (
+                    <p>
+                      Tokens — input: {String(tokenUsage.input_tokens ?? '–')}, output:{' '}
+                      {String(tokenUsage.output_tokens ?? '–')}, reasoning:{' '}
+                      {String(tokenUsage.reasoning_tokens ?? '–')}
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+                  Reasoning summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="max-h-48 overflow-y-auto rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
                 {reasoningBuffer ? (
                   <pre className="whitespace-pre-wrap text-slate-700">{reasoningBuffer}</pre>
                 ) : (
-                  <p className="text-slate-500">Reasoning will appear here while the agent thinks.</p>
+                  <p className="text-slate-500">Reasoning traces will stream here when available.</p>
                 )}
               </CardContent>
             </Card>
@@ -300,45 +337,12 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
             <Card className="border-slate-200">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-600">
-                  Conversation summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-slate-700">
-                {streamSummary?.summary ? (
-                  <>
-                    <p className="whitespace-pre-wrap text-slate-800">
-                      {streamSummary.summary.content_text || 'The assistant did not provide a written recap.'}
-                    </p>
-                    {streamSummary.summary.metadata?.response_id && (
-                      <p className="text-xs uppercase tracking-wide text-slate-500">
-                        Response ID: {String(streamSummary.summary.metadata.response_id)}
-                      </p>
-                    )}
-                    {streamSummary.summary.usage && (
-                      <div className="text-xs text-slate-500">
-                        Tokens — input: {String(streamSummary.summary.usage.input_tokens ?? '–')}, output:{' '}
-                        {String(streamSummary.summary.usage.output_tokens ?? '–')}, reasoning:{' '}
-                        {String(streamSummary.summary.usage.reasoning_tokens ?? '–')}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-slate-500">Complete at least one exchange to view the rolling summary.</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="border-slate-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-600">
-                  Structured output
+                  Data / JSON
                 </CardTitle>
               </CardHeader>
               <CardContent className="max-h-52 overflow-y-auto rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-700">
-                {streamSummary?.summary?.json_chunks && streamSummary.summary.json_chunks.length > 0 ? (
-                  <pre className="whitespace-pre-wrap">
-                    {JSON.stringify(streamSummary.summary.json_chunks, null, 2)}
-                  </pre>
+                {jsonChunks.length > 0 ? (
+                  <pre className="whitespace-pre-wrap">{JSON.stringify(jsonChunks, null, 2)}</pre>
                 ) : (
                   <p className="text-slate-500">No structured deltas received yet.</p>
                 )}

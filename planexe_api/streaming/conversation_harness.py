@@ -65,6 +65,7 @@ class ConversationHarness:
         self._usage: Dict[str, Any] = {}
         self._error: Optional[str] = None
         self._completed_at: Optional[datetime] = None
+        self._response_id: Optional[str] = None
 
     def _timestamp(self) -> str:
         return datetime.now(timezone.utc).isoformat()
@@ -83,15 +84,19 @@ class ConversationHarness:
         self._events.append(envelope)
         return envelope
 
-    def emit_init(self, response_id: Optional[str] = None) -> Dict[str, Any]:
+    def emit_created(self, response_id: Optional[str] = None) -> Dict[str, Any]:
         """Emit the initial event once OpenAI acknowledges the stream."""
 
-        payload: Dict[str, Any] = {
-            "connected_at": self.started_at.isoformat(),
-        }
         if response_id:
-            payload["response_id"] = response_id
-        return self._record_event("stream.init", payload)
+            self._response_id = response_id
+        payload: Dict[str, Any] = {
+            "conversation_id": self.conversation_id,
+            "model_key": self.model_key,
+            "created_at": self.started_at.isoformat(),
+        }
+        if self._response_id:
+            payload["response_id"] = self._response_id
+        return self._record_event("response.created", payload)
 
     def push_reasoning(self, delta: str) -> Dict[str, Any]:
         """Append a reasoning delta and return the SSE-ready envelope."""
@@ -100,9 +105,9 @@ class ConversationHarness:
             return {}
         self._reasoning_parts.append(delta)
         return self._record_event(
-            "stream.chunk",
+            "response.reasoning_summary_text.delta",
             {
-                "kind": "reasoning",
+                "response_id": self._response_id,
                 "delta": delta,
                 "aggregated": "".join(self._reasoning_parts),
             },
@@ -115,9 +120,9 @@ class ConversationHarness:
             return {}
         self._content_parts.append(delta)
         return self._record_event(
-            "stream.chunk",
+            "response.output_text.delta",
             {
-                "kind": "text",
+                "response_id": self._response_id,
                 "delta": delta,
                 "aggregated": "".join(self._content_parts),
             },
@@ -130,9 +135,9 @@ class ConversationHarness:
             return {}
         self._json_chunks.append(chunk)
         return self._record_event(
-            "stream.chunk",
+            "response.output_json.delta",
             {
-                "kind": "json",
+                "response_id": self._response_id,
                 "delta": chunk,
             },
         )
@@ -144,18 +149,19 @@ class ConversationHarness:
             return {}
         if "remote_conversation_id" not in self.metadata:
             self.metadata["remote_conversation_id"] = conversation_id
-        return self._record_event(
-            "stream.metadata",
-            {
-                "remote_conversation_id": conversation_id,
-            },
-        )
+        return {}
 
     def mark_error(self, message: str) -> Dict[str, Any]:
         """Record an error state and generate a stream event."""
 
         self._error = message
-        return self._record_event("stream.error", {"message": message})
+        return self._record_event(
+            "response.error",
+            {
+                "response_id": self._response_id,
+                "message": message,
+            },
+        )
 
     def set_usage(self, usage: Dict[str, Any]) -> None:
         """Attach token usage or billing information to the harness."""
@@ -188,12 +194,30 @@ class ConversationHarness:
         )
 
         self._record_event(
-            "stream.complete",
+            "response.completed",
             {
-                "summary": summary.as_dict(),
+                "response_id": self._response_id,
+                "conversation_id": self.conversation_id,
+                "completed_at": self._completed_at.isoformat(),
+                "usage": self._usage,
             },
         )
         return summary
+
+    def emit_final_response(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Emit the finalResponse payload for downstream aggregation."""
+
+        envelope_payload = {
+            "response": payload,
+            "summary": {
+                "response_id": self._response_id,
+                "text": "".join(self._content_parts),
+                "reasoning": "".join(self._reasoning_parts),
+                "json": list(self._json_chunks),
+                "usage": self._usage,
+            },
+        }
+        return self._record_event("final", envelope_payload)
 
     def snapshot(self) -> Dict[str, Any]:
         """Provide a lightweight snapshot without completing the stream."""

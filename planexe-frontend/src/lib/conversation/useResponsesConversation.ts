@@ -12,8 +12,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ConversationStreamCompletePayload,
+  ConversationFinalPayload,
   ConversationTurnRequestPayload,
+  fastApiClient,
 } from '@/lib/api/fastapi-client';
 import { useConversationStreaming } from '@/lib/streaming/conversation-streaming';
 
@@ -30,7 +31,7 @@ export interface ConversationMessage {
 export interface ConversationFinalizeResult {
   enrichedPrompt: string;
   transcript: ConversationMessage[];
-  summary: ConversationStreamCompletePayload | null;
+  summary: ConversationFinalPayload | null;
 }
 
 export interface UseResponsesConversationOptions {
@@ -43,14 +44,19 @@ export interface UseResponsesConversationOptions {
 
 export interface UseResponsesConversationReturn {
   messages: ConversationMessage[];
+  conversationId: string | null;
+  currentResponseId: string | null;
   startConversation: () => Promise<void>;
   sendUserMessage: (content: string) => Promise<void>;
   finalizeConversation: () => ConversationFinalizeResult;
   resetConversation: () => void;
   isStreaming: boolean;
-  streamSummary: ConversationStreamCompletePayload | null;
+  streamFinal: ConversationFinalPayload | null;
   streamError: string | null;
+  textBuffer: string;
   reasoningBuffer: string;
+  jsonChunks: Array<Record<string, unknown>>;
+  usage: Record<string, unknown> | null;
 }
 
 const SYSTEM_PROMPT = `You are the PlanExe intake specialist. Guide the user through a short,
@@ -66,15 +72,6 @@ function createMessageId(): string {
   return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function buildTranscript(messages: ConversationMessage[]): string {
-  return messages
-    .map((message) => {
-      const speaker = message.role === 'assistant' ? 'Assistant' : 'User';
-      return `${speaker}: ${message.content.trim()}`;
-    })
-    .join('\n\n');
-}
-
 export function useResponsesConversation(
   options: UseResponsesConversationOptions,
 ): UseResponsesConversationReturn {
@@ -87,9 +84,9 @@ export function useResponsesConversation(
   const { state: streamState, startStream, closeStream } = useConversationStreaming();
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [initialised, setInitialised] = useState(false);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [previousResponseId, setPreviousResponseId] = useState<string | undefined>(undefined);
-  const [lastSummary, setLastSummary] = useState<ConversationStreamCompletePayload | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [currentResponseId, setCurrentResponseId] = useState<string | null>(null);
+  const [lastFinal, setLastFinal] = useState<ConversationFinalPayload | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
 
   const messagesRef = useRef<ConversationMessage[]>(messages);
@@ -110,15 +107,24 @@ export function useResponsesConversation(
     // Reset conversation when prompt changes or modal closes
     updateMessages(() => []);
     setInitialised(false);
-    setActiveConversationId(null);
-    setPreviousResponseId(undefined);
-    setLastSummary(null);
+    setConversationId(null);
+    setCurrentResponseId(null);
+    setLastFinal(null);
     setLastError(null);
     closeStream(true);
   }, [initialPrompt, conversationKey, closeStream, updateMessages]);
 
+  const ensureRemoteConversation = useCallback(async (): Promise<string> => {
+    if (conversationId) {
+      return conversationId;
+    }
+    const response = await fastApiClient.ensureConversation({ modelKey, conversationId: undefined });
+    setConversationId(response.conversation_id);
+    return response.conversation_id;
+  }, [conversationId, modelKey]);
+
   const streamAssistantReply = useCallback(
-    async (latestUserMessage: string, { initial = false } = {}): Promise<void> => {
+    async (latestUserMessage: string): Promise<void> => {
       if (!modelKey.trim()) {
         throw new Error('No model selected for conversation.');
       }
@@ -127,8 +133,6 @@ export function useResponsesConversation(
         return;
       }
 
-      const history = messagesRef.current;
-      const transcript = buildTranscript(history);
       const assistantId = createMessageId();
       const nowIso = new Date().toISOString();
 
@@ -142,33 +146,45 @@ export function useResponsesConversation(
 
       updateMessages((prev) => [...prev, assistantMessage]);
       setLastError(null);
-      setLastSummary(null);
+      setLastFinal(null);
 
-      const intro = initial
-        ? 'Start the discovery by acknowledging the project and asking the most critical follow-up questions. Limit yourself to 2-3 questions so the user is not overwhelmed.'
-        : 'Respond to the latest user update. Acknowledge what they provided and only ask for items that remain unclear. If everything is covered, confirm readiness to proceed.';
-
-      const promptText = `${intro}\n\nLatest user message:\n${trimmedMessage}`;
+      let remoteConversationId: string;
+      try {
+        remoteConversationId = await ensureRemoteConversation();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to contact conversation service.';
+        setLastError(errorMessage);
+        updateMessages((prev) =>
+          prev.map((entry) =>
+            entry.id === assistantId
+              ? {
+                  ...entry,
+                  streaming: false,
+                  content: entry.content || `Encountered an error: ${errorMessage}`,
+                }
+              : entry,
+          ),
+        );
+        throw error instanceof Error ? error : new Error(errorMessage);
+      }
 
       const payload: ConversationTurnRequestPayload = {
         modelKey,
-        userMessage: promptText,
-        conversationId: activeConversationId ?? undefined,
-        previousResponseId: !initial ? previousResponseId : undefined,
+        userMessage: trimmedMessage,
         instructions: SYSTEM_PROMPT,
         metadata: {
           conversationKey,
           initialPrompt,
           ...(metadata ?? {}),
         },
-        context: transcript,
         reasoningEffort: 'high',
         reasoningSummary: 'succinct',
         textVerbosity: 'concise',
+        store: true,
       };
 
       await new Promise<void>((resolve, reject) => {
-        startStream(payload, {
+        startStream(remoteConversationId, payload, {
           onTextDelta: (chunk) => {
             const aggregated =
               typeof chunk.aggregated === 'string'
@@ -190,20 +206,23 @@ export function useResponsesConversation(
               ),
             );
           },
-          onComplete: (completePayload) => {
-            const aggregatedText = completePayload.summary.content_text || '';
-            const responseId = completePayload.summary.metadata?.response_id as string | undefined;
-            if (responseId) {
-              setPreviousResponseId(responseId);
+          onCompleted: (completePayload) => {
+            if (completePayload.response_id) {
+              setCurrentResponseId(completePayload.response_id);
             }
-            setLastSummary(completePayload);
+          },
+          onFinal: (finalPayload) => {
+            setCurrentResponseId(finalPayload.summary.response_id ?? currentResponseId);
+            setLastFinal(finalPayload);
+            const finalizedText = finalPayload.summary.text?.trim() ?? '';
             updateMessages((prev) =>
               prev.map((entry) =>
                 entry.id === assistantId
                   ? {
                       ...entry,
                       streaming: false,
-                      content: aggregatedText.trim() || entry.content || 'I have captured your details and am ready to proceed.',
+                      content:
+                        finalizedText || entry.content || 'I have captured your details and am ready to proceed.',
                     }
                   : entry,
               ),
@@ -228,7 +247,9 @@ export function useResponsesConversation(
           },
         })
           .then((session) => {
-            setActiveConversationId(session.conversation_id);
+            if (!conversationId) {
+              setConversationId(session.conversation_id);
+            }
           })
           .catch((error) => {
             const errorMessage = error instanceof Error ? error.message : 'Failed to contact conversation service.';
@@ -250,13 +271,14 @@ export function useResponsesConversation(
     },
     [
       modelKey,
-      activeConversationId,
-      previousResponseId,
+      conversationId,
       conversationKey,
       initialPrompt,
       metadata,
+      ensureRemoteConversation,
       startStream,
       updateMessages,
+      currentResponseId,
     ],
   );
 
@@ -276,7 +298,7 @@ export function useResponsesConversation(
       createdAt: new Date().toISOString(),
     };
     updateMessages(() => [userMessage]);
-    await streamAssistantReply(trimmed, { initial: true });
+    await streamAssistantReply(trimmed);
   }, [initialPrompt, initialised, streamAssistantReply, updateMessages]);
 
   const sendUserMessage = useCallback(
@@ -292,7 +314,7 @@ export function useResponsesConversation(
         createdAt: new Date().toISOString(),
       };
       updateMessages((prev) => [...prev, userMessage]);
-      await streamAssistantReply(trimmed, { initial: false });
+      await streamAssistantReply(trimmed);
     },
     [streamAssistantReply, updateMessages],
   );
@@ -321,16 +343,16 @@ export function useResponsesConversation(
     return {
       enrichedPrompt,
       transcript,
-      summary: lastSummary,
+      summary: lastFinal,
     };
-  }, [initialPrompt, lastSummary]);
+  }, [initialPrompt, lastFinal]);
 
   const resetConversation = useCallback(() => {
     updateMessages(() => []);
     setInitialised(false);
-    setActiveConversationId(null);
-    setPreviousResponseId(undefined);
-    setLastSummary(null);
+    setConversationId(null);
+    setCurrentResponseId(null);
+    setLastFinal(null);
     setLastError(null);
     closeStream(true);
   }, [closeStream, updateMessages]);
@@ -339,13 +361,18 @@ export function useResponsesConversation(
 
   return {
     messages,
+    conversationId,
+    currentResponseId,
     startConversation,
     sendUserMessage,
     finalizeConversation,
     resetConversation,
     isStreaming,
-    streamSummary: lastSummary,
+    streamFinal: lastFinal,
     streamError: lastError ?? streamState.error,
+    textBuffer: streamState.textBuffer,
     reasoningBuffer: streamState.reasoningBuffer,
+    jsonChunks: streamState.jsonChunks,
+    usage: streamState.usage,
   };
 }

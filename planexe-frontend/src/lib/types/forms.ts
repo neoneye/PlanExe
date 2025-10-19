@@ -29,14 +29,6 @@ export const PlanFormSchema = z.object({
   speed_vs_detail: z
     .enum(['fast_but_skip_details', 'balanced_speed_and_detail', 'all_details_but_slow']),
 
-  openrouter_api_key: z
-    .string()
-    .optional()
-    .refine(
-      (key) => !key || key.startsWith('sk-or-v1-'),
-      'OpenRouter API key must start with "sk-or-v1-"'
-    ),
-
   title: z
     .string()
     .max(100, 'Title must be less than 100 characters')
@@ -56,10 +48,6 @@ export const SessionConfigSchema = z.object({
   preferredLLMModel: z
     .string()
     .min(1, 'Please select a preferred LLM model'),
-
-  openrouterApiKey: z
-    .string()
-    .optional(),
 
   emailNotifications: z
     .boolean()

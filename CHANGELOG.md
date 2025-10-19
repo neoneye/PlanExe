@@ -5,6 +5,18 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [0.3.21] - 2025-10-30 - Responses Conversations alignment
+
+### ✅ Highlights
+- Updated the FastAPI conversation relay to emit the official `response.*` stream events and terminal `final` envelope via `stream.finalResponse()`, persisting `conversation_id`, `response_id`, and usage metrics for every intake turn.
+- Rebuilt the intake modal buffers to surface answer text, reasoning summaries, and structured JSON independently while dropping OpenRouter picker references from the frontend experience.
+- Documented the October 2025 Responses contract adjustments and captured migration checklist items for storing conversation telemetry.
+
+### 🧪 Testing
+- ⚠️ Not run (contract alignment + UI refactor only)
+
+---
+
 ## [0.3.20] - 2025-11-05 - Pipeline bootstrap fix
 
 ### ✅ Highlights
