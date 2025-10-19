@@ -176,11 +176,10 @@ class FixPack:
             return "\n".join(rows)
 
         for fix_pack in fix_packs_output.fix_packs:
-            rows.append(f"### {fix_pack.id}: {fix_pack.title}")
-            rows.append(f"- Priority: {fix_pack.priority.value}")
-            rows.append("- Blockers:")
-            for blocker_id in fix_pack.blocker_ids:
-                rows.append(f"  - {blocker_id}")
+            rows.append(f"### {fix_pack.id}: {fix_pack.title}\n")
+            rows.append(f"**Priority:** {fix_pack.priority.value}\n")
+            blocker_items: List[str] = [f"<code>{blocker_id}</code>" for blocker_id in fix_pack.blocker_ids]
+            rows.append("**Blockers:** " + ", ".join(blocker_items))
             rows.append("")
 
         return "\n".join(rows).rstrip()
