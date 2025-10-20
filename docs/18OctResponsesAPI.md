@@ -532,12 +532,23 @@ const scheduleFlush = useCallback(() => {
 
 ## Environment Variables
 
+Streaming defaults are now centralised in `planexe_api/config.py`. The optional
+environment variables below override the runtime configuration that both the
+FastAPI request model and the streaming harness consume.
+
 ```bash
 # OpenAI Configuration
 OPENAI_API_KEY=sk-...
-OPENAI_MAX_OUTPUT_TOKENS=128000  # GPT-5 series
-OPENAI_TIMEOUT_MS=600000         # 10 minutes
-DEBUG_SAVE_RAW=true              # Save raw responses
+OPENAI_TIMEOUT_MS=600000               # 10 minutes
+DEBUG_SAVE_RAW=true                    # Save raw responses
+
+# Streaming analysis overrides (all optional)
+OPENAI_MAX_OUTPUT_TOKENS=16024         # Overrides runtime + validation defaults
+OPENAI_MAX_OUTPUT_TOKENS_CEILING=32768 # Hard ceiling enforced in validation
+OPENAI_MIN_OUTPUT_TOKENS=512           # Lower bound for streaming responses
+OPENAI_REASONING_EFFORT=high           # Maps to AnalysisStreamRequest.reasoning_effort
+OPENAI_REASONING_SUMMARY=detailed      # Maps to reasoning_summary
+OPENAI_TEXT_VERBOSITY=high             # Maps to text_verbosity
 ```
 
 ---
