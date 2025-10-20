@@ -198,7 +198,7 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid h-full grid-cols-1 gap-8 px-8 pb-8 md:px-10 md:pb-10 xl:grid-cols-[3fr_1.25fr]">
+        <div className="grid h-full grid-cols-1 gap-8 px-8 pb-8 md:px-10 md:pb-10 xl:grid-cols-[2fr_1fr]">
           <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <header className="flex items-center justify-between border-b border-slate-200 px-8 py-5">
               <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-600">

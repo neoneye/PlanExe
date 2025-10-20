@@ -381,7 +381,7 @@ class ConversationService:
         conversation_id: str,
         request: ConversationTurnRequest,
     ) -> Dict[str, Any]:
-        input_segments = [{"role": "user", "content": [{"type": "text", "text": request.user_message}]}]
+        input_segments = [{"role": "user", "content": [{"type": "input_text", "text": request.user_message}]}]
         payload: Dict[str, Any] = {
             "model": llm_model,
             "input": input_segments,
