@@ -201,7 +201,7 @@ class Blockers:
                     human_readable = TX.translate_reason_code_to_human_readable(reason_code)
                     rows.append(f"- <code>{reason_code}</code>: {human_readable}")
             if blocker.acceptance_tests:
-                rows.append("\n**Acceptance Tests:**\n")
+                rows.append("\n**Acceptance Criteria:**\n")
                 for test in blocker.acceptance_tests:
                     rows.append(f"  - {escape_markdown(test)}")
             if blocker.artifacts_required:

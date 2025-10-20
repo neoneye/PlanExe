@@ -488,7 +488,7 @@ class OverallSummary:
     @staticmethod
     def format_flips_to_go_markdown(*, payload: OverallSummaryPayload) -> str:
         lines: List[str] = []
-        lines.append('<p class="section-subtitle">Observable criteria that confirm readiness.</p>')
+        lines.append('<p class="section-subtitle">Must be met to proceed.</p>')
         if payload.viability_summary.what_flips_to_go:
             for item in payload.viability_summary.what_flips_to_go:
                 lines.append(f"- {escape_markdown(item)}")
@@ -504,7 +504,7 @@ class OverallSummary:
         lines.append("### Summary of Critical Issues by Domain")
         lines.append(OverallSummary.format_critical_issues_markdown(payload=payload))
         lines.append("")
-        lines.append("### What Flips to GO (Success Criteria)")
+        lines.append("### Go/No-Go Criteria")
         lines.append(OverallSummary.format_flips_to_go_markdown(payload=payload))
         return "\n".join(lines)
 
