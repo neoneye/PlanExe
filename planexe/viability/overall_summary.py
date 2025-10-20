@@ -74,7 +74,6 @@ class OverallPayload(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     status: str
-    confidence: str
 
 
 class ViabilitySummaryPayload(BaseModel):
@@ -275,17 +274,6 @@ def _worst_status(statuses: Iterable[str]) -> Optional[str]:
     return worst[1]
 
 
-def _confidence_from_statuses(statuses: Sequence[str]) -> str:
-    normalized = [status.upper() for status in statuses]
-    if any(status == StatusEnum.RED.value for status in normalized):
-        return "Low"
-    if any(status == StatusEnum.GRAY.value for status in normalized):
-        return "Low"
-    if any(status == StatusEnum.YELLOW.value for status in normalized):
-        return "Medium"
-    return "High"
-
-
 def _collect_fp0_ids(fix_packs: Sequence[FixPackItem]) -> List[str]:
     for pack in fix_packs:
         if pack.id.upper() == "FP0":
@@ -399,8 +387,6 @@ class OverallSummary:
         if red_gray_covered:
             upgraded_status = STATUS_UPGRADE_MAP.get(worst_status, worst_status)
 
-        confidence = _confidence_from_statuses(statuses)
-
         recommendation_value: RecommendationEnum = RecommendationEnum.determine(
             statuses=statuses,
             red_gray_covered=red_gray_covered,
@@ -420,7 +406,6 @@ class OverallSummary:
 
         overall_payload = OverallPayload(
             status=upgraded_status,
-            confidence=confidence,
         )
 
         # Convert WhyItem dataclasses to dicts for JSON serialization
@@ -468,9 +453,8 @@ class OverallSummary:
     @staticmethod
     def format_header_markdown(*, payload: OverallSummaryPayload) -> str:
         lines: List[str] = []
-        lines.append(f"- Status: {escape_markdown(payload.overall.status)}")
-        lines.append(f"- Confidence: {escape_markdown(payload.overall.confidence)}")
-        lines.append(f"- Recommendation: {escape_markdown(payload.viability_summary.recommendation)}")
+        lines.append(f"- **Status:** {escape_markdown(payload.overall.status)}")
+        lines.append(f"- **Recommendation:** {escape_markdown(payload.viability_summary.recommendation)}")
         return "\n".join(lines)
 
     @staticmethod
