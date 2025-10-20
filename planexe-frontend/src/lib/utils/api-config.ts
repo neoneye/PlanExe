@@ -26,10 +26,35 @@ export function getApiBaseUrl(): string {
     return process.env.NODE_ENV === 'development' ? defaultDevUrl : '';
   }
 
-  const hostname = window.location.hostname;
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+  const { hostname, port, origin } = window.location;
+  const normalizedHost = hostname.toLowerCase();
+  const localHostnames = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0', 'localhost.localdomain']);
+  const devPorts = new Set(['3000', '3001']);
 
-  return isLocalhost ? defaultDevUrl : '';
+  const shouldUseLocalBackend = localHostnames.has(normalizedHost) || devPorts.has(port);
+
+  if (shouldUseLocalBackend) {
+    try {
+      const url = new URL(origin);
+      url.port = '8080';
+      url.pathname = '';
+      url.search = '';
+      url.hash = '';
+
+      // Some environments expose the dev server as 0.0.0.0 which is not directly reachable.
+      if (normalizedHost === '0.0.0.0') {
+        url.hostname = 'localhost';
+      }
+
+      return url.origin;
+    } catch (error) {
+      const protocol = window.location.protocol || 'http:';
+      const host = normalizedHost === '0.0.0.0' ? 'localhost' : hostname;
+      return `${protocol}//${host}:8080`;
+    }
+  }
+
+  return '';
 }
 
 /**

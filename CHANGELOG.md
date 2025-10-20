@@ -5,6 +5,16 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [0.3.20] - 2025-11-04 - Dev API Host Detection
+
+### ✅ Highlights
+- Normalised the frontend API client to detect local dev hosts by port and map them to the FastAPI backend so `/api/plans` calls reach port 8080 even when browsing via non-localhost domains.
+
+### 🧪 Testing
+- ✅ `pytest test_minimal_create.py`
+
+---
+
 ## [0.3.19] - 2025-11-03 - Intake Modal Reliability
 
 ### ✅ Highlights
