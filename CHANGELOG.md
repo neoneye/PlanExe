@@ -5,6 +5,11 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [Unreleased]
+
+### Backend
+- Centralised streaming token defaults behind environment-aware configuration and updated public docs to reflect the runtime overrides.
+
 ## [0.4.0] - 2025-10-20 - MAJOR: Landing Page Redesign - Conversation-First UX
 
 ### ✅ Highlights
