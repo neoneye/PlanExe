@@ -8,6 +8,10 @@
  */
 
 import { createWebSocketUrl, getApiBaseUrl } from '@/lib/utils/api-config';
+import {
+  RESPONSES_CONVERSATION_DEFAULTS,
+  RESPONSES_STREAMING_DEFAULTS,
+} from '@/lib/config/responses';
 
 // FastAPI Backend Types (EXACT match with backend)
 export interface CreatePlanRequest {
@@ -629,14 +633,17 @@ export class FastAPIClient {
     const body: Record<string, unknown> = {
       model_key: payload.modelKey,
       user_message: payload.userMessage,
+      reasoning_effort:
+        payload.reasoningEffort ?? RESPONSES_CONVERSATION_DEFAULTS.reasoningEffort,
+      reasoning_summary:
+        payload.reasoningSummary ?? RESPONSES_CONVERSATION_DEFAULTS.reasoningSummary,
+      text_verbosity:
+        payload.textVerbosity ?? RESPONSES_CONVERSATION_DEFAULTS.textVerbosity,
+      store: payload.store ?? true,
     };
     if (payload.previousResponseId) body.previous_response_id = payload.previousResponseId;
     if (payload.instructions) body.instructions = payload.instructions;
     if (payload.metadata) body.metadata = payload.metadata;
-    if (payload.reasoningEffort) body.reasoning_effort = payload.reasoningEffort;
-    if (payload.reasoningSummary) body.reasoning_summary = payload.reasoningSummary;
-    if (payload.textVerbosity) body.text_verbosity = payload.textVerbosity;
-    if (typeof payload.store === 'boolean') body.store = payload.store;
 
     const response = await fetch(
       `${this.baseURL}/api/conversations/${encodeURIComponent(conversation_id)}/requests`,
@@ -679,14 +686,17 @@ export class FastAPIClient {
     const body: Record<string, unknown> = {
       model_key: payload.modelKey,
       user_message: payload.userMessage,
+      reasoning_effort:
+        payload.reasoningEffort ?? RESPONSES_CONVERSATION_DEFAULTS.reasoningEffort,
+      reasoning_summary:
+        payload.reasoningSummary ?? RESPONSES_CONVERSATION_DEFAULTS.reasoningSummary,
+      text_verbosity:
+        payload.textVerbosity ?? RESPONSES_CONVERSATION_DEFAULTS.textVerbosity,
+      store: payload.store ?? true,
     };
     if (payload.previousResponseId) body.previous_response_id = payload.previousResponseId;
     if (payload.instructions) body.instructions = payload.instructions;
     if (payload.metadata) body.metadata = payload.metadata;
-    if (payload.reasoningEffort) body.reasoning_effort = payload.reasoningEffort;
-    if (payload.reasoningSummary) body.reasoning_summary = payload.reasoningSummary;
-    if (payload.textVerbosity) body.text_verbosity = payload.textVerbosity;
-    if (typeof payload.store === 'boolean') body.store = payload.store;
 
     const response = await fetch(
       `${this.baseURL}/api/conversations/${encodeURIComponent(conversation_id)}/followups`,
@@ -709,17 +719,22 @@ export class FastAPIClient {
       task_id: payload.taskId,
       model_key: payload.modelKey,
       prompt: payload.prompt,
-      reasoning_effort: payload.reasoningEffort ?? 'high',
-      reasoning_summary: payload.reasoningSummary ?? 'detailed',
-      text_verbosity: payload.textVerbosity ?? 'high',
+      reasoning_effort:
+        payload.reasoningEffort ?? RESPONSES_STREAMING_DEFAULTS.reasoningEffort,
+      reasoning_summary:
+        payload.reasoningSummary ?? RESPONSES_STREAMING_DEFAULTS.reasoningSummary,
+      text_verbosity:
+        payload.textVerbosity ?? RESPONSES_STREAMING_DEFAULTS.textVerbosity,
     };
 
     if (payload.context) body.context = payload.context;
     if (payload.metadata) body.metadata = payload.metadata;
     if (typeof payload.temperature === 'number') body.temperature = payload.temperature;
-    if (typeof payload.maxOutputTokens === 'number') {
-      body.max_output_tokens = payload.maxOutputTokens;
-    }
+    const maxOutputTokens =
+      typeof payload.maxOutputTokens === 'number'
+        ? payload.maxOutputTokens
+        : RESPONSES_STREAMING_DEFAULTS.maxOutputTokens;
+    body.max_output_tokens = maxOutputTokens;
     if (payload.schemaName) body.schema_name = payload.schemaName;
     if (payload.schema) body.schema = payload.schema;
     if (payload.previousResponseId) {

@@ -11,6 +11,7 @@ from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
 from fastapi import HTTPException
 from openai import APIError
 
+from planexe_api.config import RESPONSES_STREAMING_CONTROLS
 from planexe_api.database import DatabaseService, SessionLocal
 from planexe_api.models import AnalysisStreamRequest
 from planexe_api.streaming.session_store import (
@@ -19,14 +20,6 @@ from planexe_api.streaming.session_store import (
 )
 from planexe.llm_factory import get_llm, is_valid_llm_name
 from planexe.llm_util.simple_openai_llm import SimpleOpenAILLM
-
-
-DEFAULT_SYSTEM_PROMPT = (
-    "You are PlanExe's live analysis assistant. Provide thorough reasoning, cite assumptions,"
-    " and produce structured insights while remaining concise and safe."
-)
-DEFAULT_STAGE = "streaming_analysis_modal"
-DEFAULT_MAX_OUTPUT_TOKENS = 14096
 
 
 @dataclass
@@ -172,14 +165,14 @@ class AnalysisStreamService:
             interaction = db_service.create_llm_interaction(
                 {
                     "plan_id": prepared.request.task_id,
-                    "stage": prepared.request.stage or DEFAULT_STAGE,
+                    "stage": prepared.request.stage or RESPONSES_STREAMING_CONTROLS.stage,
                     "llm_model": llm.model,
                     "prompt_text": prepared.prompt_text,
                     "prompt_metadata": {
                         "context": prepared.context_text,
                         "metadata": prepared.metadata,
                         "model_key": prepared.request.model_key,
-                        "analysis_type": prepared.request.stage or DEFAULT_STAGE,
+                        "analysis_type": prepared.request.stage or RESPONSES_STREAMING_CONTROLS.stage,
                     },
                     "status": "running",
                     "started_at": start_time,
@@ -276,7 +269,8 @@ class AnalysisStreamService:
         request_args["reasoning"]["summary"] = prepared.request.reasoning_summary
         request_args["text"]["verbosity"] = prepared.request.text_verbosity
         request_args["max_output_tokens"] = (
-            prepared.request.max_output_tokens or DEFAULT_MAX_OUTPUT_TOKENS
+            prepared.request.max_output_tokens
+            or RESPONSES_STREAMING_CONTROLS.max_output_tokens
         )
         if prepared.request.temperature is not None:
             request_args["temperature"] = prepared.request.temperature
@@ -416,7 +410,7 @@ class AnalysisStreamService:
         return summary
 
     def _build_messages(self, request: AnalysisStreamRequest) -> List[Dict[str, Any]]:
-        system_prompt = request.system_prompt or DEFAULT_SYSTEM_PROMPT
+        system_prompt = request.system_prompt or RESPONSES_STREAMING_CONTROLS.system_prompt
         user_segments: List[Dict[str, Any]] = []
         if request.context:
             user_segments.append(
@@ -434,7 +428,9 @@ class AnalysisStreamService:
     def _build_request_options(self, request: AnalysisStreamRequest) -> Dict[str, Any]:
         return {
             "temperature": request.temperature,
-            "max_output_tokens": request.max_output_tokens or DEFAULT_MAX_OUTPUT_TOKENS,
+            "max_output_tokens": (
+                request.max_output_tokens or RESPONSES_STREAMING_CONTROLS.max_output_tokens
+            ),
             "reasoning_effort": request.reasoning_effort,
             "reasoning_summary": request.reasoning_summary,
             "text_verbosity": request.text_verbosity,
