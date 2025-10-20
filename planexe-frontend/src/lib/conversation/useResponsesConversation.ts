@@ -85,7 +85,12 @@ export function useResponsesConversation(
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [initialised, setInitialised] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [currentResponseId, setCurrentResponseId] = useState<string | null>(null);
+  const [currentResponseId, setCurrentResponseIdState] = useState<string | null>(null);
+  const currentResponseIdRef = useRef<string | null>(null);
+  const persistResponseId = useCallback((responseId: string | null) => {
+    currentResponseIdRef.current = responseId;
+    setCurrentResponseIdState(responseId);
+  }, []);
   const [lastFinal, setLastFinal] = useState<ConversationFinalPayload | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
 
@@ -108,11 +113,11 @@ export function useResponsesConversation(
     updateMessages(() => []);
     setInitialised(false);
     setConversationId(null);
-    setCurrentResponseId(null);
+    persistResponseId(null);
     setLastFinal(null);
     setLastError(null);
     closeStream(true);
-  }, [initialPrompt, conversationKey, closeStream, updateMessages]);
+  }, [initialPrompt, conversationKey, closeStream, updateMessages, persistResponseId]);
 
   const ensureRemoteConversation = useCallback(async (): Promise<string> => {
     if (conversationId) {
@@ -168,6 +173,7 @@ export function useResponsesConversation(
         throw error instanceof Error ? error : new Error(errorMessage);
       }
 
+      const previousResponseId = currentResponseIdRef.current ?? undefined;
       const payload: ConversationTurnRequestPayload = {
         modelKey,
         userMessage: trimmedMessage,
@@ -181,6 +187,7 @@ export function useResponsesConversation(
         reasoningSummary: 'succinct',
         textVerbosity: 'concise',
         store: true,
+        ...(previousResponseId ? { previousResponseId } : {}),
       };
 
       await new Promise<void>((resolve, reject) => {
@@ -208,11 +215,12 @@ export function useResponsesConversation(
           },
           onCompleted: (completePayload) => {
             if (completePayload.response_id) {
-              setCurrentResponseId(completePayload.response_id);
+              persistResponseId(completePayload.response_id);
             }
           },
           onFinal: (finalPayload) => {
-            setCurrentResponseId(finalPayload.summary.response_id ?? currentResponseId);
+            const summaryResponseId = finalPayload.summary.response_id ?? currentResponseIdRef.current;
+            persistResponseId(summaryResponseId ?? null);
             setLastFinal(finalPayload);
             const finalizedText = finalPayload.summary.text?.trim() ?? '';
             updateMessages((prev) =>
@@ -278,7 +286,7 @@ export function useResponsesConversation(
       ensureRemoteConversation,
       startStream,
       updateMessages,
-      currentResponseId,
+      persistResponseId,
     ],
   );
 
@@ -351,11 +359,11 @@ export function useResponsesConversation(
     updateMessages(() => []);
     setInitialised(false);
     setConversationId(null);
-    setCurrentResponseId(null);
+    persistResponseId(null);
     setLastFinal(null);
     setLastError(null);
     closeStream(true);
-  }, [closeStream, updateMessages]);
+  }, [closeStream, persistResponseId, updateMessages]);
 
   const isStreaming = streamState.status === 'connecting' || streamState.status === 'running';
 
