@@ -26,22 +26,32 @@ export function getApiBaseUrl(): string {
     return process.env.NODE_ENV === 'development' ? defaultDevUrl : '';
   }
 
-  const { protocol, hostname, port } = window.location;
-  const normalizedProtocol = protocol || 'http:';
-  const localHosts = new Set(['localhost', '127.0.0.1', '0.0.0.0', '::1']);
-  const devPorts = new Set(['3000', '3001', '5173']);
+  const { hostname, port, origin } = window.location;
+  const normalizedHost = hostname.toLowerCase();
+  const localHostnames = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0', 'localhost.localdomain']);
+  const devPorts = new Set(['3000', '3001']);
 
-  if (localHosts.has(hostname)) {
-    const targetHost = hostname === '0.0.0.0' ? '127.0.0.1' : hostname;
-    return `${normalizedProtocol}//${targetHost}:8080`;
-  }
+  const shouldUseLocalBackend = localHostnames.has(normalizedHost) || devPorts.has(port);
 
-  if (devPorts.has(port)) {
-    return `${normalizedProtocol}//${hostname}:8080`;
-  }
+  if (shouldUseLocalBackend) {
+    try {
+      const url = new URL(origin);
+      url.port = '8080';
+      url.pathname = '';
+      url.search = '';
+      url.hash = '';
 
-  if (port === '8080' || port === '' || port === undefined) {
-    return '';
+      // Some environments expose the dev server as 0.0.0.0 which is not directly reachable.
+      if (normalizedHost === '0.0.0.0') {
+        url.hostname = 'localhost';
+      }
+
+      return url.origin;
+    } catch (error) {
+      const protocol = window.location.protocol || 'http:';
+      const host = normalizedHost === '0.0.0.0' ? 'localhost' : hostname;
+      return `${protocol}//${host}:8080`;
+    }
   }
 
   return '';

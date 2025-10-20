@@ -5,6 +5,20 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [0.3.24] - 2025-11-04 - Dev API Host Detection
+
+### ✅ Highlights
+- Normalised the frontend API client to detect local dev hosts by port and map them to the FastAPI backend so `/api/plans` calls reach port 8080 even when browsing via non-localhost domains.
+
+### 🧪 Testing
+- ✅ `pytest test_minimal_create.py`
+/**
+ * Author: ChatGPT (gpt-5-codex)
+ * Date: 2025-10-15
+ * PURPOSE: Project changelog tracking release notes, testing, and context for PlanExe iterations.
+ * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
+ */
+
 ## [0.3.23] - 2025-10-30 - Align intake conversation model defaults
 
 ### ✅ Highlights
