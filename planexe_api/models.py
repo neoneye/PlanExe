@@ -9,6 +9,11 @@ from typing import Optional, List, Dict, Any
 from enum import Enum
 from datetime import datetime
 
+from planexe_api.config import (
+    RESPONSES_CONVERSATION_CONTROLS,
+    RESPONSES_STREAMING_CONTROLS,
+)
+
 
 class PlanStatus(str, Enum):
     """Status of a plan generation job"""
@@ -171,16 +176,23 @@ class AnalysisStreamRequest(BaseModel):
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional caller metadata for auditing")
     temperature: Optional[float] = Field(0.2, ge=0.0, le=2.0, description="Sampling temperature override")
     max_output_tokens: Optional[int] = Field(
-        4096,
-        ge=512,
-        le=32768,
+        RESPONSES_STREAMING_CONTROLS.max_output_tokens,
+        ge=RESPONSES_STREAMING_CONTROLS.min_output_tokens,
+        le=RESPONSES_STREAMING_CONTROLS.max_output_tokens_ceiling,
         description="Maximum tokens budget allocated to the response",
     )
     reasoning_effort: ReasoningEffort = Field(
-        ReasoningEffort.high, description="Reasoning effort level for the Responses API"
+        ReasoningEffort(RESPONSES_STREAMING_CONTROLS.reasoning_effort),
+        description="Reasoning effort level for the Responses API",
     )
-    reasoning_summary: str = Field("detailed", description="Reasoning summary granularity")
-    text_verbosity: str = Field("high", description="Text verbosity configuration for streaming deltas")
+    reasoning_summary: str = Field(
+        RESPONSES_STREAMING_CONTROLS.reasoning_summary,
+        description="Reasoning summary granularity",
+    )
+    text_verbosity: str = Field(
+        RESPONSES_STREAMING_CONTROLS.text_verbosity,
+        description="Text verbosity configuration for streaming deltas",
+    )
     schema_name: Optional[str] = Field(
         None, description="Optional schema label when requesting structured output"
     )
@@ -256,10 +268,17 @@ class ConversationTurnRequest(BaseModel):
         None, description="Optional local transcript for client-side enrichment"
     )
     reasoning_effort: ReasoningEffort = Field(
-        ReasoningEffort.high, description="Reasoning effort level for the turn"
+        ReasoningEffort(RESPONSES_CONVERSATION_CONTROLS.reasoning_effort),
+        description="Reasoning effort level for the turn",
     )
-    reasoning_summary: str = Field("succinct", description="Reasoning summary verbosity")
-    text_verbosity: str = Field("concise", description="Assistant text verbosity")
+    reasoning_summary: str = Field(
+        RESPONSES_CONVERSATION_CONTROLS.reasoning_summary,
+        description="Reasoning summary verbosity",
+    )
+    text_verbosity: str = Field(
+        RESPONSES_CONVERSATION_CONTROLS.text_verbosity,
+        description="Assistant text verbosity",
+    )
     store: bool = Field(True, description="Whether to store the response in OpenAI logs")
 
     @field_validator("user_message")

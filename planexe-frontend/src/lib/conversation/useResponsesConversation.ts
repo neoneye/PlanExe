@@ -17,6 +17,7 @@ import {
   fastApiClient,
 } from '@/lib/api/fastapi-client';
 import { useConversationStreaming } from '@/lib/streaming/conversation-streaming';
+import { RESPONSES_CONVERSATION_DEFAULTS } from '@/lib/config/responses';
 
 export type ConversationRole = 'user' | 'assistant';
 
@@ -183,9 +184,9 @@ export function useResponsesConversation(
           initialPrompt,
           ...(metadata ?? {}),
         },
-        reasoningEffort: 'high',
-        reasoningSummary: 'succinct',
-        textVerbosity: 'concise',
+        reasoningEffort: RESPONSES_CONVERSATION_DEFAULTS.reasoningEffort,
+        reasoningSummary: RESPONSES_CONVERSATION_DEFAULTS.reasoningSummary,
+        textVerbosity: RESPONSES_CONVERSATION_DEFAULTS.textVerbosity,
         store: true,
         ...(previousResponseId ? { previousResponseId } : {}),
       };
