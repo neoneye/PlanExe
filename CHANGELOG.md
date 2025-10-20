@@ -5,7 +5,15 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
+## [0.3.23] - 2025-10-30 - Align intake conversation model defaults
+
+### ✅ Highlights
+- Updated the intake conversation fallback model to `gpt-5-mini-2025-08-07` so the modal matches backend defaults.
+- Synced PlanForm fallback messaging and developer docs to point at the same GPT-5 Mini configuration.
+
+
 ## [0.3.22] - 2025-10-19 - MAJOR: Eliminate Unused llama-index Meta-Package & Resolve Deployment Conflict
+
 
 ### ✅ Highlights
 - **BREAKING: Removed the entire llama-index meta-package and 11 related dependencies**, keeping ONLY `llama-index-core` (base classes)

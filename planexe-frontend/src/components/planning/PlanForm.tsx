@@ -199,7 +199,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                                 </SelectItem>
                                 <SelectItem value="gpt-5-mini-2025-08-07" >
                                   <div className="flex items-center space-x-2">
-                                    <span>Default: GPT-5 Nano (Primary)</span>
+                                    <span>Default: GPT-5 Mini (Primary)</span>
                                     <Badge variant="outline" className="text-xs">
                                       Primary Choice
                                     </Badge>
@@ -215,7 +215,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                                 </SelectItem>
                                 <SelectItem value="gpt-5-mini-2025-08-07">
                                   <div className="flex items-center space-x-2">
-                                    <span>Default: GPT-5 Nano (Primary)</span>
+                                    <span>Default: GPT-5 Mini (Primary)</span>
                                     <Badge variant="outline" className="text-xs">
                                       Primary Choice
                                     </Badge>
