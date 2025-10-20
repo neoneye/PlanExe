@@ -3571,11 +3571,11 @@ class PremortemTask(PlanTask):
         markdown_path = self.output()['markdown'].path
         premortem.save_markdown(markdown_path)
 
-class DomainsAssessmentTask(PlanTask):
+class ViabilityDomainsAssessmentTask(PlanTask):
     def output(self):
         return {
-            'raw': self.local_target(FilenameEnum.DOMAINS_ASSESSMENT_RAW),
-            'markdown': self.local_target(FilenameEnum.DOMAINS_ASSESSMENT_MARKDOWN)
+            'raw': self.local_target(FilenameEnum.VIABILITY_DOMAINS_ASSESSMENT_RAW),
+            'markdown': self.local_target(FilenameEnum.VIABILITY_DOMAINS_ASSESSMENT_MARKDOWN)
         }
     
     def requires(self):
@@ -3656,11 +3656,11 @@ class DomainsAssessmentTask(PlanTask):
         markdown_path = self.output()['markdown'].path
         domains_assessment.save_markdown(markdown_path)
 
-class BlockersTask(PlanTask):
+class ViabilityBlockersTask(PlanTask):
     def output(self):
         return {
-            'raw': self.local_target(FilenameEnum.BLOCKERS_RAW),
-            'markdown': self.local_target(FilenameEnum.BLOCKERS_MARKDOWN)
+            'raw': self.local_target(FilenameEnum.VIABILITY_BLOCKERS_RAW),
+            'markdown': self.local_target(FilenameEnum.VIABILITY_BLOCKERS_MARKDOWN)
         }
     
     def requires(self):
@@ -3681,7 +3681,7 @@ class BlockersTask(PlanTask):
             'review_plan': self.clone(ReviewPlanTask),
             'questions_and_answers': self.clone(QuestionsAndAnswersTask),
             'premortem': self.clone(PremortemTask),
-            'domains_assessment': self.clone(DomainsAssessmentTask)
+            'viability_domains_assessment': self.clone(ViabilityDomainsAssessmentTask)
         }
     
     def run_with_llm(self, llm: LLM) -> None:
@@ -3714,7 +3714,7 @@ class BlockersTask(PlanTask):
             questions_and_answers_markdown = f.read()
         with self.input()['premortem']['markdown'].open("r") as f:
             premortem_markdown = f.read()
-        with self.input()['domains_assessment']['markdown'].open("r") as f:
+        with self.input()['viability_domains_assessment']['markdown'].open("r") as f:
             domains_assessment_markdown = f.read()
 
         # Build the query.
@@ -3745,11 +3745,11 @@ class BlockersTask(PlanTask):
         markdown_path = self.output()['markdown'].path
         blockers.save_markdown(markdown_path)
 
-class FixPacksTask(PlanTask):
+class ViabilityFixPacksTask(PlanTask):
     def output(self):
         return {
-            'raw': self.local_target(FilenameEnum.FIX_PACKS_RAW),
-            'markdown': self.local_target(FilenameEnum.FIX_PACKS_MARKDOWN)
+            'raw': self.local_target(FilenameEnum.VIABILITY_FIX_PACKS_RAW),
+            'markdown': self.local_target(FilenameEnum.VIABILITY_FIX_PACKS_MARKDOWN)
         }
     
     def requires(self):
@@ -3770,8 +3770,8 @@ class FixPacksTask(PlanTask):
             'review_plan': self.clone(ReviewPlanTask),
             'questions_and_answers': self.clone(QuestionsAndAnswersTask),
             'premortem': self.clone(PremortemTask),
-            'domains_assessment': self.clone(DomainsAssessmentTask),
-            'blockers': self.clone(BlockersTask)
+            'viability_domains_assessment': self.clone(ViabilityDomainsAssessmentTask),
+            'viability_blockers': self.clone(ViabilityBlockersTask)
         }
     
     def run_with_llm(self, llm: LLM) -> None:
@@ -3804,13 +3804,13 @@ class FixPacksTask(PlanTask):
             questions_and_answers_markdown = f.read()
         with self.input()['premortem']['markdown'].open("r") as f:
             premortem_markdown = f.read()
-        with self.input()['domains_assessment']['markdown'].open("r") as f:
+        with self.input()['viability_domains_assessment']['markdown'].open("r") as f:
             domains_assessment_markdown = f.read()
-        with self.input()['domains_assessment']['raw'].open("r") as f:
+        with self.input()['viability_domains_assessment']['raw'].open("r") as f:
             domains_assessment_raw = f.read()
-        with self.input()['blockers']['markdown'].open("r") as f:
+        with self.input()['viability_blockers']['markdown'].open("r") as f:
             blockers_markdown = f.read()
-        with self.input()['blockers']['raw'].open("r") as f:
+        with self.input()['viability_blockers']['raw'].open("r") as f:
             blockers_raw = f.read()
 
         # Build the query.
@@ -3859,18 +3859,18 @@ class ViabilityOverallSummaryTask(PlanTask):
     
     def requires(self):
         return {
-            'domains_assessment': self.clone(DomainsAssessmentTask),
-            'blockers': self.clone(BlockersTask),
-            'fix_packs': self.clone(FixPacksTask)
+            'viability_domains_assessment': self.clone(ViabilityDomainsAssessmentTask),
+            'viability_blockers': self.clone(ViabilityBlockersTask),
+            'viability_fix_packs': self.clone(ViabilityFixPacksTask)
         }
     
     def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
-        with self.input()['domains_assessment']['raw'].open("r") as f:
+        with self.input()['viability_domains_assessment']['raw'].open("r") as f:
             domains_assessment_raw = f.read()
-        with self.input()['blockers']['raw'].open("r") as f:
+        with self.input()['viability_blockers']['raw'].open("r") as f:
             blockers_raw = f.read()
-        with self.input()['fix_packs']['raw'].open("r") as f:
+        with self.input()['viability_fix_packs']['raw'].open("r") as f:
             fix_packs_raw = f.read()
 
         summary = OverallSummary.execute(
@@ -3922,9 +3922,9 @@ class ReportTask(PlanTask):
             'create_schedule': self.clone(CreateScheduleTask),
             'questions_and_answers': self.clone(QuestionsAndAnswersTask),
             'premortem': self.clone(PremortemTask),
-            'domains_assessment': self.clone(DomainsAssessmentTask),
-            'blockers': self.clone(BlockersTask),
-            'fix_packs': self.clone(FixPacksTask),
+            'viability_domains_assessment': self.clone(ViabilityDomainsAssessmentTask),
+            'viability_blockers': self.clone(ViabilityBlockersTask),
+            'viability_fix_packs': self.clone(ViabilityFixPacksTask),
             'viability_overall_summary': self.clone(ViabilityOverallSummaryTask)
         }
     
@@ -3956,9 +3956,9 @@ class ReportTask(PlanTask):
         rg.append_viability(
             document_title='Project Health Assessment',
             overall_summary_header_markdown_file_path=Path(self.input()['viability_overall_summary']['header_markdown'].path),
-            domains_markdown_file_path=Path(self.input()['domains_assessment']['markdown'].path),
-            blockers_markdown_file_path=Path(self.input()['blockers']['markdown'].path),
-            fixpack_markdown_file_path=Path(self.input()['fix_packs']['markdown'].path),
+            domains_markdown_file_path=Path(self.input()['viability_domains_assessment']['markdown'].path),
+            blockers_markdown_file_path=Path(self.input()['viability_blockers']['markdown'].path),
+            fixpack_markdown_file_path=Path(self.input()['viability_fix_packs']['markdown'].path),
             overall_summary_critical_issues_markdown_file_path=Path(self.input()['viability_overall_summary']['critical_issues_markdown'].path),
             overall_summary_flips_to_go_markdown_file_path=Path(self.input()['viability_overall_summary']['flips_to_go_markdown'].path),
         )
@@ -4033,9 +4033,9 @@ class FullPlanPipeline(PlanTask):
             'create_schedule': self.clone(CreateScheduleTask),
             'questions_and_answers': self.clone(QuestionsAndAnswersTask),
             'premortem': self.clone(PremortemTask),
-            'domains_assessment': self.clone(DomainsAssessmentTask),
-            'blockers': self.clone(BlockersTask),
-            'fix_packs': self.clone(FixPacksTask),
+            'viability_domains_assessment': self.clone(ViabilityDomainsAssessmentTask),
+            'viability_blockers': self.clone(ViabilityBlockersTask),
+            'viability_fix_packs': self.clone(ViabilityFixPacksTask),
             'viability_overall_summary': self.clone(ViabilityOverallSummaryTask),
             'report': self.clone(ReportTask),
         }
