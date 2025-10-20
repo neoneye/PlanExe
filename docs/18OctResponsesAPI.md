@@ -158,7 +158,9 @@ async callModelStreaming(options: StreamingCallOptions): Promise<void> {
   const stream = await openai.responses.stream({
     model: 'gpt-5-nano-2025-04-14',
     input: this.mapMessagesToResponsesInput(messages),
-    max_output_tokens: 128000,
+    ...(options.maxOutputTokens
+      ? { max_output_tokens: Math.min(options.maxOutputTokens, 120000) }
+      : {}),
     stream: true,
     store: true,
     reasoning: {
@@ -543,8 +545,8 @@ OPENAI_TIMEOUT_MS=600000               # 10 minutes
 DEBUG_SAVE_RAW=true                    # Save raw responses
 
 # Streaming analysis overrides (all optional)
-OPENAI_MAX_OUTPUT_TOKENS=16024         # Overrides runtime + validation defaults
-OPENAI_MAX_OUTPUT_TOKENS_CEILING=32768 # Hard ceiling enforced in validation
+OPENAI_MAX_OUTPUT_TOKENS=120000         # Optional override; omit to allow provider default
+OPENAI_MAX_OUTPUT_TOKENS_CEILING=120000 # Hard ceiling enforced consistently across the stack
 OPENAI_MIN_OUTPUT_TOKENS=512           # Lower bound for streaming responses
 OPENAI_REASONING_EFFORT=high           # Maps to AnalysisStreamRequest.reasoning_effort
 OPENAI_REASONING_SUMMARY=detailed      # Maps to reasoning_summary

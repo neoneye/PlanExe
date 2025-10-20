@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from typing import Optional
 
 
 def _int_setting(name: str, default: int) -> int:
@@ -20,6 +21,16 @@ def _str_setting(name: str, default: str) -> str:
     return os.getenv(name, default)
 
 
+def _optional_int_setting(name: str, default: Optional[int]) -> Optional[int]:
+    value = os.getenv(name)
+    if value is None or value.strip() == "":
+        return default
+    try:
+        return int(value)
+    except ValueError as exc:  # pragma: no cover - defensive guard
+        raise ValueError(f"Environment variable {name} must be an integer, got {value!r}") from exc
+
+
 @dataclass(frozen=True)
 class ResponsesStreamingControls:
     """Configuration defaults for streaming analysis requests."""
@@ -29,9 +40,9 @@ class ResponsesStreamingControls:
         " and produce structured insights while remaining concise and safe."
     )
     stage: str = "streaming_analysis_modal"
-    max_output_tokens: int = 16024
+    max_output_tokens: Optional[int] = None
     min_output_tokens: int = 512
-    max_output_tokens_ceiling: int = 32768
+    max_output_tokens_ceiling: int = 120000
     reasoning_effort: str = "high"
     reasoning_summary: str = "detailed"
     text_verbosity: str = "high"
@@ -49,9 +60,11 @@ class ResponsesConversationControls:
 def _build_streaming_controls() -> ResponsesStreamingControls:
     defaults = ResponsesStreamingControls()
     max_ceiling = _int_setting("OPENAI_MAX_OUTPUT_TOKENS_CEILING", defaults.max_output_tokens_ceiling)
-    max_tokens = min(_int_setting("OPENAI_MAX_OUTPUT_TOKENS", defaults.max_output_tokens), max_ceiling)
+    max_tokens = _optional_int_setting("OPENAI_MAX_OUTPUT_TOKENS", defaults.max_output_tokens)
+    if max_tokens is not None and max_tokens > max_ceiling:
+        max_tokens = max_ceiling
     min_tokens = _int_setting("OPENAI_MIN_OUTPUT_TOKENS", defaults.min_output_tokens)
-    if min_tokens > max_tokens:
+    if max_tokens is not None and min_tokens > max_tokens:
         raise ValueError(
             "OPENAI_MIN_OUTPUT_TOKENS cannot be greater than the effective max output token budget"
         )

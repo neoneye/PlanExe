@@ -734,7 +734,9 @@ export class FastAPIClient {
       typeof payload.maxOutputTokens === 'number'
         ? payload.maxOutputTokens
         : RESPONSES_STREAMING_DEFAULTS.maxOutputTokens;
-    body.max_output_tokens = maxOutputTokens;
+    if (typeof maxOutputTokens === 'number') {
+      body.max_output_tokens = maxOutputTokens;
+    }
     if (payload.schemaName) body.schema_name = payload.schemaName;
     if (payload.schema) body.schema = payload.schema;
     if (payload.previousResponseId) {
