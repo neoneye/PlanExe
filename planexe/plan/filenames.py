@@ -123,6 +123,9 @@ class FilenameEnum(str, Enum):
     FIX_PACKS_MARKDOWN = "029-6-fix_packs_markdown.md"
     VIABILITY_OVERALL_SUMMARY_RAW = "029-7-viability_overall_summary_raw.json"
     VIABILITY_OVERALL_SUMMARY_MARKDOWN = "029-8-viability_overall_summary.md"
+    VIABILITY_OVERALL_SUMMARY_HEADER_MARKDOWN = "029-9-viability_overall_summary_header.md"
+    VIABILITY_OVERALL_SUMMARY_CRITICAL_ISSUES_MARKDOWN = "029-10-viability_overall_summary_critical_issues.md"
+    VIABILITY_OVERALL_SUMMARY_FLIPS_TO_GO_MARKDOWN = "029-11-viability_overall_summary_flips_to_go.md"
     REPORT = "030-report.html"
     PIPELINE_COMPLETE = "999-pipeline_complete.txt"
 

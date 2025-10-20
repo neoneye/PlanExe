@@ -3851,6 +3851,9 @@ class ViabilityOverallSummaryTask(PlanTask):
     def output(self):
         return {
             'raw': self.local_target(FilenameEnum.VIABILITY_OVERALL_SUMMARY_RAW),
+            'header_markdown': self.local_target(FilenameEnum.VIABILITY_OVERALL_SUMMARY_HEADER_MARKDOWN),
+            'critical_issues_markdown': self.local_target(FilenameEnum.VIABILITY_OVERALL_SUMMARY_CRITICAL_ISSUES_MARKDOWN),
+            'flips_to_go_markdown': self.local_target(FilenameEnum.VIABILITY_OVERALL_SUMMARY_FLIPS_TO_GO_MARKDOWN),
             'markdown': self.local_target(FilenameEnum.VIABILITY_OVERALL_SUMMARY_MARKDOWN)
         }
     
@@ -3879,6 +3882,12 @@ class ViabilityOverallSummaryTask(PlanTask):
         # Save the results.
         json_path = self.output()['raw'].path
         summary.save_raw(json_path)
+        header_markdown_path = self.output()['header_markdown'].path
+        summary.save_header_markdown(header_markdown_path)
+        critical_issues_markdown_path = self.output()['critical_issues_markdown'].path
+        summary.save_critical_issues_markdown(critical_issues_markdown_path)
+        flips_to_go_markdown_path = self.output()['flips_to_go_markdown'].path
+        summary.save_flips_to_go_markdown(flips_to_go_markdown_path)
         markdown_path = self.output()['markdown'].path
         summary.save_markdown(markdown_path)
 
@@ -3946,10 +3955,12 @@ class ReportTask(PlanTask):
         rg.append_markdown_with_tables('Premortem', self.input()['premortem']['markdown'].path)
         rg.append_viability(
             document_title='Project Health Assessment',
+            overall_summary_header_markdown_file_path=Path(self.input()['viability_overall_summary']['header_markdown'].path),
             domains_markdown_file_path=Path(self.input()['domains_assessment']['markdown'].path),
             blockers_markdown_file_path=Path(self.input()['blockers']['markdown'].path),
             fixpack_markdown_file_path=Path(self.input()['fix_packs']['markdown'].path),
-            overall_markdown_file_path=Path(self.input()['viability_overall_summary']['markdown'].path),
+            overall_summary_critical_issues_markdown_file_path=Path(self.input()['viability_overall_summary']['critical_issues_markdown'].path),
+            overall_summary_flips_to_go_markdown_file_path=Path(self.input()['viability_overall_summary']['flips_to_go_markdown'].path),
         )
         rg.append_initial_prompt_vetted(
             document_title='Initial Prompt Vetted', 

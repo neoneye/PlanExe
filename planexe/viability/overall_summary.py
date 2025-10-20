@@ -476,7 +476,6 @@ class OverallSummary:
     @staticmethod
     def format_critical_issues_markdown(*, payload: OverallSummaryPayload) -> str:
         lines: List[str] = []
-        lines.append("### Summary of Critical Issues by Domain")
         if payload.viability_summary.why:
             # Build table header
             lines.append("| Domain | Status | Issue Codes |")
@@ -505,7 +504,6 @@ class OverallSummary:
     @staticmethod
     def format_flips_to_go_markdown(*, payload: OverallSummaryPayload) -> str:
         lines: List[str] = []
-        lines.append("### What Flips to GO (Success Criteria)")
         lines.append('<p class="section-subtitle">Observable criteria that confirm readiness.</p>')
         if payload.viability_summary.what_flips_to_go:
             for item in payload.viability_summary.what_flips_to_go:
@@ -519,8 +517,10 @@ class OverallSummary:
         lines: List[str] = []
         lines.append(OverallSummary.format_header_markdown(payload=payload))
         lines.append("")
+        lines.append("### Summary of Critical Issues by Domain")
         lines.append(OverallSummary.format_critical_issues_markdown(payload=payload))
         lines.append("")
+        lines.append("### What Flips to GO (Success Criteria)")
         lines.append(OverallSummary.format_flips_to_go_markdown(payload=payload))
         return "\n".join(lines)
 
