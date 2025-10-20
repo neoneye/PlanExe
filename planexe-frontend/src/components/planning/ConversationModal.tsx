@@ -29,6 +29,7 @@ import {
   useResponsesConversation,
 } from '@/lib/conversation/useResponsesConversation';
 import { CreatePlanRequest } from '@/lib/api/fastapi-client';
+import { useConfigStore } from '@/lib/stores/config';
 
 interface ConversationModalProps {
   isOpen: boolean;
@@ -52,8 +53,10 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
   onFinalize,
   isFinalizing,
 }) => {
+  const defaultModelFromStore = useConfigStore((state) => state.defaultModel);
   const initialPrompt = request?.prompt ?? '';
-  const resolvedModel = request?.llm_model ?? 'gpt-4o-mini';
+  const fallbackModel = defaultModelFromStore || 'gpt-5-mini-2025-08-07';
+  const resolvedModel = request?.llm_model ?? fallbackModel;
   const metadata = useMemo(
     () => ({
       speedVsDetail: request?.speed_vs_detail,

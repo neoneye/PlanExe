@@ -18,7 +18,7 @@ import OpenAI from "openai";
 const openai = new OpenAI();
 
 const response = await openai.responses.create({
-    model: "gpt-4o-mini",
+    model: "gpt-5-mini-2025-08-07",
     input: [
         { role: "user", content: "knock knock." },
         { role: "assistant", content: "Who's there?" },
@@ -35,7 +35,7 @@ from openai import OpenAI
 client = OpenAI()
 
 response = client.responses.create(
-    model="gpt-4o-mini",
+    model="gpt-5-mini-2025-08-07",
     input=[
         {"role": "user", "content": "knock knock."},
         {"role": "assistant", "content": "Who's there?"},
@@ -67,7 +67,7 @@ let history = [
 ];
 
 const response = await openai.responses.create({
-    model: "gpt-4o-mini",
+    model: "gpt-5-mini-2025-08-07",
     input: history,
     store: true,
 });
@@ -90,7 +90,7 @@ history.push({
 });
 
 const secondResponse = await openai.responses.create({
-    model: "gpt-4o-mini",
+    model: "gpt-5-mini-2025-08-07",
     input: history,
     store: true,
 });
@@ -111,7 +111,7 @@ history = [
 ]
 
 response = client.responses.create(
-    model="gpt-4o-mini",
+    model="gpt-5-mini-2025-08-07",
     input=history,
     store=False
 )
@@ -124,7 +124,7 @@ history += [{"role": el.role, "content": el.content} for el in response.output]
 history.append({ "role": "user", "content": "tell me another" })
 
 second_response = client.responses.create(
-    model="gpt-4o-mini",
+    model="gpt-5-mini-2025-08-07",
     input=history,
     store=False
 )
@@ -173,7 +173,7 @@ import OpenAI from "openai";
 const openai = new OpenAI();
 
 const response = await openai.responses.create({
-    model: "gpt-4o-mini",
+    model: "gpt-5-mini-2025-08-07",
     input: "tell me a joke",
     store: true,
 });
@@ -181,7 +181,7 @@ const response = await openai.responses.create({
 console.log(response.output_text);
 
 const secondResponse = await openai.responses.create({
-    model: "gpt-4o-mini",
+    model: "gpt-5-mini-2025-08-07",
     previous_response_id: response.id,
     input: [{"role": "user", "content": "explain why this is funny."}],
     store: true,
@@ -195,13 +195,13 @@ from openai import OpenAI
 client = OpenAI()
 
 response = client.responses.create(
-    model="gpt-4o-mini",
+    model="gpt-5-mini-2025-08-07",
     input="tell me a joke",
 )
 print(response.output_text)
 
 second_response = client.responses.create(
-    model="gpt-4o-mini",
+    model="gpt-5-mini-2025-08-07",
     previous_response_id=response.id,
     input=[{"role": "user", "content": "explain why this is funny."}],
 )
@@ -218,7 +218,7 @@ import OpenAI from "openai";
 const openai = new OpenAI();
 
 const response = await openai.responses.create({
-    model: "gpt-4o-mini",
+    model: "gpt-5-mini-2025-08-07",
     input: "tell me a joke",
     store: true,
 });
@@ -226,7 +226,7 @@ const response = await openai.responses.create({
 console.log(response.output_text);
 
 const secondResponse = await openai.responses.create({
-    model: "gpt-4o-mini",
+    model: "gpt-5-mini-2025-08-07",
     previous_response_id: response.id,
     input: [{"role": "user", "content": "explain why this is funny."}],
     store: true,
@@ -240,13 +240,13 @@ from openai import OpenAI
 client = OpenAI()
 
 response = client.responses.create(
-    model="gpt-4o-mini",
+    model="gpt-5-mini-2025-08-07",
     input="tell me a joke",
 )
 print(response.output_text)
 
 second_response = client.responses.create(
-    model="gpt-4o-mini",
+    model="gpt-5-mini-2025-08-07",
     previous_response_id=response.id,
     input=[{"role": "user", "content": "explain why this is funny."}],
 )
