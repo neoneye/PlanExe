@@ -268,10 +268,13 @@ class AnalysisStreamService:
         request_args["reasoning"]["effort"] = prepared.request.reasoning_effort
         request_args["reasoning"]["summary"] = prepared.request.reasoning_summary
         request_args["text"]["verbosity"] = prepared.request.text_verbosity
-        request_args["max_output_tokens"] = (
-            prepared.request.max_output_tokens
-            or RESPONSES_STREAMING_CONTROLS.max_output_tokens
-        )
+        max_output_tokens = prepared.request.max_output_tokens
+        if max_output_tokens is None:
+            max_output_tokens = RESPONSES_STREAMING_CONTROLS.max_output_tokens
+        if max_output_tokens is not None:
+            request_args["max_output_tokens"] = max_output_tokens
+        else:
+            request_args.pop("max_output_tokens", None)
         if prepared.request.temperature is not None:
             request_args["temperature"] = prepared.request.temperature
         if prepared.request.previous_response_id:
@@ -426,11 +429,8 @@ class AnalysisStreamService:
         ]
 
     def _build_request_options(self, request: AnalysisStreamRequest) -> Dict[str, Any]:
-        return {
+        options = {
             "temperature": request.temperature,
-            "max_output_tokens": (
-                request.max_output_tokens or RESPONSES_STREAMING_CONTROLS.max_output_tokens
-            ),
             "reasoning_effort": request.reasoning_effort,
             "reasoning_summary": request.reasoning_summary,
             "text_verbosity": request.text_verbosity,
@@ -438,6 +438,12 @@ class AnalysisStreamService:
             "schema_name": request.schema_name,
             "previous_response_id": request.previous_response_id,
         }
+        max_output_tokens = request.max_output_tokens
+        if max_output_tokens is None:
+            max_output_tokens = RESPONSES_STREAMING_CONTROLS.max_output_tokens
+        if max_output_tokens is not None:
+            options["max_output_tokens"] = max_output_tokens
+        return options
 
     @staticmethod
     def _extract_text_delta(event: Any) -> Optional[str]:

@@ -11,7 +11,7 @@ export const RESPONSES_STREAMING_DEFAULTS = {
   reasoningEffort: 'high' as const,
   reasoningSummary: 'detailed' as const,
   textVerbosity: 'high' as const,
-  maxOutputTokens: 16024,
+  maxOutputTokens: undefined as number | undefined,
 };
 
 export const RESPONSES_CONVERSATION_DEFAULTS = {

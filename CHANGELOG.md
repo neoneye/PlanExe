@@ -8,7 +8,13 @@
 ## [Unreleased]
 
 ### Backend
-- Centralised streaming token defaults behind environment-aware configuration and updated public docs to reflect the runtime overrides.
+- Raised the streaming response ceiling to 120,000 tokens, allowing requests to omit `max_output_tokens` entirely while sharing the same environment-driven cap across runtime and validation.
+
+### Frontend
+- Updated the analysis stream client to stop sending a hard-coded token limit so it inherits the backend defaults unless a caller specifies one explicitly.
+
+### Documentation
+- Reconciled Responses API guides to the new 120,000 token ceiling and clarified how to opt in or out of explicit limits via configuration.
 
 ## [0.4.0] - 2025-10-20 - MAJOR: Landing Page Redesign - Conversation-First UX
 

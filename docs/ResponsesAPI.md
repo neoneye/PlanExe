@@ -22,11 +22,14 @@ Minimal, exact request shape to test right now (POST `/v1/responses`, JSON body)
   "model": "gpt-5-nano-2025-08-07",
   "input": [{ "role": "user", "content": "Solve this puzzle: <your-payload-here>" }],
   "reasoning": { "summary": "auto", "effort": "high" },
-  "max_output_tokens": 16024,
+  "max_output_tokens": 120000,
   "include": ["reasoning.encrypted_content"],
   "store": true
 }
 ```
+
+> **Note:** The backend now omits `max_output_tokens` unless callers supply it. When provided, the service clamps values to the
+> 120,000 token ceiling shared by validation and runtime configuration so every layer uses the same effective limit.
 
 Notes on `store` / encrypted flows:
 
@@ -154,7 +157,7 @@ for await (const event of stream) {
     "summary": "auto",  // Get human-readable reasoning summary
     "effort": "high" 
   },
-  "max_output_tokens": 16024,
+  "max_output_tokens": 120000,
   "include": ["reasoning.encrypted_content"],  // For follow-ups
   "store": true,
   "stream": true  // ← Add this to test streaming
@@ -196,7 +199,7 @@ Minimal correct request (non-streaming or streaming; use input and reasoning):
   "model": "gpt-5-nano-2025-08-07",
   "input": [{ "role": "user", "content": "Solve this puzzle: <your-payload-here>" }],
   "reasoning": { "summary": "auto", "effort": "high" },
-  "max_output_tokens": 16024,
+  "max_output_tokens": 120000,
   "include": ["reasoning.encrypted_content"],
   "store": true,
   "stream": true   // set to true to receive SSE/stream events

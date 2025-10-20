@@ -56,7 +56,7 @@ interface ResponsesAPIPayload {
 
   // Standard parameters
   temperature?: number;                              // Only for non-reasoning models
-  max_output_tokens?: number;                        // Default: 128000 for GPT-5
+  max_output_tokens?: number;                        // Default: omitted; service caps to 120000 when provided
   store?: boolean;                                   // Enable conversation chaining
   previous_response_id?: string;                     // For multi-turn conversations
   stream?: boolean;                                  // Enable SSE streaming
@@ -123,7 +123,7 @@ const response = await openai.responses.stream({
     }
   },
   stream: true,            // CRITICAL: Enable streaming
-  max_output_tokens: 128000
+  max_output_tokens: 120000 // Optional; omit to use provider default (cap enforced at 120000)
 });
 ```
 

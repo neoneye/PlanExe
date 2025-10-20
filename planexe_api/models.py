@@ -179,7 +179,10 @@ class AnalysisStreamRequest(BaseModel):
         RESPONSES_STREAMING_CONTROLS.max_output_tokens,
         ge=RESPONSES_STREAMING_CONTROLS.min_output_tokens,
         le=RESPONSES_STREAMING_CONTROLS.max_output_tokens_ceiling,
-        description="Maximum tokens budget allocated to the response",
+        description=(
+            "Optional maximum token budget for the response; omitting the value allows the provider's"
+            " default limit while still enforcing the service ceiling when specified"
+        ),
     )
     reasoning_effort: ReasoningEffort = Field(
         ReasoningEffort(RESPONSES_STREAMING_CONTROLS.reasoning_effort),
