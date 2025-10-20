@@ -328,6 +328,9 @@ class OverallSummary:
     overall: Dict[str, Any]
     viability_summary: Dict[str, Any]
     metadata: Dict[str, Any]
+    header_markdown: str
+    critical_issues_markdown: str
+    flips_to_go_markdown: str
     markdown: str
 
     @classmethod
@@ -447,22 +450,32 @@ class OverallSummary:
             red_gray_covered=red_gray_covered,
         )
 
-        markdown = cls.convert_to_markdown(result_payload)
+        header_markdown = cls.format_header_markdown(payload=result_payload)
+        critical_issues_markdown = cls.format_critical_issues_markdown(payload=result_payload)
+        flips_to_go_markdown = cls.format_flips_to_go_markdown(payload=result_payload)
+        markdown = cls.convert_to_markdown(payload=result_payload)
 
         return cls(
             overall=result_payload.overall.model_dump(),
             viability_summary=result_payload.viability_summary.model_dump(),
             metadata=metadata,
+            header_markdown=header_markdown,
+            critical_issues_markdown=critical_issues_markdown,
+            flips_to_go_markdown=flips_to_go_markdown,
             markdown=markdown,
         )
 
     @staticmethod
-    def convert_to_markdown(payload: OverallSummaryPayload) -> str:
+    def format_header_markdown(*, payload: OverallSummaryPayload) -> str:
         lines: List[str] = []
         lines.append(f"- Status: {escape_markdown(payload.overall.status)}")
         lines.append(f"- Confidence: {escape_markdown(payload.overall.confidence)}")
         lines.append(f"- Recommendation: {escape_markdown(payload.viability_summary.recommendation)}")
-        lines.append("")
+        return "\n".join(lines)
+
+    @staticmethod
+    def format_critical_issues_markdown(*, payload: OverallSummaryPayload) -> str:
+        lines: List[str] = []
         lines.append("### Summary of Critical Issues by Domain")
         if payload.viability_summary.why:
             # Build table header
@@ -487,7 +500,11 @@ class OverallSummary:
                 lines.append(f"| {escape_markdown(display)} | {escape_markdown(status)} | {escape_markdown(codes)} |")
         else:
             lines.append("- No major viability flags identified.")
-        lines.append("")
+        return "\n".join(lines)
+
+    @staticmethod
+    def format_flips_to_go_markdown(*, payload: OverallSummaryPayload) -> str:
+        lines: List[str] = []
         lines.append("### What Flips to GO (Success Criteria)")
         lines.append('<p class="section-subtitle">Observable criteria that confirm readiness.</p>')
         if payload.viability_summary.what_flips_to_go:
@@ -495,7 +512,17 @@ class OverallSummary:
                 lines.append(f"- {escape_markdown(item)}")
         else:
             lines.append("- FP0 is empty; no gating acceptance tests.")
-        return "\n".join(lines).rstrip()
+        return "\n".join(lines)
+
+    @staticmethod
+    def convert_to_markdown(*, payload: OverallSummaryPayload) -> str:
+        lines: List[str] = []
+        lines.append(OverallSummary.format_header_markdown(payload=payload))
+        lines.append("")
+        lines.append(OverallSummary.format_critical_issues_markdown(payload=payload))
+        lines.append("")
+        lines.append(OverallSummary.format_flips_to_go_markdown(payload=payload))
+        return "\n".join(lines)
 
     def to_dict(
         self,
@@ -516,6 +543,18 @@ class OverallSummary:
     def save_raw(self, file_path: str) -> None:
         with open(file_path, "w", encoding="utf-8") as file_handle:
             json.dump(self.to_dict(), file_handle, indent=2)
+
+    def save_header_markdown(self, file_path: str) -> None:
+        with open(file_path, "w", encoding="utf-8") as file_handle:
+            file_handle.write(self.header_markdown)
+
+    def save_critical_issues_markdown(self, file_path: str) -> None:
+        with open(file_path, "w", encoding="utf-8") as file_handle:
+            file_handle.write(self.critical_issues_markdown)
+
+    def save_flips_to_go_markdown(self, file_path: str) -> None:
+        with open(file_path, "w", encoding="utf-8") as file_handle:
+            file_handle.write(self.flips_to_go_markdown)
 
     def save_markdown(self, file_path: str) -> None:
         with open(file_path, "w", encoding="utf-8") as file_handle:
