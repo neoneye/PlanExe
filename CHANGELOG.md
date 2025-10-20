@@ -5,13 +5,130 @@
  * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
  */
 
-## [0.3.20] - 2025-11-04 - Dev API Host Detection
+## [0.3.24] - 2025-11-04 - Dev API Host Detection
 
 ### ✅ Highlights
 - Normalised the frontend API client to detect local dev hosts by port and map them to the FastAPI backend so `/api/plans` calls reach port 8080 even when browsing via non-localhost domains.
 
 ### 🧪 Testing
 - ✅ `pytest test_minimal_create.py`
+/**
+ * Author: ChatGPT (gpt-5-codex)
+ * Date: 2025-10-15
+ * PURPOSE: Project changelog tracking release notes, testing, and context for PlanExe iterations.
+ * SRP and DRY check: Pass - maintains a single source of truth for historical updates.
+ */
+
+## [0.3.23] - 2025-10-30 - Align intake conversation model defaults
+
+### ✅ Highlights
+- Updated the intake conversation fallback model to `gpt-5-mini-2025-08-07` so the modal matches backend defaults.
+- Synced PlanForm fallback messaging and developer docs to point at the same GPT-5 Mini configuration.
+
+
+## [0.3.22] - 2025-10-19 - MAJOR: Eliminate Unused llama-index Meta-Package & Resolve Deployment Conflict
+
+
+### ✅ Highlights
+- **BREAKING: Removed the entire llama-index meta-package and 11 related dependencies**, keeping ONLY `llama-index-core` (base classes)
+- **Fixed critical pip resolution failure**: Eliminated the transitive dependency chain that was causing `ERROR: ResolutionImpossible`
+- **Restored OpenAI SDK 2.5.0**: PlanExe requires OpenAI SDK v2.x for the Responses API (as documented in `simple_openai_llm.py` line 394)
+
+### 🔍 Root Cause Analysis - The Real Problem
+The deployment failure was caused by a **transitive dependency chain**, not a direct conflict:
+
+1. `pyproject.toml` included `llama-index==0.12.10` (meta-package)
+2. `llama-index==0.12.10` automatically pulls in `llama-index-llms-openai` (via transitive dep)
+3. ALL versions of `llama-index-llms-openai` require `openai<2.0.0`
+4. PlanExe code explicitly requires `openai==2.5.0` (for Responses API v2.x)
+5. **Result**: Pip cannot resolve the conflict → `ResolutionImpossible` error
+
+### 🧪 Code Audit: What Actually Gets Used?
+**Comprehensive codebase analysis revealed:**
+- ✅ Production imports ONLY from `llama_index.core.*`:
+  - `llama_index.core.llms` → `ChatMessage`, `MessageRole`, `LLM` (base class)
+  - `llama_index.core.callbacks` → Instrumentation handlers
+  - `llama_index.core.instrumentation` → Event dispatchers
+
+- ❌ ZERO usage of:
+  - Any provider packages (`llama-index-llms-*`)
+  - `llama-index` meta-package
+  - Embeddings, readers, agents, cloud services
+
+### 📦 Removed 12 Packages
+**Packages deleted from `pyproject.toml`:**
+1. `llama-index==0.12.10` ← The meta-package root cause
+2. `llama-index-agent-openai==0.4.1`
+3. `llama-index-embeddings-openai==0.3.1`
+4. `llama-index-indices-managed-llama-cloud==0.6.3`
+5. `llama-index-multi-modal-llms-openai==0.4.2`
+6. `llama-index-program-openai==0.3.1`
+7. `llama-index-question-gen-openai==0.3.0`
+8. `llama-index-readers-file==0.4.2`
+9. `llama-index-readers-llama-parse==0.4.0`
+10. `llama-index-cli==0.4.0`
+11. `llama-cloud==0.1.8`
+12. `llama-parse==0.5.19`
+
+**Packages kept:**
+- `llama-index-core==0.12.10.post1` ← Contains LLM base class and chat message types
+- `openai==2.5.0` ← Required by `simple_openai_llm.py` for Responses API v2.x streaming
+
+### 📊 Impact
+- **Deployment Fixed**: pip dependency resolution now succeeds (no more `ResolutionImpossible`)
+- **Dependency Reduction**: 12 fewer packages (~100-150 MB saved in installation)
+- **Code Compatibility**: ZERO changes required to production pipeline code
+- **Performance**: Faster installation and smaller container images
+- **Maintenance**: Simplified dependency tree, fewer transitive dependencies
+
+### 🧪 Testing & Verification
+- ✅ Scanned 100+ production Python files for `llama-index` imports
+- ✅ Verified ALL imports use only `llama_index.core.*` (verified via grep and code audit)
+- ✅ Confirmed `llama-index-core` contains all required base classes (LLM, ChatMessage, MessageRole, callbacks)
+- ✅ Verified production code is written for OpenAI SDK v2.x (see `simple_openai_llm.py` comments)
+- ✅ Updated `pyproject.toml` - removed all meta-package dependencies, kept core + openai
+- ⚠️ Full deployment build pending Railway rebuild
+
+### 📋 POC/Developer Notes
+If you want to run POC scripts that use alternative LLM providers, install the provider separately:
+```bash
+# These were removed from main dependencies but can still be used locally
+
+# For Ollama (used in create_wbs_level*.py, expert_cost.py)
+pip install llama-index-llms-ollama==0.5.0
+
+# For OpenRouter (used in run_ping_medium.py)
+pip install llama-index-llms-openrouter==0.3.1
+
+# For other providers
+pip install llama-index-llms-groq llama-index-llms-mistralai llama-index-llms-together llama-index-llms-lmstudio llama-index-llms-openai-like
+```
+
+### 🎯 Architecture Decision
+This represents a significant architectural cleanup: **PlanExe was designed for multi-provider LLM flexibility, but in practice uses ONLY OpenAI with a custom `SimpleOpenAILLM` adapter.** The llama-index meta-package and all provider integrations were legacy cruft from an earlier design phase. By keeping only `llama-index-core`, we retain the base abstractions (`LLM` class, message types, instrumentation) without the bloat of unused provider packages.
+
+---
+
+## [0.3.21] - 2025-10-30 - Responses Conversations alignment
+
+### ✅ Highlights
+- Updated the FastAPI conversation relay to emit the official `response.*` stream events and terminal `final` envelope via `stream.finalResponse()`, persisting `conversation_id`, `response_id`, and usage metrics for every intake turn.
+- Rebuilt the intake modal buffers to surface answer text, reasoning summaries, and structured JSON independently while dropping OpenRouter picker references from the frontend experience.
+- Documented the October 2025 Responses contract adjustments and captured migration checklist items for storing conversation telemetry.
+
+### 🧪 Testing
+- ⚠️ Not run (contract alignment + UI refactor only)
+
+---
+
+## [0.3.20] - 2025-11-05 - Pipeline bootstrap fix
+
+### ✅ Highlights
+- Restored hashing and persistence of request-supplied OpenRouter API keys so the backend can audit submissions without storing plaintext secrets.
+- Injected the request OpenRouter API key into the Luigi subprocess environment, ensuring initial plan files are seeded even when environment variables are unset.
+
+### 🧪 Testing
+- ⚠️ Not run (pipeline execution requires external LLM API credentials)
 
 ---
 

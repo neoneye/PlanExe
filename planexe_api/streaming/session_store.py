@@ -96,7 +96,7 @@ class AnalysisStreamSessionStore:
 class CachedConversationSession:
     """Conversation session metadata preserved during POST→GET handshake."""
 
-    session_id: str
+    token: str
     conversation_id: str
     model_key: str
     payload: Dict[str, Any]
@@ -125,18 +125,18 @@ class ConversationSessionStore:
     ) -> CachedConversationSession:
         async with self._lock:
             self._prune_locked()
-            session_id = uuid4().hex
+            token = uuid4().hex
             now = datetime.now(timezone.utc)
             expires_at = now + timedelta(seconds=self._ttl)
             cached = CachedConversationSession(
-                session_id=session_id,
+                token=token,
                 conversation_id=conversation_id,
                 model_key=model_key,
                 payload=payload,
                 created_at=now,
                 expires_at=expires_at,
             )
-            self._sessions[session_id] = cached
+            self._sessions[token] = cached
             return cached
 
     async def pop_session(
@@ -144,11 +144,11 @@ class ConversationSessionStore:
         *,
         conversation_id: str,
         model_key: str,
-        session_id: str,
+        token: str,
     ) -> CachedConversationSession:
         async with self._lock:
             self._prune_locked()
-            cached = self._sessions.pop(session_id, None)
+            cached = self._sessions.pop(token, None)
             if not cached:
                 raise KeyError("SESSION_NOT_FOUND")
             if cached.is_expired():

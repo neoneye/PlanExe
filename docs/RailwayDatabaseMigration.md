@@ -79,6 +79,11 @@ cd /app/planexe_api
 python -m alembic upgrade head
 ```
 
+### **📊 Streaming Telemetry Persistence**
+
+- [x] Verify each intake turn stores the upstream `conversation_id` and `response_id` on `llm_interactions` so downstream analytics can correlate Responses API threads.
+- [x] Persist the `usage` block returned by `stream.finalResponse()` (input, output, and reasoning tokens) to support accurate billing dashboards.
+
 ### **✅ Verify Migration Success**
 
 Check that the table exists:

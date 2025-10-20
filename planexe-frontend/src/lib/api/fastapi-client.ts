@@ -14,13 +14,11 @@ export interface CreatePlanRequest {
   prompt: string;
   llm_model?: string;
   speed_vs_detail: 'fast_but_skip_details' | 'balanced_speed_and_detail' | 'all_details_but_slow';
-  openrouter_api_key?: string;
 }
 
 export interface RelaunchPlanOptions {
   llmModel?: string | null;
   speedVsDetail?: CreatePlanRequest['speed_vs_detail'];
-  openrouterApiKey?: string | null;
 }
 
 export interface PlanResponse {
@@ -199,84 +197,110 @@ export type AnalysisStreamServerEvent =
 export const STREAMING_ENABLED =
   (process.env.NEXT_PUBLIC_STREAMING_ENABLED ?? 'true').toLowerCase() === 'true';
 
+export interface ConversationCreateRequestPayload {
+  modelKey: string;
+  conversationId?: string;
+}
+
+export interface ConversationCreateResponsePayload {
+  conversation_id: string;
+  model_key: string;
+  created: boolean;
+}
+
 export interface ConversationTurnRequestPayload {
   modelKey: string;
   userMessage: string;
-  conversationId?: string;
   previousResponseId?: string;
   instructions?: string;
   metadata?: Record<string, unknown>;
-  context?: string;
   reasoningEffort?: 'medium' | 'high';
   reasoningSummary?: string;
   textVerbosity?: string;
+  store?: boolean;
 }
 
-export interface ConversationSession {
-  session_id: string;
+export interface ConversationRequestSession {
+  token: string;
   conversation_id: string;
   model_key: string;
   expires_at: string;
   ttl_seconds: number;
 }
 
-export interface ConversationStreamInitPayload {
+export interface ConversationResponseCreatedPayload {
   conversation_id: string;
   model_key: string;
   session_id: string;
-  connected_at: string;
+  created_at: string;
   response_id?: string;
 }
 
-export type ConversationStreamChunkKind = 'text' | 'reasoning' | 'json';
-
-export interface ConversationStreamChunkPayload {
+export interface ConversationResponseTextDeltaPayload {
   conversation_id: string;
   model_key: string;
   session_id: string;
-  kind: ConversationStreamChunkKind;
-  delta: string | Record<string, unknown>;
+  response_id?: string;
+  delta?: string;
   aggregated?: string;
 }
 
-export interface ConversationStreamCompleteSummary {
+export interface ConversationResponseReasoningDeltaPayload {
   conversation_id: string;
   model_key: string;
   session_id: string;
-  reasoning_text: string;
-  content_text: string;
-  json_chunks: Array<Record<string, unknown>>;
-  started_at: string;
-  completed_at: string | null;
-  usage: Record<string, unknown>;
-  error: string | null;
-  metadata: Record<string, unknown>;
+  response_id?: string;
+  delta?: string;
+  aggregated?: string;
 }
 
-export interface ConversationStreamCompletePayload {
-  summary: ConversationStreamCompleteSummary;
-}
-
-export interface ConversationStreamErrorPayload {
+export interface ConversationResponseJsonDeltaPayload {
   conversation_id: string;
   model_key: string;
   session_id: string;
+  response_id?: string;
+  delta: Record<string, unknown>;
+}
+
+export interface ConversationResponseCompletedPayload {
+  conversation_id: string;
+  model_key: string;
+  session_id: string;
+  response_id?: string;
+  completed_at?: string;
+  usage?: Record<string, unknown>;
+}
+
+export interface ConversationResponseErrorPayload {
+  conversation_id: string;
+  model_key: string;
+  session_id: string;
+  response_id?: string;
   message: string;
 }
 
-export interface ConversationStreamMetadataPayload {
+export interface ConversationFinalPayload {
   conversation_id: string;
   model_key: string;
   session_id: string;
-  remote_conversation_id?: string;
+  response: Record<string, unknown>;
+  summary: {
+    response_id?: string;
+    text: string;
+    reasoning: string;
+    json: Array<Record<string, unknown>>;
+    usage: Record<string, unknown>;
+  };
 }
 
 export type ConversationStreamServerEvent =
-  | { event: 'stream.init'; data: ConversationStreamInitPayload }
-  | { event: 'stream.chunk'; data: ConversationStreamChunkPayload }
-  | { event: 'stream.metadata'; data: ConversationStreamMetadataPayload }
-  | { event: 'stream.complete'; data: ConversationStreamCompletePayload }
-  | { event: 'stream.error'; data: ConversationStreamErrorPayload };
+  | { event: 'response.created'; data: ConversationResponseCreatedPayload }
+  | { event: 'response.output_text.delta'; data: ConversationResponseTextDeltaPayload }
+  | { event: 'response.reasoning_summary_text.delta'; data: ConversationResponseReasoningDeltaPayload }
+  | { event: 'response.output_json.delta'; data: ConversationResponseJsonDeltaPayload }
+  | { event: 'response.completed'; data: ConversationResponseCompletedPayload }
+  | { event: 'response.error'; data: ConversationResponseErrorPayload }
+  | { event: 'final'; data: ConversationFinalPayload };
 
 export interface ConversationFinalizeResponse {
   conversation_id: string;
@@ -516,10 +540,6 @@ export class FastAPIClient {
       request.llm_model = options.llmModel;
     }
 
-    if (options.openrouterApiKey) {
-      request.openrouter_api_key = options.openrouterApiKey;
-    }
-
     return this.createPlan(request);
   }
 
@@ -581,21 +601,15 @@ export class FastAPIClient {
     return this.handleResponse<PlanResponse[]>(response);
   }
 
-  async createConversationTurn(
-    payload: ConversationTurnRequestPayload,
-  ): Promise<ConversationSession> {
+  async ensureConversation(
+    payload: ConversationCreateRequestPayload,
+  ): Promise<ConversationCreateResponsePayload> {
     const body: Record<string, unknown> = {
       model_key: payload.modelKey,
-      user_message: payload.userMessage,
     };
-    if (payload.conversationId) body.conversation_id = payload.conversationId;
-    if (payload.previousResponseId) body.previous_response_id = payload.previousResponseId;
-    if (payload.instructions) body.instructions = payload.instructions;
-    if (payload.metadata) body.metadata = payload.metadata;
-    if (payload.context) body.context = payload.context;
-    if (payload.reasoningEffort) body.reasoning_effort = payload.reasoningEffort;
-    if (payload.reasoningSummary) body.reasoning_summary = payload.reasoningSummary;
-    if (payload.textVerbosity) body.text_verbosity = payload.textVerbosity;
+    if (payload.conversationId) {
+      body.conversation_id = payload.conversationId;
+    }
 
     const response = await fetch(`${this.baseURL}/api/conversations`, {
       method: 'POST',
@@ -605,19 +619,49 @@ export class FastAPIClient {
       body: JSON.stringify(body),
     });
 
-    return this.handleResponse<ConversationSession>(response);
+    return this.handleResponse<ConversationCreateResponsePayload>(response);
   }
 
-  buildConversationStreamUrl(conversation_id: string, session_id: string, model_key: string): string {
+  async createConversationRequest(
+    conversation_id: string,
+    payload: ConversationTurnRequestPayload,
+  ): Promise<ConversationRequestSession> {
+    const body: Record<string, unknown> = {
+      model_key: payload.modelKey,
+      user_message: payload.userMessage,
+    };
+    if (payload.previousResponseId) body.previous_response_id = payload.previousResponseId;
+    if (payload.instructions) body.instructions = payload.instructions;
+    if (payload.metadata) body.metadata = payload.metadata;
+    if (payload.reasoningEffort) body.reasoning_effort = payload.reasoningEffort;
+    if (payload.reasoningSummary) body.reasoning_summary = payload.reasoningSummary;
+    if (payload.textVerbosity) body.text_verbosity = payload.textVerbosity;
+    if (typeof payload.store === 'boolean') body.store = payload.store;
+
+    const response = await fetch(
+      `${this.baseURL}/api/conversations/${encodeURIComponent(conversation_id)}/requests`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      },
+    );
+
+    return this.handleResponse<ConversationRequestSession>(response);
+  }
+
+  buildConversationStreamUrl(conversation_id: string, token: string, model_key: string): string {
     const params = new URLSearchParams({
-      sessionId: session_id,
+      token,
       modelKey: model_key,
     });
     return `${this.baseURL}/api/conversations/${encodeURIComponent(conversation_id)}/stream?${params.toString()}`;
   }
 
-  startConversationStream(conversation_id: string, session_id: string, model_key: string): EventSource {
-    const url = this.buildConversationStreamUrl(conversation_id, session_id, model_key);
+  startConversationStream(conversation_id: string, token: string, model_key: string): EventSource {
+    const url = this.buildConversationStreamUrl(conversation_id, token, model_key);
     return new EventSource(url);
   }
 
@@ -625,6 +669,36 @@ export class FastAPIClient {
     const response = await fetch(`${this.baseURL}/api/conversations/${encodeURIComponent(conversation_id)}/finalize`, {
       method: 'POST',
     });
+    return this.handleResponse<ConversationFinalizeResponse>(response);
+  }
+
+  async followupConversation(
+    conversation_id: string,
+    payload: ConversationTurnRequestPayload,
+  ): Promise<ConversationFinalizeResponse> {
+    const body: Record<string, unknown> = {
+      model_key: payload.modelKey,
+      user_message: payload.userMessage,
+    };
+    if (payload.previousResponseId) body.previous_response_id = payload.previousResponseId;
+    if (payload.instructions) body.instructions = payload.instructions;
+    if (payload.metadata) body.metadata = payload.metadata;
+    if (payload.reasoningEffort) body.reasoning_effort = payload.reasoningEffort;
+    if (payload.reasoningSummary) body.reasoning_summary = payload.reasoningSummary;
+    if (payload.textVerbosity) body.text_verbosity = payload.textVerbosity;
+    if (typeof payload.store === 'boolean') body.store = payload.store;
+
+    const response = await fetch(
+      `${this.baseURL}/api/conversations/${encodeURIComponent(conversation_id)}/followups`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      },
+    );
+
     return this.handleResponse<ConversationFinalizeResponse>(response);
   }
 

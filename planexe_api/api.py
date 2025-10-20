@@ -5,6 +5,7 @@ PURPOSE: Clean FastAPI REST API for PlanExe - proper service architecture follow
 SRP and DRY check: Pass - Single responsibility of HTTP routing, delegates execution to services
 """
 import asyncio
+import hashlib
 import json
 import os
 import threading
@@ -37,8 +38,10 @@ from planexe_api.models import (
     FallbackReportResponse, ReportSection, MissingSection,
     AnalysisStreamRequest,
     AnalysisStreamSessionResponse,
+    ConversationCreateRequest,
+    ConversationCreateResponse,
     ConversationTurnRequest,
-    ConversationSessionResponse,
+    ConversationRequestResponse,
     ConversationFinalizeResponse,
 )
 from planexe_api.database import (
@@ -135,7 +138,7 @@ print("Merging configuration into system environment...")
 planexe_dotenv.update_os_environ()
 
 # Validate API keys are available
-api_keys_to_check = ["OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"]
+api_keys_to_check = ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"]
 available_keys = []
 for key in api_keys_to_check:
     value = os.environ.get(key)
@@ -244,17 +247,42 @@ async def ping():
     }
 
 
-@app.post("/api/conversations", response_model=ConversationSessionResponse)
-async def create_conversation_session(request: ConversationTurnRequest):
-    """Initialize or continue a conversation turn via POST→GET handshake."""
+@app.post("/api/conversations", response_model=ConversationCreateResponse)
+async def create_conversation_endpoint(request: ConversationCreateRequest):
+    """Create or reuse an OpenAI conversation and return its identifier."""
 
     if not STREAMING_ENABLED:
         raise HTTPException(status_code=403, detail="STREAMING_DISABLED")
 
-    cached = await conversation_service.create_session(request)
+    conversation_id = await conversation_service.ensure_conversation(
+        model_key=request.model_key,
+        conversation_id=request.conversation_id,
+    )
+    created = request.conversation_id is None or request.conversation_id != conversation_id
+    return ConversationCreateResponse(
+        conversation_id=conversation_id,
+        model_key=request.model_key,
+        created=created,
+    )
+
+
+@app.post("/api/conversations/{conversation_id}/requests", response_model=ConversationRequestResponse)
+async def create_conversation_request_endpoint(
+    conversation_id: str,
+    request: ConversationTurnRequest,
+):
+    """Initialize a streaming turn for the specified conversation."""
+
+    if not STREAMING_ENABLED:
+        raise HTTPException(status_code=403, detail="STREAMING_DISABLED")
+
+    cached = await conversation_service.create_session(
+        conversation_id=conversation_id,
+        request=request,
+    )
     ttl_seconds = int(max(0, round((cached.expires_at - cached.created_at).total_seconds())))
-    return ConversationSessionResponse(
-        session_id=cached.session_id,
+    return ConversationRequestResponse(
+        token=cached.token,
         conversation_id=cached.conversation_id,
         model_key=request.model_key,
         expires_at=cached.expires_at,
@@ -265,7 +293,7 @@ async def create_conversation_session(request: ConversationTurnRequest):
 @app.get("/api/conversations/{conversation_id}/stream")
 async def stream_conversation_endpoint(
     conversation_id: str,
-    session_id: str = Query(..., alias="sessionId"),
+    token: str = Query(..., alias="token"),
     model_key: str = Query(..., alias="modelKey"),
 ):
     """Relay Responses API events over SSE for the given conversation."""
@@ -277,7 +305,7 @@ async def stream_conversation_endpoint(
         async for event in conversation_service.stream(
             conversation_id=conversation_id,
             model_key=model_key,
-            session_id=session_id,
+            token=token,
         ):
             yield event
 
@@ -292,6 +320,19 @@ async def finalize_conversation_endpoint(conversation_id: str):
         raise HTTPException(status_code=403, detail="STREAMING_DISABLED")
 
     return await conversation_service.finalize(conversation_id)
+
+
+@app.post("/api/conversations/{conversation_id}/followups", response_model=ConversationFinalizeResponse)
+async def create_conversation_followup_endpoint(
+    conversation_id: str,
+    request: ConversationTurnRequest,
+):
+    """Execute a non-streaming follow-up turn and return the consolidated response."""
+
+    if not STREAMING_ENABLED:
+        raise HTTPException(status_code=403, detail="STREAMING_DISABLED")
+
+    return await conversation_service.followup(conversation_id=conversation_id, request=request)
 
 
 @app.post("/api/stream/analyze", response_model=AnalysisStreamSessionResponse)
@@ -423,7 +464,6 @@ async def create_plan(request: CreatePlanRequest):
             "prompt": request.prompt,
             "llm_model": request.llm_model,
             "speed_vs_detail": request.speed_vs_detail.value,
-            "openrouter_api_key_hash": None,
             "status": PlanStatus.pending.value,
             "progress_percentage": 0,
             "progress_message": "Plan queued for processing...",

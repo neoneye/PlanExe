@@ -1,8 +1,40 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pip install:*)",
-      "Bash(copy llm_config.json planexe_apillm_config.json)"
+      "WebSearch",
+      "WebFetch(domain:platform.openai.com)",
+      "Bash(git add pyproject.toml planexe/llm_util/simple_openai_llm.py)",
+      "Bash(git commit \")",
+
+      "Bash(node:*)",
+      "Bash(mv:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd /c taskkill:*)",
+      "Bash(cmd /c:*)",
+      "Bash(npm install:*)",
+      "Bash(npx drizzle-kit:*)",
+      "Bash(curl:*)",
+      "Bash(tasklist:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "WebFetch(domain:openrouter.ai)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:gitlab.com)",
+      "WebFetch(domain:*)",
+      "Read(//d/GitHub/arc-explainer/server/services/**)",
+      "Read(//d/GitHub/arc-explainer/client/**)",
+      "Read(//d/GitHub/arc-explainer/shared/**)",
+      "Read(//d/GitHub/openai-sdk-streaming/**)",
+      "Read(//d/GitHub/openai-chatkit-advanced-samples/**)",
+      "Read(//d/GitHub/openai_responses/**)",
+      "Bash(git show *)"
+    
+    
+    
     ],
     "deny": [],
     "ask": []

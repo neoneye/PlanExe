@@ -26,7 +26,7 @@ DEFAULT_SYSTEM_PROMPT = (
     " and produce structured insights while remaining concise and safe."
 )
 DEFAULT_STAGE = "streaming_analysis_modal"
-DEFAULT_MAX_OUTPUT_TOKENS = 4096
+DEFAULT_MAX_OUTPUT_TOKENS = 14096
 
 
 @dataclass

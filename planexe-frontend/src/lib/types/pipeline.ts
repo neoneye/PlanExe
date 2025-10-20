@@ -515,7 +515,6 @@ export interface PlanHistoryItem {
 export interface UserSettings {
   defaultSpeedVsDetail: SpeedVsDetail;
   preferredLLMModel: string;
-  openrouterApiKey?: string;
   notificationPreferences: NotificationSettings;
   uiPreferences: UIPreferences;
 }
