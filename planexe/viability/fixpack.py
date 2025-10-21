@@ -231,7 +231,8 @@ class FixPack:
         )
 
         non_fp0_fix_packs: List[FixPackEntry] = []
-        llm_metadata: Dict[str, object] = {
+        llm_metadata: Dict[str, object] = dict(llm.metadata)
+        llm_metadata.update({
             "llm_invoked": False,
             "llm_classname": None,
             "duration": 0,
@@ -241,7 +242,7 @@ class FixPack:
             "blockers_payload_bytes": len(blockers_json.encode("utf-8")),
             "fp0_blocker_ids": fp0_blocker_ids,
             "remaining_blocker_ids": [blocker.id for blocker in remaining_blockers],
-        }
+        })
 
         if not blockers_output.blockers:
             llm_metadata["status"] = "No blockers provided."
@@ -254,10 +255,10 @@ class FixPack:
                 ChatMessage(role=MessageRole.USER, content=llm_payload),
             ]
 
-            structured_llm = llm.as_structured_llm(NonFP0FixPacks)
+            sllm = llm.as_structured_llm(NonFP0FixPacks)
             start_time = time.perf_counter()
             try:
-                chat_response = structured_llm.chat(chat_messages)
+                chat_response = sllm.chat(chat_messages)
             except Exception as exc:
                 logger.error("LLM chat interaction failed.", exc_info=True)
                 raise ValueError("LLM chat interaction failed.") from exc
