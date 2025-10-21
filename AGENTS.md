@@ -3,13 +3,13 @@
 This file provides guidance to AGENTS when working with code in this repository.
 
 ## File Header Template
-IGNORE THIS RULE FOR JSON or .toml or other exotic file types
+Use proper python syntax and follow the general guidelines when creating or editing python files.
 Every frontend file you create or edit should ideally start with a basic comments header if possible!
 Use correct syntax for the file type!!!  Use this as a rough example:
 
- * Author: Your NAME  (Example: Claude Code using Sonnet 4 or Codex using GPT-5)
- * Date: `timestamp`
- * PURPOSE: VERBOSE DETAILS ABOUT HOW THIS WORKS AND WHAT ELSE IT TOUCHES
+ * Author: {your model name}
+ * Date: {timestamp}
+ * PURPOSE: {VERBOSE DETAILS ABOUT HOW THIS WORKS AND WHAT ELSE IT TOUCHES}
  * SRP and DRY check: Pass/Fail Is this file violating either? Do these things already exist in the project?  Did you look??
 
 
