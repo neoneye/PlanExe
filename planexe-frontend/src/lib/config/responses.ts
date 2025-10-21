@@ -16,6 +16,6 @@ export const RESPONSES_STREAMING_DEFAULTS = {
 
 export const RESPONSES_CONVERSATION_DEFAULTS = {
   reasoningEffort: 'high' as const,
-  reasoningSummary: 'succinct' as const,
-  textVerbosity: 'concise' as const,
+  reasoningSummary: 'detailed' as const,
+  textVerbosity: 'high' as const,
 };
