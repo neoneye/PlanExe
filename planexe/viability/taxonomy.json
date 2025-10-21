@@ -19,15 +19,27 @@
         "value": "Rights_Legality",
         "display": "Rights & Legality",
         "description": "Legal compliance, regulatory requirements, intellectual property, and rights-based considerations"
+      },
+      {
+        "value": "TechnicalFeasibility",
+        "display": "Technical Feasibility",
+        "description": "Engineering readiness, site conditions, infrastructure dependencies, and safety baselines needed for delivery"
+      },
+      {
+        "value": "ProgramDelivery",
+        "display": "Program Delivery",
+        "description": "Execution governance, scheduling, resourcing, vendor mobilization, and quality controls for the plan"
       }
     ],
     "reason_codes_by_domain": {
-      "HumanStability": ["TALENT_UNKNOWN","STAFF_AVERSION","GOVERNANCE_WEAK","CHANGE_MGMT_GAPS","TRAINING_GAPS","STAKEHOLDER_CONFLICT","SAFETY_CULTURE_WEAK","HITL_GOVERNANCE_OK"],
-      "EconomicResilience": ["CONTINGENCY_LOW","UNIT_ECON_UNKNOWN","SINGLE_CUSTOMER","ALT_COST_UNKNOWN","LEGACY_IT","INTEGRATION_RISK","SUPPLIER_CONCENTRATION","SPOF_DEPENDENCY"],
+      "HumanStability": ["TALENT_UNKNOWN","STAFF_AVERSION","GOVERNANCE_WEAK","CHANGE_MGMT_GAPS","TRAINING_GAPS","STAKEHOLDER_CONFLICT","SAFETY_CULTURE_WEAK","HITL_GOVERNANCE_OK","COMMUNITY_SUPPORT_STRONG"],
+      "EconomicResilience": ["CONTINGENCY_LOW","UNIT_ECON_UNKNOWN","SINGLE_CUSTOMER","ALT_COST_UNKNOWN","LEGACY_IT","INTEGRATION_RISK","SUPPLIER_CONCENTRATION","SPOF_DEPENDENCY","FX_RISK_UNHEDGED","RATE_SENSITIVITY_HIGH"],
       "EcologicalIntegrity": ["CLOUD_CARBON_UNKNOWN","CLIMATE_UNQUANTIFIED","WATER_STRESS","WATER_PERMIT_RISK","MODEL_RISK_UNQUANTIFIED","BIODIVERSITY_RISK_UNSET","WASTE_MANAGEMENT_GAPS","EIA_MISSING"],
-      "Rights_Legality": ["DPIA_GAPS","ETHICS_VAGUE","INFOSEC_GAPS","TRAINING_GAPS","CROSSBORDER_RISK","CONSENT_MODEL_WEAK","DATA_QUALITY_WEAK","ABS_UNDEFINED","LICENSE_GAPS","BIA_MISSING","DR_TEST_GAPS"]
+      "Rights_Legality": ["DPIA_GAPS","ETHICS_VAGUE","INFOSEC_GAPS","TRAINING_GAPS","CROSSBORDER_RISK","CONSENT_MODEL_WEAK","DATA_QUALITY_WEAK","ABS_UNDEFINED","LICENSE_GAPS","BIA_MISSING","DR_TEST_GAPS","PERMIT_MATRIX_MISSING","TERMS_OF_USE_RISK","LICENSE_REGISTRY_MISSING","REDISTRIBUTION_RIGHTS_UNCLEAR","ATTRIBUTION_POLICY_MISSING"],
+      "TechnicalFeasibility": ["GEO_RISK_UNASSESSED","GEOTECH_DATA_MISSING","FOUNDATION_UNKNOWN","UTILITY_INFRA_GAP","INTERCONNECTION_RISK","SITE_ACCESS_CONSTRAINT","HAZMAT_UNKNOWN","SEISMIC_CODE_GAP","FIRE_SAFETY_GAP","GEO_SIGNOFF_COMPLETE","INTERCONNECTION_APPROVED"],
+      "ProgramDelivery": ["PMO_ABSENT","CRITICAL_PATH_UNKNOWN","SCOPE_CREEP_RISK","SCHEDULE_SLIP_RISK","TEAM_BANDWIDTH_LOW","VENDOR_NOT_MOBILIZED","CONTRACT_STRATEGY_WEAK","DEPENDENCIES_UNMAPPED","QUALITY_PLAN_MISSING","PERFORMANCE_BENCHMARK_MISSING","PMO_STRONG"]
     },
-    "strength_reason_codes": ["HITL_GOVERNANCE_OK"],
+    "strength_reason_codes": ["HITL_GOVERNANCE_OK","COMMUNITY_SUPPORT_STRONG","GEO_SIGNOFF_COMPLETE","INTERCONNECTION_APPROVED","PMO_STRONG"],
     "reason_code_factor": {
       "GOVERNANCE_WEAK": ["risk"],
       "STAKEHOLDER_CONFLICT": ["risk","fit"],
@@ -56,13 +68,45 @@
       "DATA_QUALITY_WEAK": ["evidence"],
       "ABS_UNDEFINED": ["fit","evidence"],
       "LICENSE_GAPS": ["evidence"],
-      "STAFF_AVERSION": ["risk","fit"]
+      "STAFF_AVERSION": ["risk","fit"],
+      "COMMUNITY_SUPPORT_STRONG": ["evidence","fit"],
+      "FX_RISK_UNHEDGED": ["risk","fit"],
+      "RATE_SENSITIVITY_HIGH": ["risk","evidence"],
+      "PERMIT_MATRIX_MISSING": ["evidence","fit"],
+      "TERMS_OF_USE_RISK": ["risk","evidence"],
+      "LICENSE_REGISTRY_MISSING": ["evidence","fit"],
+      "REDISTRIBUTION_RIGHTS_UNCLEAR": ["risk","evidence"],
+      "ATTRIBUTION_POLICY_MISSING": ["evidence","fit"],
+      "GEO_RISK_UNASSESSED": ["risk","evidence"],
+      "GEOTECH_DATA_MISSING": ["risk","evidence"],
+      "FOUNDATION_UNKNOWN": ["risk"],
+      "UTILITY_INFRA_GAP": ["risk","fit"],
+      "INTERCONNECTION_RISK": ["risk","evidence"],
+      "SITE_ACCESS_CONSTRAINT": ["risk","fit"],
+      "HAZMAT_UNKNOWN": ["risk","evidence"],
+      "SEISMIC_CODE_GAP": ["risk","evidence"],
+      "FIRE_SAFETY_GAP": ["risk","evidence"],
+      "GEO_SIGNOFF_COMPLETE": ["evidence","fit"],
+      "INTERCONNECTION_APPROVED": ["evidence","fit"],
+      "PMO_ABSENT": ["risk","fit"],
+      "CRITICAL_PATH_UNKNOWN": ["risk","evidence"],
+      "SCOPE_CREEP_RISK": ["risk","fit"],
+      "SCHEDULE_SLIP_RISK": ["risk"],
+      "TEAM_BANDWIDTH_LOW": ["risk","fit"],
+      "VENDOR_NOT_MOBILIZED": ["risk","evidence"],
+      "CONTRACT_STRATEGY_WEAK": ["risk","fit"],
+      "DEPENDENCIES_UNMAPPED": ["risk","evidence"],
+      "QUALITY_PLAN_MISSING": ["risk","evidence"],
+      "PERFORMANCE_BENCHMARK_MISSING": ["evidence","fit"],
+      "PMO_STRONG": ["evidence","fit"]
     },
     "default_evidence_by_domain": {
       "HumanStability": ["Stakeholder map + skills gap snapshot","Change plan v1 (communications, training, adoption KPIs)"],
       "EconomicResilience": ["Assumption ledger v1 + sensitivity table","Cost model v2 (on-prem vs cloud TCO)"],
       "EcologicalIntegrity": ["Environmental baseline note (scope, metrics)","Cloud carbon estimate v1 (regions/services)"],
-      "Rights_Legality": ["Regulatory mapping v1 + open questions list","Licenses & permits inventory + gaps list"]
+      "Rights_Legality": ["Regulatory mapping v1 + open questions list","Licenses & permits inventory + gaps list"],
+      "TechnicalFeasibility": ["Independent geological survey + risk memo","Utility/grid interconnection feasibility letter"],
+      "ProgramDelivery": ["PMO charter + roles/RACI","Integrated master schedule (CPM) with critical path"]
     },
     "evidence_templates": {
       "TALENT_UNKNOWN": [
@@ -160,6 +204,97 @@
       ],
       "STAFF_AVERSION": [
         "Change readiness survey v1 + incentive/retention plan"
+      ],
+      "COMMUNITY_SUPPORT_STRONG": [
+        "Stakeholder support log shows ≥70% positive/neutral sentiment with independent validation"
+      ],
+      "FX_RISK_UNHEDGED": [
+        "FX risk policy + hedge plan (currencies, thresholds, instruments)"
+      ],
+      "RATE_SENSITIVITY_HIGH": [
+        "Interest-rate sensitivity analysis (±300 bps) with covenant headroom"
+      ],
+      "PERMIT_MATRIX_MISSING": [
+        "Licenses & permits inventory + gaps list"
+      ],
+      "TERMS_OF_USE_RISK": [
+        "Terms-of-use compliance memo with counsel sign-off (key services, datasets, automation, redistribution, attribution)"
+      ],
+      "LICENSE_REGISTRY_MISSING": [
+        "License registry (source → license, obligations, term/expiry, revocation risk) + copies of license texts"
+      ],
+      "REDISTRIBUTION_RIGHTS_UNCLEAR": [
+        "Redistribution rights matrix (distribution scope, territories, obligations) + mitigation plan"
+      ],
+      "ATTRIBUTION_POLICY_MISSING": [
+        "Attribution policy + automated enforcement spec (tagging, headers, dataset README)"
+      ],
+      "GEO_RISK_UNASSESSED": [
+        "Independent geological survey + risk memo"
+      ],
+      "GEOTECH_DATA_MISSING": [
+        "Geotechnical investigation report (bore logs, lab tests, recommendations)"
+      ],
+      "FOUNDATION_UNKNOWN": [
+        "Foundation concept note (loads, bearing capacity, settlement) with professional engineering review"
+      ],
+      "UTILITY_INFRA_GAP": [
+        "Utility capacity and infrastructure study (load analysis, upgrade plan, utility confirmation)"
+      ],
+      "INTERCONNECTION_RISK": [
+        "Interconnection request receipt + feasibility/system-impact study or utility letter of intent"
+      ],
+      "SITE_ACCESS_CONSTRAINT": [
+        "Site logistics and access study (routes, permits, seasonal constraints)"
+      ],
+      "HAZMAT_UNKNOWN": [
+        "Hazardous materials assessment (Phase I/II ESA or equivalent) with mitigation actions"
+      ],
+      "SEISMIC_CODE_GAP": [
+        "Seismic design basis memo (code edition, spectra, importance factors)"
+      ],
+      "FIRE_SAFETY_GAP": [
+        "Fire and life-safety strategy (occupancy, egress, detection/suppression)"
+      ],
+      "GEO_SIGNOFF_COMPLETE": [
+        "Engineer-of-record sign-off on geotechnical and foundation package"
+      ],
+      "INTERCONNECTION_APPROVED": [
+        "Utility confirmation of queue position and target interconnection date"
+      ],
+      "PMO_ABSENT": [
+        "PMO charter + governance cadence (steering, risk, change boards)"
+      ],
+      "CRITICAL_PATH_UNKNOWN": [
+        "Integrated master schedule (CPM) with logic ties and baseline"
+      ],
+      "SCOPE_CREEP_RISK": [
+        "Change control plan + baselined work breakdown structure"
+      ],
+      "SCHEDULE_SLIP_RISK": [
+        "Schedule risk analysis report (Monte Carlo) with key drivers and mitigations"
+      ],
+      "TEAM_BANDWIDTH_LOW": [
+        "Capacity plan (FTE by skill vs demand) with hiring/contract backfill"
+      ],
+      "VENDOR_NOT_MOBILIZED": [
+        "Vendor mobilization plan + executed agreements + onboarding checklist"
+      ],
+      "CONTRACT_STRATEGY_WEAK": [
+        "Contracting strategy (delivery model, incentives, risk allocation)"
+      ],
+      "DEPENDENCIES_UNMAPPED": [
+        "Dependency map (internal/external) with owners and SLAs"
+      ],
+      "QUALITY_PLAN_MISSING": [
+        "Quality plan (inspection & test, acceptance criteria, hold points)",
+        "Quality control plan (sampling, acceptance thresholds, automated checks)"
+      ],
+      "PERFORMANCE_BENCHMARK_MISSING": [
+        "Performance benchmark methodology (tasks, metrics, acceptance thresholds) approved before execution"
+      ],
+      "PMO_STRONG": [
+        "Maturity assessment ≥ level-3 for schedule/cost/risk processes"
       ]
     },
     "evidence_acceptance_criteria": {
@@ -212,7 +347,37 @@
         "Top-N data sources: licenses + DPIAs bundle": "each top data source includes license file, DPIA (v2+ for high-risk), retention policy link, and DPO sign-off recorded.",
         "Ethics framework v1 (resident rights, data governance)": "principles enumerated, decision rights and escalations defined, adoption plan approved by exec sponsor, and training plan attached.",
         "Gather evidence for assessment": "at least one canonical artifact uploaded with owner and review date recorded in workspace.",
-        "Change readiness survey v1 + incentive/retention plan": "≥70% response rate across targeted staff; ≥80% positive/neutral adoption intent or ≥15pp improvement vs baseline; incentive/retention plan approved by HR with owner, budget, and review date recorded."
+        "Change readiness survey v1 + incentive/retention plan": "≥70% response rate across targeted staff; ≥80% positive/neutral adoption intent or ≥15pp improvement vs baseline; incentive/retention plan approved by HR with owner, budget, and review date recorded.",
+        "Stakeholder support log shows ≥70% positive/neutral sentiment with independent validation": "log covers priority stakeholder groups, sentiment scoring method documented, independent verification or survey sample referenced, and executive sponsor review captured.",
+        "FX risk policy + hedge plan (currencies, thresholds, instruments)": "policy defines exposure thresholds, approved instruments, monitoring cadence, and treasury/finance lead sign-off is recorded.",
+        "Interest-rate sensitivity analysis (±300 bps) with covenant headroom": "analysis includes at least ±300 bps scenarios, covenant headroom quantified, mitigation actions assigned, and finance owner approval logged.",
+        "Terms-of-use compliance memo with counsel sign-off (key services, datasets, automation, redistribution, attribution)": "memo cites applicable terms per source/service, addresses automated access, redistribution, and attribution obligations, and includes documented counsel sign-off.",
+        "License registry (source → license, obligations, term/expiry, revocation risk) + copies of license texts": "registry lists each significant source with license details, obligations, expiry/renewal dates, revocation risk, copies of licenses stored, and legal/DPO approval recorded.",
+        "Redistribution rights matrix (distribution scope, territories, obligations) + mitigation plan": "matrix maps planned distributions to rights/territories, unresolved gaps flagged with mitigation owners, and legal review noted.",
+        "Attribution policy + automated enforcement spec (tagging, headers, dataset README)": "policy defines attribution rules per channel, automation/enforcement processes documented, and compliance review sign-off captured.",
+        "Independent geological survey + risk memo": "fieldwork scope and sampling appropriate to the site, laboratory results summarized, hazards rated with mitigations, and licensed geoscience/engineering signature recorded.",
+        "Geotechnical investigation report (bore logs, lab tests, recommendations)": "logs and lab results included, design recommendations documented, and report signed by a licensed geotechnical engineer.",
+        "Foundation concept note (loads, bearing capacity, settlement) with professional engineering review": "structural loads, bearing assumptions, settlement calculations, and dependencies documented with professional engineer review noted.",
+        "Utility capacity and infrastructure study (load analysis, upgrade plan, utility confirmation)": "load projections versus existing capacity documented, required upgrades/lead times listed, and utility acknowledgement or correspondence attached.",
+        "Interconnection request receipt + feasibility/system-impact study or utility letter of intent": "queue/request identifier captured, feasibility or impact study results summarized, next milestones/dates listed, and utility contact recorded.",
+        "Site logistics and access study (routes, permits, seasonal constraints)": "haul routes, permits, seasonal or physical constraints mapped, mitigation actions recorded, and logistics owner approval captured.",
+        "Hazardous materials assessment (Phase I/II ESA or equivalent) with mitigation actions": "assessment scope defined, sampling or record review results summarized, mitigation actions with owners assigned, and environmental lead sign-off logged.",
+        "Seismic design basis memo (code edition, spectra, importance factors)": "applicable code editions referenced, site spectra/coefficients documented, importance factors justified, and structural engineer approval recorded.",
+        "Fire and life-safety strategy (occupancy, egress, detection/suppression)": "occupancy classification, egress calculations, detection/suppression approach, and authority having jurisdiction or fire engineer acknowledgment documented.",
+        "Engineer-of-record sign-off on geotechnical and foundation package": "signed letter or stamp references the final package, outstanding conditions listed, and approval date recorded.",
+        "Utility confirmation of queue position and target interconnection date": "utility correspondence states queue ID/position, planned capacity, target energization date, and dependencies or contingencies.",
+        "PMO charter + governance cadence (steering, risk, change boards)": "roles/responsibilities defined, governance cadence scheduled with agendas, inputs/outputs documented, and executive sponsor sign-off captured.",
+        "Integrated master schedule (CPM) with logic ties and baseline": "schedule includes unique IDs, FS/SS ties, critical path with float <10 days, and baseline approval recorded.",
+        "Change control plan + baselined work breakdown structure": "change thresholds defined, WBS baseline version stored with effective date, approval workflow documented, and PMO lead sign-off logged.",
+        "Schedule risk analysis report (Monte Carlo) with key drivers and mitigations": "≥1000-trial simulation completed, P50/P80 dates presented, top risk drivers and mitigations documented, and risk owner approval noted.",
+        "Capacity plan (FTE by skill vs demand) with hiring/contract backfill": "supply vs demand by role mapped for near/mid-term horizons, gaps and mitigation actions captured, and HR/PMO approval recorded.",
+        "Vendor mobilization plan + executed agreements + onboarding checklist": "executed agreements or LOAs attached, mobilization milestones scheduled, onboarding checklist completed, and vendor manager sign-off captured.",
+        "Contracting strategy (delivery model, incentives, risk allocation)": "strategy compares delivery options, allocates risks and responsibilities, defines incentives/penalties, and legal/procurement approval recorded.",
+        "Dependency map (internal/external) with owners and SLAs": "dependencies listed with sponsoring owner, SLA or due date, escalation path defined, and dependency review sign-off logged.",
+        "Quality plan (inspection & test, acceptance criteria, hold points)": "inspection/test points enumerated, acceptance criteria defined, hold points and responsible roles assigned, and quality lead approval recorded.",
+        "Quality control plan (sampling, acceptance thresholds, automated checks)": "sampling methodology documented, acceptance thresholds explicit, automated checks configured/monitored, and QA owner sign-off captured.",
+        "Performance benchmark methodology (tasks, metrics, acceptance thresholds) approved before execution": "benchmark tasks and datasets listed, metrics and pass thresholds fixed, change-control noted, and technical leadership approval recorded.",
+        "Maturity assessment ≥ level-3 for schedule/cost/risk processes": "assessment tool referenced, evidence stored for scoring, level-3 or better documented across schedule/cost/risk, and executive confirmation captured."
     },
     "normalization": {
       "evidence_rewrites": {

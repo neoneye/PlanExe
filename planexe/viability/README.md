@@ -38,18 +38,20 @@ TL;DR
 - Keep outputs tiny, enum-driven, ID-stable.
 - After each step, run a validator/auto-repair pass to fix status/score ranges, drop unknown fields, and back-fill defaults.
 
-### CAS Domains — the Viability Backbone
+### Domains — the Viability Backbone
 
-The four domains we track come from [complex adaptive systems (CAS)](https://en.wikipedia.org/wiki/Complex_adaptive_system) thinking: a plan only sticks if it can adapt within intertwined human, economic, environmental, and legal ecosystems. CAS is a way to reason about systems composed of many interacting components that adapt and evolve over time; projects survive when they can thrive inside those complex, shifting networks.
+The viability taxonomy now covers six domains. The first four align with [complex adaptive systems (CAS)](https://en.wikipedia.org/wiki/Complex_adaptive_system) thinking: a plan only sticks if it can adapt within intertwined human, economic, environmental, and legal ecosystems. CAS is a way to reason about systems composed of many interacting components that adapt and evolve over time; projects survive when they can thrive inside those complex, shifting networks. We also carry two cross-cutting delivery domains so that engineering feasibility and execution discipline stay visible in every path to “GO.”
 
-The canonical definitions now live in `planexe/viability/taxonomy.json` under the `domains` key. Each entry defines a `value` (what shows up in JSON), a human-friendly `display`, and a `description` that captures how the domain frames viability:
+The canonical definitions live in `planexe/viability/taxonomy.json` under the `domains` key. Each entry defines a `value` (what shows up in JSON), a human-friendly `display`, and a `description` that captures how the domain frames viability:
 
 - **Human Stability** (`HumanStability`) — Social acceptance, stakeholder buy-in, cultural fit, and human factors that could support or undermine the project.
 - **Economic Resilience** (`EconomicResilience`) — Financial sustainability, market viability, cost-effectiveness, and economic factors that ensure long-term success.
 - **Ecological Integrity** (`EcologicalIntegrity`) — Environmental impact, sustainability, resource availability, and ecological factors that affect viability.
 - **Rights & Legality** (`Rights_Legality`) — Legal compliance, regulatory requirements, intellectual property, and rights-based considerations.
+- **Technical Feasibility** (`TechnicalFeasibility`) — Engineering readiness, site conditions, infrastructure dependencies, and safety baselines needed for delivery.
+- **Program Delivery** (`ProgramDelivery`) — Execution governance, scheduling, resourcing, vendor mobilization, and quality controls for the plan.
 
-Keeping the assessment anchored to these four domains gives every downstream step (blockers, fix packs, overall verdict) a common language and CAS-informed scope.
+Keeping the assessment anchored to these domains gives every downstream step (blockers, fix packs, overall verdict) a common language and CAS-informed scope, while still checking the practical mechanics of build-and-run execution.
 
 ⸻
 
@@ -57,7 +59,7 @@ Keeping the assessment anchored to these four domains gives every downstream ste
 
 The ViabilityAssessor turns a plan snapshot into a decision-ready assessment. It does this by:
 
-- scoring the plan on four CAS domains (HumanStability, EconomicResilience, EcologicalIntegrity, Rights_Legality),
+- scoring the plan on the CAS domains (HumanStability, EconomicResilience, EcologicalIntegrity, Rights_Legality) plus the delivery domains (TechnicalFeasibility, ProgramDelivery),
 - turning weak domains into a short list of blockers with acceptance tests and artifacts,
 - bundling them into Fix Packs (with FP0 = Pre-Commit Gate),
 - and producing an executive summary with a crisp recommendation and a small “what flips to GO” checklist.
