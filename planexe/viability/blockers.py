@@ -107,7 +107,7 @@ Remember: Your output must be valid JSON and nothing else.
 """
 
 @dataclass
-class Blockers:
+class ViabilityBlockers:
     system_prompt: Optional[str]
     user_prompt: str
     response: Dict[str, Any]
@@ -115,7 +115,7 @@ class Blockers:
     metadata: Dict[str, Any]
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> 'Blockers':
+    def execute(cls, llm: LLM, user_prompt: str) -> 'ViabilityBlockers':
         """
         Invoke LLM with domains assessment text to derive blockers.
         """
@@ -159,7 +159,7 @@ class Blockers:
 
         markdown = cls.convert_to_markdown(chat_response.raw)
 
-        result = Blockers(
+        result = ViabilityBlockers(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response=json_response,
@@ -292,7 +292,7 @@ Evidence Needed:
     query = domains_text
     input_bytes_count = len(query.encode('utf-8'))
     print(f"Query: {query}")
-    result = Blockers.execute(llm, query)
+    result = ViabilityBlockers.execute(llm, query)
 
     print("\nResponse:")
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)

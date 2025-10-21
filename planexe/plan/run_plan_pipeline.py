@@ -75,7 +75,7 @@ from planexe.team.team_markdown_document import TeamMarkdownDocumentBuilder
 from planexe.team.review_team import ReviewTeam
 from planexe.viability.overall_summary import OverallSummary
 from planexe.viability.domains import ViabilityDomains
-from planexe.viability.blockers import Blockers
+from planexe.viability.blockers import ViabilityBlockers
 from planexe.viability.fixpack import FixPack
 from planexe.wbs.wbs_task import WBSTask, WBSProject
 from planexe.wbs.wbs_populate import WBSPopulate
@@ -3737,13 +3737,13 @@ class ViabilityBlockersTask(PlanTask):
         )
 
         # Invoke the LLM
-        blockers = Blockers.execute(llm, query)
+        viability_blockers = ViabilityBlockers.execute(llm, query)
 
         # Save the results.
         json_path = self.output()['raw'].path
-        blockers.save_raw(json_path)
+        viability_blockers.save_raw(json_path)
         markdown_path = self.output()['markdown'].path
-        blockers.save_markdown(markdown_path)
+        viability_blockers.save_markdown(markdown_path)
 
 class ViabilityFixPacksTask(PlanTask):
     def output(self):
