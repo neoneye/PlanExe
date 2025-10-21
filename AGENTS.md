@@ -1,452 +1,200 @@
-# AGENTS.md
+This document outlines the technical specifications, architecture, and development guidelines for the PlanExe repository.
 
-This file provides guidance to AGENTS when working with code in this repository.
+### Python File Header Template
 
-## File Header Template
-Use proper python syntax and follow the general guidelines when creating or editing python files.
-Every frontend file you create or edit should ideally start with a basic comments header if possible!
-Use correct syntax for the file type!!!  Use this as a rough example:
+All new or modified Python files must include the following header:
 
- * Author: {your model name}
- * Date: {timestamp}
- * PURPOSE: {VERBOSE DETAILS ABOUT HOW THIS WORKS AND WHAT ELSE IT TOUCHES}
- * SRP and DRY check: Pass/Fail Is this file violating either? Do these things already exist in the project?  Did you look??
-
-
-# 🏗️ **PlanExe Architecture Overview**
-
-PlanExe is a **complex AI-powered planning system** that transforms vague ideas into comprehensive, multi-chapter execution plans.
-
-
-
-**Railway Production**: FastAPI serves the static Next.js export and the REST API from a single container on Railway. The standalone Next.js dev server (port 3000) is only used locally when running `npm run go`.
-
-
-
-The system uses a **Next.js frontend** connected to a **FastAPI backend** that orchestrates a **Luigi pipeline** with 61 interconnected tasks.
-
-## 🔄 **System Architecture**
-
-```mermaid
-flowchart TB
-    subgraph Frontend ["Next.js Frontend (Port 3000)"]
-        A1[React Components]
-        A2[shadcn/ui Components]
-        A3[Zustand Stores]
-        A4[FastAPI Client]
-    end
-
-    subgraph API ["FastAPI Server (Port 8080)"]
-        B1[REST Endpoints]
-        B2[WebSocket Manager]
-        B3[Database ORM]
-        B4[Luigi Integration]
-    end
-
-    subgraph Pipeline ["Luigi Pipeline (Python)"]
-        C1[61 Luigi Tasks]
-        C2[LLM Orchestration]
-        C3[File-based I/O]
-        C4[Progress Tracking]
-    end
-
-    subgraph Storage ["Data Layer"]
-        D1[SQLite/PostgreSQL]
-        D2[Generated Files]
-        D3[HTML Reports]
-    end
-
-    A4 --HTTP/WebSocket--> B1
-    B4 --Subprocess--> C1
-    B3 --Persist--> D1
-    C3 --Outputs--> D2
-    C4 --Reports--> D3
-```
-
-## 📁 **Key Directories**
-
-### **Frontend (`planexe-frontend/`)**
-- **Technology**: Next.js 15, TypeScript, Tailwind CSS, shadcn/ui
-- **Port**: 3000 for local dev / served via FastAPI on 8080 in Railway
-- **Deployment**: Built into the FastAPI service (single Railway container)
-- **Architecture**: Direct FastAPI client, no API proxy routes
-- **State**: Zustand stores + local React state
-- **Status**: ✅ Forms working, TypeScript errors fixed (v0.3.7)
-
-### **Backend API (`planexe_api/`)**
-- **Technology**: FastAPI, SQLAlchemy, PostgreSQL/SQLite
-- **Port**: 8080 (development) - **CONFIRMED from package.json**
-- **Purpose**: REST wrapper around Luigi pipeline
-- **Features**: Real-time WebSocket, file downloads, plan management, artefact endpoints, fallback reports
-- **Status**: ✅ Fully functional with Responses API integration (v0.3.7)
-
-### **Core Pipeline (`planexe/`)**
-- **Technology**: Pure Python, Luigi task framework
-- **Purpose**: AI-powered plan generation pipeline
-- **Complexity**: **61 interconnected Luigi tasks** with **100% database-first architecture** (v0.3.0)
-- **LLM Integration**: Multiple model support with fallbacks, structured outputs via Responses API
-- **Status**: ✅ Database-first architecture complete, all tasks write to database during execution (v0.3.0)
-
-### **Documentation (`docs/`)**
-- **`LUIGI.md`**: Luigi pipeline documentation
-- **`CODEBASE-INDEX.md`**: Codebase index
-- **`RUN_PLAN_PIPELINE_DOCUMENTATION.md`**: Luigi pipeline documentation
-- **`HOW-THIS-ACTUALLY-WORKS.md`**: How the system works
-
-
-## 🚀 **Development Commands**
-
-### **Start Full Development Environment**
-```bash
-# Single command to start both backend (port 8080) and frontend (port 3000)
-cd planexe-frontend
-npm install
-npm run go  # Starts FastAPI + Next.js concurrently
-```
-
-### **Individual Services**
-```bash
-# Backend only (FastAPI on port 8080)
-cd planexe_api
-set DATABASE_URL=sqlite:///./planexe.db
-uvicorn api:app --reload --port 8080
-
-# Frontend only (Next.js on port 3000)
-cd planexe-frontend
-npm run dev
-```
-
-### **Testing**
-```bash
-# Frontend tests
-cd planexe-frontend
-npm test
-npm run test:integration
-
-# Python tests (Luigi pipeline utilities)
-pytest -q
-```
-
-### **Production Build**
-```bash
-# Frontend build
-cd planexe-frontend
-npm run build
-npm start
-
-# API with production WSGI
-gunicorn planexe_api.api:app
-```
-
-## 🎯 **Current System Status (v0.3.7)**
-
-### ✅ **Working Features**
-- **Frontend Forms**: Plan creation form functions correctly without React warnings (v0.3.6)
-- **TypeScript Compilation**: No TypeScript errors in frontend code (v0.3.6)
-- **Backend API**: FastAPI server fully functional with Responses API integration (v0.3.7)
-- **Database**: SQLite for development, PostgreSQL for production with 100% database-first architecture (v0.3.0)
-- **Development Workflow**: Single command (`npm run go`) starts both services
-- **Luigi Pipeline**: All 61 tasks execute successfully with database-first architecture (v0.3.0)
-- **Real-time Progress**: WebSocket architecture provides reliable progress streaming (v0.2.0)
-- **Responses API**: Structured outputs with schema registry and high-effort reasoning (v0.3.7)
-- **Recovery Workspace**: Artefact endpoints and fallback report assembly (v0.3.3, v0.3.2)
-- **Railway Deployment**: Single-service deployment working (v0.2.3)
-
-### ⚠️ **Known Issues**
-- **Railway Production**: Single-service consolidation complete but Railway-specific debugging may be needed (v0.2.3)
-- **Luigi Complexity**: Pipeline is extremely difficult to modify due to complex dependencies (unchanged)
-- **Port Documentation**: Some docs incorrectly mention port 8001 (actual backend port is 8080) (unchanged)
-
-### 🔧 **Architecture Decisions**
-- **Direct FastAPI Client**: No Next.js API proxy routes (removed in v0.1.1)
-- **Snake_case Field Names**: Frontend uses backend field names exactly
-- **Simplified State Management**: Removed complex Zustand planning store in favor of React hooks
-- **SQLite Development**: No PostgreSQL dependency for local development
-- **WebSocket Architecture**: Replaced SSE with enterprise-grade WebSocket for real-time progress (v0.2.0)
-- **Database-First Pipeline**: All 61 Luigi tasks write to database during execution (v0.3.0)
-- **Responses API Integration**: Structured outputs with schema registry (v0.3.7)
-
-## 🔧 **Critical Architecture Details**
-
-### **Luigi Pipeline (⚠️ DO NOT MODIFY)**
-The core planning engine is a **complex Luigi task dependency graph** with **100% database-first architecture** (v0.3.0):
-
-- **61 Luigi Tasks** in strict dependency order
-- **Database-first I/O**: All tasks write content to database DURING execution, not after completion (v0.3.0)
-- **File-based I/O** with numbered outputs (001-start_time.json, 018-wbs_level1.json, etc.)
-- **Multi-stage processing**: Analysis → Strategy → Planning → Execution → Reporting
-- **LLM orchestration** with retry logic and model fallbacks, structured outputs via Responses API
-- **Progress tracking** via database records and file completion percentage
-- **Resume capability** for interrupted runs with database state recovery
-- **Real-time visibility** into pipeline execution via database queries
-
-**Key Architecture Change (v0.3.0)**:
 ```python
-def run_inner(self):
-    db = get_database_service()
-    result = SomeTask.execute(llm, prompt)
-    
-    # 1. Database (PRIMARY storage - v0.3.0)
-    db.save_plan_content(
-        plan_id=self.plan_id,
-        task_name=self.__class__.__name__,
-        content=result.markdown,
-        content_type="markdown"
-    )
-    
-    # 2. Filesystem (Luigi dependency tracking)
-    result.save_markdown(self.output().path)
+# Author: {model name}
+# Date: {timestamp}
+# PURPOSE: {Detailed description of file functionality and its interactions with other components.}
+# SRP and DRY check: Pass/Fail. Justification for the check result, including verification that functionality does not already exist elsewhere in the project.
 ```
 
-**Benefits of Database-First Architecture**:
-- **Real-Time Progress**: Frontend queries database for accurate completion status
-- **Error Recovery**: Failed tasks leave database records for debugging
-- **Data Integrity**: Single source of truth prevents race conditions
-- **API Access**: FastAPI serves content directly from database
+---
 
-**Key Pipeline Stages**:
-1. **Setup**: StartTime, InitialPlan (initial prompt processing)
-2. **Analysis**: RedlineGate, PremiseAttack, IdentifyPurpose
-3. **Strategic**: Potential levers → scenarios → selection
-4. **Context**: Physical locations, currency, risks
-5. **Assumptions**: Make → distill → review → consolidate
-6. **Planning**: Pre-assessment, project plan, governance
-7. **Execution**: Team building, SWOT, expert review
-8. **Structure**: WBS Level 1-3, dependencies, durations
-9. **Output**: Schedule, review, executive summary
-10. **Report**: HTML compilation from all components
+## 1. System Overview
 
-### **FastAPI Backend Architecture**
-The API server provides a **clean REST interface** over the Luigi pipeline with **enterprise-grade WebSocket architecture** (v0.2.0):
+PlanExe is an AI-powered planning system that generates execution plans from user prompts.
 
-**Key Endpoints**:
-- `POST /api/plans` - Create new plan (triggers Luigi pipeline)
-- `GET /api/plans/{id}/stream` - **Real-time progress via WebSocket** (reliable enterprise-grade implementation)
-- `GET /api/plans/{id}/files` - List generated files
-- `GET /api/plans/{id}/report` - Download HTML report
-- `GET /api/plans/{id}/artefacts` - **NEW**: Database-driven artefact metadata with stage grouping (v0.3.3)
-- `GET /api/plans/{id}/fallback-report` - **NEW**: API-first recovery path for failed reports (v0.3.2)
-- `GET /api/models` - Available LLM models (includes Responses API models)
-- `GET /api/prompts` - Example prompts
-- `GET /health` - API health check
+**Core Components:**
+1.  **Next.js Frontend**: User interface for plan creation and monitoring.
+2.  **FastAPI Backend**: API server that orchestrates the planning process.
+3.  **Luigi Pipeline**: Core task engine for plan generation.
+4.  **Data Storage**: PostgreSQL/SQLite database and a file system for generated artifacts.
 
-**WebSocket Architecture (v0.2.0)**:
-- **Thread-Safe WebSocketManager**: RLock synchronization, heartbeat monitoring, automatic cleanup
-- **ProcessRegistry**: Thread-safe subprocess management eliminating race conditions
-- **Multi-Layer Fallback**: WebSocket → Auto-reconnection → REST Polling
-- **Enterprise Reliability**: Complete elimination of global dictionary race conditions
+**Data Flow:**
+1.  Frontend sends a plan request to the FastAPI backend.
+2.  Backend initiates a Luigi pipeline as a subprocess.
+3.  The pipeline executes a graph of tasks, interacting with LLMs and writing results to the database in real-time.
+4.  Frontend uses a WebSocket connection to the backend to display live progress by querying the database state.
+5.  All generated content (artifacts, reports) is served by the backend directly from the database or filesystem.
 
-**Database Schema**:
-- **Plans**: Configuration, status, progress, metadata
-- **LLM Interactions**: Raw prompts/responses with metadata (Responses API integration)
-- **Plan Files**: Generated files with checksums
-- **Plan Content**: **NEW**: Database-first storage for all task outputs (v0.3.0)
-- **Plan Metrics**: Analytics and performance data
+---
 
-### **Next.js Frontend Architecture**
-**Current Status**: Stable after major fixes (v0.3.7)
+## 2. Architecture Details
 
-**Key Components**:
-- `PlanForm`: Plan creation with LLM model selection (✅ Fixed React warnings v0.3.6)
-- `ProgressMonitor`: **Real-time WebSocket progress tracking** (✅ Reliable implementation v0.2.0)
-- `TaskList`: Accordion view of 61 pipeline tasks
-- `FileManager`: Generated file browser and downloads with artefact integration (v0.3.3)
-- `PlansQueue`: Plan management dashboard
-- `Terminal`: **NEW**: Live log streaming with WebSocket architecture (v0.2.0)
+### 2.1. Frontend (`planexe-frontend/`)
 
-**State Management**:
-- **Simplified Architecture**: Uses React hooks + Zustand stores
-- **Direct API Client**: `fastapi-client.ts` connects directly to backend
-- **Snake_case Fields**: Matches backend API exactly
-- **WebSocket Integration**: Robust connection management with fallback to polling
+*   **Technology**: Next.js 15, TypeScript, Tailwind CSS, shadcn/ui.
+*   **Local Dev Port**: `3000`.
+*   **State Management**: Zustand stores and local React hooks.
+*   **API Communication**:
+    *   Connects directly to the FastAPI backend via a dedicated client at `src/lib/api/fastapi-client.ts`.
+    *   **Rule**: Do not use Next.js API routes (API proxy).
+*   **Data Convention**: Field names are `snake_case` to match the backend API schema exactly.
+*   **Key Components**:
+    *   `PlanForm`: Plan creation UI.
+    *   `ProgressMonitor`: Real-time progress tracking via WebSocket.
+    *   `TaskList`: Displays the status of all 61 pipeline tasks.
+    *   `FileManager`: Browser for generated files and database artifacts.
+    *   `Terminal`: Live log streaming via WebSocket.
 
-## 🚨 **Critical Development Guidelines**
+### 2.2. Backend (`planexe_api/`)
 
-### **When Modifying Frontend**
-1. **Use snake_case** for all API field names (matches backend exactly)
-2. **Never create Next.js API routes** - connect directly to FastAPI
-3. **Test with both services running** (FastAPI port 8080 + Next.js port 3000)
-4. **Follow existing component patterns** (shadcn/ui + TypeScript)
-5. **WebSocket architecture is reliable** - use for real-time progress (v0.2.0)
-6. **Integrate artefact endpoints** for file management (v0.3.3)
-7. **Use fallback report assembly** for robust report generation (v0.3.2)
+*   **Technology**: FastAPI, SQLAlchemy.
+*   **Local Dev Port**: `8080`.
+*   **Database**: PostgreSQL or SQLite.
+*   **Primary Function**: Provides a REST and WebSocket API to control and monitor the Luigi pipeline.
+*   **Key Features**:
+    *   **WebSocket Manager**: A thread-safe manager (`RLock` synchronization) for real-time progress updates, with heartbeat monitoring and automatic connection cleanup.
+    *   **Process Registry**: Thread-safe management of Luigi subprocesses.
+    *   **Responses API Integration**: Uses structured outputs with a schema registry for LLM interactions.
+*   **Database Schema (`planexe_api/database.py`)**:
+    *   `Plans`: Stores plan configuration, status, and progress metadata.
+    *   `LLMInteractions`: Logs raw prompts and structured responses from the LLM.
+    *   `PlanFiles`: Metadata for generated files.
+    *   `PlanContent`: Stores all task outputs. This table enables the database-first architecture.
+    *   `PlanMetrics`: Performance and analytics data.
 
-### **When Modifying Backend**
-1. **carefully modify Luigi pipeline** only if you understand the full dependency graph
-2. **Maintain FastAPI endpoint compatibility** with frontend
-3. **Test with SQLite first**, then PostgreSQL
-4. **Preserve WebSocket implementation** (reliable v0.2.0)
-5. **Update database migrations** for schema changes
-6. **Support Responses API structured outputs** (v0.3.7)
-7. **Maintain database-first architecture** (v0.3.0)
+### 2.3. Pipeline (`planexe/`)
 
-### **When Working with Luigi Pipeline**
-1. **DO NOT MODIFY** unless absolutely critical - extremely complex dependencies
-2. **Use development mode** (`FAST_BUT_SKIP_DETAILS`) for testing
-3. **Check `run_plan_pipeline_documentation.md`** for detailed guidance
-4. **Verify database writes** occur during execution (v0.3.0)
-5. **Use Responses API models** for structured outputs (v0.3.7)
+*   **Technology**: Python, Luigi.
+*   **Architecture**: A directed acyclic graph (DAG) of 61 interconnected tasks.
+*   **I/O Model**:
+    1.  **Database-First**: **This is a critical constraint.** Every task must write its output content to the `plan_content` database table *during* its execution, not upon completion.
+    2.  **File-based**: Tasks also output numbered JSON files (e.g., `001-start_time.json`, `018-wbs_level1.json`).
+*   **Key Features**:
+    *   **Resumability**: Can resume interrupted runs by recovering state from the database.
+    *   **LLM Orchestration**: Manages calls to multiple LLM models with retry logic and fallbacks.
+*   **Pipeline Stages**:
+    1.  Setup
+    2.  Analysis
+    3.  Strategic
+    4.  Context
+    5.  Assumptions
+    6.  Planning
+    7.  Execution
+    8.  Structure (WBS)
+    9.  Output
+    10. Report
 
-## 📚 **Essential Reading**
+---
 
-### **Before Making Changes**
-1. **`CHANGELOG.md`** - Current status and recent changes
-2. **`docs/run_plan_pipeline_documentation.md`** - Luigi pipeline deep dive
+## 3. API Endpoints
 
+The API is served from the FastAPI backend on port `8080`.
 
-### **For Frontend Development**
-1. **`planexe-frontend/src/lib/api/fastapi-client.ts`** - API client implementation
-2. **`planexe-frontend/src/lib/types/forms.ts`** - TypeScript schemas
-3. **`planexe-frontend/src/app/page.tsx`** - Main application component
+| Method | Path                                   | Description                                                               |
+| :----- | :------------------------------------- | :------------------------------------------------------------------------ |
+| `POST` | `/api/plans`                           | Create a new plan and trigger the Luigi pipeline.                         |
+| `GET`  | `/api/plans/{id}/stream`               | Establishes a WebSocket connection for real-time progress updates.        |
+| `GET`  | `/api/plans/{id}/files`                | List generated files for a plan.                                          |
+| `GET`  | `/api/plans/{id}/report`               | Download the final HTML report.                                           |
+| `GET`  | `/api/plans/{id}/artefacts`            | Get database-driven artifact metadata, grouped by pipeline stage.         |
+| `GET`  | `/api/plans/{id}/fallback-report`      | API-driven recovery path to assemble a report if the primary one fails.   |
+| `GET`  | `/api/models`                          | List available LLM models, including those from the Responses API.        |
+| `GET`  | `/api/prompts`                         | List example prompts.                                                     |
+| `GET`  | `/health`                              | Health check endpoint.                                                    |
 
-### **For Backend Development**
-1. **`planexe_api/api.py`** - FastAPI server implementation
-2. **`planexe_api/models.py`** - Pydantic schemas
-3. **`planexe_api/database.py`** - SQLAlchemy models
+---
 
-## 🔍 **Debugging & Troubleshooting**
+## 4. Development Rules
 
-### **Common Issues**
-1. **"Connection refused"** - Check if FastAPI backend is running on port 8080 (not 8001)
-2. **"WebSocket connection issues"** - Verify WebSocket endpoint `/ws/plans/{plan_id}/progress` is accessible (v0.2.0)
-3. **"Task failed"** - Check Luigi pipeline logs in `run/` directory and database `plan_content` table
-4. **"Database errors"** - Verify DATABASE_URL environment variable
-5. **"TypeScript errors"** - Should be resolved in v0.3.6
-6. **"Artefact loading"** - Check `/api/plans/{id}/artefacts` endpoint for file metadata (v0.3.3)
-7. **"Report generation"** - Use `/api/plans/{id}/fallback-report` for recovery (v0.3.2)
+### 4.1. General
+*   **File Modifications**: Prefer editing existing files over creating new ones.
+*   **Documentation**: Create or update `.md` files in the `/docs` directory to document significant changes or plans.
+*   **Local Environment**: Run both the Next.js (`port 3000`) and FastAPI (`port 8080`) services concurrently for development.
 
-### **Debugging Commands**
+### 4.2. Frontend (`planexe-frontend/`)
+*   **API Fields**: Always use `snake_case` for fields in API payloads to match the backend.
+*   **API Routes**: Do not create Next.js API routes. All communication must go directly to the FastAPI server.
+*   **State & Components**: Follow existing patterns using shadcn/ui, TypeScript, and Zustand.
+
+### 4.3. Backend (`planexe_api/`)
+*   **API Compatibility**: Do not make breaking changes to FastAPI endpoints consumed by the frontend.
+*   **Database**: For any schema changes in `SQLAlchemy` models, ensure database migrations are created and updated.
+*   **Architecture**: Preserve the existing thread-safe WebSocket and process management implementations.
+
+### 4.4. Pipeline (`planexe/`)
+*   **Modification Constraint**: **Do not modify the Luigi pipeline task dependency graph without a full understanding of its structure.**
+*   **Database-First Mandate**: All task modifications must adhere to the database-first principle: write results to the database during execution.
+*   **Development Mode**: Use the `FAST_BUT_SKIP_DETAILS` environment variable for faster, less detailed test runs.
+*   **LLM Outputs**: Use the Responses API models to ensure structured outputs.
+
+---
+
+## 5. Testing
+*   **Constraint**: Do not use mocking, faking, or simulated data for testing.
+*   **Test Data**: Use data from previously executed plans for all tests.
+*   **Frontend**: Write component tests using React Testing Library.
+*   **Backend**: Write endpoint tests for the FastAPI application.
+*   **Pipeline**: Limited to Luigi task validation.
+
+---
+
+## 6. Debugging
+
+### 6.1. Common Issues & Solutions
+*   **Symptom**: "Connection refused" errors in the frontend.
+    *   **Check**: Verify the FastAPI backend process is running on `port 8080`.
+*   **Symptom**: WebSocket connection fails.
+    *   **Check**: Ensure the backend is running and the path `/ws/plans/{plan_id}/progress` is accessible.
+*   **Symptom**: A Luigi task fails.
+    *   **Check**: Inspect logs in the `run/` directory and query the `plan_content` table in the database for the last successful write.
+*   **Symptom**: Artifacts are not loading in the UI.
+    *   **Check**: Test the `/api/plans/{id}/artefacts` endpoint directly for metadata.
+*   **Symptom**: HTML report generation fails.
+    *   **Check**: Use the `/api/plans/{id}/fallback-report` endpoint as a recovery mechanism.
+
+### 6.2. Debugging Commands
+
 ```bash
-# Check if services are running on correct ports
-netstat -an | findstr :3000  # Next.js
-netstat -an | findstr :8080  # FastAPI (NOT 8001)
+# Check for running services on correct ports
+netstat -an | findstr ":3000|:8080"
 
-# Test API connectivity
+# Test API health and model endpoints
 curl http://localhost:8080/health
 curl http://localhost:8080/api/models
 
-# Test WebSocket endpoint
-curl http://localhost:8080/api/plans/{plan_id}/stream-status
+# Test plan creation
+curl -X POST http://localhost:8080/api/plans \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt": "Create a plan", "model": "llm-1"}'
 
-# Test artefact endpoint (v0.3.3)
+# Test artefact endpoint for a given plan ID
 curl http://localhost:8080/api/plans/{plan_id}/artefacts
 
-# Test plan creation
-curl -X POST \
-  http://localhost:8080/api/plans \
-  -H 'Content-Type: application/json' \
-  -d '{"prompt": "Create a plan for a new business", "model": "llm-1"}'
-
-# Check database content (v0.3.0)
-sqlite3 planexe.db "SELECT * FROM plan_content WHERE plan_id='your-plan-id' ORDER BY created_at DESC LIMIT 5;"
-
-### **Automated Testing**
-
-- **No Over-Engineering**: Do not over-engineer testing or create simulated data!  Use the old plans for testing!
-- **No Mocking**: Do not mock any dependencies or external services!  Use the old plans for testing!
-- **No Simulated Data**: Do not create simulated data!  Use the old plans for testing!
-- **Frontend**: Component tests with React Testing Library
-- **Backend**: FastAPI endpoint testing
-- **Pipeline**: Luigi task validation (limited)
-
-## ⚠️ **Critical Warnings**
-
-
-
-### **DO**
-1. **Test incrementally** with both services running
-2. **Use SQLite for development** to avoid PostgreSQL dependency
-3. **Follow established patterns** in existing components
-4. **Check CHANGELOG.md** before making changes
-5. **Preserve existing API contracts** between frontend/backend
-6. **Use WebSocket for real-time progress** - reliable implementation (v0.2.0)
-7. **Verify database writes** occur during pipeline execution (v0.3.0)
-
+# Query the database for the last 5 content writes for a plan
+sqlite3 planexe.db "SELECT * FROM plan_content WHERE plan_id='{plan_id}' ORDER BY created_at DESC LIMIT 5;"
+```
 
 ---
 
-# 🚨 **Important Development Reminders**
+## 7. Key File Index
 
-## **General Development Principles**
-- The user is not a developer, they are a product owner and manager!  They might ask you to do things that are not possible or not a good idea or otherwise violating best practices in software development, be sure to point this point this out if it happens!  Discuss the best approaches with them and try to find a solution that is both feasible and aligns with best practices.  Never decide on course of action without discussing it with the user. Keep the user in the loop at all times!  Never reply with a massive wall of text, make sure you reply with succinct replies not longer than a few lines!
-- **NEVER create files** unless absolutely necessary for your goal
-- **ALWAYS prefer editing** an existing file to creating a new one
-- **ALWAYS proactively create documentation files** (*.md) in the /docs directory with plans that you are following and tasklists and other important information.  The next developer will need to be able to understand what you were doing and why you made the choices you made.  
-- **ALWAYS commit changes** as soon as you make them and include verbose commit messages!
-- **Sudden Death** You might suddenly die at any moment, so always commit changes as soon as you make them! The next dev will need to be able to pick up where you left off ASAP!  
+### 7.1. Documentation
+*   `CHANGELOG.md`: Project status and recent change history.
+*   `docs/run_plan_pipeline_documentation.md`: In-depth guide to the Luigi pipeline.
+*   `docs/LUIGI.md`: Luigi framework documentation.
+*   `docs/CODEBASE-INDEX.md`: Index of the codebase.
 
-## **PlanExe-Specific Rules**
-- **RESPECT the Luigi pipeline** NEVER modify it without understanding full dependency graph
-- **Use snake_case field names** throughout frontend to match backend exactly
-- **Backend runs on port 8080** (not 8001 despite some docs saying otherwise)
-- **WebSocket architecture is reliable** - use for real-time progress (v0.2.0)
-- **Database-first architecture required** - all tasks write to database during execution (v0.3.0)
-- **Test with both services running** (FastAPI port 8080 + Next.js port 3000)
-- **Follow existing component patterns** (shadcn/ui + TypeScript + Zustand)
-- **Use artefact endpoints** for file management (v0.3.3)
-- **Support Responses API structured outputs** (v0.3.7)
+### 7.2. Frontend
+*   `planexe-frontend/src/lib/api/fastapi-client.ts`: The API client.
+*   `planexe-frontend/src/lib/types/forms.ts`: TypeScript schemas for API data structures.
+*   `planexe-frontend/src/app/page.tsx`: Main application component.
 
-## **Testing Workflow**
-1. **Start development environment**: `cd planexe-frontend && npm run go`
-2. **Test incrementally** with both services running
-3. **Make incremental changes** and test immediately
-4. **Run tests** before submitting changes
-5. **Update CHANGELOG.md** for any change!
-6. **Always commit changes** as soon as you make them and include verbose commit messages!
-7. **Verify database writes** during pipeline execution (v0.3.0)
-8. **Test WebSocket progress streaming** (v0.2.0)
-
----
-
-*This documentation reflects the current state as of v0.3.7. The system features enterprise-grade WebSocket architecture, 100% database-first Luigi pipeline, Responses API integration, artefact endpoints, and fallback report assembly. Frontend forms are stable, backend API is fully functional, real-time progress is reliable, and Luigi pipeline should not be modified without extreme caution.*
-
-## Codex Exec Plans Architecture (Cookbook Integration)
-
-This repository adopts a lightweight version of the “Exec Plans” approach (OpenAI Cookbook: Using PLANS.md for multi-hour problem solving) to make long-running, multi-step engineering work transparent, reviewable, and recoverable.
-
-### Purpose
-- Provide a living plan-of-record for complex tasks (design → implement → validate → deploy).
-- Ensure each action has a rationale, safety checks, and exit criteria.
-- Keep frontend/backend/Luigi constraints explicit and reduce coordination overhead.
-
-### Core Concepts
-- Plan-of-record file: `docs/PLANS.md` (one per large feature or initiative). Not auto-created.
-- Step types (what agents do in this repo):
-  - `edit` – Apply code changes via `apply_patch` with concise diff scope.
-  - `shell` – Run commands with rationale, expected effects, and guardrails.
-  - `ask` – Questions for the product owner to de-risk ambiguity before work.
-  - `review` – Validation checkpoints (tests, builds, local runs, smoke checks).
-  - `deploy` – Release steps, explicitly gated and reversible.
-- Step schema (minimum fields):
-  - `id`, `title`, `status` (pending|in_progress|done|blocked), `rationale`, `dependencies`,
-    `actions` (typed steps), `validation`, `exit_criteria`, `rollback`.
-- Single active step: Maintain exactly one `in_progress` step (mirrors our `update_plan` tool).
-
-### Process Lifecycle
-- When scope > 1 hour or cross-cutting risk exists, create/extend `docs/PLANS.md`.
-- Update plan at milestone boundaries; keep changes synchronized with code.
-- Reference step IDs in commit messages and summarize in `CHANGELOG.md`.
-- Prefer incremental delivery: small, reversible edits; validate early and often.
-
-### Safety & Guardrails
-- Destructive commands require explicit rationale, backup/rollback, and pre-checks.
-- Network and credentials: document domains, tokens, and redaction policies in the plan.
-- Logs and artefacts: link to relevant files, endpoints, and DB tables for traceability.
-
-### Mapping to PlanExe
-- Luigi pipeline: do not modify unless a dedicated sub-plan covers impact analysis, migrations, and recovery. Respect database-first writes and task ordering.
-- Backend (FastAPI): preserve API contracts and websocket reliability; add migrations for schema changes; test with SQLite first.
-- Frontend (Next.js): use snake_case API fields, direct FastAPI client, shadcn/ui patterns; validate via TypeScript build + local run; verify progress streaming.
-
-### Minimal Templates (for `docs/PLANS.md`)
-- Header: Title, Owner, Date, Context, Objectives, Non-goals, Constraints, Risks, Stakeholders.
-- Milestones: short list with acceptance criteria.
-- Execution Plan (table or list): step `id`, `title`, `type` (edit/shell/ask/review/deploy), `status`, `rationale`, `dependencies`, `expected_output`, `validation`, `exit_criteria`, `rollback`.
-- Validation Plan: what we run (tests, builds), success signals, and rollback conditions.
-
-### Operational Rules
-- Keep the plan and the `update_plan` state in sync; exactly one active step.
-- Prefer editing existing files; only add docs in `docs/` when needed for clarity.
-- Every material change: update `CHANGELOG.md` with a brief summary and link back to plan section.
-
-This integration formalizes how we plan and execute complex changes without altering the core PlanExe architecture or its API contracts.
+### 7.3. Backend
+*   `planexe_api/api.py`: FastAPI application entrypoint, routes, and WebSocket logic.
+*   `planexe_api/models.py`: Pydantic schemas for API requests and responses.
+*   `planexe_api/database.py`: SQLAlchemy database models.
