@@ -203,8 +203,8 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
         }
       }}
     >
-      <DialogContent className="h-screen w-screen max-w-none overflow-hidden border-0 bg-slate-950 p-0 shadow-none">
-        <DialogHeader className="px-10 pt-8 pb-4 border-b border-slate-800">
+      <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !h-screen !w-screen !max-w-none !translate-x-0 !translate-y-0 !transform-none overflow-hidden border-0 bg-slate-950 p-0 shadow-none !m-0">
+        <DialogHeader className="shrink-0 px-6 py-4 border-b border-slate-800">
           <DialogTitle className="flex items-center gap-3 text-3xl font-semibold text-slate-100">
             <Sparkles className="h-6 w-6 text-indigo-400" />
             Enrich your plan request
@@ -214,7 +214,7 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid h-full grid-cols-1 gap-6 px-8 pb-8 md:px-10 md:pb-10 xl:grid-cols-[2fr_1fr]">
+        <div className="flex-1 min-h-0 grid grid-cols-1 gap-6 px-6 py-4 overflow-hidden xl:grid-cols-[1.5fr_1fr]">
           <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-sm">
             <header className="flex items-center justify-between border-b border-slate-800 px-8 py-5">
               <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
@@ -247,14 +247,14 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
                 </article>
               ))}
             </div>
-            <footer className="border-t border-slate-800 bg-slate-900/50 px-8 py-5">
-              <div className="space-y-3">
+            <footer className="shrink-0 flex flex-col border-t border-slate-800 bg-slate-900/50 px-8 py-5">
+              <div className="flex flex-col gap-3 flex-1">
                 <Textarea
                   value={draftMessage}
                   onChange={(event) => setDraftMessage(event.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Add constraints, dependencies, resources, dates…"
-                  className="min-h-[140px] text-base"
+                  className="h-32 text-base resize-none"
                   disabled={isStreaming || isFinalizing}
                 />
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -311,14 +311,14 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
             </footer>
           </section>
 
-          <aside className="flex h-full min-h-0 flex-col gap-5">
-            <Card className="flex-1 min-h-0 border-slate-800 bg-slate-900">
+          <aside className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
+            <Card className="flex flex-col flex-1 min-h-0 border-slate-800 bg-slate-900 overflow-hidden">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-400">
                   Answer
                 </CardTitle>
               </CardHeader>
-              <CardContent className="h-full min-h-0 overflow-y-auto rounded-lg bg-slate-950/40 px-4 py-3 text-sm text-slate-300">
+              <CardContent className="flex-1 min-h-0 overflow-y-auto rounded-lg bg-slate-950/40 px-4 py-3 text-sm text-slate-300">
                 {textBuffer ? (
                   <p className="whitespace-pre-wrap text-slate-200">{textBuffer}</p>
                 ) : (
@@ -338,13 +338,13 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
               </CardContent>
             </Card>
 
-            <Card className="border-slate-800 bg-slate-900">
-              <CardHeader className="pb-3">
+            <Card className="flex flex-col flex-shrink-0 h-[25vh] border-slate-800 bg-slate-900 overflow-hidden">
+              <CardHeader className="pb-3 shrink-0">
                 <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-400">
                   Reasoning summary
                 </CardTitle>
               </CardHeader>
-              <CardContent className="max-h-48 overflow-y-auto rounded-lg bg-slate-950/40 px-4 py-3 text-sm text-slate-300">
+              <CardContent className="flex-1 min-h-0 overflow-y-auto rounded-lg bg-slate-950/40 px-4 py-3 text-sm text-slate-300">
                 {reasoningBuffer ? (
                   <pre className="whitespace-pre-wrap text-slate-200">{reasoningBuffer}</pre>
                 ) : (
@@ -353,13 +353,13 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
               </CardContent>
             </Card>
 
-            <Card className="border-slate-800 bg-slate-900">
-              <CardHeader className="pb-3">
+            <Card className="flex flex-col flex-shrink-0 h-[25vh] border-slate-800 bg-slate-900 overflow-hidden">
+              <CardHeader className="pb-3 shrink-0">
                 <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-400">
                   Data / JSON
                 </CardTitle>
               </CardHeader>
-              <CardContent className="max-h-52 overflow-y-auto rounded-lg bg-slate-950/40 px-4 py-3 text-xs text-slate-300">
+              <CardContent className="flex-1 min-h-0 overflow-y-auto rounded-lg bg-slate-950/40 px-4 py-3 text-xs text-slate-300">
                 {jsonChunks.length > 0 ? (
                   <pre className="whitespace-pre-wrap text-slate-200">{JSON.stringify(jsonChunks, null, 2)}</pre>
                 ) : (

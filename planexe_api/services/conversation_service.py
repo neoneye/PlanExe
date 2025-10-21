@@ -325,12 +325,24 @@ class ConversationService:
     ) -> Dict[str, Any]:
         final_payload: Dict[str, Any] = {}
         try:
-            with llm._client.responses.stream(**request_args) as stream:  # pylint: disable=protected-access
-                for event in stream:
-                    envelopes = handler.handle(event)
-                    if envelopes:
-                        manager.push(envelopes)
-                final_response = self._resolve_final_response(stream)
+            # Use conversations.responses.stream for conversation-scoped requests
+            conversations_client = getattr(llm._client, "conversations", None)  # pylint: disable=protected-access
+            if conversations_client and "conversation" in request_args:
+                # Conversations API streaming
+                with conversations_client.responses.stream(**request_args) as stream:
+                    for event in stream:
+                        envelopes = handler.handle(event)
+                        if envelopes:
+                            manager.push(envelopes)
+                    final_response = self._resolve_final_response(stream)
+            else:
+                # Fallback to direct responses.stream
+                with llm._client.responses.stream(**request_args) as stream:  # pylint: disable=protected-access
+                    for event in stream:
+                        envelopes = handler.handle(event)
+                        if envelopes:
+                            manager.push(envelopes)
+                    final_response = self._resolve_final_response(stream)
             if final_response is not None:
                 final_payload = SimpleOpenAILLM._payload_to_dict(final_response)
         except APIError as api_error:

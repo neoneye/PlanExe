@@ -418,13 +418,13 @@ class AnalysisStreamService:
         if request.context:
             user_segments.append(
                 {
-                    "type": "text",
+                    "type": "input_text",
                     "text": f"Context:\n{request.context.strip()}\n\nRespond to the analysis instructions below.",
                 }
             )
-        user_segments.append({"type": "text", "text": request.prompt})
+        user_segments.append({"type": "input_text", "text": request.prompt})
         return [
-            {"role": "system", "content": [{"type": "text", "text": system_prompt}]},
+            {"role": "system", "content": [{"type": "input_text", "text": system_prompt}]},
             {"role": "user", "content": user_segments},
         ]
 
