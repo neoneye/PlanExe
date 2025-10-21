@@ -191,14 +191,22 @@ class SimpleOpenAILLM(LLM):
     # ------------------------------------------------------------------
     # Core request/response plumbing
     # ------------------------------------------------------------------
-    def _prepare_input(self, messages: Sequence[Any]) -> List[Dict[str, Any]]:
-        normalized = []
+    @staticmethod
+    def normalize_input_messages(messages: Sequence[Any]) -> List[Dict[str, Any]]:
+        """Return Responses-compatible role/content dictionaries for the supplied messages."""
+
+        normalized_messages: List[Dict[str, Any]] = []
         for message in messages:
-            message_dict = _ensure_message_dict(message)
-            role = message_dict.get("role", "user")
+            message_dict = dict(_ensure_message_dict(message))
+            raw_role = message_dict.get("role", "user") or "user"
+            role_value = getattr(raw_role, "value", raw_role)
+            role = str(role_value).lower()
             content = _normalize_content(message_dict.get("content", ""))
-            normalized.append({"role": role, "content": content})
-        return normalized
+            normalized_messages.append({"role": role, "content": content})
+        return normalized_messages
+
+    def _prepare_input(self, messages: Sequence[Any]) -> List[Dict[str, Any]]:
+        return self.normalize_input_messages(messages)
 
     @staticmethod
     def build_text_format_from_schema(

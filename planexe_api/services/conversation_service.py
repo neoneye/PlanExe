@@ -420,7 +420,9 @@ class ConversationService:
         request: ConversationTurnRequest,
         schema_descriptor: Optional[SimpleNamespace],
     ) -> Dict[str, Any]:
-        input_segments = [{"role": "user", "content": [{"type": "input_text", "text": request.user_message}]}]
+        input_segments = SimpleOpenAILLM.normalize_input_messages(
+            [{"role": "user", "content": request.user_message}]
+        )
         text_payload: Dict[str, Any] = {"verbosity": request.text_verbosity}
         if schema_descriptor:
             text_format = SimpleOpenAILLM.build_text_format_from_schema(

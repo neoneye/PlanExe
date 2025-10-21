@@ -1,6 +1,9 @@
 import unittest
 
-from planexe.llm_util.simple_openai_llm import _normalize_content
+from planexe.llm_util.simple_openai_llm import (
+    SimpleOpenAILLM,
+    _normalize_content,
+)
 
 
 class NormalizeContentTests(unittest.TestCase):
@@ -25,6 +28,30 @@ class NormalizeContentTests(unittest.TestCase):
     def test_non_text_supported_types_pass_through(self) -> None:
         payload = [{"type": "input_image", "image_url": "https://example.com"}]
         self.assertEqual(_normalize_content(payload), payload)
+
+
+class NormalizeMessagesTests(unittest.TestCase):
+    def test_text_type_segments_are_coerced(self) -> None:
+        messages = [{"role": "user", "content": [{"type": "text", "text": "payload"}]}]
+        normalized = SimpleOpenAILLM.normalize_input_messages(messages)
+        self.assertEqual(
+            normalized,
+            [{"role": "user", "content": [{"type": "input_text", "text": "payload"}]}],
+        )
+
+    def test_string_content_converted_to_input_text(self) -> None:
+        normalized = SimpleOpenAILLM.normalize_input_messages(
+            [{"role": "system", "content": "System guidance"}]
+        )
+        self.assertEqual(
+            normalized,
+            [
+                {
+                    "role": "system",
+                    "content": [{"type": "input_text", "text": "System guidance"}],
+                }
+            ],
+        )
 
 
 if __name__ == "__main__":

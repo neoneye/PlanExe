@@ -439,10 +439,11 @@ class AnalysisStreamService:
                 }
             )
         user_segments.append({"type": "input_text", "text": request.prompt})
-        return [
-            {"role": "system", "content": [{"type": "input_text", "text": system_prompt}]},
+        base_messages = [
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_segments},
         ]
+        return SimpleOpenAILLM.normalize_input_messages(base_messages)
 
     def _build_request_options(self, request: AnalysisStreamRequest) -> Dict[str, Any]:
         options: Dict[str, Any] = {}
