@@ -53,8 +53,8 @@ class ResponsesConversationControls:
     """Configuration defaults for Conversations API requests."""
 
     reasoning_effort: str = "high"
-    reasoning_summary: str = "succinct"
-    text_verbosity: str = "concise"
+    reasoning_summary: str = "detailed"
+    text_verbosity: str = "high"
 
 
 def _build_streaming_controls() -> ResponsesStreamingControls:

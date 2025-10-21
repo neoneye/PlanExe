@@ -9,9 +9,11 @@
 
 ### Backend
 - Raised the streaming response ceiling to 120,000 tokens, allowing requests to omit `max_output_tokens` entirely while sharing the same environment-driven cap across runtime and validation.
+- Updated `ResponsesConversationControls` defaults to use `detailed` reasoning summaries and `high` text verbosity so backend fallbacks comply with the latest Responses API enums.
 
 ### Frontend
 - Updated the analysis stream client to stop sending a hard-coded token limit so it inherits the backend defaults unless a caller specifies one explicitly.
+- Synced `RESPONSES_CONVERSATION_DEFAULTS` to the new `detailed` reasoning summary and `high` text verbosity combination used by the backend and Responses service.
 
 ### Documentation
 - Reconciled Responses API guides to the new 120,000 token ceiling and clarified how to opt in or out of explicit limits via configuration.
