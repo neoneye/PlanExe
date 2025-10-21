@@ -214,21 +214,36 @@ class SimpleOpenAILLM(LLM):
         return sanitized
 
     @staticmethod
-    def _build_text_format(schema_entry: Optional[Any] = None) -> Optional[Dict[str, Any]]:
-        if schema_entry is None:
+    def _build_response_format_from_schema(
+        *, schema: Optional[Dict[str, Any]], name: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        if not schema:
             return None
 
-        schema_copy = _deep_copy_schema(schema_entry.schema)
+        schema_copy = _deep_copy_schema(schema)
         enforced_schema = _enforce_openai_schema_requirements(schema_copy)
-        qualified_name = getattr(schema_entry, "qualified_name", "schema")
+        qualified_name = name or "schema"
         sanitized_name = SimpleOpenAILLM._sanitize_schema_name(qualified_name)
 
         return {
             "type": "json_schema",
-            "name": sanitized_name,
-            "strict": True,
-            "schema": enforced_schema,
+            "json_schema": {
+                "name": sanitized_name,
+                "schema": enforced_schema,
+                "strict": True,
+            },
         }
+
+    @classmethod
+    def _build_response_format(cls, schema_entry: Optional[Any] = None) -> Optional[Dict[str, Any]]:
+        if schema_entry is None:
+            return None
+
+        qualified_name = getattr(schema_entry, "qualified_name", "schema")
+        return cls._build_response_format_from_schema(
+            schema=schema_entry.schema,
+            name=qualified_name,
+        )
 
     def _request_args(
         self,
@@ -244,9 +259,9 @@ class SimpleOpenAILLM(LLM):
             "text": {"verbosity": "high"},
         }
 
-        text_format = self._build_text_format(schema_entry)
-        if text_format:
-            request["text"]["format"] = text_format
+        response_format = self._build_response_format(schema_entry)
+        if response_format:
+            request["response_format"] = response_format
 
         if stream:
             request["stream"] = True

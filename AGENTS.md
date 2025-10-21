@@ -4,7 +4,8 @@ This file provides guidance to AGENTS when working with code in this repository.
 
 ## File Header Template
 IGNORE THIS RULE FOR JSON or .toml or other exotic file types
-Every frontend file you create or edit should ideally start with a basic comments header if possible:
+Every frontend file you create or edit should ideally start with a basic comments header if possible!
+Use correct syntax for the file type!!!  Use this as a rough example:
 
  * Author: Your NAME  (Example: Claude Code using Sonnet 4 or Codex using GPT-5)
  * Date: `timestamp`
@@ -375,7 +376,7 @@ sqlite3 planexe.db "SELECT * FROM plan_content WHERE plan_id='your-plan-id' ORDE
 - **Sudden Death** You might suddenly die at any moment, so always commit changes as soon as you make them! The next dev will need to be able to pick up where you left off ASAP!  
 
 ## **PlanExe-Specific Rules**
-- **NEVER modify the Luigi pipeline** without understanding full dependency graph
+- **RESPECT the Luigi pipeline** NEVER modify it without understanding full dependency graph
 - **Use snake_case field names** throughout frontend to match backend exactly
 - **Backend runs on port 8080** (not 8001 despite some docs saying otherwise)
 - **WebSocket architecture is reliable** - use for real-time progress (v0.2.0)
