@@ -7,6 +7,15 @@
 
 ## [Unreleased]
 
+### Backend
+- Redirected analysis streaming structured outputs to resolve `schema_model` paths through the shared schema registry, replacing ad-hoc JSON schema plumbing and merging Responses overrides directly into request payloads.
+
+### Frontend
+- Updated the streaming client payload to prefer `schemaModel` over raw JSON schemas when requesting structured Responses output.
+
+### Documentation
+- Documented the `schema_model` handshake in the Responses API streaming guide so integrators understand the new structured output flow.
+
 ## [0.4.1] - 2025-10-20
 
 ### Backend
