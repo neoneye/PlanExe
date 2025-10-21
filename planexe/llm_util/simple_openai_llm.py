@@ -22,6 +22,33 @@ from planexe.llm_util import (
 logger = logging.getLogger(__name__)
 
 
+def _deep_copy_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
+    """Return a deep copy of a Pydantic-generated JSON schema."""
+    return json.loads(json.dumps(schema))
+
+
+def _enforce_openai_schema_requirements(schema: Dict[str, Any]) -> Dict[str, Any]:
+    """Augment a JSON schema to satisfy OpenAI Responses strict schema requirements."""
+
+    def _visit(node: Any) -> Any:
+        if isinstance(node, dict):
+            updated: Dict[str, Any] = {}
+            for key, value in node.items():
+                updated[key] = _visit(value)
+
+            schema_type = updated.get("type")
+            if schema_type == "object" and "additionalProperties" not in updated:
+                updated["additionalProperties"] = False
+            return updated
+
+        if isinstance(node, list):
+            return [_visit(item) for item in node]
+
+        return node
+
+    return _visit(schema)
+
+
 def _ensure_message_dict(message: Any) -> Dict[str, Any]:
     if isinstance(message, dict):
         return message
@@ -174,11 +201,14 @@ class SimpleOpenAILLM(LLM):
         if schema_entry is None:
             return None
 
+        schema_copy = _deep_copy_schema(schema_entry.schema)
+        enforced_schema = _enforce_openai_schema_requirements(schema_copy)
+
         return {
             "type": "json_schema",
             "name": schema_entry.qualified_name,
             "strict": True,
-            "schema": schema_entry.schema,
+            "schema": enforced_schema,
         }
 
     def _request_args(
