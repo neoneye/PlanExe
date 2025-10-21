@@ -214,9 +214,12 @@ class SimpleOpenAILLM(LLM):
         return sanitized
 
     @staticmethod
-    def _build_response_format_from_schema(
+    def build_text_format_from_schema(
         *, schema: Optional[Dict[str, Any]], name: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
+        """
+        Return an OpenAI Responses-compatible text.format payload after enforcing schema rules.
+        """
         if not schema:
             return None
 
@@ -225,24 +228,43 @@ class SimpleOpenAILLM(LLM):
         qualified_name = name or "schema"
         sanitized_name = SimpleOpenAILLM._sanitize_schema_name(qualified_name)
 
+        if logger.isEnabledFor(logging.DEBUG):
+            property_keys: List[str] = []
+            if isinstance(enforced_schema, dict):
+                properties = enforced_schema.get("properties")
+                if isinstance(properties, dict):
+                    property_keys = list(properties.keys())[:5]
+            if sanitized_name != (qualified_name or ""):
+                logger.debug(
+                    "Structured schema name '%s' sanitized to '%s'. First properties: %s",
+                    qualified_name,
+                    sanitized_name,
+                    property_keys,
+                )
+            else:
+                logger.debug(
+                    "Structured schema name '%s' ready for Responses API. First properties: %s",
+                    sanitized_name,
+                    property_keys,
+                )
+
         return {
             "type": "json_schema",
-            "json_schema": {
-                "name": sanitized_name,
-                "schema": enforced_schema,
-                "strict": True,
-            },
+            "name": sanitized_name,
+            "schema": enforced_schema,
+            "strict": True,
         }
 
     @classmethod
-    def _build_response_format(cls, schema_entry: Optional[Any] = None) -> Optional[Dict[str, Any]]:
+    def _build_text_format(cls, schema_entry: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         if schema_entry is None:
             return None
 
-        qualified_name = getattr(schema_entry, "qualified_name", "schema")
-        return cls._build_response_format_from_schema(
+        qualified_name = getattr(schema_entry, "qualified_name", None)
+        sanitized_name = getattr(schema_entry, "sanitized_name", None)
+        return cls.build_text_format_from_schema(
             schema=schema_entry.schema,
-            name=qualified_name,
+            name=sanitized_name or qualified_name,
         )
 
     def _request_args(
@@ -259,9 +281,9 @@ class SimpleOpenAILLM(LLM):
             "text": {"verbosity": "high"},
         }
 
-        response_format = self._build_response_format(schema_entry)
-        if response_format:
-            request["response_format"] = response_format
+        text_format = self._build_text_format(schema_entry)
+        if text_format:
+            request["text"]["format"] = text_format
 
         if stream:
             request["stream"] = True

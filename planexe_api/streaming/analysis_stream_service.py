@@ -287,14 +287,6 @@ class AnalysisStreamService:
             request_args["temperature"] = prepared.request.temperature
         if prepared.request.previous_response_id:
             request_args["previous_response_id"] = prepared.request.previous_response_id
-        if prepared.request.output_schema is not None:
-            response_format = SimpleOpenAILLM._build_response_format_from_schema(  # pylint: disable=protected-access
-                schema=prepared.request.output_schema,
-                name=prepared.request.schema_name or "analysis_result",
-            )
-            if response_format is not None:
-                request_args["response_format"] = response_format
-
         def _worker() -> None:
             nonlocal final_payload
             timestamp = datetime.now(timezone.utc).isoformat
