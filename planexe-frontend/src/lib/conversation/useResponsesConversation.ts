@@ -33,6 +33,7 @@ export interface ConversationFinalizeResult {
   enrichedPrompt: string;
   transcript: ConversationMessage[];
   summary: ConversationFinalPayload | null;
+  enrichedIntake: Record<string, any> | null;
 }
 
 export interface UseResponsesConversationOptions {
@@ -371,10 +372,28 @@ export function useResponsesConversation(
     }
 
     const enrichedPrompt = enrichedSections.join('\n\n');
+
+    // Extract enriched intake from JSON chunks if available
+    let enrichedIntake: Record<string, any> | null = null;
+    if (lastFinal?.summary?.json && lastFinal.summary.json.length > 0) {
+      // The structured output should be in the last JSON chunk
+      const lastJsonChunk = lastFinal.summary.json[lastFinal.summary.json.length - 1];
+
+      // Validate it has the expected schema fields
+      if (lastJsonChunk &&
+          typeof lastJsonChunk === 'object' &&
+          'project_title' in lastJsonChunk &&
+          'refined_objective' in lastJsonChunk) {
+        enrichedIntake = lastJsonChunk as Record<string, any>;
+        console.log('[useResponsesConversation] Extracted enriched intake:', enrichedIntake);
+      }
+    }
+
     return {
       enrichedPrompt,
       transcript,
       summary: lastFinal,
+      enrichedIntake,
     };
   }, [initialPrompt, lastFinal]);
 

@@ -24,6 +24,7 @@ from planexe.lever.scenarios_markdown import ScenariosMarkdown
 from planexe.lever.strategic_decisions_markdown import StrategicDecisionsMarkdown
 from planexe.plan.filenames import FilenameEnum, ExtraFilenameEnum
 from planexe.plan.speedvsdetail import SpeedVsDetailEnum
+from planexe.plan import enriched_intake_helper
 from planexe.assume.identify_purpose import IdentifyPurpose
 from planexe.assume.identify_plan_type import IdentifyPlanType
 from planexe.assume.physical_locations import PhysicalLocations
@@ -1412,8 +1413,88 @@ class PhysicalLocationsTask(PlanTask):
             output_raw_path = self.output()['raw'].path
             output_markdown_path = self.output()['markdown'].path
 
+            # Check for enriched intake data
+            run_id_dir = Path(output_raw_path).parent
+            enriched_intake = enriched_intake_helper.read_enriched_intake(run_id_dir)
+
             plan_type = plan_type_dict.get("plan_type")
             if plan_type == "physical":
+                # Check if we can use enriched intake data instead of LLM
+                if enriched_intake and enriched_intake_helper.should_skip_location_task(enriched_intake):
+                    logger.info("Using enriched intake geography data instead of LLM call")
+
+                    geography = enriched_intake_helper.get_geography_info(enriched_intake)
+                    physical_locations = enriched_intake_helper.get_physical_locations(enriched_intake)
+                    is_digital_only = enriched_intake_helper.get_is_digital_only(enriched_intake)
+
+                    # Construct output in PhysicalLocations format
+                    if is_digital_only:
+                        response_dict = {
+                            "has_location_in_plan": False,
+                            "requirements_for_the_physical_locations": [],
+                            "physical_locations": [],
+                            "location_summary": "The plan is purely digital and does not require physical locations (determined from enriched intake conversation)."
+                        }
+                        markdown_content = response_dict["location_summary"]
+                    else:
+                        # Build physical location items from enriched data
+                        location_items = []
+                        for idx, loc in enumerate(physical_locations, start=1):
+                            location_items.append({
+                                "item_index": idx,
+                                "physical_location_broad": loc,  # User provided location
+                                "physical_location_detailed": loc,
+                                "physical_location_specific": loc,
+                                "rationale_for_suggestion": "Location specified by user during intake conversation"
+                            })
+
+                        response_dict = {
+                            "has_location_in_plan": True,
+                            "requirements_for_the_physical_locations": [],
+                            "physical_locations": location_items,
+                            "location_summary": f"Physical locations specified during intake: {', '.join(physical_locations)}"
+                        }
+
+                        # Build markdown
+                        markdown_rows = []
+                        for item in location_items:
+                            markdown_rows.append(f"## {item['item_index']}. {item['physical_location_broad']}")
+                            markdown_rows.append(f"**Detailed Location**: {item['physical_location_detailed']}")
+                            markdown_rows.append(f"**Specific Location**: {item['physical_location_specific']}")
+                            markdown_rows.append(f"**Rationale**: {item['rationale_for_suggestion']}\n")
+                        markdown_rows.append(f"## Summary\n\n{response_dict['location_summary']}")
+                        markdown_content = "\n".join(markdown_rows)
+
+                    # Persist to database (skipping LLM interaction tracking)
+                    raw_content = json.dumps(response_dict, indent=2)
+                    db_service.create_plan_content({
+                        "plan_id": plan_id,
+                        "filename": FilenameEnum.PHYSICAL_LOCATIONS_RAW.value,
+                        "stage": "physical_locations",
+                        "content_type": "json",
+                        "content": raw_content,
+                        "content_size_bytes": len(raw_content.encode('utf-8'))
+                    })
+
+                    db_service.create_plan_content({
+                        "plan_id": plan_id,
+                        "filename": FilenameEnum.PHYSICAL_LOCATIONS_MARKDOWN.value,
+                        "stage": "physical_locations",
+                        "content_type": "markdown",
+                        "content": markdown_content,
+                        "content_size_bytes": len(markdown_content.encode('utf-8'))
+                    })
+
+                    # Write to filesystem
+                    with open(output_raw_path, "w") as f:
+                        json.dump(response_dict, f, indent=2)
+                    with open(output_markdown_path, "w", encoding='utf-8') as f:
+                        f.write(markdown_content)
+
+                    logger.info(f"Physical locations populated from enriched intake (skipped LLM call)")
+                    return  # Skip LLM call
+
+                # Fall back to LLM call if enriched intake not sufficient
                 query = (
                     f"File 'plan.txt':\n{plan_prompt}\n\n"
                     f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"
@@ -1563,6 +1644,73 @@ class CurrencyStrategyTask(PlanTask):
             with self.input()['physical_locations']['markdown'].open("r") as f:
                 physical_locations_markdown = f.read()
 
+            # Check for enriched intake data
+            output_raw_path = self.output()['raw'].path
+            output_markdown_path = self.output()['markdown'].path
+            run_id_dir = Path(output_raw_path).parent
+            enriched_intake = enriched_intake_helper.read_enriched_intake(run_id_dir)
+
+            # Check if we can use enriched intake data instead of LLM
+            if enriched_intake and enriched_intake_helper.should_skip_currency_task(enriched_intake):
+                logger.info("Using enriched intake budget currency data instead of LLM call")
+
+                currency = enriched_intake_helper.get_budget_currency(enriched_intake)
+                budget_estimate = enriched_intake_helper.get_budget_estimated_total(enriched_intake)
+
+                # Construct output in CurrencyStrategy format
+                response_dict = {
+                    "money_involved": True,  # If currency was specified, money is involved
+                    "currency_list": [
+                        {
+                            "currency": currency,
+                            "consideration": f"Primary currency specified during intake conversation. Budget estimate: {budget_estimate if budget_estimate else 'Not specified'}"
+                        }
+                    ],
+                    "primary_currency": currency,
+                    "currency_strategy": f"Use {currency} for all budgeting and accounting as specified during intake."
+                }
+
+                # Build markdown
+                markdown_rows = []
+                markdown_rows.append(f"# Currency Strategy\n")
+                markdown_rows.append(f"**Money Involved**: Yes\n")
+                markdown_rows.append(f"**Primary Currency**: {currency} (ISO 4217)\n")
+                markdown_rows.append(f"\n## Currency Considerations\n")
+                markdown_rows.append(f"1. **{currency}**: {response_dict['currency_list'][0]['consideration']}\n")
+                markdown_rows.append(f"\n## Currency Management Strategy\n")
+                markdown_rows.append(response_dict['currency_strategy'])
+                markdown_content = "\n".join(markdown_rows)
+
+                # Persist to database (skipping LLM interaction tracking)
+                raw_content = json.dumps(response_dict, indent=2)
+                db_service.create_plan_content({
+                    "plan_id": plan_id,
+                    "filename": FilenameEnum.CURRENCY_STRATEGY_RAW.value,
+                    "stage": "currency_strategy",
+                    "content_type": "json",
+                    "content": raw_content,
+                    "content_size_bytes": len(raw_content.encode('utf-8'))
+                })
+
+                db_service.create_plan_content({
+                    "plan_id": plan_id,
+                    "filename": FilenameEnum.CURRENCY_STRATEGY_MARKDOWN.value,
+                    "stage": "currency_strategy",
+                    "content_type": "markdown",
+                    "content": markdown_content,
+                    "content_size_bytes": len(markdown_content.encode('utf-8'))
+                })
+
+                # Write to filesystem
+                with open(output_raw_path, "w") as f:
+                    json.dump(response_dict, f, indent=2)
+                with open(output_markdown_path, "w", encoding='utf-8') as f:
+                    f.write(markdown_content)
+
+                logger.info(f"Currency strategy populated from enriched intake (skipped LLM call)")
+                return  # Skip LLM call
+
+            # Fall back to LLM call if enriched intake not sufficient
             query = (
                 f"File 'plan.txt':\n{plan_prompt}\n\n"
                 f"File 'purpose.md':\n{identify_purpose_markdown}\n\n"

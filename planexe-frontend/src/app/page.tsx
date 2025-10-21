@@ -121,9 +121,13 @@ const HomePage: React.FC = () => {
       const payload: CreatePlanRequest = {
         ...pendingRequest,
         prompt: result.enrichedPrompt,
+        enriched_intake: result.enrichedIntake ?? undefined,
       };
 
       console.log('[PlanExe] Finalising plan with enriched prompt.');
+      if (result.enrichedIntake) {
+        console.log('[PlanExe] Enriched intake data available:', result.enrichedIntake);
+      }
       const plan = await fastApiClient.createPlan(payload);
       console.log('[PlanExe] Plan created successfully:', plan);
       resetConversationState();

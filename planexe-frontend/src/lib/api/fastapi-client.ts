@@ -18,6 +18,7 @@ export interface CreatePlanRequest {
   prompt: string;
   llm_model?: string;
   speed_vs_detail: 'fast_but_skip_details' | 'balanced_speed_and_detail' | 'all_details_but_slow';
+  enriched_intake?: Record<string, any>;
 }
 
 export interface RelaunchPlanOptions {
@@ -35,6 +36,39 @@ export interface PlanResponse {
   progress_message: string;
   error_message?: string;
   output_dir?: string;
+}
+
+export interface EnrichedPlanIntake {
+  project_title: string;
+  refined_objective: string;
+  original_prompt: string;
+  scale: 'personal' | 'local' | 'regional' | 'national' | 'global';
+  risk_tolerance: 'conservative' | 'moderate' | 'aggressive' | 'experimental';
+  domain: string;
+  budget: {
+    estimated_total?: string;
+    funding_sources?: string[];
+    currency?: string;
+  };
+  timeline: {
+    target_completion?: string;
+    key_milestones?: string[];
+    urgency?: string;
+  };
+  team_size?: string;
+  existing_resources?: string[];
+  geography: {
+    is_digital_only: boolean;
+    physical_locations?: string[];
+    notes?: string;
+  };
+  hard_constraints?: string[];
+  success_criteria?: string[];
+  key_stakeholders?: string[];
+  regulatory_context?: string;
+  conversation_summary: string;
+  confidence_score: number;
+  areas_needing_clarification?: string[];
 }
 
 export interface LLMModel {

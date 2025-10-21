@@ -28,8 +28,9 @@ import {
   ConversationMessage,
   useResponsesConversation,
 } from '@/lib/conversation/useResponsesConversation';
-import { CreatePlanRequest } from '@/lib/api/fastapi-client';
+import { CreatePlanRequest, EnrichedPlanIntake } from '@/lib/api/fastapi-client';
 import { useConfigStore } from '@/lib/stores/config';
+import { EnrichedIntakeReview } from '@/components/planning/EnrichedIntakeReview';
 
 interface ConversationModalProps {
   isOpen: boolean;
@@ -84,12 +85,16 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
   const [draftMessage, setDraftMessage] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const [hasAttemptedStart, setHasAttemptedStart] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+  const [extractedIntake, setExtractedIntake] = useState<Record<string, any> | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
       setDraftMessage('');
       setLocalError(null);
       setHasAttemptedStart(false);
+      setShowReview(false);
+      setExtractedIntake(null);
       resetConversation();
     }
   }, [isOpen, resetConversation]);
@@ -166,11 +171,40 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
   const handleFinalize = async () => {
     try {
       const result = finalizeConversation();
-      await onFinalize(result);
+
+      // Check if we have enriched intake from Responses API structured output
+      if (result.enrichedIntake) {
+        console.log('[ConversationModal] Enriched intake extracted, showing review...');
+        setExtractedIntake(result.enrichedIntake);
+        setShowReview(true);
+      } else {
+        // Fallback: no structured output, proceed with text-only flow
+        console.log('[ConversationModal] No enriched intake, using text-only flow');
+        await onFinalize(result);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to finalise plan creation.';
       setLocalError(message);
     }
+  };
+
+  const handleReviewConfirm = async (editedIntake: Record<string, any>) => {
+    try {
+      const result = finalizeConversation();
+      const resultWithIntake: ConversationFinalizeResult = {
+        ...result,
+        enrichedIntake: editedIntake,
+      };
+      await onFinalize(resultWithIntake);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to finalise plan creation.';
+      setLocalError(message);
+    }
+  };
+
+  const handleReviewCancel = () => {
+    setShowReview(false);
+    setExtractedIntake(null);
   };
 
   const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (event) => {
@@ -202,19 +236,29 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 grid grid-cols-1 gap-6 px-6 py-4 overflow-hidden xl:grid-cols-[1.5fr_1fr]">
-          <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-sm">
-            <header className="flex items-center justify-between border-b border-slate-800 px-8 py-5">
-              <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
-                <MessageCircle className="h-4 w-4 text-indigo-400" />
-                Conversation timeline
-              </div>
-              <Badge variant="secondary" className="rounded-full px-3 text-xs uppercase bg-slate-800 text-slate-300">
-                Model: {resolvedModel}
-              </Badge>
-            </header>
-            <div className="flex-1 min-h-0 space-y-5 overflow-y-auto px-8 py-6">
-              {messages.map((message) => (
+        {showReview && extractedIntake ? (
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+            <EnrichedIntakeReview
+              intake={extractedIntake as EnrichedPlanIntake}
+              onConfirm={handleReviewConfirm}
+              onCancel={handleReviewCancel}
+              isSubmitting={isFinalizing}
+            />
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0 grid grid-cols-1 gap-6 px-6 py-4 overflow-hidden xl:grid-cols-[1.5fr_1fr]">
+            <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-sm">
+              <header className="flex items-center justify-between border-b border-slate-800 px-8 py-5">
+                <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
+                  <MessageCircle className="h-4 w-4 text-indigo-400" />
+                  Conversation timeline
+                </div>
+                <Badge variant="secondary" className="rounded-full px-3 text-xs uppercase bg-slate-800 text-slate-300">
+                  Model: {resolvedModel}
+                </Badge>
+              </header>
+              <div className="flex-1 min-h-0 space-y-5 overflow-y-auto px-8 py-6">
+                {messages.map((message) => (
                 <article
                   key={message.id}
                   className={`rounded-lg border px-5 py-4 text-sm leading-relaxed text-slate-200 shadow-sm ${MESSAGE_BG[message.role]}`}
@@ -316,6 +360,7 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
             </Card>
           </aside>
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );
