@@ -325,26 +325,22 @@ class ConversationService:
     ) -> Dict[str, Any]:
         final_payload: Dict[str, Any] = {}
         try:
-            # Use conversations.responses.stream for conversation-scoped requests
-            conversations_client = getattr(llm._client, "conversations", None)  # pylint: disable=protected-access
-            if conversations_client and "conversation" in request_args:
-                # Conversations API streaming
-                with conversations_client.responses.stream(**request_args) as stream:
-                    for event in stream:
-                        envelopes = handler.handle(event)
-                        if envelopes:
-                            manager.push(envelopes)
-                    final_response = self._resolve_final_response(stream)
-            else:
-                # Fallback to direct responses.stream
-                with llm._client.responses.stream(**request_args) as stream:  # pylint: disable=protected-access
-                    for event in stream:
-                        envelopes = handler.handle(event)
-                        if envelopes:
-                            manager.push(envelopes)
-                    final_response = self._resolve_final_response(stream)
+            # Modern SDKs expose conversation-aware streaming directly on client.responses
+            responses_client = getattr(llm._client, "responses", None)  # pylint: disable=protected-access
+            if responses_client is None:
+                raise AttributeError("OpenAI client is missing the 'responses' accessor")
+            with responses_client.stream(**request_args) as stream:
+                for event in stream:
+                    envelopes = handler.handle(event)
+                    if envelopes:
+                        manager.push(envelopes)
+                final_response = self._resolve_final_response(stream)
             if final_response is not None:
                 final_payload = SimpleOpenAILLM._payload_to_dict(final_response)
+        except AttributeError as attr_error:
+            handler.handle({"type": "response.error", "message": str(attr_error)})
+            manager.push(handler.emit_completion())
+            raise
         except APIError as api_error:
             handler.handle({"type": "response.error", "message": getattr(api_error, "message", str(api_error))})
             manager.push(handler.emit_completion())

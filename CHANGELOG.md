@@ -11,6 +11,7 @@
 - Raised the streaming response ceiling to 120,000 tokens, allowing requests to omit `max_output_tokens` entirely while sharing the same environment-driven cap across runtime and validation.
 - Updated `ResponsesConversationControls` defaults to use `detailed` reasoning summaries and `high` text verbosity so backend fallbacks comply with the latest Responses API enums.
 - Corrected analysis streaming payloads to send `input_text` content segments, matching the Responses API spec and eliminating OpenAI validation errors.
+- Replaced the deprecated `client.conversations.responses.stream` usage with `client.responses.stream` so conversation threads keep working on the latest OpenAI SDKs.
 
 ### Frontend
 - Updated the analysis stream client to stop sending a hard-coded token limit so it inherits the backend defaults unless a caller specifies one explicitly.
