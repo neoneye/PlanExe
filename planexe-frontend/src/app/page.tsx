@@ -26,9 +26,10 @@ import { CreatePlanRequest, fastApiClient } from '@/lib/api/fastapi-client';
 import { ConversationFinalizeResult } from '@/lib/conversation/useResponsesConversation';
 
 const FALLBACK_MODEL_OPTIONS = [
-  { id: 'gpt-5-mini', label: 'gpt-5-mini' },
-  { id: 'gpt-5-nano', label: 'gpt-5-nano' },
+  { id: 'gpt-5-mini-2025-08-07', label: 'gpt-5-mini' },
+  { id: 'gpt-5-nano-2025-08-07', label: 'gpt-5-nano' },
 ];
+const PRIMARY_FALLBACK_MODEL_ID = FALLBACK_MODEL_OPTIONS[0].id;
 
 const HomePage: React.FC = () => {
   const { llmModels, loadLLMModels, loadPromptExamples } = useConfigStore();
@@ -67,7 +68,7 @@ const HomePage: React.FC = () => {
     const hasSelection = availableModels.some((option) => option.id === selectedModel);
     if (!hasSelection) {
       const preferred =
-        availableModels.find((option) => option.id === 'gpt-5-mini') ||
+        availableModels.find((option) => option.id === PRIMARY_FALLBACK_MODEL_ID) ||
         availableModels.find((option) => option.id.startsWith('gpt-5-mini')) ||
         availableModels[0];
 
@@ -120,7 +121,7 @@ const HomePage: React.FC = () => {
   };
 
   const handlePlanSubmit = async (prompt: string) => {
-    const fallbackModel = availableModels.find((option) => option.id === 'gpt-5-mini')?.id;
+    const fallbackModel = availableModels.find((option) => option.id === PRIMARY_FALLBACK_MODEL_ID)?.id;
     const modelForRequest = selectedModel || fallbackModel || availableModels[0]?.id || FALLBACK_MODEL_OPTIONS[0].id;
     const planData: CreatePlanRequest = {
       prompt,
