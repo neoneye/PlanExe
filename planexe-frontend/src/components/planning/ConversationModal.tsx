@@ -41,8 +41,8 @@ interface ConversationModalProps {
 }
 
 const MESSAGE_BG: Record<ConversationMessage['role'], string> = {
-  user: 'bg-indigo-50 border-indigo-200',
-  assistant: 'bg-white border-slate-200',
+  user: 'bg-indigo-950/40 border-indigo-800',
+  assistant: 'bg-slate-800 border-slate-700',
 };
 
 export const ConversationModal: React.FC<ConversationModalProps> = ({
@@ -187,25 +187,25 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
         }
       }}
     >
-      <DialogContent className="h-[calc(100vh-1.5rem)] w-[calc(100vw-2rem)] max-w-none overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 p-0 shadow-2xl sm:h-[calc(100vh-2rem)] sm:w-[calc(100vw-3rem)]">
-        <DialogHeader className="px-10 pt-8 pb-4">
-          <DialogTitle className="flex items-center gap-3 text-3xl font-semibold text-slate-900">
-            <Sparkles className="h-6 w-6 text-indigo-600" />
+      <DialogContent className="h-screen w-screen max-w-none overflow-hidden border-0 bg-slate-950 p-0 shadow-none">
+        <DialogHeader className="px-10 pt-8 pb-4 border-b border-slate-800">
+          <DialogTitle className="flex items-center gap-3 text-3xl font-semibold text-slate-100">
+            <Sparkles className="h-6 w-6 text-indigo-400" />
             Enrich your plan request
           </DialogTitle>
-          <DialogDescription className="max-w-3xl text-base text-slate-600">
+          <DialogDescription className="max-w-3xl text-base text-slate-400">
             We send your initial brief to the planning agent, who will guide you through the must-have details before Luigi starts.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid h-full grid-cols-1 gap-8 px-8 pb-8 md:px-10 md:pb-10 xl:grid-cols-[2fr_1fr]">
-          <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <header className="flex items-center justify-between border-b border-slate-200 px-8 py-5">
-              <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-600">
-                <MessageCircle className="h-4 w-4 text-indigo-500" />
+        <div className="grid h-full grid-cols-1 gap-6 px-8 pb-8 md:px-10 md:pb-10 xl:grid-cols-[2fr_1fr]">
+          <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-sm">
+            <header className="flex items-center justify-between border-b border-slate-800 px-8 py-5">
+              <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
+                <MessageCircle className="h-4 w-4 text-indigo-400" />
                 Conversation timeline
               </div>
-              <Badge variant="secondary" className="rounded-full px-3 text-xs uppercase">
+              <Badge variant="secondary" className="rounded-full px-3 text-xs uppercase bg-slate-800 text-slate-300">
                 Model: {resolvedModel}
               </Badge>
             </header>
@@ -213,9 +213,9 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
               {messages.map((message) => (
                 <article
                   key={message.id}
-                  className={`rounded-xl border px-5 py-4 text-sm leading-relaxed text-slate-800 shadow-sm ${MESSAGE_BG[message.role]}`}
+                  className={`rounded-lg border px-5 py-4 text-sm leading-relaxed text-slate-200 shadow-sm ${MESSAGE_BG[message.role]}`}
                 >
-                  <header className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <header className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-400">
                     <span>{message.role === 'assistant' ? 'PlanExe Agent' : 'You'}</span>
                     <span>{new Date(message.createdAt).toLocaleTimeString()}</span>
                   </header>
@@ -223,7 +223,7 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
                     {message.content || (message.streaming ? 'Thinking…' : '')}
                   </p>
                   {message.streaming && (
-                    <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                    <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
                       <Loader2 className="h-3 w-3 animate-spin" />
                       Agent drafting response…
                     </div>
@@ -231,7 +231,7 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
                 </article>
               ))}
             </div>
-            <footer className="border-t border-slate-200 bg-slate-50 px-8 py-5">
+            <footer className="border-t border-slate-800 bg-slate-900/50 px-8 py-5">
               <div className="space-y-3">
                 <Textarea
                   value={draftMessage}
@@ -242,9 +242,9 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
                   disabled={isStreaming || isFinalizing}
                 />
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-xs text-slate-500">
-                    Press <kbd className="rounded border border-slate-300 bg-white px-1">⌘</kbd>
-                    +<kbd className="rounded border border-slate-300 bg-white px-1">Enter</kbd> to send
+                  <p className="text-xs text-slate-400">
+                    Press <kbd className="rounded border border-slate-700 bg-slate-800 px-1 text-slate-300">⌘</kbd>
+                    +<kbd className="rounded border border-slate-700 bg-slate-800 px-1 text-slate-300">Enter</kbd> to send
                   </p>
                   <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={onClose} disabled={isFinalizing || isStreaming}>
@@ -274,7 +274,7 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
                 </div>
               </div>
               {(localError || streamError) && (
-                <div className="mt-3 flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="mt-3 flex flex-col gap-3 rounded-lg border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-300">
                   <div className="flex items-start gap-2">
                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                     <span>{localError ?? streamError}</span>
@@ -296,15 +296,15 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
           </section>
 
           <aside className="flex h-full min-h-0 flex-col gap-5">
-            <Card className="flex-1 min-h-0 border-slate-200">
+            <Card className="flex-1 min-h-0 border-slate-800 bg-slate-900">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-400">
                   Answer
                 </CardTitle>
               </CardHeader>
-              <CardContent className="h-full min-h-0 overflow-y-auto rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+              <CardContent className="h-full min-h-0 overflow-y-auto rounded-lg bg-slate-950/40 px-4 py-3 text-sm text-slate-300">
                 {textBuffer ? (
-                  <p className="whitespace-pre-wrap text-slate-800">{textBuffer}</p>
+                  <p className="whitespace-pre-wrap text-slate-200">{textBuffer}</p>
                 ) : (
                   <p className="text-slate-500">The assistant response will appear here once the stream completes.</p>
                 )}
@@ -322,30 +322,30 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
               </CardContent>
             </Card>
 
-            <Card className="border-slate-200">
+            <Card className="border-slate-800 bg-slate-900">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-400">
                   Reasoning summary
                 </CardTitle>
               </CardHeader>
-              <CardContent className="max-h-48 overflow-y-auto rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+              <CardContent className="max-h-48 overflow-y-auto rounded-lg bg-slate-950/40 px-4 py-3 text-sm text-slate-300">
                 {reasoningBuffer ? (
-                  <pre className="whitespace-pre-wrap text-slate-700">{reasoningBuffer}</pre>
+                  <pre className="whitespace-pre-wrap text-slate-200">{reasoningBuffer}</pre>
                 ) : (
                   <p className="text-slate-500">Reasoning traces will stream here when available.</p>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="border-slate-200">
+            <Card className="border-slate-800 bg-slate-900">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-400">
                   Data / JSON
                 </CardTitle>
               </CardHeader>
-              <CardContent className="max-h-52 overflow-y-auto rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-700">
+              <CardContent className="max-h-52 overflow-y-auto rounded-lg bg-slate-950/40 px-4 py-3 text-xs text-slate-300">
                 {jsonChunks.length > 0 ? (
-                  <pre className="whitespace-pre-wrap">{JSON.stringify(jsonChunks, null, 2)}</pre>
+                  <pre className="whitespace-pre-wrap text-slate-200">{JSON.stringify(jsonChunks, null, 2)}</pre>
                 ) : (
                   <p className="text-slate-500">No structured deltas received yet.</p>
                 )}
