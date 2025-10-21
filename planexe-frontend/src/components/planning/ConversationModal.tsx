@@ -115,20 +115,33 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
       return;
     }
 
+    console.log('[ConversationModal] Modal opened, attempting to start conversation...');
+    console.log('[ConversationModal] Initial prompt:', initialPrompt);
+    console.log('[ConversationModal] Model:', resolvedModel);
+    console.log('[ConversationModal] Session key:', sessionKey);
+
     const trimmedPrompt = initialPrompt.trim();
     if (!trimmedPrompt) {
+      console.error('[ConversationModal] Empty prompt detected');
       setLocalError('Cannot start conversation without an initial brief.');
       return;
     }
 
     setHasAttemptedStart(true);
     setLocalError(null);
-    startConversation().catch((error) => {
-      const message = error instanceof Error ? error.message : 'Failed to start intake conversation.';
-      setLocalError(message);
-      setHasAttemptedStart(false);
-    });
-  }, [hasAttemptedStart, initialPrompt, isOpen, sessionKey, startConversation]);
+    console.log('[ConversationModal] Starting conversation with Responses API...');
+    startConversation()
+      .then(() => {
+        console.log('[ConversationModal] Conversation started successfully');
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : 'Failed to start intake conversation.';
+        console.error('[ConversationModal] Conversation start failed:', error);
+        console.error('[ConversationModal] Error message:', message);
+        setLocalError(message);
+        setHasAttemptedStart(false);
+      });
+  }, [hasAttemptedStart, initialPrompt, isOpen, sessionKey, startConversation, resolvedModel]);
 
   const handleRetryConversation = () => {
     if (isStreaming) {
@@ -149,12 +162,15 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
     if (!trimmed || isStreaming) {
       return;
     }
+    console.log('[ConversationModal] Sending user message:', trimmed);
     setLocalError(null);
     try {
       await sendUserMessage(trimmed);
+      console.log('[ConversationModal] Message sent successfully');
       setDraftMessage('');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to send message.';
+      console.error('[ConversationModal] Send message failed:', error);
       setLocalError(message);
     }
   };

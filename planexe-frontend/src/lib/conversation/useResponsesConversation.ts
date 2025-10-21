@@ -137,9 +137,12 @@ export function useResponsesConversation(
 
   const ensureRemoteConversation = useCallback(async (): Promise<string> => {
     if (conversationId) {
+      console.log('[useResponsesConversation] Reusing existing conversation:', conversationId);
       return conversationId;
     }
+    console.log('[useResponsesConversation] Creating new conversation with model:', modelKey);
     const response = await fastApiClient.ensureConversation({ modelKey, conversationId: undefined });
+    console.log('[useResponsesConversation] Conversation created:', response.conversation_id);
     setConversationId(response.conversation_id);
     return response.conversation_id;
   }, [conversationId, modelKey]);

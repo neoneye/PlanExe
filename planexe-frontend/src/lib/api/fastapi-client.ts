@@ -615,7 +615,12 @@ export class FastAPIClient {
       body.conversation_id = payload.conversationId;
     }
 
-    const response = await fetch(`${this.baseURL}/api/conversations`, {
+    const url = `${this.baseURL}/api/conversations`;
+    console.log('[FastAPIClient] POST', url);
+    console.log('[FastAPIClient] Request body:', body);
+    console.log('[FastAPIClient] Base URL:', this.baseURL);
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -623,7 +628,10 @@ export class FastAPIClient {
       body: JSON.stringify(body),
     });
 
-    return this.handleResponse<ConversationCreateResponsePayload>(response);
+    console.log('[FastAPIClient] Response status:', response.status, response.statusText);
+    const result = await this.handleResponse<ConversationCreateResponsePayload>(response);
+    console.log('[FastAPIClient] Response data:', result);
+    return result;
   }
 
   async createConversationRequest(
@@ -776,6 +784,7 @@ export class FastAPIClient {
 
 // Default client instance
 const resolvedBaseUrl = getApiBaseUrl();
+console.log('[FastAPIClient] Initializing with base URL:', resolvedBaseUrl);
 export const fastApiClient = new FastAPIClient(resolvedBaseUrl);
 
 // Types are already exported above with their interface declarations
