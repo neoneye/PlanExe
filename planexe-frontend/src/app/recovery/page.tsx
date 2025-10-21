@@ -20,7 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileManager } from '@/components/files/FileManager';
-import { PipelineDetails } from '@/components/PipelineDetails';
+import { PipelineDetails, PipelineLogsPanel } from '@/components/PipelineDetails';
 import {
   fastApiClient,
   PlanArtefact,
@@ -28,10 +28,8 @@ import {
   PlanResponse,
   CreatePlanRequest,
 } from '@/lib/api/fastapi-client';
-import { StreamingAnalysisPanel } from '@/components/analysis/StreamingAnalysisPanel';
 import { PlanFile } from '@/lib/types/pipeline';
 import { ReportTaskFallback } from '@/components/files/ReportTaskFallback';
-import { formatDistanceToNow } from 'date-fns';
 import {
   Activity,
   AlertCircle,
@@ -573,14 +571,6 @@ const WorkspaceContent: React.FC = () => {
   }
 
   const statusDisplay = plan ? getStatusDisplay(plan.status) : null;
-  const streamingContext = plan?.progress_message || stageSummary.find((stage) => stage.count > 0)?.label;
-  const analysisModelKey = plan?.llm_model || 'gpt-5-mini-2025-08-07';
-  const streamingDescription = plan
-    ? `Run a reasoning pass on the latest artefacts for “${plan.prompt.slice(0, 42)}${
-        plan.prompt.length > 42 ? '…' : ''
-      }”.`
-    : 'Run a reasoning pass on the most recent plan outputs.';
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       <header className="border-b border-slate-200 bg-white/90 backdrop-blur px-6 py-4">
@@ -648,25 +638,7 @@ const WorkspaceContent: React.FC = () => {
             <PipelineDetails planId={planId} className="h-fit" />
           </div>
           <div className="flex flex-col gap-6">
-            <StreamingAnalysisPanel
-              taskId={planId}
-              modelKey={analysisModelKey}
-              prompt={
-                plan
-                  ? 'Produce a concise status review highlighting risks, wins, and recommended next steps.'
-                  : 'Produce a concise status review for the most recent plan run.'
-              }
-              context={streamingContext || undefined}
-              systemPrompt="You are PlanExe’s review analyst. Synthesize artefact status into actionable insights with clear next steps."
-              stage="streaming_analysis_modal"
-              metadata={{
-                planId,
-                planStatus: plan?.status,
-                promptPreview: plan?.prompt,
-              }}
-              heading="Streaming modal analysis"
-              description={streamingDescription}
-            />
+            <PipelineLogsPanel planId={planId} className="h-fit" />
             <ReportPanel
               planId={planId}
               canonicalHtml={canonicalHtml}
