@@ -1,6 +1,6 @@
 from typing import Sequence
 import unittest
-from planexe.viability.overall_summary import RecommendationEnum
+from planexe.viability.summary import RecommendationEnum
 
 class TestRecommendationEnum(unittest.TestCase):
     def uncovered(self, statuses: Sequence[str]) -> RecommendationEnum:

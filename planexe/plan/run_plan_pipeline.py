@@ -73,7 +73,7 @@ from planexe.team.enrich_team_members_with_background_story import EnrichTeamMem
 from planexe.team.enrich_team_members_with_environment_info import EnrichTeamMembersWithEnvironmentInfo
 from planexe.team.team_markdown_document import TeamMarkdownDocumentBuilder
 from planexe.team.review_team import ReviewTeam
-from planexe.viability.overall_summary import OverallSummary
+from planexe.viability.summary import ViabilitySummary
 from planexe.viability.domains import ViabilityDomains
 from planexe.viability.blockers import ViabilityBlockers
 from planexe.viability.fixpack import ViabilityFixPack
@@ -3847,7 +3847,7 @@ class ViabilityFixPacksTask(PlanTask):
         markdown_path = self.output()['markdown'].path
         viability_fixpack.save_markdown(markdown_path)
 
-class ViabilityOverallSummaryTask(PlanTask):
+class ViabilitySummaryTask(PlanTask):
     def output(self):
         return {
             'raw': self.local_target(FilenameEnum.VIABILITY_SUMMARY_RAW),
@@ -3873,7 +3873,7 @@ class ViabilityOverallSummaryTask(PlanTask):
         with self.input()['viability_fix_packs']['raw'].open("r") as f:
             fix_packs_raw = f.read()
 
-        summary = OverallSummary.execute(
+        summary = ViabilitySummary.execute(
             domains_payload=viability_domains_raw,
             blockers_payload=blockers_raw,
             fix_packs_payload=fix_packs_raw,
@@ -3925,7 +3925,7 @@ class ReportTask(PlanTask):
             'viability_domains': self.clone(ViabilityDomainsTask),
             'viability_blockers': self.clone(ViabilityBlockersTask),
             'viability_fix_packs': self.clone(ViabilityFixPacksTask),
-            'viability_overall_summary': self.clone(ViabilityOverallSummaryTask)
+            'viability_summary': self.clone(ViabilitySummaryTask)
         }
     
     def run_inner(self):
@@ -3955,12 +3955,12 @@ class ReportTask(PlanTask):
         rg.append_markdown_with_tables('Premortem', self.input()['premortem']['markdown'].path)
         rg.append_viability(
             document_title='Project Health Assessment',
-            overall_summary_header_markdown_file_path=Path(self.input()['viability_overall_summary']['header_markdown'].path),
+            overall_summary_header_markdown_file_path=Path(self.input()['viability_summary']['header_markdown'].path),
             domains_markdown_file_path=Path(self.input()['viability_domains']['markdown'].path),
             blockers_markdown_file_path=Path(self.input()['viability_blockers']['markdown'].path),
             fixpack_markdown_file_path=Path(self.input()['viability_fix_packs']['markdown'].path),
-            overall_summary_critical_issues_markdown_file_path=Path(self.input()['viability_overall_summary']['critical_issues_markdown'].path),
-            overall_summary_flips_to_go_markdown_file_path=Path(self.input()['viability_overall_summary']['flips_to_go_markdown'].path),
+            overall_summary_critical_issues_markdown_file_path=Path(self.input()['viability_summary']['critical_issues_markdown'].path),
+            overall_summary_flips_to_go_markdown_file_path=Path(self.input()['viability_summary']['flips_to_go_markdown'].path),
         )
         rg.append_initial_prompt_vetted(
             document_title='Initial Prompt Vetted', 
@@ -4036,7 +4036,7 @@ class FullPlanPipeline(PlanTask):
             'viability_domains': self.clone(ViabilityDomainsTask),
             'viability_blockers': self.clone(ViabilityBlockersTask),
             'viability_fix_packs': self.clone(ViabilityFixPacksTask),
-            'viability_overall_summary': self.clone(ViabilityOverallSummaryTask),
+            'viability_summary': self.clone(ViabilitySummaryTask),
             'report': self.clone(ReportTask),
         }
 

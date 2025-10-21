@@ -6,7 +6,7 @@ It consumes the structured outputs from the previous viability steps
 (`Domains`, `Blockers`, `FixPack`) and emits a concise verdict that can
 be serialized to JSON and markdown.
 
-PROMPT> python -u -m planexe.viability.overall_summary | tee output.txt
+PROMPT> python -u -m planexe.viability.summary | tee output.txt
 """
 
 from __future__ import annotations
@@ -310,7 +310,7 @@ class WhyItem:
 
 
 @dataclass
-class OverallSummary:
+class ViabilitySummary:
     """Container for the step-4 roll-up."""
 
     overall: Dict[str, Any]
@@ -330,7 +330,7 @@ class OverallSummary:
         fix_packs_payload: Any,
         max_why: int = 3,
         max_flips: int = 5,
-    ) -> "OverallSummary":
+    ) -> "ViabilitySummary":
         """Compute the viability roll-up using the deterministic Step 4 rules."""
 
         domains_model = _parse_model(
@@ -499,13 +499,13 @@ class OverallSummary:
     @staticmethod
     def convert_to_markdown(*, payload: OverallSummaryPayload) -> str:
         lines: List[str] = []
-        lines.append(OverallSummary.format_header_markdown(payload=payload))
+        lines.append(ViabilitySummary.format_header_markdown(payload=payload))
         lines.append("")
         lines.append("### Summary of Critical Issues by Domain")
-        lines.append(OverallSummary.format_critical_issues_markdown(payload=payload))
+        lines.append(ViabilitySummary.format_critical_issues_markdown(payload=payload))
         lines.append("")
         lines.append("### Go/No-Go Criteria")
-        lines.append(OverallSummary.format_flips_to_go_markdown(payload=payload))
+        lines.append(ViabilitySummary.format_flips_to_go_markdown(payload=payload))
         return "\n".join(lines)
 
     def to_dict(
@@ -617,7 +617,7 @@ def _build_metadata(
     }
 
 
-__all__ = ["OverallSummary"]
+__all__ = ["ViabilitySummary"]
 
 
 if __name__ == "__main__":
@@ -673,7 +673,7 @@ if __name__ == "__main__":
         ]
     }
 
-    summary = OverallSummary.execute(
+    summary = ViabilitySummary.execute(
         domains_payload=example_domains,
         blockers_payload=example_blockers,
         fix_packs_payload=example_fix_packs,

@@ -148,7 +148,7 @@ Example in the report:
 
 2) In `domains.py`, **do not accept LLM status**; call the scorer with `reason_codes` and detected artifacts; overwrite `status` and `factors`.
 
-3) In `overall_summary.py`, compute overall via **worst-win** + optional Likert number; set **PAUSE** on RED.
+3) In `summary.py`, compute overall via **worst-win** + optional Likert number; set **PAUSE** on RED.
 
 4) In `fixpack.py`, simulate actions by adding artifacts/removing codes and re-score to compute **uplift**; sort by uplift per ROM day.
 
