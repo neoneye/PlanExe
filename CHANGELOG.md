@@ -13,6 +13,11 @@
 - Restyled `planexe-frontend/src/components/planning/SimplifiedPlanInput.tsx` with aurora-inspired controls that align with the
   refreshed palette while preserving keyboard shortcuts and submission behaviour.
 
+### FIX: Landing Fallback Model Keys
+- Updated `planexe-frontend/src/app/page.tsx` to align hard-coded fallback LLM options with the timestamped keys from
+  `llm_config.json`, preventing "model key not found" errors during first-load submissions before the dynamic model list is
+  available.
+
 ### FIX: Redline Gate Structured Output Compliance
 - Updated `_enforce_openai_schema_requirements` in `planexe/llm_util/simple_openai_llm.py` to automatically require every defined property when emitting strict JSON schemas, resolving OpenAI 400 errors triggered by the Redline Gate decision schema.
 - Verified via `SimpleOpenAILLM.build_text_format_from_schema` that the generated `planexe_diagnostics_redline_gate_Decision` schema now declares all six fields in the `required` array, satisfying Responses API strict-mode validation.
