@@ -427,7 +427,8 @@ Output (JSON)
 ```json
 {
   "overall_status": "GRAY",
-  "overall_recommendation": "PROCEED_WITH_CAUTION",
+  "overall_recommendation_code": "PROCEED_WITH_CAUTION",
+  "overall_recommendation_display": "Proceed with caution - monitor risks",
   "why": [
     {
       "display": "Human Stability",

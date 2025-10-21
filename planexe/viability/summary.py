@@ -74,7 +74,8 @@ class OverallSummaryPayload(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     overall_status: str
-    overall_recommendation: str
+    overall_recommendation_code: str
+    overall_recommendation_display: str
     why: List[Dict[str, str]]
     what_flips_to_go: List[str]
 
@@ -137,6 +138,23 @@ class RecommendationEnum(StrEnum):
     GO_IF_FP0 = "GO_IF_FP0"
     PROCEED_WITH_CAUTION = "PROCEED_WITH_CAUTION"
     HOLD = "HOLD"
+
+    def human_readable(self) -> str:
+        """
+        Convert the recommendation code to human-readable text.
+        
+        Returns
+        -------
+        str
+            Human-readable description of the recommendation.
+        """
+        readable_map = {
+            self.GO: "Proceed with execution",
+            self.GO_IF_FP0: "Proceed only if FP0 fixpack is accepted and executed",
+            self.PROCEED_WITH_CAUTION: "Proceed with caution - monitor risks",
+            self.HOLD: "Do not proceed - resolve blockers first"
+        }
+        return readable_map.get(self, f"Unknown recommendation: {self.value}")
 
     @classmethod
     def determine(
@@ -378,7 +396,8 @@ class ViabilitySummary:
             statuses=statuses,
             red_gray_covered=red_gray_covered,
         )
-        recommendation: str = recommendation_value.value
+        recommendation_code: str = recommendation_value.value
+        recommendation_display: str = recommendation_value.human_readable()
 
         why_items = _build_why_list(
             domains=domains_model.domains,
@@ -399,7 +418,8 @@ class ViabilitySummary:
 
         result_payload = OverallSummaryPayload(
             overall_status=upgraded_status,
-            overall_recommendation=recommendation,
+            overall_recommendation_code=recommendation_code,
+            overall_recommendation_display=recommendation_display,
             why=why_reasons,
             what_flips_to_go=what_flips_to_go,
         )
@@ -432,7 +452,7 @@ class ViabilitySummary:
     def format_header_markdown(*, payload: OverallSummaryPayload) -> str:
         lines: List[str] = []
         lines.append(f"- **Status:** {escape_markdown(payload.overall_status)}")
-        lines.append(f"- **Recommendation:** {escape_markdown(payload.overall_recommendation)}")
+        lines.append(f"- **Recommendation:** <code>{escape_markdown(payload.overall_recommendation_code)}</code>, {escape_markdown(payload.overall_recommendation_display)}")
         return "\n".join(lines)
 
     @staticmethod
