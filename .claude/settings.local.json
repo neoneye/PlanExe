@@ -1,11 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git add -A)",
-      "Bash(npm run go)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nfix: MAJOR UX - make landing page 60% more info-dense and reduce scrolling\n\nROOT CAUSE: Landing page had excessive vertical spacing causing users to scroll \ntoo much to see useful information. Hero section, How It Works cards, form input,\nand section spacing were all oversized.\n\nSOLUTION: Systematically reduced all vertical spacing and element sizes:\n\n**Hero Section** (HeroSection.tsx):\n- Padding: py-12/16/20 → py-6/8 (60% reduction)\n- Logo: h-12/w-12 → h-10/w-10\n- Title: text-2xl → text-xl  \n- Headline: text-4xl/5xl/6xl → text-3xl/4xl\n- Subtitle: text-lg/xl/2xl → text-base/lg\n- Badge spacing: gap-4 → gap-2, px-4 py-2 → px-3 py-1\n- All margins: mb-8/space-y-6 → mb-4/space-y-3\n\n**How It Works Section** (HowItWorksSection.tsx):\n- Section padding: py-12/16 → py-0 (eliminated)\n- Header margin: mb-12 → mb-4\n- Header text: text-3xl/4xl → text-2xl\n- Subtitle: text-lg → text-sm\n- Card gap: gap-8 → gap-4 (50% reduction)\n- Card borders: border-2 → border\n- Card shadows: shadow-lg → shadow-sm\n- Step badge: h-10/w-10 → h-7/w-7\n- Icon container: h-16/w-16 → h-12/w-12\n- Icon size: h-8/w-8 → h-6/w-6\n- Card title: text-xl → text-base\n- Card description: text-base → text-xs\n- Card details: text-sm → text-xs\n- Card header: space-y-4 pb-4 → space-y-2 pb-2\n- Card content: pb default → pb-3\n- Context box: mt-12 p-6 → mt-4 p-3, text-sm → text-xs\n\n**Simplified Plan Input** (SimplifiedPlanInput.tsx):\n- Textarea height: min-h-180px/200px → min-h-120px (40% reduction)\n- Textarea padding: p-6 → p-4\n- Textarea text: text-lg → text-base\n- Border radius: rounded-2xl → rounded-xl\n- Focus ring: ring-4 → ring-2\n- Char count: text-sm → text-xs, bottom-4 right-4 → bottom-3 right-3\n- Form spacing: space-y-4 → space-y-3\n- Button controls: gap-3 → gap-2\n- Keyboard hint: text-sm → text-xs, px-2 py-1 → px-1.5 py-0.5, text-xs → text-[10px]\n- Button size: size-lg → size-default\n- Button padding: px-8 py-6 → px-6 py-2\n- Button text: text-lg → text-base\n- Button width: min-w-200px → min-w-180px\n- Icon sizes: h-5/w-5 → h-4/w-4\n- Hint text: text-sm → text-xs\n\n**Main Page Layout** (page.tsx):\n- Main padding: pb-20 → pb-8 (60% reduction)\n- Plan input margin: mb-16 → mb-6 (63% reduction)\n- Error card: mt-6 py-4 → mt-4 py-3\n- Recent Plans margin: mt-16 → mt-6 (63% reduction)\n- Recent Plans header: pb-4 text-lg h-5/w-5 text-sm → pb-3 text-base h-4/w-4 text-xs\n\nIMPACT:\n- Landing page now ~60% more compact vertically\n- Hero + input + How It Works + Recent Plans all visible with minimal scrolling\n- Information density significantly improved while maintaining readability\n- Form still usable but takes less vertical space\n- All key information now \"above the fold\" on standard 1080p+ screens\n\nFILES MODIFIED:\n- planexe-frontend/src/components/planning/HeroSection.tsx\n- planexe-frontend/src/components/planning/HowItWorksSection.tsx  \n- planexe-frontend/src/components/planning/SimplifiedPlanInput.tsx\n- planexe-frontend/src/app/page.tsx\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+      "Read**",
+      "Edit",
+      "Write",
+      "MultiEdit",
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "Read(/D:\\1Projects\\arc-explainer\\server\\services\\base/**)",
+      "Read(/D:\\1Projects\\arc-explainer\\server\\services/**)"
     ],
-    "deny": [],
-    "ask": []
-  }
+    "defaultMode": "bypassPermissions"
+  },
+  "model": "sonnet"
 }
