@@ -3809,9 +3809,9 @@ class ViabilityFixPacksTask(PlanTask):
         with self.input()['viability_domains']['raw'].open("r") as f:
             viability_domains_raw = f.read()
         with self.input()['viability_blockers']['markdown'].open("r") as f:
-            blockers_markdown = f.read()
+            viability_blockers_markdown = f.read()
         with self.input()['viability_blockers']['raw'].open("r") as f:
-            blockers_raw = f.read()
+            viability_blockers_raw = f.read()
 
         # Build the query.
         query = (
@@ -3830,7 +3830,7 @@ class ViabilityFixPacksTask(PlanTask):
             f"File 'questions-and-answers.md':\n{questions_and_answers_markdown}\n\n"
             f"File 'premortem.md':\n{premortem_markdown}\n\n"
             f"File 'domains-assessment.md':\n{viability_domains_markdown}\n\n"
-            f"File 'blockers.md':\n{blockers_markdown}"
+            f"File 'blockers.md':\n{viability_blockers_markdown}"
         )
 
         # Invoke the LLM
@@ -3838,7 +3838,7 @@ class ViabilityFixPacksTask(PlanTask):
             llm=llm, 
             user_prompt=query, 
             viability_domains_json=viability_domains_raw, 
-            blockers_json=blockers_raw
+            blockers_json=viability_blockers_raw
         )
 
         # Save the results.
@@ -3869,27 +3869,27 @@ class ViabilitySummaryTask(PlanTask):
         with self.input()['viability_domains']['raw'].open("r") as f:
             viability_domains_raw = f.read()
         with self.input()['viability_blockers']['raw'].open("r") as f:
-            blockers_raw = f.read()
+            viability_blockers_raw = f.read()
         with self.input()['viability_fix_packs']['raw'].open("r") as f:
-            fix_packs_raw = f.read()
+            viability_fix_packs_raw = f.read()
 
-        summary = ViabilitySummary.execute(
+        viability_summary = ViabilitySummary.execute(
             domains_payload=viability_domains_raw,
-            blockers_payload=blockers_raw,
-            fix_packs_payload=fix_packs_raw,
+            blockers_payload=viability_blockers_raw,
+            fix_packs_payload=viability_fix_packs_raw,
         )
 
         # Save the results.
         json_path = self.output()['raw'].path
-        summary.save_raw(json_path)
+        viability_summary.save_raw(json_path)
         header_markdown_path = self.output()['header_markdown'].path
-        summary.save_header_markdown(header_markdown_path)
+        viability_summary.save_header_markdown(header_markdown_path)
         critical_issues_markdown_path = self.output()['critical_issues_markdown'].path
-        summary.save_critical_issues_markdown(critical_issues_markdown_path)
+        viability_summary.save_critical_issues_markdown(critical_issues_markdown_path)
         flips_to_go_markdown_path = self.output()['flips_to_go_markdown'].path
-        summary.save_flips_to_go_markdown(flips_to_go_markdown_path)
+        viability_summary.save_flips_to_go_markdown(flips_to_go_markdown_path)
         markdown_path = self.output()['markdown'].path
-        summary.save_markdown(markdown_path)
+        viability_summary.save_markdown(markdown_path)
 
 class ReportTask(PlanTask):
     """
