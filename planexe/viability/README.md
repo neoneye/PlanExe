@@ -40,11 +40,14 @@ TL;DR
 
 ### CAS Domains — the Viability Backbone
 
-The four domains we track come from [complex adaptive systems (CAS)](https://en.wikipedia.org/wiki/Complex_adaptive_system) thinking: a plan only sticks if it can adapt within intertwined human, economic, environmental, and legal ecosystems. The canonical enum lives in `planexe/viability/model_domain.py`, but the intuition is:
-- **Human Stability** — People readiness, stakeholder alignment, operating model, change management.
-- **Economic Resilience** — Funding and runway, unit economics, supplier dependence, contingency buffers.
-- **Ecological Integrity** — Environmental baselines, resource impacts, mitigation evidence, sustainability claims.
-- **Rights & Legality** — Regulatory compliance, data/ethics posture, permits, governance safeguards.
+The four domains we track come from [complex adaptive systems (CAS)](https://en.wikipedia.org/wiki/Complex_adaptive_system) thinking: a plan only sticks if it can adapt within intertwined human, economic, environmental, and legal ecosystems. CAS is a way to reason about systems composed of many interacting components that adapt and evolve over time; projects survive when they can thrive inside those complex, shifting networks.
+
+The canonical definitions now live in `planexe/viability/taxonomy.json` under the `domains` key. Each entry defines a `value` (what shows up in JSON), a human-friendly `display`, and a `description` that captures how the domain frames viability:
+
+- **Human Stability** (`HumanStability`) — Social acceptance, stakeholder buy-in, cultural fit, and human factors that could support or undermine the project.
+- **Economic Resilience** (`EconomicResilience`) — Financial sustainability, market viability, cost-effectiveness, and economic factors that ensure long-term success.
+- **Ecological Integrity** (`EcologicalIntegrity`) — Environmental impact, sustainability, resource availability, and ecological factors that affect viability.
+- **Rights & Legality** (`Rights_Legality`) — Legal compliance, regulatory requirements, intellectual property, and rights-based considerations.
 
 Keeping the assessment anchored to these four domains gives every downstream step (blockers, fix packs, overall verdict) a common language and CAS-informed scope.
 

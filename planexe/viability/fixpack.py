@@ -21,10 +21,10 @@ from typing import Dict, Iterable, List, Optional, Sequence
 
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, conlist
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, conlist, field_validator
 
-from planexe.viability.model_domain import DomainEnum
 from planexe.viability.model_status import StatusEnum
+from planexe.viability.taxonomy import DOMAIN_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +51,17 @@ MUST_FIX_REASON_CODES = {"DPIA_GAPS", "CONTINGENCY_LOW", "ETHICS_VAGUE"}
 class DomainItem(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    domain: DomainEnum
+    domain: str = Field(..., description="Domain name from taxonomy.DOMAIN_ORDER.")
     status: StatusEnum
     reason_codes: List[str] = Field(default_factory=list)
     evidence_todo: List[str] = Field(default_factory=list)
+
+    @field_validator("domain")
+    @classmethod
+    def _validate_domain(cls, value: str) -> str:
+        if value not in DOMAIN_ORDER:
+            raise ValueError(f"Unknown domain '{value}'. Must be one of {DOMAIN_ORDER}.")
+        return value
 
 
 class DomainsInput(BaseModel):
@@ -414,28 +421,32 @@ def _validate_fix_packs(
 if __name__ == "__main__":
     from planexe.llm_factory import get_llm
 
+    domain_values = list(DOMAIN_ORDER)
+    fallback_domains = ["ExampleDomainA", "ExampleDomainB", "ExampleDomainC", "ExampleDomainD"]
+    selected_domains = (domain_values + fallback_domains)[:4]
+
     domains_example = {
         "domains": [
             {
-                "domain": DomainEnum.HumanStability.value,
+                "domain": selected_domains[0],
                 "status": "YELLOW",
                 "reason_codes": ["STAFF_AVERSION"],
                 "evidence_todo": ["Stakeholder interviews"]
             },
             {
-                "domain": DomainEnum.EconomicResilience.value,
+                "domain": selected_domains[1],
                 "status": "GRAY",
                 "reason_codes": ["CONTINGENCY_LOW"],
                 "evidence_todo": ["Budget scenario analysis"]
             },
             {
-                "domain": DomainEnum.EcologicalIntegrity.value,
+                "domain": selected_domains[2],
                 "status": "YELLOW",
                 "reason_codes": ["WATER_STRESS"],
                 "evidence_todo": ["Water sourcing assessment"]
             },
             {
-                "domain": DomainEnum.Rights_Legality.value,
+                "domain": selected_domains[3],
                 "status": "RED",
                 "reason_codes": ["DPIA_GAPS", "ETHICS_VAGUE"],
                 "evidence_todo": ["Run DPIA v1"]
@@ -444,11 +455,11 @@ if __name__ == "__main__":
     }
 
     blockers_example = {
-        "source_domains": [DomainEnum.EconomicResilience.value, DomainEnum.Rights_Legality.value, DomainEnum.HumanStability.value],
+        "source_domains": [selected_domains[1], selected_domains[3], selected_domains[0]],
         "blockers": [
             {
                 "id": "B1",
-                "domain": DomainEnum.EconomicResilience.value,
+                "domain": selected_domains[1],
                 "title": "Budget contingency below policy floor",
                 "reason_codes": ["CONTINGENCY_LOW"],
                 "acceptance_tests": ["15% contingency approved"],
@@ -458,7 +469,7 @@ if __name__ == "__main__":
             },
             {
                 "id": "B2",
-                "domain": DomainEnum.Rights_Legality.value,
+                "domain": selected_domains[3],
                 "title": "DPIA not initiated for launch regions",
                 "reason_codes": ["DPIA_GAPS"],
                 "acceptance_tests": ["DPIA submitted for all regions"],
@@ -468,7 +479,7 @@ if __name__ == "__main__":
             },
             {
                 "id": "B3",
-                "domain": DomainEnum.HumanStability.value,
+                "domain": selected_domains[0],
                 "title": "Stakeholder readiness unclear",
                 "reason_codes": ["STAFF_AVERSION"],
                 "acceptance_tests": ["Stakeholder survey ≥70% positive"],
@@ -478,7 +489,7 @@ if __name__ == "__main__":
             },
             {
                 "id": "B4",
-                "domain": DomainEnum.EcologicalIntegrity.value,
+                "domain": selected_domains[2],
                 "title": "Water sourcing plan incomplete",
                 "reason_codes": ["WATER_STRESS"],
                 "acceptance_tests": ["Signed water supply MOU"],

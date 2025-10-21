@@ -19,8 +19,8 @@ from enum import StrEnum
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from planexe.markdown_util.escape_markdown import escape_markdown
-from planexe.viability.model_domain import DomainEnum
 from planexe.viability.model_status import StatusEnum
+from planexe.viability.taxonomy import DOMAIN_ORDER, get_domain_display
 
 # ---------------------------------------------------------------------------
 # Pydantic payload models (lenient: accept extra fields)
@@ -550,7 +550,7 @@ def _build_why_list(*, domains: Sequence[DomainItem], max_items: int) -> List[Wh
         if status == StatusEnum.GREEN.value:
             continue
 
-        display = DomainEnum.get_display_name(domain.domain)
+        display = get_domain_display(domain.domain)
         
         # Extract reason codes or evidence items
         if domain.reason_codes:
@@ -612,46 +612,57 @@ __all__ = ["ViabilitySummary"]
 
 
 if __name__ == "__main__":
-    example_domains = {
-        "domains": [
-            {
-                "domain": DomainEnum.HumanStability.value,
-                "status": StatusEnum.YELLOW.value,
-                "reason_codes": ["STAFF_AVERSION"],
-                "evidence_todo": ["Stakeholder survey"]
-            },
-            {
-                "domain": DomainEnum.EconomicResilience.value,
-                "status": StatusEnum.RED.value,
-                "reason_codes": ["CONTINGENCY_LOW"]
-            },
-            {
-                "domain": DomainEnum.EcologicalIntegrity.value,
-                "status": StatusEnum.GREEN.value
-            },
-            {
-                "domain": DomainEnum.Rights_Legality.value,
-                "status": StatusEnum.GRAY.value,
-                "evidence_todo": ["DPIA"]
-            },
-        ]
-    }
+    domain_values = list(DOMAIN_ORDER)
+    fallback_domains = ["ExampleDomainA", "ExampleDomainB", "ExampleDomainC", "ExampleDomainD"]
+    selected_domains = (domain_values + fallback_domains)[:4]
+    sample_statuses = [
+        StatusEnum.YELLOW.value,
+        StatusEnum.RED.value,
+        StatusEnum.GREEN.value,
+        StatusEnum.GRAY.value,
+    ]
+    sample_reason_codes = [
+        ["STAFF_AVERSION"],
+        ["CONTINGENCY_LOW"],
+        [],
+        [],
+    ]
+    sample_evidence = [
+        ["Stakeholder survey"],
+        [],
+        [],
+        ["DPIA"],
+    ]
+
+    domain_entries: List[Dict[str, Any]] = []
+    for i in range(len(sample_statuses)):
+        entry: Dict[str, Any] = {
+            "domain": selected_domains[i],
+            "status": sample_statuses[i],
+        }
+        if sample_reason_codes[i]:
+            entry["reason_codes"] = sample_reason_codes[i]
+        if sample_evidence[i]:
+            entry["evidence_todo"] = sample_evidence[i]
+        domain_entries.append(entry)
+
+    example_domains = {"domains": domain_entries}
 
     example_blockers = {
         "blockers": [
             {
                 "id": "B1",
-                "domain": DomainEnum.EconomicResilience.value,
+                "domain": selected_domains[1],
                 "acceptance_tests": [">=10% contingency approved"]
             },
             {
                 "id": "B2",
-                "domain": DomainEnum.Rights_Legality.value,
+                "domain": selected_domains[3],
                 "acceptance_tests": ["Finalize DPIA"]
             },
             {
                 "id": "B3",
-                "domain": DomainEnum.HumanStability.value,
+                "domain": selected_domains[0],
                 "acceptance_tests": ["Stakeholder plan signed"]
             },
         ]

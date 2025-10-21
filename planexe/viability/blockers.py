@@ -25,15 +25,14 @@ from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole
 from planexe.markdown_util.escape_markdown import escape_markdown
 from planexe.markdown_util.fix_bullet_lists import fix_bullet_lists
-from planexe.viability.model_domain import DomainEnum
 from planexe.viability.model_status import StatusEnum
-from planexe.viability.taxonomy import TX
+from planexe.viability.taxonomy import TX, DOMAIN_ORDER, get_domain_display
 
 logger = logging.getLogger(__name__)
 
 class Blocker(BaseModel):
     id: str = Field(description="Unique ID like 'B1', 'B2', etc.")
-    domain: str = Field(description="The domain name from DomainEnum.")
+    domain: str = Field(description="The domain name from taxonomy.DOMAIN_ORDER.")
     title: str = Field(description="A concise, descriptive title for the blocker.")
     reason_codes: Optional[List[str]] = Field(default_factory=list, description="Subset of reason codes from the domain's issues.")
     acceptance_tests: Optional[List[str]] = Field(default_factory=list, description="1-3 verifiable acceptance tests (e.g., '>=10% contingency approved').")
@@ -45,7 +44,7 @@ class BlockersOutput(BaseModel):
     source_domains: List[str] = Field(description=f"Array of domain names that are {StatusEnum.YELLOW.value}, {StatusEnum.RED.value}, or {StatusEnum.GRAY.value}.")
     blockers: List[Blocker] = Field(description="3-5 blockers derived from source_domains.")
 
-DOMAIN_ENUM = DomainEnum.value_list()
+DOMAIN_VALUES = DOMAIN_ORDER
 REASON_CODE_ENUM = [
     # Budget/Finance
     "CONTINGENCY_LOW", "SINGLE_CUSTOMER", "ALT_COST_UNKNOWN",
@@ -70,7 +69,7 @@ You are an expert risk assessor specializing in deriving actionable blockers fro
 The JSON object must include exactly the following keys:
 
 {{
-  "source_domains": ["HumanStability", "EconomicResilience"],  // Array of domain names from DomainEnum that have status YELLOW, RED, or GRAY
+  "source_domains": ["HumanStability", "EconomicResilience"],  // Array of domain names from taxonomy that have status YELLOW, RED, or GRAY
   "blockers": [  // Array of 3-5 Blocker objects, only from source_domains
     {{
       "id": "B1",
@@ -86,7 +85,7 @@ The JSON object must include exactly the following keys:
 }}
 
 Instructions:
-- source_domains: List only domains from the input assessment where status is {StatusEnum.YELLOW.value}, {StatusEnum.RED.value}, or {StatusEnum.GRAY.value}. Use exact names from DomainEnum: {', '.join(DOMAIN_ENUM)}.
+- source_domains: List only domains from the input assessment where status is {StatusEnum.YELLOW.value}, {StatusEnum.RED.value}, or {StatusEnum.GRAY.value}. Use exact names from taxonomy.DOMAIN_ORDER: {', '.join(DOMAIN_VALUES)}.
 - blockers: Derive 3-5 blockers total (cap at 5) only from source_domains. Distribute across domains logically. For each:
   - id: Sequential like "B1", "B2", etc.
   - domain: Match one from source_domains.
@@ -193,7 +192,7 @@ class ViabilityBlockers:
         rows.append('<p class="section-subtitle">Actions that must be completed before proceeding.</p>')
         for blocker in blockers_output.blockers:
             rows.append(f"### {blocker.id}: {blocker.title}\n")
-            human_readable_domain: str = DomainEnum.get_display_name(blocker.domain)
+            human_readable_domain: str = get_domain_display(blocker.domain)
             rows.append(f"**Domain:** {human_readable_domain}\n")
             if blocker.reason_codes:
                 rows.append("**Issues:**\n")

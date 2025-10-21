@@ -1,5 +1,26 @@
 {
-    "domains": ["HumanStability","EconomicResilience","EcologicalIntegrity","Rights_Legality"],
+    "domains": [
+      {
+        "value": "HumanStability",
+        "display": "Human Stability",
+        "description": "Social acceptance, stakeholder buy-in, cultural fit, and human factors that could support or undermine the project"
+      },
+      {
+        "value": "EconomicResilience",
+        "display": "Economic Resilience",
+        "description": "Financial sustainability, market viability, cost-effectiveness, and economic factors that ensure long-term success"
+      },
+      {
+        "value": "EcologicalIntegrity",
+        "display": "Ecological Integrity",
+        "description": "Environmental impact, sustainability, resource availability, and ecological factors that affect viability"
+      },
+      {
+        "value": "Rights_Legality",
+        "display": "Rights & Legality",
+        "description": "Legal compliance, regulatory requirements, intellectual property, and rights-based considerations"
+      }
+    ],
     "reason_codes_by_domain": {
       "HumanStability": ["TALENT_UNKNOWN","STAFF_AVERSION","GOVERNANCE_WEAK","CHANGE_MGMT_GAPS","TRAINING_GAPS","STAKEHOLDER_CONFLICT","SAFETY_CULTURE_WEAK","HITL_GOVERNANCE_OK"],
       "EconomicResilience": ["CONTINGENCY_LOW","UNIT_ECON_UNKNOWN","SINGLE_CUSTOMER","ALT_COST_UNKNOWN","LEGACY_IT","INTEGRATION_RISK","SUPPLIER_CONCENTRATION","SPOF_DEPENDENCY"],

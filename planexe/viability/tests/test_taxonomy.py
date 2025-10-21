@@ -1,17 +1,20 @@
 
 import unittest
-import importlib
 from planexe.viability import taxonomy
-from planexe.viability.model_domain import DomainEnum
 from planexe.viability.model_status import StatusEnum
 
 class TestTaxonomy(unittest.TestCase):
-    def test_domain_order_matches_enum(self):
-        self.assertEqual(
-            taxonomy.DOMAIN_ORDER,
-            DomainEnum.value_list(),
-            "DOMAIN_ORDER must match DomainEnum.value_list() exactly (including order).",
-        )
+    def test_domain_metadata_consistency(self):
+        domain_values = [domain.value for domain in taxonomy.TX.domains]
+        self.assertEqual(taxonomy.DOMAIN_ORDER, domain_values, "DOMAIN_ORDER must mirror taxonomy.TX.domains ordering.")
+        self.assertEqual(len(domain_values), len(set(domain_values)), "Domain values should be unique.")
+        for domain in taxonomy.TX.domains:
+            self.assertIsInstance(domain.value, str)
+            self.assertGreater(len(domain.value.strip()), 0, "Domain value must be a non-empty string.")
+            self.assertIsInstance(domain.display, str)
+            self.assertGreater(len(domain.display.strip()), 0, f"{domain.value}: display text must be non-empty.")
+            self.assertIsInstance(domain.description, str)
+            self.assertGreater(len(domain.description.strip()), 0, f"{domain.value}: description must be non-empty.")
 
     def test_reason_code_factor_covers_only_known_codes(self):
         all_codes = {c for lst in taxonomy.REASON_CODES_BY_DOMAIN.values() for c in lst}
@@ -21,8 +24,8 @@ class TestTaxonomy(unittest.TestCase):
     def test_reason_codes_whitelist_covers_all_domains(self):
         self.assertEqual(
             set(taxonomy.REASON_CODES_BY_DOMAIN.keys()),
-            set(DomainEnum.value_list()),
-            "REASON_CODES_BY_DOMAIN must have a key for each DomainEnum value (no extras, no missing).",
+            set(taxonomy.DOMAIN_ORDER),
+            "REASON_CODES_BY_DOMAIN must have a key for each domain value (no extras, no missing).",
         )
         for domain, codes in taxonomy.REASON_CODES_BY_DOMAIN.items():
             self.assertIsInstance(codes, list, f"{domain}: whitelist must be a list")
@@ -34,7 +37,7 @@ class TestTaxonomy(unittest.TestCase):
     def test_default_evidence_has_entries_per_domain(self):
         self.assertEqual(
             set(taxonomy.DEFAULT_EVIDENCE_BY_DOMAIN.keys()),
-            set(DomainEnum.value_list()),
+            set(taxonomy.DOMAIN_ORDER),
             "DEFAULT_EVIDENCE_BY_DOMAIN must have a key for each domain.",
         )
         for domain, items in taxonomy.DEFAULT_EVIDENCE_BY_DOMAIN.items():

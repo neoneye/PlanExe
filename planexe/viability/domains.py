@@ -17,11 +17,10 @@ from pathlib import Path
 
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.llms.llm import LLM
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from planexe.markdown_util.fix_bullet_lists import fix_bullet_lists
 from planexe.viability.domains_prompt import make_domains_system_prompt
-from planexe.viability.model_domain import DomainEnum
 from planexe.viability.model_status import StatusEnum
 
 from planexe.viability.taxonomy import (
@@ -36,6 +35,7 @@ from planexe.viability.taxonomy import (
     DEFAULT_LIKERT_BY_STATUS, FACTOR_ORDER_INDEX,
     reason_code_factor_set,
     TX,
+    get_domain_display,
 )
 
 logger = logging.getLogger(__name__)
@@ -244,7 +244,7 @@ class DomainLikertScoreSchema(BaseModel):
 
 
 class DomainItemSchema(BaseModel):
-    domain: str = Field(..., description="Domain name from DomainEnum")
+    domain: str = Field(..., description="Domain name from taxonomy.DOMAIN_ORDER")
     status: str = Field(..., description="Status indicator")
     score: Optional[DomainLikertScoreSchema] = Field(
         None,
@@ -257,6 +257,13 @@ class DomainItemSchema(BaseModel):
 
     class Config:
         extra = "ignore"
+
+    @field_validator("domain")
+    @classmethod
+    def _validate_domain(cls, value: str) -> str:
+        if value not in DOMAIN_ORDER:
+            raise ValueError(f"Unknown domain '{value}'. Allowed values: {DOMAIN_ORDER}.")
+        return value
 
 
 class DomainsSchema(BaseModel):
@@ -516,7 +523,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
 
     for domain in domains:
         name = domain.get("domain", "Unknown")
-        display_name = DomainEnum.get_display_name(name)
+        display_name = get_domain_display(name)
         status = domain.get("status", StatusEnum.GRAY.value)
         score = domain.get("score") or {}
         reason_codes = domain.get("reason_codes", []) or []
