@@ -76,7 +76,7 @@ from planexe.team.review_team import ReviewTeam
 from planexe.viability.overall_summary import OverallSummary
 from planexe.viability.domains import ViabilityDomains
 from planexe.viability.blockers import ViabilityBlockers
-from planexe.viability.fixpack import FixPack
+from planexe.viability.fixpack import ViabilityFixPack
 from planexe.wbs.wbs_task import WBSTask, WBSProject
 from planexe.wbs.wbs_populate import WBSPopulate
 from planexe.wbs.wbs_task_tooltip import WBSTaskTooltip
@@ -3834,7 +3834,7 @@ class ViabilityFixPacksTask(PlanTask):
         )
 
         # Invoke the LLM
-        fix_packs = FixPack.execute(
+        viability_fixpack = ViabilityFixPack.execute(
             llm=llm, 
             user_prompt=query, 
             viability_domains_json=viability_domains_raw, 
@@ -3843,9 +3843,9 @@ class ViabilityFixPacksTask(PlanTask):
 
         # Save the results.
         json_path = self.output()['raw'].path
-        fix_packs.save_raw(json_path)
+        viability_fixpack.save_raw(json_path)
         markdown_path = self.output()['markdown'].path
-        fix_packs.save_markdown(markdown_path)
+        viability_fixpack.save_markdown(markdown_path)
 
 class ViabilityOverallSummaryTask(PlanTask):
     def output(self):

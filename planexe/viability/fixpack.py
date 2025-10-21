@@ -134,7 +134,7 @@ Rules you must follow:
 
 
 @dataclass
-class FixPack:
+class ViabilityFixPack:
     system_prompt: str
     user_prompt: str
     response: Dict[str, object]
@@ -190,7 +190,7 @@ class FixPack:
         user_prompt: str,
         viability_domains_json: str,
         blockers_json: str,
-    ) -> "FixPack":
+    ) -> "ViabilityFixPack":
         """Generate fix packs using pipeline context and serialized step outputs."""
         if not isinstance(llm, LLM):
             raise ValueError("Invalid LLM instance.")
@@ -495,7 +495,7 @@ if __name__ == "__main__":
         f"{json.dumps(blockers_example, indent=2)}"
     )
 
-    result = FixPack.execute(
+    result = ViabilityFixPack.execute(
         llm=llm,
         user_prompt=prompt,
         viability_domains_json=json.dumps(domains_example),
