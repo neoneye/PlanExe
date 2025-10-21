@@ -35,7 +35,7 @@ def _ensure_message_dict(message: Any) -> Dict[str, Any]:
 
 def _normalize_content(content: Any) -> List[Dict[str, Any]]:
     if isinstance(content, str):
-        return [{"type": "text", "text": content}]
+        return [{"type": "input_text", "text": content}]
 
     if isinstance(content, list):
         normalized: List[Dict[str, Any]] = []
@@ -43,10 +43,10 @@ def _normalize_content(content: Any) -> List[Dict[str, Any]]:
             if isinstance(item, dict):
                 normalized.append(item)
             else:
-                normalized.append({"type": "text", "text": str(item)})
+                normalized.append({"type": "input_text", "text": str(item)})
         return normalized
 
-    return [{"type": "text", "text": str(content)}]
+    return [{"type": "input_text", "text": str(content)}]
 
 
 class SimpleOpenAILLM(LLM):
