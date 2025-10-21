@@ -17,6 +17,7 @@
 ### Frontend
 - Updated the analysis stream client to stop sending a hard-coded token limit so it inherits the backend defaults unless a caller specifies one explicitly.
 - Synced `RESPONSES_CONVERSATION_DEFAULTS` to the new `detailed` reasoning summary and `high` text verbosity combination used by the backend and Responses service.
+- Replaced the recovery workspace streaming analysis card with a dedicated pipeline logs panel that shares the FastAPI polling hook so operators see live output immediately.
 
 ### Documentation
 - Reconciled Responses API guides to the new 120,000 token ceiling and clarified how to opt in or out of explicit limits via configuration.

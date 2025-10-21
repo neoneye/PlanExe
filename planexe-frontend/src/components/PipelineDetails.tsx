@@ -13,7 +13,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Loader2, CheckCircle, XCircle, Clock, FileText, Activity, Terminal } from 'lucide-react'
+import { Loader2, CheckCircle, XCircle, Clock, FileText, Activity, Terminal, ScrollText } from 'lucide-react'
 import { getApiBaseUrl } from '@/lib/utils/api-config'
 
 interface PipelineStageApiResponse {
@@ -67,12 +67,13 @@ interface PipelineDetailsState {
   totalFiles: number
 }
 
-interface PipelineDetailsProps {
-  planId: string
-  className?: string
+interface PipelineDetailsStateHook {
+  details: PipelineDetailsState | null
+  loading: boolean
+  error: string | null
 }
 
-export function PipelineDetails({ planId, className }: PipelineDetailsProps) {
+const usePipelineDetails = (planId: string): PipelineDetailsStateHook => {
   const [details, setDetails] = useState<PipelineDetailsState | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -173,10 +174,22 @@ export function PipelineDetails({ planId, className }: PipelineDetailsProps) {
 
   // 3-second polling
   useEffect(() => {
+    setLoading(true)
     fetchDetails()
     const interval = setInterval(fetchDetails, 3000)
     return () => clearInterval(interval)
   }, [planId, fetchDetails])
+
+  return { details, loading, error }
+}
+
+interface PipelineDetailsProps {
+  planId: string
+  className?: string
+}
+
+export function PipelineDetails({ planId, className }: PipelineDetailsProps) {
+  const { details, loading, error } = usePipelineDetails(planId)
 
   const getStageIcon = (status: string) => {
     const normalized = status.toUpperCase()
@@ -386,6 +399,74 @@ export function PipelineDetails({ planId, className }: PipelineDetailsProps) {
             </div>
           </TabsContent>
         </Tabs>
+      </CardContent>
+    </Card>
+  )
+}
+
+interface PipelineLogsPanelProps {
+  planId: string
+  className?: string
+}
+
+export function PipelineLogsPanel({ planId, className }: PipelineLogsPanelProps) {
+  const { details, loading, error } = usePipelineDetails(planId)
+
+  if (loading) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ScrollText className="h-5 w-5" />
+            Pipeline Logs
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading latest log output…
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ScrollText className="h-5 w-5" />
+            Pipeline Logs
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="p-4 text-center text-sm text-red-500">{error}</div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const logContent = details?.pipelineLog ?? ''
+
+  return (
+    <Card className={className}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ScrollText className="h-5 w-5" />
+          Pipeline Logs
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="max-h-96 overflow-y-auto rounded-md bg-slate-950/90 p-4 font-mono text-xs text-emerald-300">
+          {logContent ? (
+            <pre className="whitespace-pre-wrap leading-relaxed">{logContent}</pre>
+          ) : (
+            <div className="py-8 text-center text-sm text-slate-400">
+              No log entries available yet.
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   )
