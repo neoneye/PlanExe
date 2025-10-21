@@ -3574,8 +3574,8 @@ class PremortemTask(PlanTask):
 class ViabilityDomainsAssessmentTask(PlanTask):
     def output(self):
         return {
-            'raw': self.local_target(FilenameEnum.VIABILITY_DOMAINS_ASSESSMENT_RAW),
-            'markdown': self.local_target(FilenameEnum.VIABILITY_DOMAINS_ASSESSMENT_MARKDOWN)
+            'raw': self.local_target(FilenameEnum.VIABILITY_DOMAINS_RAW),
+            'markdown': self.local_target(FilenameEnum.VIABILITY_DOMAINS_MARKDOWN)
         }
     
     def requires(self):
