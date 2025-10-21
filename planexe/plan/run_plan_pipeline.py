@@ -3733,7 +3733,7 @@ class ViabilityBlockersTask(PlanTask):
             f"File 'review-plan.md':\n{review_plan_markdown}\n\n"
             f"File 'questions-and-answers.md':\n{questions_and_answers_markdown}\n\n"
             f"File 'premortem.md':\n{premortem_markdown}\n\n"
-            f"File 'domains-assessment.md':\n{viability_domains_markdown}"
+            f"File 'viability-domains.md':\n{viability_domains_markdown}"
         )
 
         # Invoke the LLM
@@ -3829,8 +3829,8 @@ class ViabilityFixPacksTask(PlanTask):
             f"File 'review-plan.md':\n{review_plan_markdown}\n\n"
             f"File 'questions-and-answers.md':\n{questions_and_answers_markdown}\n\n"
             f"File 'premortem.md':\n{premortem_markdown}\n\n"
-            f"File 'domains-assessment.md':\n{viability_domains_markdown}\n\n"
-            f"File 'blockers.md':\n{viability_blockers_markdown}"
+            f"File 'viability-domains.md':\n{viability_domains_markdown}\n\n"
+            f"File 'viability-blockers.md':\n{viability_blockers_markdown}"
         )
 
         # Invoke the LLM
