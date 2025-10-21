@@ -127,7 +127,7 @@ export interface AnalysisStreamRequestPayload {
   reasoningSummary?: string;
   textVerbosity?: string;
   schemaName?: string;
-  schema?: Record<string, unknown>;
+  schemaModel?: string;
   previousResponseId?: string;
   systemPrompt?: string;
   stage?: string;
@@ -746,7 +746,7 @@ export class FastAPIClient {
       body.max_output_tokens = maxOutputTokens;
     }
     if (payload.schemaName) body.schema_name = payload.schemaName;
-    if (payload.schema) body.schema = payload.schema;
+    if (payload.schemaModel) body.schema_model = payload.schemaModel;
     if (payload.previousResponseId) {
       body.previous_response_id = payload.previousResponseId;
     }

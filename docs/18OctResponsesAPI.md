@@ -62,6 +62,13 @@ Client                    Server
 3. **Session Management**: Unique session IDs prevent collisions
 4. **Proxy Compatibility**: Standard SSE GET requests work with reverse proxies
 
+### Structured Outputs with `schema_model`
+
+- The analysis handshake now prefers a `schema_model` field that passes a fully-qualified Pydantic class path (for example `planexe.plan.project_plan.GoalDefinition`).
+- FastAPI resolves the model through `planexe.llm_util.schema_registry.get_schema_entry`, feeding `SimpleOpenAILLM._build_text_format` so Responses structured outputs stay consistent with Luigi tasks.
+- The legacy raw `schema` payload still works for backwards compatibility, but callers should migrate because the backend now enforces mutual exclusivity and emits a 422 when both fields are supplied.
+- Provide an optional `schemaName` when you need to override the generated schema alias that streams back through SSE payloads.
+
 ---
 
 ## Core Components

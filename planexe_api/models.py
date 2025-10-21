@@ -4,7 +4,7 @@ Date: 2025-09-19
 PURPOSE: Pydantic models for API request/response schemas - ensures type safety and validation
 SRP and DRY check: Pass - Single responsibility of data validation, DRY approach to schema definitions
 """
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
 from typing import Optional, List, Dict, Any
 from enum import Enum
 from datetime import datetime
@@ -199,10 +199,15 @@ class AnalysisStreamRequest(BaseModel):
     schema_name: Optional[str] = Field(
         None, description="Optional schema label when requesting structured output"
     )
+    schema_model: Optional[str] = Field(
+        None,
+        alias="schema_model",
+        description="Fully-qualified Pydantic model path leveraged for Responses structured outputs",
+    )
     output_schema: Optional[Dict[str, Any]] = Field(
         None,
         alias="schema",
-        description="Optional JSON schema to request structured responses",
+        description="Deprecated raw JSON schema payload (prefer `schema_model`)",
     )
     previous_response_id: Optional[str] = Field(
         None, description="Responses API conversation chaining identifier"
@@ -220,6 +225,24 @@ class AnalysisStreamRequest(BaseModel):
         if value == ReasoningEffort.minimal:
             raise ValueError("reasoning_effort must be medium or high for streaming analyses")
         return value
+
+    @field_validator("schema_model")
+    @classmethod
+    def normalize_schema_model(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            return None
+        if "." not in normalized:
+            raise ValueError("schema_model must include a module path and class name")
+        return normalized
+
+    @model_validator(mode="after")
+    def ensure_structured_output_fields(self) -> "AnalysisStreamRequest":
+        if self.output_schema and self.schema_model:
+            raise ValueError("Provide either schema_model or schema, not both")
+        return self
 
 
 class AnalysisStreamSessionResponse(BaseModel):

@@ -6,10 +6,13 @@ import asyncio
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
+from importlib import import_module
+from types import SimpleNamespace
+from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Type
 
 from fastapi import HTTPException
 from openai import APIError
+from pydantic import BaseModel
 
 from planexe_api.config import RESPONSES_STREAMING_CONTROLS
 from planexe_api.database import DatabaseService, SessionLocal
@@ -20,6 +23,7 @@ from planexe_api.streaming.session_store import (
 )
 from planexe.llm_factory import get_llm, is_valid_llm_name
 from planexe.llm_util.simple_openai_llm import SimpleOpenAILLM
+from planexe.llm_util.schema_registry import SchemaRegistryEntry, get_schema_entry
 
 
 @dataclass
@@ -32,6 +36,7 @@ class PreparedAnalysisPayload:
     prompt_text: str
     context_text: Optional[str]
     metadata: Dict[str, Any]
+    schema_entry: Optional[SchemaRegistryEntry | SimpleNamespace]
 
 
 class StreamHarness:
@@ -88,6 +93,7 @@ class AnalysisStreamService:
         messages = self._build_messages(request)
         options = self._build_request_options(request)
         metadata = request.metadata or {}
+        schema_entry = self._resolve_schema_entry(request)
 
         prepared = PreparedAnalysisPayload(
             request=request,
@@ -96,6 +102,7 @@ class AnalysisStreamService:
             prompt_text=request.prompt,
             context_text=request.context,
             metadata=metadata,
+            schema_entry=schema_entry,
         )
 
         cached = await self._sessions.create_session(
@@ -261,10 +268,11 @@ class AnalysisStreamService:
 
         request_args = llm._request_args(  # pylint: disable=protected-access
             prepared.messages,
-            schema_entry=None,
+            schema_entry=prepared.schema_entry,
             stream=True,
         )
 
+        self._merge_request_options(request_args, prepared.request_options)
         request_args["reasoning"]["effort"] = prepared.request.reasoning_effort
         request_args["reasoning"]["summary"] = prepared.request.reasoning_summary
         request_args["text"]["verbosity"] = prepared.request.text_verbosity
@@ -443,21 +451,82 @@ class AnalysisStreamService:
         ]
 
     def _build_request_options(self, request: AnalysisStreamRequest) -> Dict[str, Any]:
-        options = {
-            "temperature": request.temperature,
-            "reasoning_effort": request.reasoning_effort,
-            "reasoning_summary": request.reasoning_summary,
-            "text_verbosity": request.text_verbosity,
-            "schema": request.output_schema,
-            "schema_name": request.schema_name,
-            "previous_response_id": request.previous_response_id,
-        }
+        options: Dict[str, Any] = {}
+
+        def _assign_nested(key: str, values: Dict[str, Any]) -> None:
+            cleaned = {k: v for k, v in values.items() if v is not None}
+            if cleaned:
+                options[key] = cleaned
+
+        _assign_nested(
+            "reasoning",
+            {
+                "effort": request.reasoning_effort,
+                "summary": request.reasoning_summary,
+            },
+        )
+        _assign_nested("text", {"verbosity": request.text_verbosity})
+
+        if request.temperature is not None:
+            options["temperature"] = request.temperature
+
         max_output_tokens = request.max_output_tokens
         if max_output_tokens is None:
             max_output_tokens = RESPONSES_STREAMING_CONTROLS.max_output_tokens
         if max_output_tokens is not None:
             options["max_output_tokens"] = max_output_tokens
+
+        if request.previous_response_id:
+            options["previous_response_id"] = request.previous_response_id
+
         return options
+
+    @staticmethod
+    def _merge_request_options(target: Dict[str, Any], overrides: Dict[str, Any]) -> None:
+        for key, value in overrides.items():
+            if value is None:
+                continue
+            if isinstance(value, dict):
+                if not value:
+                    continue
+                base = target.get(key)
+                if isinstance(base, dict):
+                    AnalysisStreamService._merge_request_options(base, value)
+                else:
+                    target[key] = dict(value)
+            else:
+                target[key] = value
+
+    def _resolve_schema_entry(
+        self, request: AnalysisStreamRequest
+    ) -> Optional[SchemaRegistryEntry | SimpleNamespace]:
+        if request.schema_model:
+            try:
+                model = self._import_schema_model(request.schema_model)
+            except (ImportError, AttributeError, ValueError, TypeError) as exc:
+                raise HTTPException(status_code=422, detail="SCHEMA_MODEL_INVALID") from exc
+            entry = get_schema_entry(model)
+            if request.schema_name:
+                return SimpleNamespace(schema=entry.schema, qualified_name=request.schema_name)
+            return entry
+        if request.output_schema is not None:
+            qualified_name = request.schema_name or "analysis_result"
+            return SimpleNamespace(schema=request.output_schema, qualified_name=qualified_name)
+        return None
+
+    @staticmethod
+    def _import_schema_model(path: str) -> Type[BaseModel]:
+        normalized = path.strip()
+        if not normalized or "." not in normalized:
+            raise ValueError("schema_model must be a fully-qualified path")
+        module_path, class_name = normalized.rsplit(".", 1)
+        if not module_path or not class_name:
+            raise ValueError("schema_model must include module and class name")
+        module = import_module(module_path)
+        candidate = getattr(module, class_name)
+        if not isinstance(candidate, type) or not issubclass(candidate, BaseModel):
+            raise TypeError("schema_model must resolve to a pydantic BaseModel subclass")
+        return candidate
 
     @staticmethod
     def _extract_text_delta(event: Any) -> Optional[str]:
