@@ -33,3 +33,4 @@ def test_registry_export_includes_registered_model() -> None:
     key = f"{_ExampleModel.__module__}.{_ExampleModel.__name__}"
     assert key in registry
     assert registry[key].qualified_name == key
+    assert registry[key].sanitized_name == "planexe_llm_util_tests_test_schema_registry__ExampleModel"

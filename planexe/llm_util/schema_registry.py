@@ -8,6 +8,7 @@ SRP and DRY check: Pass - consolidates schema generation and caching to avoid du
 from __future__ import annotations
 
 import inspect
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional, Type, TypeVar
@@ -17,15 +18,28 @@ from pydantic import BaseModel
 TModel = TypeVar("TModel", bound=BaseModel)
 
 
+_INVALID_NAME_CHARS = re.compile(r"[^0-9A-Za-z_-]")
+
+
 @dataclass(frozen=True)
 class SchemaRegistryEntry:
     """Metadata describing a structured output schema for a Luigi task."""
 
     model: Type[TModel]
     qualified_name: str
+    sanitized_name: str
     schema: Dict[str, object]
     module: str
     file_path: Optional[Path]
+
+
+def _sanitize_schema_name(raw_name: str, fallback: str) -> str:
+    """Return a Responses-compatible name derived from a fully-qualified path."""
+
+    sanitized = _INVALID_NAME_CHARS.sub("_", raw_name).strip("_")
+    if not sanitized:
+        sanitized = _INVALID_NAME_CHARS.sub("_", fallback).strip("_") or "PlanExeSchema"
+    return sanitized
 
 
 _SCHEMA_REGISTRY: Dict[str, SchemaRegistryEntry] = {}
@@ -51,9 +65,12 @@ def register_schema(model: Type[TModel]) -> SchemaRegistryEntry:
     except (TypeError, OSError):
         file_path = None
 
+    sanitized_name = _sanitize_schema_name(key, model.__name__)
+
     entry = SchemaRegistryEntry(
         model=model,
         qualified_name=key,
+        sanitized_name=sanitized_name,
         schema=schema,
         module=model.__module__,
         file_path=file_path,
