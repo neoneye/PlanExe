@@ -40,7 +40,7 @@ TL;DR
 
 ### CAS Domains — the Viability Backbone
 
-The four domains we track come from complex adaptive systems (CAS) thinking: a plan only sticks if it can adapt within intertwined human, economic, environmental, and legal ecosystems. The canonical enum lives in `planexe/viability/model_domain.py`, but the intuition is:
+The four domains we track come from [complex adaptive systems (CAS)](https://en.wikipedia.org/wiki/Complex_adaptive_system) thinking: a plan only sticks if it can adapt within intertwined human, economic, environmental, and legal ecosystems. The canonical enum lives in `planexe/viability/model_domain.py`, but the intuition is:
 - **Human Stability** — People readiness, stakeholder alignment, operating model, change management.
 - **Economic Resilience** — Funding and runway, unit economics, supplier dependence, contingency buffers.
 - **Ecological Integrity** — Environmental baselines, resource impacts, mitigation evidence, sustainability claims.
