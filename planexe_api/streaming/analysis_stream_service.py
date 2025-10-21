@@ -280,12 +280,12 @@ class AnalysisStreamService:
         if prepared.request.previous_response_id:
             request_args["previous_response_id"] = prepared.request.previous_response_id
         if prepared.request.output_schema is not None:
-            request_args["text"]["format"] = {
-                "type": "json_schema",
-                "name": prepared.request.schema_name or "analysis_result",
-                "schema": prepared.request.output_schema,
-                "strict": True,
-            }
+            response_format = SimpleOpenAILLM._build_response_format_from_schema(  # pylint: disable=protected-access
+                schema=prepared.request.output_schema,
+                name=prepared.request.schema_name or "analysis_result",
+            )
+            if response_format is not None:
+                request_args["response_format"] = response_format
 
         def _worker() -> None:
             nonlocal final_payload
@@ -303,6 +303,20 @@ class AnalysisStreamService:
                             "response.content_part.delta",
                             "response.content_part.added",
                         }:
+                            if str(event_type).startswith("response.content_part"):
+                                json_delta = self._extract_json_delta(event)
+                                if json_delta:
+                                    aggregates["json"].append(json_delta)
+                                    harness.emit_from_worker(
+                                        "stream.chunk",
+                                        {
+                                            "kind": "json",
+                                            "delta": json_delta,
+                                            "timestamp": timestamp(),
+                                        },
+                                    )
+                                    continue
+
                             text_delta = self._extract_text_delta(event)
                             if text_delta:
                                 aggregates["text"].append(text_delta)
@@ -328,7 +342,7 @@ class AnalysisStreamService:
                                 )
                         elif event_type in {
                             "response.output_parsed.delta",
-                            "response.content_part.delta",
+                            "response.output_json.delta",
                         }:
                             json_delta = self._extract_json_delta(event)
                             if json_delta:

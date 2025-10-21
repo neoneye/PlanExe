@@ -7,6 +7,9 @@
 
 ## [Unreleased]
 
+### Backend
+- Switched all Responses API JSON schema requests to the new `response_format.json_schema` contract and updated streaming handlers to capture `response.output_json.delta` events, ensuring structured outputs use the latest OpenAI Responses spec.
+
 ## [0.4.1] - 2025-10-20
 
 ### Backend
