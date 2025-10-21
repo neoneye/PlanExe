@@ -183,6 +183,25 @@ for await (const event of response) {
 }
 ```
 
+### Conversation Streaming with Structured Output
+
+The intake conversation service now mirrors the analysis pipeline's structured-output
+support. When creating a conversation turn you can attach an optional
+`schema_model` (fully-qualified Pydantic path) and optional `schema_name`. The
+FastAPI backend resolves the model through the shared schema registry, sanitises
+the schema label to satisfy OpenAI's `[A-Za-z0-9_-]` requirement, and injects a
+`text.format.json_schema` payload for the Responses API. Conversation SSE events
+include the accumulated JSON deltas under `response.output_json.delta`, and the
+final envelope's `summary.metadata` contains:
+
+- `schema_model` – canonical import path used for registration
+- `schema_name` – caller-provided label (if supplied)
+- `schema_sanitized_name` – final name sent to OpenAI
+- `schema_canonical_name` – registry-qualified name for debugging
+
+Clients can pass these parameters via `ConversationTurnRequestPayload` using the
+`schemaModel` and `schemaName` fields in `fastapi-client.ts`.
+
 ### Step 3: Extract Final Response
 
 After streaming completes, get the final response:

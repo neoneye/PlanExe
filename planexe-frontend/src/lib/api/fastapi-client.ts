@@ -222,6 +222,8 @@ export interface ConversationTurnRequestPayload {
   reasoningSummary?: string;
   textVerbosity?: string;
   store?: boolean;
+  schemaName?: string;
+  schemaModel?: string;
 }
 
 export interface ConversationRequestSession {
@@ -652,6 +654,8 @@ export class FastAPIClient {
     if (payload.previousResponseId) body.previous_response_id = payload.previousResponseId;
     if (payload.instructions) body.instructions = payload.instructions;
     if (payload.metadata) body.metadata = payload.metadata;
+    if (payload.schemaName) body.schema_name = payload.schemaName;
+    if (payload.schemaModel) body.schema_model = payload.schemaModel;
 
     const response = await fetch(
       `${this.baseURL}/api/conversations/${encodeURIComponent(conversation_id)}/requests`,
@@ -705,6 +709,8 @@ export class FastAPIClient {
     if (payload.previousResponseId) body.previous_response_id = payload.previousResponseId;
     if (payload.instructions) body.instructions = payload.instructions;
     if (payload.metadata) body.metadata = payload.metadata;
+    if (payload.schemaName) body.schema_name = payload.schemaName;
+    if (payload.schemaModel) body.schema_model = payload.schemaModel;
 
     const response = await fetch(
       `${this.baseURL}/api/conversations/${encodeURIComponent(conversation_id)}/followups`,

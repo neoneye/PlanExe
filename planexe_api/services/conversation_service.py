@@ -6,6 +6,7 @@ import asyncio
 import json
 import uuid
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from typing import Any, AsyncGenerator, Dict, Optional
 
 from fastapi import HTTPException
@@ -23,6 +24,11 @@ from planexe_api.streaming import (
 )
 from planexe.llm_factory import get_llm, is_valid_llm_name
 from planexe.llm_util.simple_openai_llm import SimpleOpenAILLM
+from planexe.llm_util.schema_registry import (
+    get_schema_entry,
+    import_schema_model,
+    sanitize_schema_label,
+)
 
 
 INTAKE_STAGE = "intake_conversation"
@@ -78,6 +84,9 @@ class ConversationService:
         if not conversation_id:
             raise HTTPException(status_code=400, detail="CONVERSATION_ID_REQUIRED")
 
+        # Validate structured output schema early so the POST request surfaces errors
+        self._resolve_schema_descriptor(request)
+
         payload = {
             "request": request.model_dump(mode="python"),
             "conversation_id": conversation_id,
@@ -111,6 +120,7 @@ class ConversationService:
             raise HTTPException(status_code=404, detail=detail)
 
         request = ConversationTurnRequest.model_validate(cached.payload["request"])
+        schema_descriptor = self._resolve_schema_descriptor(request)
         metadata = dict(request.metadata or {})
         metadata.update(
             {
@@ -118,6 +128,15 @@ class ConversationService:
                 "previous_response_id": request.previous_response_id,
             }
         )
+        if schema_descriptor:
+            metadata.update(
+                {
+                    "schema_model": request.schema_model,
+                    "schema_name": request.schema_name or schema_descriptor.sanitized_name,
+                    "schema_sanitized_name": schema_descriptor.sanitized_name,
+                    "schema_canonical_name": schema_descriptor.canonical_name,
+                }
+            )
 
         harness = ConversationHarness(
             conversation_id=conversation_id,
@@ -134,6 +153,7 @@ class ConversationService:
                 handler=handler,
                 harness=harness,
                 manager=manager,
+                schema_descriptor=schema_descriptor,
             )
         )
 
@@ -194,12 +214,14 @@ class ConversationService:
         handler: ConversationEventHandler,
         harness: ConversationHarness,
         manager: ConversationSSEManager,
+        schema_descriptor: Optional[SimpleNamespace],
     ) -> None:
         llm = get_llm(request.model_key)
         request_args = self._build_request_args(
             llm_model=llm.model,
             conversation_id=harness.conversation_id,
             request=request,
+            schema_descriptor=schema_descriptor,
         )
 
         db = SessionLocal()
@@ -211,13 +233,21 @@ class ConversationService:
                 "stage": INTAKE_STAGE,
                 "llm_model": llm.model,
                 "prompt_text": request.user_message,
-                "prompt_metadata": {
-                    "conversation_id": harness.conversation_id,
-                    "metadata": request.metadata,
-                    "context": request.context,
-                    "previous_response_id": request.previous_response_id,
-                    "instructions": request.instructions,
-                },
+                    "prompt_metadata": {
+                        "conversation_id": harness.conversation_id,
+                        "metadata": request.metadata,
+                        "context": request.context,
+                        "previous_response_id": request.previous_response_id,
+                        "instructions": request.instructions,
+                        "schema_model": request.schema_model,
+                        "schema_name": request.schema_name,
+                        "schema_sanitized_name": schema_descriptor.sanitized_name
+                        if schema_descriptor
+                        else None,
+                        "schema_canonical_name": schema_descriptor.canonical_name
+                        if schema_descriptor
+                        else None,
+                    },
                 "status": "running",
                 "started_at": start_time,
             }
@@ -388,12 +418,21 @@ class ConversationService:
         llm_model: str,
         conversation_id: str,
         request: ConversationTurnRequest,
+        schema_descriptor: Optional[SimpleNamespace],
     ) -> Dict[str, Any]:
         input_segments = [{"role": "user", "content": [{"type": "input_text", "text": request.user_message}]}]
+        text_payload: Dict[str, Any] = {"verbosity": request.text_verbosity}
+        if schema_descriptor:
+            text_format = SimpleOpenAILLM.build_text_format_from_schema(
+                schema=schema_descriptor.schema,
+                name=schema_descriptor.sanitized_name,
+            )
+            if text_format:
+                text_payload["format"] = text_format
         payload: Dict[str, Any] = {
             "model": llm_model,
             "input": input_segments,
-            "text": {"verbosity": request.text_verbosity},
+            "text": text_payload,
             "reasoning": {
                 "effort": request.reasoning_effort.value if hasattr(request.reasoning_effort, "value") else request.reasoning_effort,
                 "summary": request.reasoning_summary,
@@ -409,6 +448,26 @@ class ConversationService:
         if request.metadata:
             payload["metadata"] = request.metadata
         return payload
+
+    @staticmethod
+    def _resolve_schema_descriptor(
+        request: ConversationTurnRequest,
+    ) -> Optional[SimpleNamespace]:
+        if not request.schema_model:
+            return None
+        try:
+            model = import_schema_model(request.schema_model)
+        except (ImportError, AttributeError, ValueError, TypeError) as exc:
+            raise HTTPException(status_code=422, detail="SCHEMA_MODEL_INVALID") from exc
+        entry = get_schema_entry(model)
+        alias = request.schema_name or entry.qualified_name
+        sanitized = sanitize_schema_label(alias, entry.sanitized_name)
+        return SimpleNamespace(
+            schema=entry.schema,
+            qualified_name=alias,
+            sanitized_name=sanitized,
+            canonical_name=entry.qualified_name,
+        )
 
     async def followup(
         self,

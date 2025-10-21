@@ -41,6 +41,8 @@ export interface UseResponsesConversationOptions {
   taskId?: string;
   metadata?: Record<string, unknown>;
   sessionKey?: string;
+  schemaName?: string;
+  schemaModel?: string;
 }
 
 export interface UseResponsesConversationReturn {
@@ -91,7 +93,7 @@ function createMessageId(): string {
 export function useResponsesConversation(
   options: UseResponsesConversationOptions,
 ): UseResponsesConversationReturn {
-  const { initialPrompt, modelKey, taskId, metadata, sessionKey } = options;
+  const { initialPrompt, modelKey, taskId, metadata, sessionKey, schemaName, schemaModel } = options;
   const conversationKey = useMemo(
     () => sessionKey ?? taskId ?? `prompt-intake-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     [sessionKey, taskId],
@@ -207,6 +209,8 @@ export function useResponsesConversation(
         textVerbosity: RESPONSES_CONVERSATION_DEFAULTS.textVerbosity,
         store: true,
         ...(previousResponseId ? { previousResponseId } : {}),
+        ...(schemaName ? { schemaName } : {}),
+        ...(schemaModel ? { schemaModel } : {}),
       };
 
       await new Promise<void>((resolve, reject) => {
