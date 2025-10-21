@@ -187,7 +187,7 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
         }
       }}
     >
-      <DialogContent className="h-[calc(100vh-1.5rem)] w-[min(1440px,calc(100vw-1.5rem))] max-w-none overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 p-0 shadow-2xl sm:h-[calc(100vh-2rem)] sm:w-[min(1600px,calc(100vw-2rem))]">
+      <DialogContent className="h-[calc(100vh-1.5rem)] w-[calc(100vw-2rem)] max-w-none overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 p-0 shadow-2xl sm:h-[calc(100vh-2rem)] sm:w-[calc(100vw-3rem)]">
         <DialogHeader className="px-10 pt-8 pb-4">
           <DialogTitle className="flex items-center gap-3 text-3xl font-semibold text-slate-900">
             <Sparkles className="h-6 w-6 text-indigo-600" />
