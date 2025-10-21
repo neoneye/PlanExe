@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Author: ChatGPT (gpt-5-codex)
  * Date: 2025-10-30
  * PURPOSE: Full-screen intake modal that opens after the landing form submit,
@@ -67,31 +67,19 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
 
   const {
     messages,
-    conversationId,
-    currentResponseId,
     startConversation,
     sendUserMessage,
     finalizeConversation,
     resetConversation,
     isStreaming,
-    streamFinal,
     streamError,
-    textBuffer,
     reasoningBuffer,
-    jsonChunks,
-    usage,
   } = useResponsesConversation({
     initialPrompt,
     modelKey: resolvedModel,
     metadata,
     sessionKey: sessionKey ?? undefined,
   });
-
-  const tokenUsage = (usage ?? null) as {
-    input_tokens?: number;
-    output_tokens?: number;
-    reasoning_tokens?: number;
-  } | null;
 
   const [draftMessage, setDraftMessage] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
@@ -313,32 +301,6 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
 
           <aside className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
             <Card className="flex flex-col flex-1 min-h-0 border-slate-800 bg-slate-900 overflow-hidden">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-                  Answer
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 min-h-0 overflow-y-auto rounded-lg bg-slate-950/40 px-4 py-3 text-sm text-slate-300">
-                {textBuffer ? (
-                  <p className="whitespace-pre-wrap text-slate-200">{textBuffer}</p>
-                ) : (
-                  <p className="text-slate-500">The assistant response will appear here once the stream completes.</p>
-                )}
-                <div className="mt-4 space-y-1 text-xs text-slate-500">
-                  {conversationId && <p>Conversation ID: {conversationId}</p>}
-                  {currentResponseId && <p>Response ID: {currentResponseId}</p>}
-                  {tokenUsage && (
-                    <p>
-                      Tokens — input: {String(tokenUsage.input_tokens ?? '–')}, output:{' '}
-                      {String(tokenUsage.output_tokens ?? '–')}, reasoning:{' '}
-                      {String(tokenUsage.reasoning_tokens ?? '–')}
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="flex flex-col flex-shrink-0 h-[25vh] border-slate-800 bg-slate-900 overflow-hidden">
               <CardHeader className="pb-3 shrink-0">
                 <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-400">
                   Reasoning summary
@@ -349,21 +311,6 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
                   <pre className="whitespace-pre-wrap text-slate-200">{reasoningBuffer}</pre>
                 ) : (
                   <p className="text-slate-500">Reasoning traces will stream here when available.</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="flex flex-col flex-shrink-0 h-[25vh] border-slate-800 bg-slate-900 overflow-hidden">
-              <CardHeader className="pb-3 shrink-0">
-                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-                  Data / JSON
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 min-h-0 overflow-y-auto rounded-lg bg-slate-950/40 px-4 py-3 text-xs text-slate-300">
-                {jsonChunks.length > 0 ? (
-                  <pre className="whitespace-pre-wrap text-slate-200">{JSON.stringify(jsonChunks, null, 2)}</pre>
-                ) : (
-                  <p className="text-slate-500">No structured deltas received yet.</p>
                 )}
               </CardContent>
             </Card>
