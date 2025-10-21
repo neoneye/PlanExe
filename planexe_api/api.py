@@ -57,6 +57,38 @@ from planexe_api.streaming import (
     ConversationSessionStore,
 )
 
+# Mapping between stored PlanContent content_type values and HTTP media types
+DB_CONTENT_TYPE_TO_MEDIA: Dict[str, str] = {
+    "json": "application/json; charset=utf-8",
+    "markdown": "text/markdown; charset=utf-8",
+    "html": "text/html; charset=utf-8",
+    "csv": "text/csv; charset=utf-8",
+    "txt": "text/plain; charset=utf-8",
+}
+
+
+def _infer_media_type(content_type: Optional[str], filename: str, default: str = "text/plain; charset=utf-8") -> str:
+    """Infer an HTTP media type from a stored PlanContent content_type value."""
+
+    if content_type:
+        normalized = content_type.strip().lower()
+        media = DB_CONTENT_TYPE_TO_MEDIA.get(normalized)
+        if media:
+            return media
+
+    # Fall back to basic heuristics using file extension when content_type is missing/unknown.
+    extension = Path(filename).suffix.lstrip(".").lower()
+    if extension == "html":
+        return DB_CONTENT_TYPE_TO_MEDIA["html"]
+    if extension == "json":
+        return DB_CONTENT_TYPE_TO_MEDIA["json"]
+    if extension == "csv":
+        return DB_CONTENT_TYPE_TO_MEDIA["csv"]
+    if extension in {"md", "markdown"}:
+        return DB_CONTENT_TYPE_TO_MEDIA["markdown"]
+    return default
+
+
 # Initialize FastAPI app
 app = FastAPI(
     title="PlanExe API",
@@ -830,8 +862,18 @@ async def get_plan_details(plan_id: str, db: DatabaseService = Depends(get_datab
             try:
                 with open(log_file, 'r') as f:
                     pipeline_log = f.read()
-            except:
-                pass
+            except Exception as exc:
+                print(f"WARNING: Failed to read log file for plan {plan_id}: {exc}")
+        else:
+            # Fall back to database copy when the run directory is missing.
+            try:
+                log_record = db.get_plan_content_by_filename(plan_id, "log.txt")
+            except Exception as exc:
+                print(f"WARNING: Database lookup for log.txt failed on plan {plan_id}: {exc}")
+                log_record = None
+
+            if log_record and log_record.content:
+                pipeline_log = log_record.content
 
         # Get generated files
         files = db.get_plan_files(plan_id)
@@ -1106,14 +1148,25 @@ async def download_plan_report(plan_id: str, db: DatabaseService = Depends(get_d
 
         report_path = Path(plan.output_dir) / FilenameEnum.REPORT.value
 
-        if not report_path.exists():
+        if report_path.exists():
+            return FileResponse(
+                path=str(report_path),
+                filename=f"{plan_id}-report.html",
+                media_type="text/html"
+            )
+
+        # Fallback to persisted database content when the filesystem copy is gone.
+        try:
+            report_record = db.get_plan_content_by_filename(plan_id, FilenameEnum.REPORT.value)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Failed to query stored report: {exc}") from exc
+
+        if not report_record or not report_record.content:
             raise HTTPException(status_code=404, detail="Report not found")
 
-        return FileResponse(
-            path=str(report_path),
-            filename=f"{plan_id}-report.html",
-            media_type="text/html"
-        )
+        media_type = _infer_media_type(report_record.content_type, FilenameEnum.REPORT.value, "text/html; charset=utf-8")
+        headers = {"Content-Disposition": f'attachment; filename="{plan_id}-report.html"'}
+        return Response(content=report_record.content, media_type=media_type, headers=headers)
     except HTTPException:
         raise
     except Exception as e:
@@ -1130,13 +1183,24 @@ async def download_plan_file(plan_id: str, filename: str, db: DatabaseService = 
 
         file_path = Path(plan.output_dir) / filename
 
-        if not file_path.exists():
+        if file_path.exists():
+            return FileResponse(
+                path=str(file_path),
+                filename=filename
+            )
+
+        # Attempt to serve from the database when the filesystem file is missing.
+        try:
+            content_record = db.get_plan_content_by_filename(plan_id, filename)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Failed to query stored file: {exc}") from exc
+
+        if not content_record or content_record.content is None:
             raise HTTPException(status_code=404, detail="File not found")
 
-        return FileResponse(
-            path=str(file_path),
-            filename=filename
-        )
+        media_type = _infer_media_type(content_record.content_type, filename)
+        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+        return Response(content=content_record.content, media_type=media_type, headers=headers)
     except HTTPException:
         raise
     except Exception as e:

@@ -10,6 +10,8 @@
 ### Backend
 - Redirected analysis streaming structured outputs to resolve `schema_model` paths through the shared schema registry, replacing ad-hoc JSON schema plumbing and merging Responses overrides directly into request payloads.
 - Removed the deprecated `output_schema` code path, centralised schema import/sanitisation helpers, and wired the conversation streaming service to emit `text.format.json_schema` payloads with schema metadata mirrored in the SSE summary and persistence layers.
+- Hardened recovery workspace APIs so pipeline details fall back to database-stored logs when run directories are missing and download routes stream persisted artefacts instead of 404-ing after filesystem cleanup.
+- Synced Luigi finalisation to persist run directories into `plan_content` for both success and failure paths, ensuring `log.txt` is captured even when the pipeline exits with an error.
 
 ### Frontend
 - Updated the streaming client payload to prefer `schemaModel` over raw JSON schemas when requesting structured Responses output.
