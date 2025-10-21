@@ -37,6 +37,10 @@ def _enforce_openai_schema_requirements(schema: Dict[str, Any]) -> Dict[str, Any
             for key, value in node.items():
                 updated[key] = _visit(value)
 
+            if "$ref" in updated:
+                # OpenAI refuses schemas where $ref siblings exist (e.g. description/title).
+                return {"$ref": updated["$ref"]}
+
             schema_type = updated.get("type")
             if schema_type == "object" and "additionalProperties" not in updated:
                 updated["additionalProperties"] = False
