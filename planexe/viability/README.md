@@ -426,18 +426,24 @@ Output (JSON)
 
 ```json
 {
-  "overall": { "status": "GRAY", "confidence": "Medium" },
-  "viability_summary": {
-    "recommendation": "PROCEED_WITH_CAUTION",
-    "why": [
-      "Evidence gaps on data rights and budget contingency",
-      "Integration risk with legacy IT"
-    ],
-    "what_flips_to_go": [
-      "≥10% contingency approved",
-      "Top-5 sources licensed + DPIAs"
-    ]
-  }
+  "overall_status": "GRAY",
+  "overall_recommendation": "PROCEED_WITH_CAUTION",
+  "why": [
+    {
+      "display": "Human Stability",
+      "status": "YELLOW",
+      "codes": "GOVERNANCE_WEAK, STAKEHOLDER_CONFLICT, STAFF_AVERSION"
+    },
+    {
+      "display": "Ecological Integrity",
+      "status": "YELLOW",
+      "codes": "CLIMATE_UNQUANTIFIED, BIODIVERSITY_RISK_UNSET, WASTE_MANAGEMENT_GAPS"
+    }
+  ],
+  "what_flips_to_go": [
+    "≥10% contingency approved",
+    "Top-5 sources licensed + DPIAs"
+  ]
 }
 ```
 
