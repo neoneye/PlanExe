@@ -7,6 +7,12 @@
 
 ## [Unreleased]
 
+### UI: Twilight Landing Experience Refresh
+- Rebuilt `planexe-frontend/src/app/page.tsx` to introduce a single-screen, conversation-first landing layout with a new twilight
+  gradient background and inline model selector defaulting to `gpt-5-mini`, keeping messaging free of legacy task counts.
+- Restyled `planexe-frontend/src/components/planning/SimplifiedPlanInput.tsx` with aurora-inspired controls that align with the
+  refreshed palette while preserving keyboard shortcuts and submission behaviour.
+
 ### FIX: Redline Gate Structured Output Compliance
 - Updated `_enforce_openai_schema_requirements` in `planexe/llm_util/simple_openai_llm.py` to automatically require every defined property when emitting strict JSON schemas, resolving OpenAI 400 errors triggered by the Redline Gate decision schema.
 - Verified via `SimpleOpenAILLM.build_text_format_from_schema` that the generated `planexe_diagnostics_redline_gate_Decision` schema now declares all six fields in the `required` array, satisfying Responses API strict-mode validation.
