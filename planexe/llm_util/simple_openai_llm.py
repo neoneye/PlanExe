@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from contextlib import suppress
 from typing import Any, Dict, Generator, Iterable, List, Optional, Sequence, Type
 
@@ -197,16 +198,30 @@ class SimpleOpenAILLM(LLM):
         return normalized
 
     @staticmethod
+    def _sanitize_schema_name(raw_name: str) -> str:
+        """
+        Coerce schema names into the strict pattern OpenAI enforces.
+        Pattern: ^[a-zA-Z0-9_-]+$
+        """
+        sanitized = re.sub(r"[^a-zA-Z0-9_-]", "_", raw_name or "")
+        sanitized = sanitized.strip("_")
+        if not sanitized:
+            sanitized = "schema"
+        return sanitized
+
+    @staticmethod
     def _build_text_format(schema_entry: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         if schema_entry is None:
             return None
 
         schema_copy = _deep_copy_schema(schema_entry.schema)
         enforced_schema = _enforce_openai_schema_requirements(schema_copy)
+        qualified_name = getattr(schema_entry, "qualified_name", "schema")
+        sanitized_name = SimpleOpenAILLM._sanitize_schema_name(qualified_name)
 
         return {
             "type": "json_schema",
-            "name": schema_entry.qualified_name,
+            "name": sanitized_name,
             "strict": True,
             "schema": enforced_schema,
         }
