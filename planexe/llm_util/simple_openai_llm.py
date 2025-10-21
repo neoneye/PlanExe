@@ -43,6 +43,19 @@ def _enforce_openai_schema_requirements(schema: Dict[str, Any]) -> Dict[str, Any
             schema_type = updated.get("type")
             if schema_type == "object" and "additionalProperties" not in updated:
                 updated["additionalProperties"] = False
+                properties = updated.get("properties")
+                if isinstance(properties, dict) and properties:
+                    existing_required = updated.get("required")
+                    required_list: List[str]
+                    if isinstance(existing_required, list):
+                        seen: Dict[str, None] = {name: None for name in existing_required if isinstance(name, str)}
+                        for prop_name in properties.keys():
+                            if prop_name not in seen:
+                                seen[prop_name] = None
+                        required_list = list(seen.keys())
+                    else:
+                        required_list = list(properties.keys())
+                    updated["required"] = required_list
             return updated
 
         if isinstance(node, list):
