@@ -524,7 +524,7 @@ export const INDUSTRY_CONFIGURATIONS = {
     ],
     customFields: [
       { name: "program_type", label: "Program Type", type: "select" },
-      { name: "target_population", label: "Target Population", type: "text" },
+      { name: "target_population", label: "Target Population", inputType: "text" },
       { name: "budget_range", label: "Budget Range", type: "select" },
       { name: "impact_metrics", label: "Success Metrics", type: "multiselect" }
     ],
