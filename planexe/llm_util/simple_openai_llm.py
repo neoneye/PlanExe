@@ -176,7 +176,7 @@ class SimpleOpenAILLM(LLM):
 
         return {
             "type": "json_schema",
-            "name": schema_entry.qualified_name,
+            "name": schema_entry.sanitized_name,
             "strict": True,
             "schema": schema_entry.schema,
         }
