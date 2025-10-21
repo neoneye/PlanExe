@@ -146,9 +146,9 @@ const HomePage: React.FC = () => {
       <HeroSection version={latestVersion} />
 
       {/* Main Content */}
-      <main className="mx-auto w-full max-w-4xl px-6 pb-20">
+      <main className="mx-auto w-full max-w-4xl px-6 pb-8">
         {/* Simplified Plan Input */}
-        <section className="mb-16">
+        <section className="mb-6">
           <SimplifiedPlanInput
             onSubmit={handlePlanSubmit}
             isSubmitting={isCreating || isFinalizing}
@@ -157,8 +157,8 @@ const HomePage: React.FC = () => {
 
           {/* Error display */}
           {error && (
-            <Card className="mt-6 border-red-300 bg-red-50 shadow-lg">
-              <CardHeader className="py-4">
+            <Card className="mt-4 border-red-300 bg-red-50 shadow-lg">
+              <CardHeader className="py-3">
                 <CardTitle className="text-sm font-semibold text-red-700">
                   Plan creation failed
                 </CardTitle>
@@ -172,14 +172,14 @@ const HomePage: React.FC = () => {
         <HowItWorksSection />
 
         {/* Recent Plans Section */}
-        <section className="mt-16">
+        <section className="mt-6">
           <Card className="border-slate-200 bg-white/80 shadow-lg backdrop-blur">
-            <CardHeader className="space-y-1 pb-4">
-              <CardTitle className="flex items-center gap-2 text-lg text-slate-800">
-                <Clock className="h-5 w-5 text-indigo-600" />
+            <CardHeader className="space-y-1 pb-3">
+              <CardTitle className="flex items-center gap-2 text-base text-slate-800">
+                <Clock className="h-4 w-4 text-indigo-600" />
                 Recent Plans
               </CardTitle>
-              <CardDescription className="text-sm text-slate-500">
+              <CardDescription className="text-xs text-slate-500">
                 Pick up where you left off or review previous planning sessions.
               </CardDescription>
             </CardHeader>

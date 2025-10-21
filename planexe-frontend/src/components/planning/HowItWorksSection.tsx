@@ -23,21 +23,21 @@ interface Step {
 
 const steps: Step[] = [
   {
-    icon: <Edit3 className="h-8 w-8 text-indigo-600" aria-hidden="true" />,
+    icon: <Edit3 className="h-6 w-6 text-indigo-600" aria-hidden="true" />,
     title: 'Describe Your Idea',
     description: 'Start with any level of detail',
     details:
       'Type anything from a single sentence to detailed specifications. Our AI understands context and can work with whatever you provide.',
   },
   {
-    icon: <MessageCircle className="h-8 w-8 text-blue-600" aria-hidden="true" />,
+    icon: <MessageCircle className="h-6 w-6 text-blue-600" aria-hidden="true" />,
     title: 'Conversation with AI Agent',
     description: '2-3 clarifying questions',
     details:
       'Our agent asks targeted questions about scope, timeline, constraints, and success metrics to enrich your plan. Quick and conversational.',
   },
   {
-    icon: <FileCheck className="h-8 w-8 text-emerald-600" aria-hidden="true" />,
+    icon: <FileCheck className="h-6 w-6 text-emerald-600" aria-hidden="true" />,
     title: 'Get Your Complete Plan',
     description: '60-task execution pipeline',
     details:
@@ -47,51 +47,51 @@ const steps: Step[] = [
 
 export const HowItWorksSection: React.FC = () => {
   return (
-    <section className="py-12 sm:py-16">
+    <section className="py-0">
       <div className="mx-auto max-w-6xl px-6">
         {/* Section header */}
-        <div className="mb-12 text-center">
-          <h2 className="mb-4 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+        <div className="mb-4 text-center">
+          <h2 className="mb-2 text-2xl font-bold tracking-tight text-slate-900">
             How It Works
           </h2>
-          <p className="mx-auto max-w-2xl text-lg text-slate-600">
+          <p className="mx-auto max-w-2xl text-sm text-slate-600">
             From idea to execution plan in three simple steps
           </p>
         </div>
 
         {/* Steps grid */}
-        <div className="grid gap-8 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3">
           {steps.map((step, index) => (
             <Card
               key={step.title}
-              className="group relative overflow-hidden border-2 border-slate-200 bg-white shadow-lg transition-all hover:border-indigo-300 hover:shadow-xl"
+              className="group relative overflow-hidden border border-slate-200 bg-white shadow-sm transition-all hover:border-indigo-300 hover:shadow-md"
             >
               {/* Step number badge */}
-              <div className="absolute right-6 top-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 font-bold text-slate-600 transition-colors group-hover:bg-indigo-100 group-hover:text-indigo-700">
+              <div className="absolute right-3 top-3">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600 transition-colors group-hover:bg-indigo-100 group-hover:text-indigo-700">
                   {index + 1}
                 </div>
               </div>
 
-              <CardHeader className="space-y-4 pb-4">
+              <CardHeader className="space-y-2 pb-2">
                 {/* Icon */}
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 shadow-inner transition-transform group-hover:scale-110">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 shadow-inner transition-transform group-hover:scale-110">
                   {step.icon}
                 </div>
 
                 {/* Title and description */}
                 <div>
-                  <CardTitle className="mb-2 text-xl font-bold text-slate-900">
+                  <CardTitle className="mb-1 text-base font-bold text-slate-900">
                     {step.title}
                   </CardTitle>
-                  <CardDescription className="text-base font-medium text-indigo-600">
+                  <CardDescription className="text-xs font-medium text-indigo-600">
                     {step.description}
                   </CardDescription>
                 </div>
               </CardHeader>
 
-              <CardContent>
-                <p className="text-sm leading-relaxed text-slate-600">{step.details}</p>
+              <CardContent className="pb-3">
+                <p className="text-xs leading-relaxed text-slate-600">{step.details}</p>
               </CardContent>
 
               {/* Decorative gradient border on hover */}
@@ -101,8 +101,8 @@ export const HowItWorksSection: React.FC = () => {
         </div>
 
         {/* Additional context */}
-        <div className="mt-12 rounded-2xl border border-slate-200 bg-white/50 p-6 text-center shadow-sm backdrop-blur">
-          <p className="text-sm text-slate-600">
+        <div className="mt-4 rounded-xl border border-slate-200 bg-white/50 p-3 text-center shadow-sm backdrop-blur">
+          <p className="text-xs text-slate-600">
             <strong className="font-semibold text-slate-900">Powered by OpenAI GPT-5</strong> with
             Responses API for real-time reasoning and strategic analysis. Your plan is generated
             using a 61-task Luigi pipeline with multi-stage analysis, scenario planning, and

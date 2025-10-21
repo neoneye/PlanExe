@@ -67,7 +67,7 @@ export const SimplifiedPlanInput: React.FC<SimplifiedPlanInputProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="w-full">
-      <div className="space-y-4">
+      <div className="space-y-3">
         {/* Main Textarea */}
         <div className="relative">
           <Textarea
@@ -77,12 +77,12 @@ export const SimplifiedPlanInput: React.FC<SimplifiedPlanInputProps> = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={isSubmitting}
-            className="min-h-[180px] resize-none rounded-2xl border-2 border-slate-300 bg-white p-6 text-lg leading-relaxed text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-[200px]"
+            className="min-h-[120px] resize-none rounded-xl border-2 border-slate-300 bg-white p-4 text-base leading-relaxed text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Describe your business idea"
           />
 
           {/* Character count indicator */}
-          <div className="absolute bottom-4 right-4 text-sm text-slate-400">
+          <div className="absolute bottom-3 right-3 text-xs text-slate-400">
             {charCount} characters
             {charCount > 0 && charCount < minChars && (
               <span className="ml-2 text-amber-600">
@@ -93,13 +93,13 @@ export const SimplifiedPlanInput: React.FC<SimplifiedPlanInputProps> = ({
         </div>
 
         {/* Submit Button and Keyboard Shortcut Hint */}
-        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            <kbd className="rounded border border-slate-300 bg-white px-2 py-1 font-mono text-xs shadow-sm">
+        <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <kbd className="rounded border border-slate-300 bg-white px-1.5 py-0.5 font-mono text-[10px] shadow-sm">
               ⌘
             </kbd>
             <span>+</span>
-            <kbd className="rounded border border-slate-300 bg-white px-2 py-1 font-mono text-xs shadow-sm">
+            <kbd className="rounded border border-slate-300 bg-white px-1.5 py-0.5 font-mono text-[10px] shadow-sm">
               Enter
             </kbd>
             <span className="hidden sm:inline">to submit</span>
@@ -108,19 +108,19 @@ export const SimplifiedPlanInput: React.FC<SimplifiedPlanInputProps> = ({
           <Button
             type="submit"
             disabled={!isValid || isSubmitting}
-            size="lg"
-            className="group relative min-w-[200px] overflow-hidden rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 px-8 py-6 text-lg font-semibold text-white shadow-lg transition-all hover:from-indigo-700 hover:to-blue-700 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
+            size="default"
+            className="group relative min-w-[180px] overflow-hidden rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-2 text-base font-semibold text-white shadow-md transition-all hover:from-indigo-700 hover:to-blue-700 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Opening conversation...
               </>
             ) : (
               <>
-                <Sparkles className="mr-2 h-5 w-5" />
+                <Sparkles className="mr-2 h-4 w-4" />
                 {buttonText}
-                <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </>
             )}
           </Button>
@@ -128,7 +128,7 @@ export const SimplifiedPlanInput: React.FC<SimplifiedPlanInputProps> = ({
 
         {/* Helpful hint below button */}
         {!isSubmitting && (
-          <div className="text-center text-sm text-slate-500">
+          <div className="text-center text-xs text-slate-500">
             {!isValid && prompt.length > 0 ? (
               <p className="text-amber-600">
                 Please provide at least {minChars} characters to help our AI understand your idea.
