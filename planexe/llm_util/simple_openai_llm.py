@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 from contextlib import suppress
 from typing import Any, Dict, Generator, Iterable, List, Optional, Sequence, Type
 
@@ -13,7 +12,7 @@ from llama_index.core.llms.llm import LLM
 from openai import OpenAI
 from pydantic import BaseModel, Field, PrivateAttr, ValidationError
 
-from planexe.llm_util.schema_registry import get_schema_entry
+from planexe.llm_util.schema_registry import get_schema_entry, sanitize_schema_label
 from planexe.llm_util import (
     record_final_payload,
     record_reasoning_delta,
@@ -202,18 +201,6 @@ class SimpleOpenAILLM(LLM):
         return normalized
 
     @staticmethod
-    def _sanitize_schema_name(raw_name: str) -> str:
-        """
-        Coerce schema names into the strict pattern OpenAI enforces.
-        Pattern: ^[a-zA-Z0-9_-]+$
-        """
-        sanitized = re.sub(r"[^a-zA-Z0-9_-]", "_", raw_name or "")
-        sanitized = sanitized.strip("_")
-        if not sanitized:
-            sanitized = "schema"
-        return sanitized
-
-    @staticmethod
     def build_text_format_from_schema(
         *, schema: Optional[Dict[str, Any]], name: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
@@ -226,7 +213,7 @@ class SimpleOpenAILLM(LLM):
         schema_copy = _deep_copy_schema(schema)
         enforced_schema = _enforce_openai_schema_requirements(schema_copy)
         qualified_name = name or "schema"
-        sanitized_name = SimpleOpenAILLM._sanitize_schema_name(qualified_name)
+        sanitized_name = sanitize_schema_label(qualified_name, "schema")
 
         if logger.isEnabledFor(logging.DEBUG):
             property_keys: List[str] = []

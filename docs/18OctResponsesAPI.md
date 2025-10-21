@@ -64,10 +64,11 @@ Client                    Server
 
 ### Structured Outputs with `schema_model`
 
-- The analysis handshake now prefers a `schema_model` field that passes a fully-qualified Pydantic class path (for example `planexe.plan.project_plan.GoalDefinition`).
-- FastAPI resolves the model through `planexe.llm_util.schema_registry.get_schema_entry`, feeding `SimpleOpenAILLM._build_text_format` so Responses structured outputs stay consistent with Luigi tasks.
-- The legacy raw `schema` payload still works for backwards compatibility, but callers should migrate because the backend now enforces mutual exclusivity and emits a 422 when both fields are supplied.
-- Provide an optional `schemaName` when you need to override the generated schema alias that streams back through SSE payloads.
+- The analysis handshake now requires callers to use `schema_model` with a fully-qualified Pydantic class path (for example `planexe.plan.project_plan.GoalDefinition`).
+- FastAPI resolves the model through `planexe.llm_util.schema_registry`, sanitises the schema label once, and feeds `SimpleOpenAILLM.build_text_format_from_schema` so Responses structured outputs stay consistent with Luigi tasks.
+- The deprecated raw `schema`/`output_schema` payload has been removed; requests that relied on it must migrate to `schema_model`.
+- Provide an optional `schemaName` when you need to override the generated schema alias. The backend now records the caller-provided name alongside the sanitised version so SSE summaries and the database capture both values.
+- Intake conversations accept the same `schema_model`/`schema_name` parameters and stream JSON deltas under `response.output_json.delta`, enabling downstream tooling to reuse the structured reply pipeline.
 
 ---
 

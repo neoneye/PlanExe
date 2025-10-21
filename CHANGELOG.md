@@ -9,12 +9,18 @@
 
 ### Backend
 - Redirected analysis streaming structured outputs to resolve `schema_model` paths through the shared schema registry, replacing ad-hoc JSON schema plumbing and merging Responses overrides directly into request payloads.
+- Removed the deprecated `output_schema` code path, centralised schema import/sanitisation helpers, and wired the conversation streaming service to emit `text.format.json_schema` payloads with schema metadata mirrored in the SSE summary and persistence layers.
 
 ### Frontend
 - Updated the streaming client payload to prefer `schemaModel` over raw JSON schemas when requesting structured Responses output.
+- Added optional `schemaModel`/`schemaName` fields to conversation streaming utilities so intake workflows can request structured replies.
 
 ### Documentation
 - Documented the `schema_model` handshake in the Responses API streaming guide so integrators understand the new structured output flow.
+- Expanded the Responses API notes to cover conversation structured-output support and clarified that only `schema_model` is accepted going forward.
+
+### Tooling
+- Added an automated audit (`test_schema_registry.py`) to ensure every Luigi task referencing `as_structured_llm` points to a registered Pydantic model with a stable sanitised schema name.
 
 ## [0.4.1] - 2025-10-20
 - Switched all Responses API JSON schema requests to the new `response_format.json_schema` contract and updated streaming handlers to capture `response.output_json.delta` events, ensuring structured outputs use the latest OpenAI Responses spec.

@@ -10,6 +10,7 @@ from __future__ import annotations
 import inspect
 import re
 from dataclasses import dataclass
+from importlib import import_module
 from pathlib import Path
 from typing import Dict, Optional, Type, TypeVar
 
@@ -33,9 +34,11 @@ class SchemaRegistryEntry:
     file_path: Optional[Path]
 
 
-def _sanitize_schema_name(raw_name: str, fallback: str) -> str:
-    """Return a Responses-compatible name derived from a fully-qualified path."""
+def sanitize_schema_label(raw_name: Optional[str], fallback: str) -> str:
+    """Return a Responses-compatible schema label that satisfies OpenAI constraints."""
 
+    if not raw_name:
+        raw_name = fallback
     sanitized = _INVALID_NAME_CHARS.sub("_", raw_name).strip("_")
     if not sanitized:
         sanitized = _INVALID_NAME_CHARS.sub("_", fallback).strip("_") or "PlanExeSchema"
@@ -65,7 +68,7 @@ def register_schema(model: Type[TModel]) -> SchemaRegistryEntry:
     except (TypeError, OSError):
         file_path = None
 
-    sanitized_name = _sanitize_schema_name(key, model.__name__)
+    sanitized_name = sanitize_schema_label(key, model.__name__)
 
     entry = SchemaRegistryEntry(
         model=model,
@@ -89,4 +92,20 @@ def get_all_registered_schemas() -> Dict[str, SchemaRegistryEntry]:
     """Return a shallow copy of the registry for diagnostics and testing."""
 
     return dict(_SCHEMA_REGISTRY)
+
+
+def import_schema_model(path: str) -> Type[TModel]:
+    """Import a fully-qualified model path and return the Pydantic class."""
+
+    normalized = (path or "").strip()
+    if not normalized or "." not in normalized:
+        raise ValueError("schema_model must be a fully-qualified path")
+    module_path, class_name = normalized.rsplit(".", 1)
+    if not module_path or not class_name:
+        raise ValueError("schema_model must include module and class name")
+    module = import_module(module_path)
+    candidate = getattr(module, class_name)
+    if not isinstance(candidate, type) or not issubclass(candidate, BaseModel):
+        raise TypeError("schema_model must resolve to a pydantic BaseModel subclass")
+    return candidate
 
