@@ -226,71 +226,150 @@ if __name__ == "__main__":
 
     # Extracted Domains Assessment from report
     domains_text = """
-Domains Assessment
+<div class="domains-grid">
+  <!-- Green Domain Card -->
+  <div class="domain-card domain-card--green domain-card--count-zero" role="status" aria-labelledby="domains-green-title">
+    <div class="domain-card__header">
+      <div class="domain-card__left">
+        <span class="domain-card__icon" aria-hidden="true">✔</span>
+        <span id="domains-green-title" class="domain-card__status-name">GREEN</span>
+      </div>
+      <span class="domain-card__count">0 domains</span>
+    </div>
+    <div class="domain-card__body">
+      <p>Good to go. You have solid evidence and no open critical unknowns. Proceed. Any remaining tasks are minor polish.</p>
+    </div>
+  </div>
 
-Summary
+  <!-- Yellow Domain Card -->
+  <div class="domain-card domain-card--yellow " role="status" aria-labelledby="domains-yellow-title">
+    <div class="domain-card__header">
+      <div class="domain-card__left">
+        <span class="domain-card__icon" aria-hidden="true">!</span>
+        <span id="domains-yellow-title" class="domain-card__status-name">YELLOW</span>
+      </div>
+      <span class="domain-card__count">2 domains</span>
+    </div>
+    <div class="domain-card__body">
+      <p>Conditionally ready; key risks/unknowns remain. There is promise, but is missing proof on key points or has non-fatal risks. Proceed with caution and a focused checklist.</p>
+    </div>
+  </div>
 
-	GREEN: 0 domains
-	YELLOW: 2 domains
-	RED: 2 domains
-	GRAY: 0 domains
+  <!-- Red Domain Card -->
+  <div class="domain-card domain-card--red " role="status" aria-labelledby="domains-red-title">
+    <div class="domain-card__header">
+      <div class="domain-card__left">
+        <span class="domain-card__icon" aria-hidden="true">✖</span>
+        <span id="domains-red-title" class="domain-card__status-name">RED</span>
+      </div>
+      <span class="domain-card__count">2 domains</span>
+    </div>
+    <div class="domain-card__body">
+      <p>Not ready; fix blockers before proceeding. A concrete blocker or negative evidence exists (legal, technical, economic) that stops execution until fixed. Pause or pivot.</p>
+    </div>
+  </div>
 
-
-Domain Details
-
-Human Stability
-
-Status: RED (20)
-
-Issues: GOVERNANCE_WEAK, STAKEHOLDER_CONFLICT, CHANGE_MGMT_GAPS
-
-Evidence Needed:
-
-	Social unrest mitigation plan v1
-	Resident mental health support plan v2
-
-
-Economic Resilience
-
-Status: YELLOW (55)
-
-Issues: CONTINGENCY_LOW, UNIT_ECON_UNKNOWN
-
-Evidence Needed:
-
-	Contingency budget v2
-	Unit economics model v3 + sensitivity table
-
-
-Ecological Integrity
-
-Status: RED (20)
-
-Issues: EIA_MISSING, BIODIVERSITY_RISK_UNSET, WASTE_MANAGEMENT_GAPS
-
-Evidence Needed:
-
-	Ecosystem risk mitigation plan v1
-	Waste management plan v2
+  <!-- Gray Domain Card -->
+  <div class="domain-card domain-card--gray domain-card--count-zero" role="status" aria-labelledby="domains-gray-title">
+    <div class="domain-card__header">
+      <div class="domain-card__left">
+        <span class="domain-card__icon" aria-hidden="true">?</span>
+        <span id="domains-gray-title" class="domain-card__status-name">GRAY</span>
+      </div>
+      <span class="domain-card__count">0 domains</span>
+    </div>
+    <div class="domain-card__body">
+      <p>Unknown / unassessed. Insufficient information to judge. Do not guess—initiate a “first measurement” task to resolve uncertainty.</p>
+    </div>
+  </div>
+</div>
 
 
-Rights & Legality
 
-Status: YELLOW (55)
 
-Issues: DPIA_GAPS, INFOSEC_GAPS, ETHICS_VAGUE
+### Legend: How to Read the Scores
 
-Evidence Needed:
+Each domain’s health is scored on a 1–5 scale across three key metrics. Higher scores are better.
 
-	Data protection impact assessment v1
-	Ethics review board charter v1
+| Metric | Strong Negative (1) | Weak Negative (2) | Neutral (3) | Weak Positive (4) | Strong Positive (5) |
+|--------|--------------------|-------------------|-------------|-------------------|---------------------|
+| **Evidence** | No/contradictory evidence; claims only | Anecdotes/unstable drafts | Inconclusive; limited data | Internal tests/pilot support | Independent, reproducible validation; monitored |
+| **Risk** | Severe exposure; blockers/unknowns | Major exposure; mitigations not in place | Moderate; mitigations planned/in progress | Low residual risk; mitigations in place | Minimal residual risk; contingencies tested |
+| **Fit** | Conflicts with constraints/strategy | Low alignment; major trade-offs | Mixed/unclear alignment | Good alignment; minor trade-offs | Strong alignment; directly reinforces strategy |
+
+### Domain: Human Stability
+
+**Status**: RED — driven by risk (stakeholder conflict, staff aversion, governance weak).
+
+**Metrics**: evidence=2, risk=1, fit=2
+
+**Issues:**
+
+- <code>STAKEHOLDER_CONFLICT</code>: Stakeholder conflict resolution framework + escalation matrix
+- <code>STAFF_AVERSION</code>: Change readiness survey v1 + incentive/retention plan
+- <code>GOVERNANCE_WEAK</code>: RACI + decision log v1 (scope: this plan)
+
+**Evidence Needed:**
+
+- Stakeholder map + skills gap snapshot — acceptance criteria: top 20 stakeholders include influence/interest scores, critical role gaps quantified, and HR lead sign-off captured.
+- Business impact analysis v1 (RTO/RPO, critical processes) — acceptance criteria: BIA lists critical processes with RTO/RPO targets, impact scoring completed, and continuity manager sign-off logged.
+
+
+### Domain: Economic Resilience
+
+**Status**: YELLOW — driven by evidence (unit econ).
+
+**Metrics**: evidence=2, risk=3, fit=3
+
+**Issues:**
+
+- <code>CONTINGENCY_LOW</code>: Budget v2 with ≥10% contingency + Monte Carlo risk workbook
+- <code>UNIT_ECON_UNKNOWN</code>: Unit economics model v1 + sensitivity table (key drivers)
+
+**Evidence Needed:**
+
+- Assumption ledger v1 + sensitivity table — acceptance criteria: ledger lists top 10 assumptions with owners and rationale, sensitivity table shows +/-20% scenario impact, and file stored in shared workspace.
+- Unit economics model v1 + sensitivity table (key drivers) — acceptance criteria: model includes CAC, LTV, gross margin, sensitivity table covers +/-20% price and COGS, and CFO sign-off attached.
+
+
+### Domain: Ecological Integrity
+
+**Status**: RED — driven by risk (biodiversity risk, climate unquantified).
+
+**Metrics**: evidence=1, risk=2, fit=2
+
+**Issues:**
+
+- <code>BIODIVERSITY_RISK_UNSET</code>: Biodiversity screening memo (species/habitat, mitigation)
+- <code>WASTE_MANAGEMENT_GAPS</code>: Waste management plan v1 (types, handling, compliance)
+- <code>CLIMATE_UNQUANTIFIED</code>: Climate exposure maps (2030/2040/2050) + site vulnerability memo
+
+**Evidence Needed:**
+
+- Environmental baseline note (scope, metrics) — acceptance criteria: scope, metrics, measurement methods, and data sources detailed with sustainability lead sign-off.
+- EIA_MISSING — acceptance criteria: artifact is published to the workspace with an owner, acceptance evidence, and review date recorded.
+
+
+### Domain: Rights & Legality
+
+**Status**: YELLOW — driven by fit (ethics vague).
+
+**Metrics**: evidence=3, risk=3, fit=2
+
+**Issues:**
+
+- <code>ETHICS_VAGUE</code>: Normative Charter v1.0 with auditable rules & dissent logging
+
+**Evidence Needed:**
+
+- Regulatory mapping v1 + open questions list — acceptance criteria: applicable regulations by jurisdiction linked to control owners, open questions assigned with due dates, and compliance counsel acknowledged.
+- DPIA_GAPS — acceptance criteria: artifact is published to the workspace with an owner, acceptance evidence, and review date recorded.
     """
 
     model_name = "ollama-llama3.1"
     llm = get_llm(model_name)
 
     query = domains_text
-    input_bytes_count = len(query.encode('utf-8'))
     print(f"Query: {query}")
     result = ViabilityBlockers.execute(llm, query)
 
@@ -299,10 +378,3 @@ Evidence Needed:
     print(json.dumps(json_response, indent=2))
 
     print(f"\n\nMarkdown:\n{result.markdown}")
-
-    output_bytes_count = len(result.markdown.encode('utf-8'))
-    print(f"\n\nInput bytes count: {input_bytes_count}")
-    print(f"Output bytes count: {output_bytes_count}")
-    bytes_saved = input_bytes_count - output_bytes_count
-    print(f"Bytes saved: {bytes_saved}")
-    print(f"Percentage saved: {bytes_saved / input_bytes_count * 100:.2f}%")
