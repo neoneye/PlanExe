@@ -399,3 +399,54 @@ sqlite3 planexe.db "SELECT * FROM plan_content WHERE plan_id='your-plan-id' ORDE
 ---
 
 *This documentation reflects the current state as of v0.3.7. The system features enterprise-grade WebSocket architecture, 100% database-first Luigi pipeline, Responses API integration, artefact endpoints, and fallback report assembly. Frontend forms are stable, backend API is fully functional, real-time progress is reliable, and Luigi pipeline should not be modified without extreme caution.*
+
+## Codex Exec Plans Architecture (Cookbook Integration)
+
+This repository adopts a lightweight version of the “Exec Plans” approach (OpenAI Cookbook: Using PLANS.md for multi-hour problem solving) to make long-running, multi-step engineering work transparent, reviewable, and recoverable.
+
+### Purpose
+- Provide a living plan-of-record for complex tasks (design → implement → validate → deploy).
+- Ensure each action has a rationale, safety checks, and exit criteria.
+- Keep frontend/backend/Luigi constraints explicit and reduce coordination overhead.
+
+### Core Concepts
+- Plan-of-record file: `docs/PLANS.md` (one per large feature or initiative). Not auto-created.
+- Step types (what agents do in this repo):
+  - `edit` – Apply code changes via `apply_patch` with concise diff scope.
+  - `shell` – Run commands with rationale, expected effects, and guardrails.
+  - `ask` – Questions for the product owner to de-risk ambiguity before work.
+  - `review` – Validation checkpoints (tests, builds, local runs, smoke checks).
+  - `deploy` – Release steps, explicitly gated and reversible.
+- Step schema (minimum fields):
+  - `id`, `title`, `status` (pending|in_progress|done|blocked), `rationale`, `dependencies`,
+    `actions` (typed steps), `validation`, `exit_criteria`, `rollback`.
+- Single active step: Maintain exactly one `in_progress` step (mirrors our `update_plan` tool).
+
+### Process Lifecycle
+- When scope > 1 hour or cross-cutting risk exists, create/extend `docs/PLANS.md`.
+- Update plan at milestone boundaries; keep changes synchronized with code.
+- Reference step IDs in commit messages and summarize in `CHANGELOG.md`.
+- Prefer incremental delivery: small, reversible edits; validate early and often.
+
+### Safety & Guardrails
+- Destructive commands require explicit rationale, backup/rollback, and pre-checks.
+- Network and credentials: document domains, tokens, and redaction policies in the plan.
+- Logs and artefacts: link to relevant files, endpoints, and DB tables for traceability.
+
+### Mapping to PlanExe
+- Luigi pipeline: do not modify unless a dedicated sub-plan covers impact analysis, migrations, and recovery. Respect database-first writes and task ordering.
+- Backend (FastAPI): preserve API contracts and websocket reliability; add migrations for schema changes; test with SQLite first.
+- Frontend (Next.js): use snake_case API fields, direct FastAPI client, shadcn/ui patterns; validate via TypeScript build + local run; verify progress streaming.
+
+### Minimal Templates (for `docs/PLANS.md`)
+- Header: Title, Owner, Date, Context, Objectives, Non-goals, Constraints, Risks, Stakeholders.
+- Milestones: short list with acceptance criteria.
+- Execution Plan (table or list): step `id`, `title`, `type` (edit/shell/ask/review/deploy), `status`, `rationale`, `dependencies`, `expected_output`, `validation`, `exit_criteria`, `rollback`.
+- Validation Plan: what we run (tests, builds), success signals, and rollback conditions.
+
+### Operational Rules
+- Keep the plan and the `update_plan` state in sync; exactly one active step.
+- Prefer editing existing files; only add docs in `docs/` when needed for clarity.
+- Every material change: update `CHANGELOG.md` with a brief summary and link back to plan section.
+
+This integration formalizes how we plan and execute complex changes without altering the core PlanExe architecture or its API contracts.
