@@ -3955,12 +3955,12 @@ class ReportTask(PlanTask):
         rg.append_markdown_with_tables('Premortem', self.input()['premortem']['markdown'].path)
         rg.append_viability(
             document_title='Project Health Assessment',
-            overall_summary_header_markdown_file_path=Path(self.input()['viability_summary']['header_markdown'].path),
+            summary_header_markdown_file_path=Path(self.input()['viability_summary']['header_markdown'].path),
             domains_markdown_file_path=Path(self.input()['viability_domains']['markdown'].path),
             blockers_markdown_file_path=Path(self.input()['viability_blockers']['markdown'].path),
             fixpack_markdown_file_path=Path(self.input()['viability_fix_packs']['markdown'].path),
-            overall_summary_critical_issues_markdown_file_path=Path(self.input()['viability_summary']['critical_issues_markdown'].path),
-            overall_summary_flips_to_go_markdown_file_path=Path(self.input()['viability_summary']['flips_to_go_markdown'].path),
+            summary_critical_issues_markdown_file_path=Path(self.input()['viability_summary']['critical_issues_markdown'].path),
+            summary_flips_to_go_markdown_file_path=Path(self.input()['viability_summary']['flips_to_go_markdown'].path),
         )
         rg.append_initial_prompt_vetted(
             document_title='Initial Prompt Vetted', 
