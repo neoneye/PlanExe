@@ -1,7 +1,7 @@
 """
 One-pager that generates blockers from domains assessment.
 
-Based on ViabilityAssessor Step 2: Emit Blockers.
+This code corresponds to "Step 2: Emit Blockers." in the readme.md file.
 
 - The blockers summary derives from weak domains (YELLOW, RED, GRAY).
 - Purpose: Convert weaknesses into 3-5 actionable blockers with acceptance tests and artifacts.
