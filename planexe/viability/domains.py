@@ -464,29 +464,6 @@ def _factor_priority(status: str, factor_values: Dict[str, Optional[int]]) -> Li
     return ordered
 
 
-def _select_factor_with_reason_support(candidates: List[str], reason_codes: List[str]) -> Optional[str]:
-    for factor in candidates:
-        if _reason_codes_support_factor(reason_codes, factor):
-            return factor
-    return None
-
-
-def _reason_keywords_for_factor(reason_codes: List[str], factor: str, limit: int = 4) -> List[str]:
-    keywords: List[str] = []
-    for code in reason_codes:
-        if factor not in reason_code_factor_set(code):
-            continue
-        parts = [segment for segment in code.lower().split("_") if segment]
-        if not parts:
-            continue
-        keyword = " ".join(parts[:2])
-        if keyword not in keywords:
-            keywords.append(keyword)
-        if len(keywords) >= limit:
-            break
-    return keywords
-
-
 # ---------------------------------------------------------------------------
 # Markdown rendering
 # ---------------------------------------------------------------------------
@@ -514,34 +491,6 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         except FileNotFoundError:
             logger.warning("domains_metrics_legend.md not found. The legend will not be included in the report.")
             return ""
-
-    def _driver_text(status: str, score_dict: Dict[str, Any], reason_codes: List[str]) -> Optional[str]:
-        factor_values: Dict[str, Optional[int]] = {
-            key: score_dict.get(key) if isinstance(score_dict.get(key), int) else None
-            for key in LIKERT_FACTOR_KEYS
-        }
-
-        if any(factor_values[key] is None for key in LIKERT_FACTOR_KEYS):
-            return None
-
-        candidates = _factor_priority(status, factor_values)
-        driver_factor = _select_factor_with_reason_support(candidates, reason_codes)
-        if driver_factor is None:
-            driver_factor = candidates[0] if candidates else None
-
-        if driver_factor is None:
-            return None
-
-        if status == StatusEnum.GREEN.value:
-            if all(factor_values[key] is not None and factor_values[key] >= 4 for key in LIKERT_FACTOR_KEYS):
-                return "all factors >=4"
-            return "balanced evidence, risk, and fit"
-
-        keywords = _reason_keywords_for_factor(reason_codes, driver_factor)
-        if keywords:
-            keyword_text = ", ".join(keywords[:4])
-            return f"{driver_factor} ({keyword_text})"
-        return driver_factor
 
     # Load the "domains_summary.html" file
     html_file_path = Path(__file__).parent / "domains_summary.html"
@@ -585,13 +534,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         metrics_parts = [f"{key}={_fmt_factor(score.get(key))}" for key in LIKERT_FACTOR_KEYS]
         metrics_text = ", ".join(part for part in metrics_parts if part)
 
-        driver_phrase = _driver_text(status, score, reason_codes)
-        status_line = f"**Status**: {status}"
-        if driver_phrase:
-            status_line += f" — driven by {driver_phrase}."
-        else:
-            status_line += "."
-        rows.append(status_line + "\n")
+        rows.append(f"**Status**: <code>{status}</code>\n")
 
         if metrics_text:
             rows.append(f"**Metrics**: {metrics_text}\n")
