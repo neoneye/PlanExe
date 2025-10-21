@@ -43,7 +43,6 @@ class FixPackPriorityEnum(str, Enum):
     LOW = "Low"
 
 
-FP0_TITLE = "Pre-Commit Gate"
 MUST_FIX_REASON_CODES = {"DPIA_GAPS", "CONTINGENCY_LOW", "ETHICS_VAGUE"}
 
 # --- Pydantic models for input payloads ---
@@ -242,7 +241,6 @@ class FixPack:
             "blockers_payload_bytes": len(blockers_json.encode("utf-8")),
             "fp0_blocker_ids": fp0_blocker_ids,
             "remaining_blocker_ids": [blocker.id for blocker in remaining_blockers],
-            "fp0_title": FP0_TITLE,
         }
 
         if not blockers_output.blockers:
@@ -282,7 +280,7 @@ class FixPack:
             fix_packs.append(
                 FixPackEntry(
                     id="FP0",
-                    title=FP0_TITLE,
+                    title="Pre-Commit Gate",
                     blocker_ids=fp0_blocker_ids,
                     priority=FixPackPriorityEnum.IMMEDIATE,
                 )
