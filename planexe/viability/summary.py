@@ -70,25 +70,13 @@ class FixPacksPayload(BaseModel):
     fix_packs: List[FixPackItem]
 
 
-class OverallPayload(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    status: str
-
-
-class ViabilitySummaryPayload(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    recommendation: str
-    why: List[Any]  # Can be List[str] (legacy) or List[Tuple[str, str, str]] (table format)
-    what_flips_to_go: List[str]
-
-
 class OverallSummaryPayload(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    overall: OverallPayload
-    viability_summary: ViabilitySummaryPayload
+    overall_status: str
+    overall_recommendation: str
+    why: List[Dict[str, str]]
+    what_flips_to_go: List[str]
 
 
 # ---------------------------------------------------------------------------
@@ -313,8 +301,7 @@ class WhyItem:
 class ViabilitySummary:
     """Container for the step-4 roll-up."""
 
-    overall: Dict[str, Any]
-    viability_summary: Dict[str, Any]
+    payload: OverallSummaryPayload
     metadata: Dict[str, Any]
     header_markdown: str
     critical_issues_markdown: str
@@ -404,25 +391,17 @@ class ViabilitySummary:
             max_items=max_flips,
         )
 
-        overall_payload = OverallPayload(
-            status=upgraded_status,
-        )
-
         # Convert WhyItem dataclasses to dicts for JSON serialization
         why_reasons = [
             {"display": item.display, "status": item.status, "codes": item.codes}
             for item in why_items
         ]
 
-        viability_summary_payload = ViabilitySummaryPayload(
-            recommendation=recommendation,
+        result_payload = OverallSummaryPayload(
+            overall_status=upgraded_status,
+            overall_recommendation=recommendation,
             why=why_reasons,
             what_flips_to_go=what_flips_to_go,
-        )
-
-        result_payload = OverallSummaryPayload(
-            overall=overall_payload,
-            viability_summary=viability_summary_payload,
         )
 
         metadata = _build_metadata(
@@ -441,8 +420,7 @@ class ViabilitySummary:
         markdown = cls.convert_to_markdown(payload=result_payload)
 
         return cls(
-            overall=result_payload.overall.model_dump(),
-            viability_summary=result_payload.viability_summary.model_dump(),
+            payload=result_payload,
             metadata=metadata,
             header_markdown=header_markdown,
             critical_issues_markdown=critical_issues_markdown,
@@ -453,28 +431,24 @@ class ViabilitySummary:
     @staticmethod
     def format_header_markdown(*, payload: OverallSummaryPayload) -> str:
         lines: List[str] = []
-        lines.append(f"- **Status:** {escape_markdown(payload.overall.status)}")
-        lines.append(f"- **Recommendation:** {escape_markdown(payload.viability_summary.recommendation)}")
+        lines.append(f"- **Status:** {escape_markdown(payload.overall_status)}")
+        lines.append(f"- **Recommendation:** {escape_markdown(payload.overall_recommendation)}")
         return "\n".join(lines)
 
     @staticmethod
     def format_critical_issues_markdown(*, payload: OverallSummaryPayload) -> str:
         lines: List[str] = []
-        if payload.viability_summary.why:
+        if payload.why:
             # Build table header
             lines.append("| Domain | Status | Issue Codes |")
             lines.append("|--------|--------|-------------|")
             # Build table rows
-            for item in payload.viability_summary.why:
-                # Each item is a WhyItem dataclass or dict
+            for item in payload.why:
+                # Each item is a dict
                 if isinstance(item, dict):
                     display = item.get('display', '—')
                     status = item.get('status', '—')
                     codes = item.get('codes', '—')
-                elif hasattr(item, 'display'):
-                    display = item.display
-                    status = item.status
-                    codes = item.codes
                 else:
                     # Fallback for unexpected format
                     display = '—'
@@ -489,8 +463,8 @@ class ViabilitySummary:
     def format_flips_to_go_markdown(*, payload: OverallSummaryPayload) -> str:
         lines: List[str] = []
         lines.append('<p class="section-subtitle">Must be met to proceed.</p>')
-        if payload.viability_summary.what_flips_to_go:
-            for item in payload.viability_summary.what_flips_to_go:
+        if payload.what_flips_to_go:
+            for item in payload.what_flips_to_go:
                 lines.append(f"- {escape_markdown(item)}")
         else:
             lines.append("- FP0 is empty; no gating acceptance tests.")
@@ -514,10 +488,7 @@ class ViabilitySummary:
         include_metadata: bool = True,
         include_markdown: bool = True,
     ) -> Dict[str, Any]:
-        data = {
-            "overall": self.overall,
-            "viability_summary": self.viability_summary,
-        }
+        data = self.payload.model_dump()
         if include_metadata:
             data["metadata"] = self.metadata
         if include_markdown:
