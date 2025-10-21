@@ -29,9 +29,12 @@ from planexe.llm_util.schema_registry import (
     import_schema_model,
     sanitize_schema_label,
 )
+from planexe.intake.enriched_plan_intake import EnrichedPlanIntake
+from planexe.intake.intake_conversation_prompt import INTAKE_CONVERSATION_SYSTEM_PROMPT
 
 
 INTAKE_STAGE = "intake_conversation"
+INTAKE_SCHEMA_MODEL = "planexe.intake.enriched_plan_intake.EnrichedPlanIntake"
 
 
 class ConversationService:
@@ -83,6 +86,9 @@ class ConversationService:
         llm = get_llm(request.model_key)
         if not conversation_id:
             raise HTTPException(status_code=400, detail="CONVERSATION_ID_REQUIRED")
+
+        # Auto-detect intake conversations and apply schema + system prompt
+        request = self._enrich_intake_request(request)
 
         # Validate structured output schema early so the POST request surfaces errors
         self._resolve_schema_descriptor(request)
@@ -391,6 +397,36 @@ class ConversationService:
             elif candidate is not None:
                 return candidate
         return None
+
+    @staticmethod
+    def _enrich_intake_request(
+        request: ConversationTurnRequest,
+    ) -> ConversationTurnRequest:
+        """
+        Auto-detect and enrich intake conversations.
+
+        If no schema is specified but this looks like an intake conversation,
+        automatically set schema_model to EnrichedPlanIntake and inject the
+        system prompt.
+        """
+        # If schema is already explicitly set, don't override it
+        if request.schema_model:
+            return request
+
+        # Check if this is an intake conversation (no existing instructions, new conversation)
+        # If instructions already set, it's not an intake flow
+        if request.instructions:
+            return request
+
+        # Enrich with intake defaults
+        enriched = request.model_copy(
+            update={
+                "schema_model": INTAKE_SCHEMA_MODEL,
+                "schema_name": "EnrichedPlanIntake",
+                "instructions": INTAKE_CONVERSATION_SYSTEM_PROMPT,
+            }
+        )
+        return enriched
 
     async def _persist_summary(
         self,

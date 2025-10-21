@@ -520,6 +520,11 @@ async def create_plan(request: CreatePlanRequest):
         print(f"DEBUG: Thread started: {thread.name}")
 
         # Convert database model to response
+        enriched_intake_str = None
+        if request.enriched_intake:
+            # Serialize enriched_intake for response (database stores it separately)
+            enriched_intake_str = request.enriched_intake if isinstance(request.enriched_intake, dict) else None
+
         return PlanResponse(
             plan_id=plan.plan_id,
             status=PlanStatus(plan.status),
@@ -528,7 +533,8 @@ async def create_plan(request: CreatePlanRequest):
             progress_percentage=plan.progress_percentage,
             progress_message=plan.progress_message,
             error_message=plan.error_message,
-            output_dir=plan.output_dir
+            output_dir=plan.output_dir,
+            enriched_intake=enriched_intake_str
         )
 
     except Exception as e:

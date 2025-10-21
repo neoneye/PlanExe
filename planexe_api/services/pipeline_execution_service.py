@@ -293,6 +293,15 @@ class PipelineExecutionService:
         plan_file_payload.save(str(initial_plan_file))
         print(f"[PIPELINE] Created {initial_plan_file.name}")
 
+        # Write enriched intake data if provided (from conversation)
+        if request.enriched_intake:
+            enriched_intake_file = run_id_dir / "enriched_intake.json"
+            with open(enriched_intake_file, "w", encoding="utf-8") as f:
+                json.dump(request.enriched_intake, f, indent=2, default=str)
+            print(f"[PIPELINE] Created enriched_intake.json ({len(str(request.enriched_intake))} bytes)")
+        else:
+            print(f"[PIPELINE] No enriched_intake provided - using standard pipeline")
+
         # DIAGNOSTIC: Verify only expected files exist
         all_files = list(run_id_dir.iterdir())
         print(f"[PIPELINE] Run directory now contains {len(all_files)} files: {[f.name for f in all_files]}")
