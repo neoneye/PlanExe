@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.4.1] - 2025-10-20
+
 ### Backend
 - Raised the streaming response ceiling to 120,000 tokens, allowing requests to omit `max_output_tokens` entirely while sharing the same environment-driven cap across runtime and validation.
 - Updated `ResponsesConversationControls` defaults to use `detailed` reasoning summaries and `high` text verbosity so backend fallbacks comply with the latest Responses API enums.
