@@ -203,11 +203,11 @@ class Blockers:
             if blocker.acceptance_tests:
                 rows.append("\n**Acceptance Criteria:**\n")
                 for test in blocker.acceptance_tests:
-                    rows.append(f"  - {escape_markdown(test)}")
+                    rows.append(f"- {escape_markdown(test)}")
             if blocker.artifacts_required:
                 rows.append("\n**Artifacts Required:**\n")
                 for artifact in blocker.artifacts_required:
-                    rows.append(f"  - {escape_markdown(artifact)}")
+                    rows.append(f"- {escape_markdown(artifact)}")
             if blocker.owner:
                 rows.append(f"\n**Owner:** {blocker.owner}\n")
             if blocker.rom:
