@@ -16,7 +16,7 @@ class TestTaxonomy(unittest.TestCase):
             self.assertIsInstance(domain.description, str)
             self.assertGreater(len(domain.description.strip()), 0, f"{domain.value}: description must be non-empty.")
 
-    def test_reason_code_factor_covers_only_known_codes(self):
+    def test_reason_code_factor_map_keys_present_in_whitelist(self):
         all_codes = {c for lst in taxonomy.REASON_CODES_BY_DOMAIN.values() for c in lst}
         for code in taxonomy.REASON_CODE_FACTOR.keys():
             self.assertIn(code, all_codes, f"REASON_CODE_FACTOR references unknown code '{code}'")
@@ -50,6 +50,21 @@ class TestTaxonomy(unittest.TestCase):
                 if criteria is not None:
                     self.assertIsInstance(criteria, str, f"{domain}: acceptance criteria entries must be strings when provided")
                     self.assertGreater(len(criteria.strip()), 0, f"{domain}: acceptance criteria entries must be non-empty strings when provided")
+
+    def test_reason_code_categories_are_consistent(self):
+        categories = taxonomy.REASON_CODE_CATEGORIES
+        self.assertTrue(categories, "REASON_CODE_CATEGORIES should not be empty.")
+        seen: set[str] = set()
+        for category, codes in categories.items():
+            self.assertIsInstance(category, str)
+            self.assertIsInstance(codes, list, f"{category}: category entries must be a list")
+            self.assertGreater(len(codes), 0, f"{category}: category must contain at least one reason code")
+            self.assertEqual(len(codes), len(set(codes)), f"{category}: category must not contain duplicate reason codes")
+            for code in codes:
+                self.assertIn(code, taxonomy.REASON_CODE_FACTOR, f"{category}: unknown reason code '{code}'")
+            overlap = seen.intersection(codes)
+            self.assertFalse(overlap, f"Reason code(s) {sorted(overlap)} appear in multiple categories")
+            seen.update(codes)
 
     # ---- Cross-map consistency -------------------------------------------------
     def test_strength_reason_codes_subset_of_whitelist(self):

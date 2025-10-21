@@ -43,6 +43,7 @@ class Taxonomy(BaseModel):
     reason_codes_by_domain: Dict[str, List[str]]
     strength_reason_codes: Set[str] = Field(default_factory=set)
     reason_code_factor: Dict[str, Set[str]]
+    reason_code_categories: Dict[str, List[str]] = Field(default_factory=dict)
     default_evidence_by_domain: Dict[str, List[str]]
 
     # Canonical evidence templates per reason code (artifact-first, not actions)
@@ -134,6 +135,15 @@ def load_taxonomy() -> Taxonomy:
         assert d in tx.domain_values, f"Unknown domain in reason_codes: {d}"
         for c in codes:
             assert c in tx.reason_code_factor or True, f"Missing reason_code_factor for {c}"
+    categorized_codes: Set[str] = set()
+    for category, codes in tx.reason_code_categories.items():
+        assert isinstance(codes, list) and codes, f"Category '{category}' must map to a non-empty list of reason codes."
+        assert len(codes) == len(set(codes)), f"Category '{category}' contains duplicate reason codes."
+        for code in codes:
+            assert code in tx.reason_code_factor, f"Category '{category}' references unknown reason code '{code}'."
+        overlap = categorized_codes.intersection(codes)
+        assert not overlap, f"Reason code(s) {sorted(overlap)} appear in multiple categories."
+        categorized_codes.update(codes)
     return tx
 
 # Convenience re-exports
@@ -143,6 +153,7 @@ DOMAIN_METADATA_BY_VALUE = {domain.value: domain for domain in TX.domains}
 REASON_CODES_BY_DOMAIN = TX.reason_codes_by_domain
 STRENGTH_REASON_CODES = TX.strength_reason_codes
 REASON_CODE_FACTOR = TX.reason_code_factor
+REASON_CODE_CATEGORIES = TX.reason_code_categories
 DEFAULT_EVIDENCE_BY_DOMAIN = TX.default_evidence_by_domain
 EVIDENCE_TEMPLATES = TX.evidence_templates
 EVIDENCE_ACCEPTANCE_CRITERIA = TX.evidence_acceptance_criteria

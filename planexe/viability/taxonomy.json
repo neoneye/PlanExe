@@ -34,8 +34,8 @@
     "reason_codes_by_domain": {
       "HumanStability": ["TALENT_UNKNOWN","STAFF_AVERSION","GOVERNANCE_WEAK","CHANGE_MGMT_GAPS","TRAINING_GAPS","STAKEHOLDER_CONFLICT","SAFETY_CULTURE_WEAK","HITL_GOVERNANCE_OK","COMMUNITY_SUPPORT_STRONG"],
       "EconomicResilience": ["CONTINGENCY_LOW","UNIT_ECON_UNKNOWN","SINGLE_CUSTOMER","ALT_COST_UNKNOWN","LEGACY_IT","INTEGRATION_RISK","SUPPLIER_CONCENTRATION","SPOF_DEPENDENCY","FX_RISK_UNHEDGED","RATE_SENSITIVITY_HIGH"],
-      "EcologicalIntegrity": ["CLOUD_CARBON_UNKNOWN","CLIMATE_UNQUANTIFIED","WATER_STRESS","WATER_PERMIT_RISK","MODEL_RISK_UNQUANTIFIED","BIODIVERSITY_RISK_UNSET","WASTE_MANAGEMENT_GAPS","EIA_MISSING"],
-      "Rights_Legality": ["DPIA_GAPS","ETHICS_VAGUE","INFOSEC_GAPS","TRAINING_GAPS","CROSSBORDER_RISK","CONSENT_MODEL_WEAK","DATA_QUALITY_WEAK","ABS_UNDEFINED","LICENSE_GAPS","BIA_MISSING","DR_TEST_GAPS","PERMIT_MATRIX_MISSING","TERMS_OF_USE_RISK","LICENSE_REGISTRY_MISSING","REDISTRIBUTION_RIGHTS_UNCLEAR","ATTRIBUTION_POLICY_MISSING"],
+      "EcologicalIntegrity": ["CLOUD_CARBON_UNKNOWN","CLIMATE_UNQUANTIFIED","WATER_STRESS","WATER_PERMIT_RISK","MODEL_RISK_UNQUANTIFIED","BIODIVERSITY_RISK_UNSET","WASTE_MANAGEMENT_GAPS","EIA_MISSING","BIOSECURITY_GAPS"],
+      "Rights_Legality": ["DPIA_GAPS","ETHICS_VAGUE","INFOSEC_GAPS","TRAINING_GAPS","CROSSBORDER_RISK","CONSENT_MODEL_WEAK","DATA_QUALITY_WEAK","ABS_UNDEFINED","PERMIT_COMPLEXITY","LICENSE_GAPS","BIA_MISSING","DR_TEST_GAPS","PERMIT_MATRIX_MISSING","TERMS_OF_USE_RISK","LICENSE_REGISTRY_MISSING","REDISTRIBUTION_RIGHTS_UNCLEAR","ATTRIBUTION_POLICY_MISSING"],
       "TechnicalFeasibility": ["GEO_RISK_UNASSESSED","GEOTECH_DATA_MISSING","FOUNDATION_UNKNOWN","UTILITY_INFRA_GAP","INTERCONNECTION_RISK","SITE_ACCESS_CONSTRAINT","HAZMAT_UNKNOWN","SEISMIC_CODE_GAP","FIRE_SAFETY_GAP","GEO_SIGNOFF_COMPLETE","INTERCONNECTION_APPROVED"],
       "ProgramDelivery": ["PMO_ABSENT","CRITICAL_PATH_UNKNOWN","SCOPE_CREEP_RISK","SCHEDULE_SLIP_RISK","TEAM_BANDWIDTH_LOW","VENDOR_NOT_MOBILIZED","CONTRACT_STRATEGY_WEAK","DEPENDENCIES_UNMAPPED","QUALITY_PLAN_MISSING","PERFORMANCE_BENCHMARK_MISSING","PMO_STRONG"]
     },
@@ -46,6 +46,10 @@
       "CHANGE_MGMT_GAPS": ["risk"],
       "CONTINGENCY_LOW": ["risk","fit"],
       "UNIT_ECON_UNKNOWN": ["fit","evidence"],
+      "SINGLE_CUSTOMER": ["risk","fit"],
+      "ALT_COST_UNKNOWN": ["fit","evidence"],
+      "LEGACY_IT": ["risk","fit"],
+      "INTEGRATION_RISK": ["risk","evidence"],
       "EIA_MISSING": ["risk","evidence"],
       "BIODIVERSITY_RISK_UNSET": ["risk","evidence"],
       "WASTE_MANAGEMENT_GAPS": ["fit","evidence"],
@@ -67,7 +71,9 @@
       "CONSENT_MODEL_WEAK": ["evidence"],
       "DATA_QUALITY_WEAK": ["evidence"],
       "ABS_UNDEFINED": ["fit","evidence"],
+      "TALENT_UNKNOWN": ["risk","evidence"],
       "LICENSE_GAPS": ["evidence"],
+      "PERMIT_COMPLEXITY": ["risk","fit"],
       "STAFF_AVERSION": ["risk","fit"],
       "COMMUNITY_SUPPORT_STRONG": ["evidence","fit"],
       "FX_RISK_UNHEDGED": ["risk","fit"],
@@ -98,7 +104,17 @@
       "DEPENDENCIES_UNMAPPED": ["risk","evidence"],
       "QUALITY_PLAN_MISSING": ["risk","evidence"],
       "PERFORMANCE_BENCHMARK_MISSING": ["evidence","fit"],
-      "PMO_STRONG": ["evidence","fit"]
+      "PMO_STRONG": ["evidence","fit"],
+      "BIOSECURITY_GAPS": ["risk","evidence"]
+    },
+    "reason_code_categories": {
+      "Budget/Finance": ["CONTINGENCY_LOW","SINGLE_CUSTOMER","ALT_COST_UNKNOWN","FX_RISK_UNHEDGED","RATE_SENSITIVITY_HIGH"],
+      "Rights/Compliance": ["DPIA_GAPS","LICENSE_GAPS","ABS_UNDEFINED","PERMIT_COMPLEXITY","PERMIT_MATRIX_MISSING","TERMS_OF_USE_RISK","LICENSE_REGISTRY_MISSING","REDISTRIBUTION_RIGHTS_UNCLEAR","ATTRIBUTION_POLICY_MISSING"],
+      "Delivery/Technical": ["LEGACY_IT","INTEGRATION_RISK","GEO_RISK_UNASSESSED","GEOTECH_DATA_MISSING","FOUNDATION_UNKNOWN","UTILITY_INFRA_GAP","INTERCONNECTION_RISK","SITE_ACCESS_CONSTRAINT","HAZMAT_UNKNOWN","SEISMIC_CODE_GAP","FIRE_SAFETY_GAP","PMO_ABSENT","CRITICAL_PATH_UNKNOWN","SCOPE_CREEP_RISK","SCHEDULE_SLIP_RISK","TEAM_BANDWIDTH_LOW","VENDOR_NOT_MOBILIZED","CONTRACT_STRATEGY_WEAK","DEPENDENCIES_UNMAPPED","QUALITY_PLAN_MISSING","PERFORMANCE_BENCHMARK_MISSING"],
+      "People/Adoption": ["TALENT_UNKNOWN","STAFF_AVERSION"],
+      "Climate/Ecology": ["CLOUD_CARBON_UNKNOWN","CLIMATE_UNQUANTIFIED","WATER_STRESS"],
+      "Biosecurity": ["BIOSECURITY_GAPS"],
+      "Governance/Ethics": ["ETHICS_VAGUE"]
     },
     "default_evidence_by_domain": {
       "HumanStability": ["Stakeholder map + skills gap snapshot","Change plan v1 (communications, training, adoption KPIs)"],
@@ -130,8 +146,14 @@
       "ABS_UNDEFINED": [
         "ABS/benefit-sharing term sheet + playbook"
       ],
+      "PERMIT_COMPLEXITY": [
+        "Permitting complexity analysis (jurisdictions, critical path, mitigation plan)"
+      ],
       "CLIMATE_UNQUANTIFIED": [
         "Climate exposure maps (2030/2040/2050) + site vulnerability memo"
+      ],
+      "BIOSECURITY_GAPS": [
+        "Biosecurity risk assessment (agents, containment, mitigation controls)"
       ],
       "WATER_STRESS": [
         "Water budget & drought plan baseline for target sites"
@@ -314,6 +336,7 @@
         "License registry (source, terms, expiry)": "registry details each source, key terms, renewal dates, and accountable owners with legal confirmation recorded.",
         "ABS/benefit-sharing term sheet + playbook": "term sheet reviewed by legal, playbook lists trigger events and benefit percentages, and stakeholder contacts confirmed.",
         "Climate exposure maps (2030/2040/2050) + site vulnerability memo": "maps cover priority sites, memo rates exposure per scenario, and risk officer sign-off logged.",
+        "Biosecurity risk assessment (agents, containment, mitigation controls)": "assessment identifies applicable biological agents, evaluates containment/handling protocols, assigns mitigation actions with owners, and biosafety officer approval is recorded.",
         "Water budget & drought plan baseline for target sites": "baseline shows monthly demand vs supply, drought triggers defined, and operations lead approval documented.",
         "Budget v2 with >=10% contingency + Monte Carlo risk workbook": "workbook runs >=1000 simulations, contingency coverage summarized, and finance team review attached.",
         "Market expansion memo (3 jurisdictions) + risk/opportunity analysis": "memo compares TAM, regulatory hurdles, partner landscape for three jurisdictions with go/no-go recommendation and strategy lead approval.",
@@ -353,6 +376,7 @@
         "Interest-rate sensitivity analysis (±300 bps) with covenant headroom": "analysis includes at least ±300 bps scenarios, covenant headroom quantified, mitigation actions assigned, and finance owner approval logged.",
         "Terms-of-use compliance memo with counsel sign-off (key services, datasets, automation, redistribution, attribution)": "memo cites applicable terms per source/service, addresses automated access, redistribution, and attribution obligations, and includes documented counsel sign-off.",
         "License registry (source → license, obligations, term/expiry, revocation risk) + copies of license texts": "registry lists each significant source with license details, obligations, expiry/renewal dates, revocation risk, copies of licenses stored, and legal/DPO approval recorded.",
+        "Permitting complexity analysis (jurisdictions, critical path, mitigation plan)": "analysis lists all applicable permits and jurisdictions, highlights critical path dependencies, identifies blockers with mitigation owners/dates, and compliance/legal review sign-off is captured.",
         "Redistribution rights matrix (distribution scope, territories, obligations) + mitigation plan": "matrix maps planned distributions to rights/territories, unresolved gaps flagged with mitigation owners, and legal review noted.",
         "Attribution policy + automated enforcement spec (tagging, headers, dataset README)": "policy defines attribution rules per channel, automation/enforcement processes documented, and compliance review sign-off captured.",
         "Independent geological survey + risk memo": "fieldwork scope and sampling appropriate to the site, laboratory results summarized, hazards rated with mitigations, and licensed geoscience/engineering signature recorded.",

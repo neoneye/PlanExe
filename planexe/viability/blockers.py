@@ -26,7 +26,7 @@ from llama_index.core.llms import ChatMessage, MessageRole
 from planexe.markdown_util.escape_markdown import escape_markdown
 from planexe.markdown_util.fix_bullet_lists import fix_bullet_lists
 from planexe.viability.model_status import StatusEnum
-from planexe.viability.taxonomy import TX, DOMAIN_ORDER, get_domain_display
+from planexe.viability.taxonomy import TX, DOMAIN_ORDER, get_domain_display, REASON_CODE_CATEGORIES
 
 logger = logging.getLogger(__name__)
 
@@ -45,27 +45,10 @@ class BlockersOutput(BaseModel):
     blockers: List[Blocker] = Field(description="3-5 blockers derived from source_domains.")
 
 DOMAIN_VALUES = DOMAIN_ORDER
-REASON_CODE_ENUM = [
-    # Budget/Finance
-    "CONTINGENCY_LOW", "SINGLE_CUSTOMER", "ALT_COST_UNKNOWN", "FX_RISK_UNHEDGED", "RATE_SENSITIVITY_HIGH",
-    # Rights/Compliance
-    "DPIA_GAPS", "LICENSE_GAPS", "ABS_UNDEFINED", "PERMIT_COMPLEXITY", "PERMIT_MATRIX_MISSING", "TERMS_OF_USE_RISK",
-    "LICENSE_REGISTRY_MISSING", "REDISTRIBUTION_RIGHTS_UNCLEAR", "ATTRIBUTION_POLICY_MISSING",
-    # Tech/Integration / Delivery
-    "LEGACY_IT", "INTEGRATION_RISK", "GEO_RISK_UNASSESSED", "GEOTECH_DATA_MISSING", "FOUNDATION_UNKNOWN",
-    "UTILITY_INFRA_GAP", "SITE_ACCESS_CONSTRAINT", "HAZMAT_UNKNOWN", "SEISMIC_CODE_GAP", "FIRE_SAFETY_GAP",
-    "PMO_ABSENT", "CRITICAL_PATH_UNKNOWN", "SCOPE_CREEP_RISK", "SCHEDULE_SLIP_RISK", "TEAM_BANDWIDTH_LOW",
-    "VENDOR_NOT_MOBILIZED", "CONTRACT_STRATEGY_WEAK", "DEPENDENCIES_UNMAPPED", "QUALITY_PLAN_MISSING",
-    "PERFORMANCE_BENCHMARK_MISSING",
-    # People/Adoption
-    "TALENT_UNKNOWN", "STAFF_AVERSION",
-    # Climate/Ecology
-    "CLOUD_CARBON_UNKNOWN", "CLIMATE_UNQUANTIFIED", "WATER_STRESS",
-    # Biosecurity
-    "BIOSECURITY_GAPS",
-    # Governance/Ethics
-    "ETHICS_VAGUE"
-]
+REASON_CODE_ENUM = [code for codes in REASON_CODE_CATEGORIES.values() for code in codes]
+CATEGORY_COMMENT_LINES = "\n".join(
+    f"  // {category}: {', '.join(codes)}" for category, codes in REASON_CODE_CATEGORIES.items()
+)
 COST_BAND_ENUM = ["LOW", "MEDIUM", "HIGH"]
 
 BLOCKERS_SYSTEM_PROMPT = f"""
@@ -96,6 +79,7 @@ Instructions:
   - domain: Match one from source_domains.
   - title: Concise and descriptive (e.g., "Contingency too low").
   - reason_codes: Subset of 1-2 codes from the domain's 'Issues' in the input. Use from REASON_CODE_ENUM if possible: {', '.join(REASON_CODE_ENUM)}; otherwise, use input terms.
+{CATEGORY_COMMENT_LINES}
   - acceptance_tests: 1-3 short, verifiable tests (e.g., ">=80% support in survey").
   - artifacts_required: 1-3 specific deliverables/files (e.g., "Plan_v1.pdf").
   - owner: A role/team (e.g., "PMO", "Engineering Lead").
