@@ -36,6 +36,10 @@ class CreatePlanRequest(BaseModel):
     prompt: str = Field(..., description="The planning prompt/idea", min_length=1, max_length=10000)
     llm_model: Optional[str] = Field(None, description="LLM model ID to use")
     speed_vs_detail: SpeedVsDetail = Field(SpeedVsDetail.ALL_DETAILS_BUT_SLOW, description="Speed vs detail preference")
+    enriched_intake: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Optional enriched intake data from conversation (EnrichedPlanIntake schema). If provided, pre-populates pipeline with structured variables."
+    )
 
 
 class PlanResponse(BaseModel):
@@ -49,6 +53,10 @@ class PlanResponse(BaseModel):
     progress_message: str = Field("", description="Current progress description")
     error_message: Optional[str] = Field(None, description="Error message if failed")
     output_dir: Optional[str] = Field(None, description="Path to output directory")
+    enriched_intake: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Enriched intake data used to pre-populate pipeline (if conversation was used)"
+    )
 
 
 class PlanProgressEvent(BaseModel):
