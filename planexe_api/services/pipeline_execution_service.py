@@ -13,11 +13,11 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 import platform
 
 from planexe_api.models import CreatePlanRequest, PlanStatus
-from planexe_api.database import DatabaseService
+from planexe_api.database import DatabaseService, PlanFile as DBPlanFile
 from planexe_api.websocket_manager import websocket_manager
 from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
 from planexe.plan.filenames import FilenameEnum
@@ -456,6 +456,18 @@ class PipelineExecutionService:
                                   db_service: DatabaseService) -> None:
         """Update final plan status, index generated files, and broadcast via WebSocket"""
 
+        files_synced = 0
+        content_bytes_synced = 0
+        if run_id_dir.exists():
+            try:
+                files_synced, content_bytes_synced = self._sync_run_directory_to_database(
+                    plan_id, run_id_dir, db_service
+                )
+            except Exception as exc:
+                print(f"WARNING: Failed to sync run directory for plan {plan_id}: {exc}")
+        else:
+            print(f"WARNING: Run directory {run_id_dir} missing for plan {plan_id}; attempting DB fallback only")
+
         if return_code == 0:
             # Check for expected final output file
             final_output_file = run_id_dir / FilenameEnum.REPORT.value
@@ -473,66 +485,6 @@ class PipelineExecutionService:
                     await websocket_manager.broadcast_to_plan(plan_id, success_data)
                 except Exception as e:
                     print(f"WebSocket success broadcast failed for plan {plan_id}: {e}")
-
-                # Index all generated files AND persist content to database (Option 3 fix)
-                files = list(run_id_dir.iterdir())
-                files_synced = 0
-                content_bytes_synced = 0
-                
-                for file_path in files:
-                    if file_path.is_file():
-                        # Create file metadata record
-                        db_service.create_plan_file({
-                            "plan_id": plan_id,
-                            "filename": file_path.name,
-                            "file_type": file_path.suffix.lstrip('.') or 'unknown',
-                            "file_size_bytes": file_path.stat().st_size,
-                            "file_path": str(file_path),
-                            "generated_by_stage": "pipeline_complete"
-                        })
-                        
-                        # CRITICAL: Persist actual file content to database (Option 3 fix)
-                        try:
-                            content = file_path.read_text(encoding='utf-8')
-                            content_size = len(content.encode('utf-8'))
-                            
-                            # Determine content type from extension
-                            ext = file_path.suffix.lstrip('.')
-                            content_type_map = {
-                                'json': 'json',
-                                'md': 'markdown',
-                                'html': 'html',
-                                'csv': 'csv',
-                                'txt': 'txt',
-                                '': 'txt'
-                            }
-                            content_type = content_type_map.get(ext, 'unknown')
-                            
-                            # Extract stage from filename (e.g., "018-wbs_level1.json" -> "wbs_level1")
-                            stage = None
-                            if '-' in file_path.stem:
-                                parts = file_path.stem.split('-', 1)
-                                if len(parts) == 2:
-                                    stage = parts[1]
-                            
-                            db_service.create_plan_content({
-                                "plan_id": plan_id,
-                                "filename": file_path.name,
-                                "stage": stage,
-                                "content_type": content_type,
-                                "content": content,
-                                "content_size_bytes": content_size
-                            })
-                            
-                            files_synced += 1
-                            content_bytes_synced += content_size
-                            print(f"DEBUG: Synced {file_path.name} to database ({content_size} bytes)")
-                            
-                        except Exception as e:
-                            print(f"WARNING: Could not sync {file_path.name} to database: {e}")
-                            # Continue with other files even if one fails
-
-                print(f"DEBUG: Synced {files_synced} files to database ({content_bytes_synced} bytes total)")
 
                 db_service.update_plan(plan_id, {
                     "status": PlanStatus.completed.value,
@@ -709,6 +661,107 @@ class PipelineExecutionService:
     def get_process(self, plan_id: str) -> Optional[subprocess.Popen]:
         """Get subprocess reference for a plan (thread-safe)"""
         return process_registry.get(plan_id)
+
+    def _sync_run_directory_to_database(self, plan_id: str, run_id_dir: Path,
+                                        db_service: DatabaseService) -> Tuple[int, int]:
+        """Persist files from the run directory into plan_files and plan_content tables."""
+
+        files_synced = 0
+        content_bytes_synced = 0
+
+        if not run_id_dir.exists():
+            return files_synced, content_bytes_synced
+
+        content_type_map = {
+            'json': 'json',
+            'md': 'markdown',
+            'markdown': 'markdown',
+            'html': 'html',
+            'csv': 'csv',
+            'txt': 'txt',
+            '': 'txt'
+        }
+
+        for file_path in sorted(run_id_dir.iterdir()):
+            if not file_path.is_file():
+                continue
+
+            try:
+                file_size = file_path.stat().st_size
+            except OSError as exc:
+                print(f"WARNING: Could not stat {file_path} for plan {plan_id}: {exc}")
+                continue
+
+            # Sync plan_files metadata with basic upsert semantics.
+            try:
+                existing_file = db_service.db.query(DBPlanFile).filter(
+                    DBPlanFile.plan_id == plan_id,
+                    DBPlanFile.filename == file_path.name
+                ).one_or_none()
+
+                if existing_file:
+                    existing_file.file_size_bytes = file_size
+                    existing_file.file_path = str(file_path)
+                    if not existing_file.generated_by_stage:
+                        existing_file.generated_by_stage = "pipeline_complete"
+                    db_service.db.commit()
+                else:
+                    db_service.create_plan_file({
+                        "plan_id": plan_id,
+                        "filename": file_path.name,
+                        "file_type": file_path.suffix.lstrip('.') or 'unknown',
+                        "file_size_bytes": file_size,
+                        "file_path": str(file_path),
+                        "generated_by_stage": "pipeline_complete"
+                    })
+            except Exception as exc:
+                print(f"WARNING: Could not sync plan file metadata for {file_path.name}: {exc}")
+
+            try:
+                try:
+                    content = file_path.read_text(encoding='utf-8')
+                except UnicodeDecodeError:
+                    content = file_path.read_bytes().decode('utf-8', errors='replace')
+                content_size = len(content.encode('utf-8'))
+            except Exception as exc:
+                print(f"WARNING: Could not read {file_path.name} for database persistence: {exc}")
+                continue
+
+            ext = file_path.suffix.lstrip('.').lower()
+            content_type = content_type_map.get(ext, 'unknown')
+
+            stage = None
+            if '-' in file_path.stem:
+                parts = file_path.stem.split('-', 1)
+                if len(parts) == 2 and parts[1]:
+                    stage = parts[1]
+
+            try:
+                existing_content = db_service.get_plan_content_by_filename(plan_id, file_path.name)
+                if existing_content:
+                    existing_content.stage = stage
+                    existing_content.content_type = content_type
+                    existing_content.content = content
+                    existing_content.content_size_bytes = content_size
+                    existing_content.created_at = datetime.utcnow()
+                    db_service.db.commit()
+                else:
+                    db_service.create_plan_content({
+                        "plan_id": plan_id,
+                        "filename": file_path.name,
+                        "stage": stage,
+                        "content_type": content_type,
+                        "content": content,
+                        "content_size_bytes": content_size
+                    })
+
+                files_synced += 1
+                content_bytes_synced += content_size
+                print(f"DEBUG: Synced {file_path.name} to database ({content_size} bytes)")
+            except Exception as exc:
+                print(f"WARNING: Could not persist {file_path.name} content to DB: {exc}")
+
+        return files_synced, content_bytes_synced
 
     def terminate_plan_execution(self, plan_id: str) -> bool:
         """Terminate a running plan execution (thread-safe)"""
