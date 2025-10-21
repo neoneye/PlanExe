@@ -3850,11 +3850,11 @@ class ViabilityFixPacksTask(PlanTask):
 class ViabilityOverallSummaryTask(PlanTask):
     def output(self):
         return {
-            'raw': self.local_target(FilenameEnum.VIABILITY_OVERALL_SUMMARY_RAW),
-            'header_markdown': self.local_target(FilenameEnum.VIABILITY_OVERALL_SUMMARY_HEADER_MARKDOWN),
-            'critical_issues_markdown': self.local_target(FilenameEnum.VIABILITY_OVERALL_SUMMARY_CRITICAL_ISSUES_MARKDOWN),
-            'flips_to_go_markdown': self.local_target(FilenameEnum.VIABILITY_OVERALL_SUMMARY_FLIPS_TO_GO_MARKDOWN),
-            'markdown': self.local_target(FilenameEnum.VIABILITY_OVERALL_SUMMARY_MARKDOWN)
+            'raw': self.local_target(FilenameEnum.VIABILITY_SUMMARY_RAW),
+            'header_markdown': self.local_target(FilenameEnum.VIABILITY_SUMMARY_HEADER_MARKDOWN),
+            'critical_issues_markdown': self.local_target(FilenameEnum.VIABILITY_SUMMARY_CRITICAL_ISSUES_MARKDOWN),
+            'flips_to_go_markdown': self.local_target(FilenameEnum.VIABILITY_SUMMARY_FLIPS_TO_GO_MARKDOWN),
+            'markdown': self.local_target(FilenameEnum.VIABILITY_SUMMARY_MARKDOWN)
         }
     
     def requires(self):
