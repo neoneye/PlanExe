@@ -299,7 +299,7 @@ Each domain’s health is scored on a 1–5 scale across three key metrics. High
 
 ### Domain: Human Stability
 
-**Status**: RED — driven by risk (stakeholder conflict, staff aversion, governance weak).
+**Status**: RED
 
 **Metrics**: evidence=2, risk=1, fit=2
 
@@ -317,7 +317,7 @@ Each domain’s health is scored on a 1–5 scale across three key metrics. High
 
 ### Domain: Economic Resilience
 
-**Status**: YELLOW — driven by evidence (unit econ).
+**Status**: YELLOW
 
 **Metrics**: evidence=2, risk=3, fit=3
 
@@ -334,7 +334,7 @@ Each domain’s health is scored on a 1–5 scale across three key metrics. High
 
 ### Domain: Ecological Integrity
 
-**Status**: RED — driven by risk (biodiversity risk, climate unquantified).
+**Status**: RED
 
 **Metrics**: evidence=1, risk=2, fit=2
 
@@ -352,7 +352,7 @@ Each domain’s health is scored on a 1–5 scale across three key metrics. High
 
 ### Domain: Rights & Legality
 
-**Status**: YELLOW — driven by fit (ethics vague).
+**Status**: YELLOW
 
 **Metrics**: evidence=3, risk=3, fit=2
 
