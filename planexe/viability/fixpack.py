@@ -187,15 +187,15 @@ class ViabilityFixPack:
     def execute(
         cls,
         llm: LLM,
-        user_prompt: str,
+        query: str,
         viability_domains_json: str,
         blockers_json: str,
     ) -> "ViabilityFixPack":
         """Generate fix packs using pipeline context and serialized step outputs."""
         if not isinstance(llm, LLM):
             raise ValueError("Invalid LLM instance.")
-        if not isinstance(user_prompt, str):
-            raise ValueError("Invalid user_prompt.")
+        if not isinstance(query, str):
+            raise ValueError("Invalid query.")
 
         if not isinstance(viability_domains_json, str):
             raise ValueError("Invalid viability_domains_json.")
@@ -223,7 +223,8 @@ class ViabilityFixPack:
             blocker for blocker in blockers_output.blockers if blocker.id not in fp0_blocker_ids
         ]
 
-        llm_payload = _build_user_prompt(
+        user_prompt = _build_user_prompt(
+            query,
             remaining_blockers,
             status_map,
             MUST_FIX_REASON_CODES,
@@ -237,7 +238,7 @@ class ViabilityFixPack:
             "llm_classname": None,
             "duration": 0,
             "response_byte_count": 0,
-            "raw_context_bytes": len(user_prompt.encode("utf-8")),
+            "user_prompt_bytes": len(user_prompt.encode("utf-8")),
             "domains_payload_bytes": len(viability_domains_json.encode("utf-8")),
             "blockers_payload_bytes": len(blockers_json.encode("utf-8")),
             "fp0_blocker_ids": fp0_blocker_ids,
@@ -252,7 +253,7 @@ class ViabilityFixPack:
         if remaining_blockers:
             chat_messages = [
                 ChatMessage(role=MessageRole.SYSTEM, content=FIX_PACK_SYSTEM_PROMPT),
-                ChatMessage(role=MessageRole.USER, content=llm_payload),
+                ChatMessage(role=MessageRole.USER, content=user_prompt),
             ]
 
             sllm = llm.as_structured_llm(NonFP0FixPacks)
@@ -299,7 +300,7 @@ class ViabilityFixPack:
         markdown = cls.convert_to_markdown(response_model)
         return cls(
             system_prompt=FIX_PACK_SYSTEM_PROMPT,
-            user_prompt=llm_payload,
+            user_prompt=user_prompt,
             response=response_model.model_dump(),
             metadata=llm_metadata,
             markdown=markdown,
@@ -333,6 +334,7 @@ def _select_fp0_blockers(
 
 
 def _build_user_prompt(
+    query: str,
     remaining_blockers: Sequence[Blocker],
     status_map: Dict[str, str],
     must_fix_codes: Sequence[str],
@@ -355,7 +357,9 @@ def _build_user_prompt(
             for blocker in remaining_blockers
         ],
     }
-    return json.dumps(payload, indent=2)
+    payload_json: str = json.dumps(payload, indent=2)
+    user_prompt = f"{query}\n\nFile 'viability-domains-and-blockers.json':\n{payload_json}"
+    return user_prompt
 
 
 def _validate_fix_packs(
@@ -488,16 +492,16 @@ if __name__ == "__main__":
     model_name = "ollama-llama3.1"
     llm = get_llm(model_name)
 
-    prompt = (
-        "File 'viability_domains.json':\n"
-        f"{json.dumps(domains_example, indent=2)}\n\n"
-        "File 'viability_blockers.json':\n"
-        f"{json.dumps(blockers_example, indent=2)}"
+    query = (
+        "File 'strategic_decisions.md':\n"
+        f"empty file\n\n"
+        "File 'swot-analysis.md':\n"
+        f"empty file"
     )
 
     result = ViabilityFixPack.execute(
         llm=llm,
-        user_prompt=prompt,
+        query=query,
         viability_domains_json=json.dumps(domains_example),
         blockers_json=json.dumps(blockers_example),
     )

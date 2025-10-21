@@ -3804,12 +3804,8 @@ class ViabilityFixPacksTask(PlanTask):
             questions_and_answers_markdown = f.read()
         with self.input()['premortem']['markdown'].open("r") as f:
             premortem_markdown = f.read()
-        with self.input()['viability_domains']['markdown'].open("r") as f:
-            viability_domains_markdown = f.read()
         with self.input()['viability_domains']['raw'].open("r") as f:
             viability_domains_raw = f.read()
-        with self.input()['viability_blockers']['markdown'].open("r") as f:
-            viability_blockers_markdown = f.read()
         with self.input()['viability_blockers']['raw'].open("r") as f:
             viability_blockers_raw = f.read()
 
@@ -3828,15 +3824,13 @@ class ViabilityFixPacksTask(PlanTask):
             f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}\n\n"
             f"File 'review-plan.md':\n{review_plan_markdown}\n\n"
             f"File 'questions-and-answers.md':\n{questions_and_answers_markdown}\n\n"
-            f"File 'premortem.md':\n{premortem_markdown}\n\n"
-            f"File 'viability-domains.md':\n{viability_domains_markdown}\n\n"
-            f"File 'viability-blockers.md':\n{viability_blockers_markdown}"
+            f"File 'premortem.md':\n{premortem_markdown}"
         )
 
         # Invoke the LLM
         viability_fixpack = ViabilityFixPack.execute(
             llm=llm, 
-            user_prompt=query, 
+            query=query,
             viability_domains_json=viability_domains_raw, 
             blockers_json=viability_blockers_raw
         )
