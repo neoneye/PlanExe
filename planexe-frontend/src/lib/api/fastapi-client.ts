@@ -18,7 +18,7 @@ export interface CreatePlanRequest {
   prompt: string;
   llm_model?: string;
   speed_vs_detail: 'fast_but_skip_details' | 'balanced_speed_and_detail' | 'all_details_but_slow';
-  enriched_intake?: Record<string, any>;
+  enriched_intake?: EnrichedPlanIntake;
 }
 
 export interface RelaunchPlanOptions {

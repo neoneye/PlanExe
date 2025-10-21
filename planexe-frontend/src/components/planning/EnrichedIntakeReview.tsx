@@ -29,8 +29,8 @@ import {
 import { EnrichedPlanIntake } from '@/lib/api/fastapi-client';
 
 interface EnrichedIntakeReviewProps {
-  intake: EnrichedPlanIntake | null;
-  onConfirm: (editedIntake: Record<string, any>) => void;
+  intake: EnrichedPlanIntake;
+  onConfirm: (editedIntake: EnrichedPlanIntake) => void;
   onCancel: () => void;
   isSubmitting: boolean;
 }
@@ -42,14 +42,10 @@ export const EnrichedIntakeReview: React.FC<EnrichedIntakeReviewProps> = ({
   isSubmitting,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedIntake, setEditedIntake] = useState(intake);
-
-  if (!intake || !editedIntake) {
-    return null;
-  }
+  const [editedIntake, setEditedIntake] = useState<EnrichedPlanIntake>(intake);
 
   const handleConfirm = () => {
-    onConfirm(editedIntake as Record<string, any>);
+    onConfirm(editedIntake);
   };
 
   const scaleLabels: Record<string, string> = {

@@ -15,6 +15,7 @@ import {
   ConversationFinalPayload,
   ConversationTurnRequestPayload,
   fastApiClient,
+  EnrichedPlanIntake,
 } from '@/lib/api/fastapi-client';
 import { useConversationStreaming } from '@/lib/streaming/conversation-streaming';
 import { RESPONSES_CONVERSATION_DEFAULTS } from '@/lib/config/responses';
@@ -33,7 +34,7 @@ export interface ConversationFinalizeResult {
   enrichedPrompt: string;
   transcript: ConversationMessage[];
   summary: ConversationFinalPayload | null;
-  enrichedIntake: Record<string, any> | null;
+  enrichedIntake: EnrichedPlanIntake | null;
 }
 
 export interface UseResponsesConversationOptions {
@@ -311,6 +312,8 @@ export function useResponsesConversation(
       startStream,
       updateMessages,
       persistResponseId,
+      schemaName,
+      schemaModel,
     ],
   );
 
@@ -374,7 +377,7 @@ export function useResponsesConversation(
     const enrichedPrompt = enrichedSections.join('\n\n');
 
     // Extract enriched intake from JSON chunks if available
-    let enrichedIntake: Record<string, any> | null = null;
+    let enrichedIntake: EnrichedPlanIntake | null = null;
     if (lastFinal?.summary?.json && lastFinal.summary.json.length > 0) {
       // The structured output should be in the last JSON chunk
       const lastJsonChunk = lastFinal.summary.json[lastFinal.summary.json.length - 1];
@@ -382,9 +385,11 @@ export function useResponsesConversation(
       // Validate it has the expected schema fields
       if (lastJsonChunk &&
           typeof lastJsonChunk === 'object' &&
+          lastJsonChunk !== null &&
           'project_title' in lastJsonChunk &&
           'refined_objective' in lastJsonChunk) {
-        enrichedIntake = lastJsonChunk as Record<string, any>;
+        // Safe type assertion: first to unknown, then to EnrichedPlanIntake
+        enrichedIntake = lastJsonChunk as unknown as EnrichedPlanIntake;
         console.log('[useResponsesConversation] Extracted enriched intake:', enrichedIntake);
       }
     }

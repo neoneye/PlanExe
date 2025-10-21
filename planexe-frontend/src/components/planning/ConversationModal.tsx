@@ -86,7 +86,7 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
   const [localError, setLocalError] = useState<string | null>(null);
   const [hasAttemptedStart, setHasAttemptedStart] = useState(false);
   const [showReview, setShowReview] = useState(false);
-  const [extractedIntake, setExtractedIntake] = useState<Record<string, any> | null>(null);
+  const [extractedIntake, setExtractedIntake] = useState<EnrichedPlanIntake | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -188,7 +188,7 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
     }
   };
 
-  const handleReviewConfirm = async (editedIntake: Record<string, any>) => {
+  const handleReviewConfirm = async (editedIntake: EnrichedPlanIntake) => {
     try {
       const result = finalizeConversation();
       const resultWithIntake: ConversationFinalizeResult = {
@@ -239,7 +239,7 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
         {showReview && extractedIntake ? (
           <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
             <EnrichedIntakeReview
-              intake={extractedIntake as EnrichedPlanIntake}
+              intake={extractedIntake}
               onConfirm={handleReviewConfirm}
               onCancel={handleReviewCancel}
               isSubmitting={isFinalizing}
