@@ -1,31 +1,36 @@
 /**
- * Author: Claude Code using Sonnet 4.5
- * Date: 2025-10-20
- * PURPOSE: Redesigned landing page with conversation-first UX. Simplifies the user journey from
- *          8 steps to 3 by hiding complexity behind smart defaults and making the excellent
- *          Responses API conversation system immediately accessible. Uses new HeroSection,
- *          SimplifiedPlanInput, and HowItWorksSection components for a cleaner, more inviting experience.
- * SRP and DRY check: Pass - Orchestrates layout and plan creation flow while delegating
- *          presentation to focused components.
+ * Author: gpt-5-codex
+ * Date: 2025-02-15
+ * PURPOSE: Immersive landing page that presents a conversation-first planning flow on a single screen.
+ *          Introduces a new twilight-inspired visual language, inline model selector, and streamlined
+ *          hero copy while maintaining the existing conversation modal workflow for plan creation.
+ * SRP and DRY check: Pass - Coordinates plan intake UI, background fetches, and conversation modal state.
  */
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { HeroSection } from '@/components/planning/HeroSection';
+import React, { useEffect, useMemo, useState } from 'react';
 import { SimplifiedPlanInput } from '@/components/planning/SimplifiedPlanInput';
-import { HowItWorksSection } from '@/components/planning/HowItWorksSection';
 import { ConversationModal } from '@/components/planning/ConversationModal';
-import { PlansQueue } from '@/components/PlansQueue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useConfigStore } from '@/lib/stores/config';
 import { CreatePlanRequest, fastApiClient } from '@/lib/api/fastapi-client';
 import { ConversationFinalizeResult } from '@/lib/conversation/useResponsesConversation';
 
+const FALLBACK_MODEL_OPTIONS = [
+  { id: 'gpt-5-mini', label: 'gpt-5-mini' },
+  { id: 'gpt-5-nano', label: 'gpt-5-nano' },
+];
+
 const HomePage: React.FC = () => {
-  const router = useRouter();
   const { llmModels, loadLLMModels, loadPromptExamples } = useConfigStore();
   const [isCreating, setIsCreating] = useState(false);
   const [isConversationOpen, setIsConversationOpen] = useState(false);
@@ -34,6 +39,43 @@ const HomePage: React.FC = () => {
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string>(FALLBACK_MODEL_OPTIONS[0].id);
+
+  const availableModels = useMemo(() => {
+    const deduped = new Map<string, { id: string; label: string }>();
+
+    for (const option of FALLBACK_MODEL_OPTIONS) {
+      deduped.set(option.id, option);
+    }
+
+    if (llmModels && llmModels.length > 0) {
+      const sorted = [...llmModels].sort((a, b) => a.priority - b.priority);
+      for (const model of sorted) {
+        const label = model.label?.trim().length ? model.label : model.id;
+        deduped.set(model.id, { id: model.id, label });
+      }
+    }
+
+    return Array.from(deduped.values());
+  }, [llmModels]);
+
+  useEffect(() => {
+    if (availableModels.length === 0) {
+      return;
+    }
+
+    const hasSelection = availableModels.some((option) => option.id === selectedModel);
+    if (!hasSelection) {
+      const preferred =
+        availableModels.find((option) => option.id === 'gpt-5-mini') ||
+        availableModels.find((option) => option.id.startsWith('gpt-5-mini')) ||
+        availableModels[0];
+
+      if (preferred) {
+        setSelectedModel(preferred.id);
+      }
+    }
+  }, [availableModels, selectedModel]);
 
   useEffect(() => {
     loadLLMModels();
@@ -78,14 +120,11 @@ const HomePage: React.FC = () => {
   };
 
   const handlePlanSubmit = async (prompt: string) => {
-    // Apply smart defaults for simplified UX
-    const defaultModel = llmModels && llmModels.length > 0
-      ? (llmModels.find((m) => m.priority === 1)?.id || llmModels[0].id)
-      : 'gpt-5-mini-2025-08-07';
-
+    const fallbackModel = availableModels.find((option) => option.id === 'gpt-5-mini')?.id;
+    const modelForRequest = selectedModel || fallbackModel || availableModels[0]?.id || FALLBACK_MODEL_OPTIONS[0].id;
     const planData: CreatePlanRequest = {
       prompt,
-      llm_model: defaultModel,
+      llm_model: modelForRequest,
       speed_vs_detail: 'all_details_but_slow', // Default to comprehensive plan
     };
 
@@ -145,58 +184,108 @@ const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* Hero Section */}
-      <HeroSection version={latestVersion} />
+    <div className="relative min-h-screen overflow-hidden bg-[#030712] text-slate-100">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div
+          className="absolute -left-40 top-[-10%] h-[420px] w-[420px] rounded-full
+          bg-[radial-gradient(circle_at_center,_rgba(168,85,247,0.35),_rgba(3,7,18,0.05))] blur-3xl"
+        />
+        <div
+          className="absolute bottom-[-20%] right-[-10%] h-[500px] w-[500px] rounded-full
+          bg-[radial-gradient(circle_at_center,_rgba(34,211,238,0.3),_rgba(3,7,18,0.05))] blur-3xl"
+        />
+        <div
+          className="absolute left-1/2 top-1/2 h-[280px] w-[280px] -translate-x-1/2 -translate-y-1/2 rounded-full
+          bg-[conic-gradient(from_120deg,_rgba(14,165,233,0.2),_rgba(236,72,153,0.15),_rgba(14,165,233,0.05))] blur-2xl"
+        />
+      </div>
 
-      {/* Main Content */}
-      <main className="mx-auto w-full max-w-4xl px-6 pb-8">
-        {/* Simplified Plan Input */}
-        <section className="mb-6">
-          <SimplifiedPlanInput
-            onSubmit={handlePlanSubmit}
-            isSubmitting={isCreating || isFinalizing}
-            autoFocus={true}
-          />
+      <main className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-16">
+        <div className="w-full max-w-6xl">
+          <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,_1.2fr)_minmax(0,_1fr)]">
+            <section className="space-y-6 text-balance">
+              <div className="inline-flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-cyan-200/70">
+                <span className="h-px w-10 bg-cyan-200/60" aria-hidden="true" />
+                PlanExe Conversations
+              </div>
+              <div className="space-y-4">
+                <h1 className="text-4xl font-semibold leading-tight text-white md:text-5xl">
+                  Launch thoughtful execution plans in one continuous dialogue.
+                </h1>
+                <p className="max-w-xl text-base text-slate-300 md:text-lg">
+                  Share the idea you are shaping and our copilot will guide a short back-and-forth, capture the
+                  important context, and hand back a plan ready to move.
+                </p>
+              </div>
 
-          {/* Error display */}
-          {error && (
-            <Card className="mt-4 border-red-300 bg-red-50 shadow-lg">
-              <CardHeader className="py-3">
-                <CardTitle className="text-sm font-semibold text-red-700">
-                  Plan creation failed
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-red-700">{error}</CardContent>
-            </Card>
-          )}
-        </section>
+              <dl className="grid gap-4 text-sm text-slate-300 sm:grid-cols-3">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg shadow-cyan-500/10 backdrop-blur">
+                  <dt className="text-xs uppercase tracking-[0.2em] text-cyan-200/80">Dialogue First</dt>
+                  <dd className="mt-2 text-base font-medium text-white">Stay in the flow, no extra screens.</dd>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg shadow-fuchsia-500/10 backdrop-blur">
+                  <dt className="text-xs uppercase tracking-[0.2em] text-fuchsia-200/80">Adaptive Insight</dt>
+                  <dd className="mt-2 text-base font-medium text-white">Clarifying questions tailor every brief.</dd>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg shadow-emerald-500/10 backdrop-blur">
+                  <dt className="text-xs uppercase tracking-[0.2em] text-emerald-200/80">Ready to Execute</dt>
+                  <dd className="mt-2 text-base font-medium text-white">Structured plans export directly to your workspace.</dd>
+                </div>
+              </dl>
+            </section>
 
-        {/* How It Works Section */}
-        <HowItWorksSection />
+            <section>
+              <Card className="border-white/10 bg-white/10 shadow-2xl shadow-cyan-500/10 backdrop-blur">
+                <CardHeader className="space-y-3 pb-2">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-lg font-semibold text-white">Start a new plan</CardTitle>
+                      <CardDescription className="text-xs text-slate-300">
+                        Choose a model, describe your idea, and the conversation modal opens instantly.
+                      </CardDescription>
+                    </div>
+                    <div className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-slate-200">
+                      {latestVersion ? `v${latestVersion}` : '…'}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-slate-300">
+                    <Label htmlFor="model-select" className="text-[11px] uppercase tracking-[0.2em] text-slate-200">
+                      Model
+                    </Label>
+                    <Select
+                      value={selectedModel}
+                      onValueChange={(value) => setSelectedModel(value)}
+                    >
+                      <SelectTrigger id="model-select" size="sm" className="w-[160px] border-white/20 bg-white/10 text-slate-100">
+                        <SelectValue placeholder="Select model" />
+                      </SelectTrigger>
+                      <SelectContent className="border-white/10 bg-[#0b1220]/90 text-slate-100">
+                        {availableModels.map((model) => (
+                          <SelectItem key={model.id} value={model.id} className="text-slate-100">
+                            {model.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <SimplifiedPlanInput
+                    onSubmit={handlePlanSubmit}
+                    isSubmitting={isCreating || isFinalizing}
+                    autoFocus={true}
+                  />
 
-        {/* Recent Plans Section */}
-        <section className="mt-6">
-          <Card className="border-slate-200 bg-white/80 shadow-lg backdrop-blur">
-            <CardHeader className="space-y-1 pb-3">
-              <CardTitle className="flex items-center gap-2 text-base text-slate-800">
-                <Clock className="h-4 w-4 text-indigo-600" />
-                Recent Plans
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                Pick up where you left off or review previous planning sessions.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <PlansQueue
-                className="w-full"
-                onPlanSelect={(planId) =>
-                  router.push(`/recovery?planId=${encodeURIComponent(planId)}`)
-                }
-              />
-            </CardContent>
-          </Card>
-        </section>
+                  {error && (
+                    <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 p-3 text-sm text-rose-100">
+                      {error}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </section>
+          </div>
+        </div>
       </main>
 
       {/* Conversation Modal */}
