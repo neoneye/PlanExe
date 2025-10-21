@@ -3,7 +3,7 @@
 This module implements the mechanical aggregation rules described in
 `planexe/viability/README.md` under "Step 4 — Emit Overall & Viability Summary".
 It consumes the structured outputs from the previous viability steps
-(`DomainsAssessment`, `Blockers`, `FixPack`) and emits a concise verdict that can
+(`Domains`, `Blockers`, `FixPack`) and emits a concise verdict that can
 be serialized to JSON and markdown.
 
 PROMPT> python -u -m planexe.viability.overall_summary | tee output.txt

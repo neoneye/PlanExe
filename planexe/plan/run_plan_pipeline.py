@@ -74,7 +74,7 @@ from planexe.team.enrich_team_members_with_environment_info import EnrichTeamMem
 from planexe.team.team_markdown_document import TeamMarkdownDocumentBuilder
 from planexe.team.review_team import ReviewTeam
 from planexe.viability.overall_summary import OverallSummary
-from planexe.viability.domains_assessment import DomainsAssessment
+from planexe.viability.domains import ViabilityDomains
 from planexe.viability.blockers import Blockers
 from planexe.viability.fixpack import FixPack
 from planexe.wbs.wbs_task import WBSTask, WBSProject
@@ -3571,7 +3571,7 @@ class PremortemTask(PlanTask):
         markdown_path = self.output()['markdown'].path
         premortem.save_markdown(markdown_path)
 
-class ViabilityDomainsAssessmentTask(PlanTask):
+class ViabilityDomainsTask(PlanTask):
     def output(self):
         return {
             'raw': self.local_target(FilenameEnum.VIABILITY_DOMAINS_RAW),
@@ -3648,13 +3648,13 @@ class ViabilityDomainsAssessmentTask(PlanTask):
         )
 
         # Invoke the LLM
-        domains_assessment = DomainsAssessment.execute(llm, query)
+        viability_domains = ViabilityDomains.execute(llm, query)
 
         # Save the results.
         json_path = self.output()['raw'].path
-        domains_assessment.save_raw(json_path)
+        viability_domains.save_raw(json_path)
         markdown_path = self.output()['markdown'].path
-        domains_assessment.save_markdown(markdown_path)
+        viability_domains.save_markdown(markdown_path)
 
 class ViabilityBlockersTask(PlanTask):
     def output(self):
@@ -3681,7 +3681,7 @@ class ViabilityBlockersTask(PlanTask):
             'review_plan': self.clone(ReviewPlanTask),
             'questions_and_answers': self.clone(QuestionsAndAnswersTask),
             'premortem': self.clone(PremortemTask),
-            'viability_domains_assessment': self.clone(ViabilityDomainsAssessmentTask)
+            'viability_domains': self.clone(ViabilityDomainsTask)
         }
     
     def run_with_llm(self, llm: LLM) -> None:
@@ -3714,8 +3714,8 @@ class ViabilityBlockersTask(PlanTask):
             questions_and_answers_markdown = f.read()
         with self.input()['premortem']['markdown'].open("r") as f:
             premortem_markdown = f.read()
-        with self.input()['viability_domains_assessment']['markdown'].open("r") as f:
-            domains_assessment_markdown = f.read()
+        with self.input()['viability_domains']['markdown'].open("r") as f:
+            viability_domains_markdown = f.read()
 
         # Build the query.
         query = (
@@ -3733,7 +3733,7 @@ class ViabilityBlockersTask(PlanTask):
             f"File 'review-plan.md':\n{review_plan_markdown}\n\n"
             f"File 'questions-and-answers.md':\n{questions_and_answers_markdown}\n\n"
             f"File 'premortem.md':\n{premortem_markdown}\n\n"
-            f"File 'domains-assessment.md':\n{domains_assessment_markdown}"
+            f"File 'domains-assessment.md':\n{viability_domains_markdown}"
         )
 
         # Invoke the LLM
@@ -3770,7 +3770,7 @@ class ViabilityFixPacksTask(PlanTask):
             'review_plan': self.clone(ReviewPlanTask),
             'questions_and_answers': self.clone(QuestionsAndAnswersTask),
             'premortem': self.clone(PremortemTask),
-            'viability_domains_assessment': self.clone(ViabilityDomainsAssessmentTask),
+            'viability_domains': self.clone(ViabilityDomainsTask),
             'viability_blockers': self.clone(ViabilityBlockersTask)
         }
     
@@ -3804,10 +3804,10 @@ class ViabilityFixPacksTask(PlanTask):
             questions_and_answers_markdown = f.read()
         with self.input()['premortem']['markdown'].open("r") as f:
             premortem_markdown = f.read()
-        with self.input()['viability_domains_assessment']['markdown'].open("r") as f:
-            domains_assessment_markdown = f.read()
-        with self.input()['viability_domains_assessment']['raw'].open("r") as f:
-            domains_assessment_raw = f.read()
+        with self.input()['viability_domains']['markdown'].open("r") as f:
+            viability_domains_markdown = f.read()
+        with self.input()['viability_domains']['raw'].open("r") as f:
+            viability_domains_raw = f.read()
         with self.input()['viability_blockers']['markdown'].open("r") as f:
             blockers_markdown = f.read()
         with self.input()['viability_blockers']['raw'].open("r") as f:
@@ -3829,7 +3829,7 @@ class ViabilityFixPacksTask(PlanTask):
             f"File 'review-plan.md':\n{review_plan_markdown}\n\n"
             f"File 'questions-and-answers.md':\n{questions_and_answers_markdown}\n\n"
             f"File 'premortem.md':\n{premortem_markdown}\n\n"
-            f"File 'domains-assessment.md':\n{domains_assessment_markdown}\n\n"
+            f"File 'domains-assessment.md':\n{viability_domains_markdown}\n\n"
             f"File 'blockers.md':\n{blockers_markdown}"
         )
 
@@ -3837,7 +3837,7 @@ class ViabilityFixPacksTask(PlanTask):
         fix_packs = FixPack.execute(
             llm=llm, 
             user_prompt=query, 
-            domains_assessment_json=domains_assessment_raw, 
+            viability_domains_json=viability_domains_raw, 
             blockers_json=blockers_raw
         )
 
@@ -3859,22 +3859,22 @@ class ViabilityOverallSummaryTask(PlanTask):
     
     def requires(self):
         return {
-            'viability_domains_assessment': self.clone(ViabilityDomainsAssessmentTask),
+            'viability_domains': self.clone(ViabilityDomainsTask),
             'viability_blockers': self.clone(ViabilityBlockersTask),
             'viability_fix_packs': self.clone(ViabilityFixPacksTask)
         }
     
     def run_with_llm(self, llm: LLM) -> None:
         # Read inputs from required tasks.
-        with self.input()['viability_domains_assessment']['raw'].open("r") as f:
-            domains_assessment_raw = f.read()
+        with self.input()['viability_domains']['raw'].open("r") as f:
+            viability_domains_raw = f.read()
         with self.input()['viability_blockers']['raw'].open("r") as f:
             blockers_raw = f.read()
         with self.input()['viability_fix_packs']['raw'].open("r") as f:
             fix_packs_raw = f.read()
 
         summary = OverallSummary.execute(
-            domains_payload=domains_assessment_raw,
+            domains_payload=viability_domains_raw,
             blockers_payload=blockers_raw,
             fix_packs_payload=fix_packs_raw,
         )
@@ -3922,7 +3922,7 @@ class ReportTask(PlanTask):
             'create_schedule': self.clone(CreateScheduleTask),
             'questions_and_answers': self.clone(QuestionsAndAnswersTask),
             'premortem': self.clone(PremortemTask),
-            'viability_domains_assessment': self.clone(ViabilityDomainsAssessmentTask),
+            'viability_domains': self.clone(ViabilityDomainsTask),
             'viability_blockers': self.clone(ViabilityBlockersTask),
             'viability_fix_packs': self.clone(ViabilityFixPacksTask),
             'viability_overall_summary': self.clone(ViabilityOverallSummaryTask)
@@ -3956,7 +3956,7 @@ class ReportTask(PlanTask):
         rg.append_viability(
             document_title='Project Health Assessment',
             overall_summary_header_markdown_file_path=Path(self.input()['viability_overall_summary']['header_markdown'].path),
-            domains_markdown_file_path=Path(self.input()['viability_domains_assessment']['markdown'].path),
+            domains_markdown_file_path=Path(self.input()['viability_domains']['markdown'].path),
             blockers_markdown_file_path=Path(self.input()['viability_blockers']['markdown'].path),
             fixpack_markdown_file_path=Path(self.input()['viability_fix_packs']['markdown'].path),
             overall_summary_critical_issues_markdown_file_path=Path(self.input()['viability_overall_summary']['critical_issues_markdown'].path),
@@ -4033,7 +4033,7 @@ class FullPlanPipeline(PlanTask):
             'create_schedule': self.clone(CreateScheduleTask),
             'questions_and_answers': self.clone(QuestionsAndAnswersTask),
             'premortem': self.clone(PremortemTask),
-            'viability_domains_assessment': self.clone(ViabilityDomainsAssessmentTask),
+            'viability_domains': self.clone(ViabilityDomainsTask),
             'viability_blockers': self.clone(ViabilityBlockersTask),
             'viability_fix_packs': self.clone(ViabilityFixPacksTask),
             'viability_overall_summary': self.clone(ViabilityOverallSummaryTask),

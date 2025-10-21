@@ -3,7 +3,7 @@ Domains assessment
 
 Auto-repair that enforces status/score bands, evidence gating, and reason-code whitelists.
 
-PROMPT> python -u -m planexe.viability.domains_assessment | tee output.txt
+PROMPT> python -u -m planexe.viability.domains | tee output.txt
 """
 from __future__ import annotations
 
@@ -508,11 +508,11 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
         
     def _get_legend_markdown() -> str:
         try:
-            path = Path(__file__).parent / "domains_assessment_metrics_legend.md"
+            path = Path(__file__).parent / "domains_metrics_legend.md"
             with open(path, "r", encoding="utf-8") as f:
                 return f.read()
         except FileNotFoundError:
-            logger.warning("domains_assessment_metrics_legend.md not found. The legend will not be included in the report.")
+            logger.warning("domains_metrics_legend.md not found. The legend will not be included in the report.")
             return ""
 
     def _driver_text(status: str, score_dict: Dict[str, Any], reason_codes: List[str]) -> Optional[str]:
@@ -543,8 +543,8 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
             return f"{driver_factor} ({keyword_text})"
         return driver_factor
 
-    # Load the "domains_assessment_summary.html" file
-    html_file_path = Path(__file__).parent / "domains_assessment_summary.html"
+    # Load the "domains_summary.html" file
+    html_file_path = Path(__file__).parent / "domains_summary.html"
     with open(html_file_path, "r") as f:
         html = f.read()
 
@@ -626,7 +626,7 @@ def convert_to_markdown(data: Dict[str, Any]) -> str:
 
 
 @dataclass
-class DomainsAssessment:
+class ViabilityDomains:
     system_prompt: str
     user_prompt: str
     response: Dict[str, Any]
@@ -634,7 +634,7 @@ class DomainsAssessment:
     metadata: Dict[str, Any]
 
     @classmethod
-    def execute(cls, llm: LLM, user_prompt: str) -> "DomainsAssessment":
+    def execute(cls, llm: LLM, user_prompt: str) -> "ViabilityDomains":
         if not isinstance(user_prompt, str):
             raise TypeError("user_prompt must be a string")
         if not isinstance(llm, LLM):
@@ -724,7 +724,7 @@ if __name__ == "__main__":  # pragma: no cover
     llm = get_llm(model_name)
 
     print(f"DOMAINS_SYSTEM_PROMPT: {DOMAINS_SYSTEM_PROMPT}\n\n")
-    result = DomainsAssessment.execute(llm, plan_text)
+    result = ViabilityDomains.execute(llm, plan_text)
     print(json.dumps(result.response, indent=2, ensure_ascii=False))
     print("\nMarkdown:\n")
     print(result.markdown)

@@ -146,7 +146,7 @@ Example in the report:
 
 1) Add a small scorer module (see `likert_score.py`).
 
-2) In `domains_assessment.py`, **do not accept LLM status**; call the scorer with `reason_codes` and detected artifacts; overwrite `status` and `factors`.
+2) In `domains.py`, **do not accept LLM status**; call the scorer with `reason_codes` and detected artifacts; overwrite `status` and `factors`.
 
 3) In `overall_summary.py`, compute overall via **worst-win** + optional Likert number; set **PAUSE** on RED.
 
@@ -304,7 +304,7 @@ Interpretation & validation (spec — not emitted by the LLM)
 - status ∈ {"GREEN","YELLOW","RED","GRAY"}
 - domain ∈ DOMAIN_ENUM (unknown domain names → treated as GRAY)
 - reason_codes must come from the whitelist for that domain (enforced downstream)
-- Likert factors (`score` follows `DomainLikertScoreSchema` from `domains_assessment.py`)
+- Likert factors (`score` follows `DomainLikertScoreSchema` from `domains.py`)
   - Factors are integers 1–5 (or null when unknown) for `evidence`, `risk`, `fit`.
   - Status is deterministic: any factor ≤2 ⇒ RED; else worst factor ==3 ⇒ YELLOW; all factors ≥4 ⇒ GREEN; missing factors ⇒ GRAY.
 - Validator behavior

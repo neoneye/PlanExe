@@ -188,7 +188,7 @@ class FixPack:
         cls,
         llm: LLM,
         user_prompt: str,
-        domains_assessment_json: str,
+        viability_domains_json: str,
         blockers_json: str,
     ) -> "FixPack":
         """Generate fix packs using pipeline context and serialized step outputs."""
@@ -197,13 +197,13 @@ class FixPack:
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
 
-        if not isinstance(domains_assessment_json, str):
-            raise ValueError("Invalid domains_assessment_json.")
+        if not isinstance(viability_domains_json, str):
+            raise ValueError("Invalid viability_domains_json.")
         if not isinstance(blockers_json, str):
             raise ValueError("Invalid blockers_json.")
 
         try:
-            domains_input = DomainsInput.model_validate_json(domains_assessment_json)
+            domains_input = DomainsInput.model_validate_json(viability_domains_json)
         except (ValidationError, json.JSONDecodeError) as exc:
             raise ValueError("Invalid JSON payload for domains assessment.") from exc
 
@@ -238,7 +238,7 @@ class FixPack:
             "duration": 0,
             "response_byte_count": 0,
             "raw_context_bytes": len(user_prompt.encode("utf-8")),
-            "domains_payload_bytes": len(domains_assessment_json.encode("utf-8")),
+            "domains_payload_bytes": len(viability_domains_json.encode("utf-8")),
             "blockers_payload_bytes": len(blockers_json.encode("utf-8")),
             "fp0_blocker_ids": fp0_blocker_ids,
             "remaining_blocker_ids": [blocker.id for blocker in remaining_blockers],
@@ -489,16 +489,16 @@ if __name__ == "__main__":
     llm = get_llm(model_name)
 
     prompt = (
-        "File '029-1-domains_assessment_raw.json':\n"
+        "File 'viability_domains.json':\n"
         f"{json.dumps(domains_example, indent=2)}\n\n"
-        "File '029-3-blockers_raw.json':\n"
+        "File 'viability_blockers.json':\n"
         f"{json.dumps(blockers_example, indent=2)}"
     )
 
     result = FixPack.execute(
         llm=llm,
         user_prompt=prompt,
-        domains_assessment_json=json.dumps(domains_example),
+        viability_domains_json=json.dumps(domains_example),
         blockers_json=json.dumps(blockers_example),
     )
     print(json.dumps(result.response, indent=2))
