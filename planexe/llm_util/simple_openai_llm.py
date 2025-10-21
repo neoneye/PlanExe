@@ -33,15 +33,69 @@ def _ensure_message_dict(message: Any) -> Dict[str, Any]:
     raise TypeError(f"Unsupported message format: {message!r}")
 
 
+SUPPORTED_INPUT_CONTENT_TYPES = {
+    "input_text",
+    "input_image",
+    "input_file",
+    "computer_screenshot",
+    "summary_text",
+}
+
+_FALLBACK_TEXT_KEYS = ("text", "content", "value", "message", "data", "delta")
+
+
+def _stringify_text_value(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, (list, tuple, set)):
+        return "".join(str(item) for item in value if item is not None)
+    return str(value)
+
+
+def _build_text_segment(item: Dict[str, Any], *, segment_type: str = "input_text") -> Dict[str, Any]:
+    text_value: Any = None
+    for key in _FALLBACK_TEXT_KEYS:
+        if key in item and item[key] is not None:
+            text_value = item[key]
+            break
+    if text_value is None and item:
+        text_value = item
+    return {"type": segment_type, "text": _stringify_text_value(text_value)}
+
+
+def _coerce_content_dict(item: Dict[str, Any]) -> Dict[str, Any]:
+    normalized = dict(item)
+    raw_type = normalized.get("type")
+    content_type = str(raw_type).strip().lower() if raw_type is not None else ""
+
+    if content_type in SUPPORTED_INPUT_CONTENT_TYPES:
+        if content_type in {"input_text", "summary_text"}:
+            return _build_text_segment(normalized, segment_type=content_type)
+        return normalized
+
+    if not content_type:
+        return _build_text_segment(normalized)
+
+    if content_type in {"text", "output_text", "message", "assistant", "user"}:
+        return _build_text_segment(normalized)
+
+    return _build_text_segment(normalized)
+
+
 def _normalize_content(content: Any) -> List[Dict[str, Any]]:
     if isinstance(content, str):
         return [{"type": "input_text", "text": content}]
+
+    if isinstance(content, dict):
+        return [_coerce_content_dict(content)]
 
     if isinstance(content, list):
         normalized: List[Dict[str, Any]] = []
         for item in content:
             if isinstance(item, dict):
-                normalized.append(item)
+                normalized.append(_coerce_content_dict(item))
+            elif isinstance(item, str):
+                normalized.append({"type": "input_text", "text": item})
             else:
                 normalized.append({"type": "input_text", "text": str(item)})
         return normalized

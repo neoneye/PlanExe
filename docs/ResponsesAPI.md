@@ -20,7 +20,14 @@ Minimal, exact request shape to test right now (POST `/v1/responses`, JSON body)
 ```json
 {
   "model": "gpt-5-nano-2025-08-07",
-  "input": [{ "role": "user", "content": "Solve this puzzle: <your-payload-here>" }],
+  "input": [
+    {
+      "role": "user",
+      "content": [
+        { "type": "input_text", "text": "Solve this puzzle: <your-payload-here>" }
+      ]
+    }
+  ],
   "reasoning": { "summary": "auto", "effort": "high" },
   "max_output_tokens": 120000,
   "include": ["reasoning.encrypted_content"],
@@ -152,7 +159,14 @@ for await (const event of stream) {
 ```json
 {
   "model": "gpt-5-nano-2025-08-07",
-  "input": [{ "role": "user", "content": "Solve this puzzle: <your-payload-here>" }],
+  "input": [
+    {
+      "role": "user",
+      "content": [
+        { "type": "input_text", "text": "Solve this puzzle: <your-payload-here>" }
+      ]
+    }
+  ],
   "reasoning": { 
     "summary": "auto",  // Get human-readable reasoning summary
     "effort": "high" 
@@ -197,7 +211,14 @@ Minimal correct request (non-streaming or streaming; use input and reasoning):
 
 {
   "model": "gpt-5-nano-2025-08-07",
-  "input": [{ "role": "user", "content": "Solve this puzzle: <your-payload-here>" }],
+  "input": [
+    {
+      "role": "user",
+      "content": [
+        { "type": "input_text", "text": "Solve this puzzle: <your-payload-here>" }
+      ]
+    }
+  ],
   "reasoning": { "summary": "auto", "effort": "high" },
   "max_output_tokens": 120000,
   "include": ["reasoning.encrypted_content"],

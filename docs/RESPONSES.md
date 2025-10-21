@@ -74,8 +74,12 @@ interface ResponsesAPIResponse {
   output_text?: string;                              // Preferred: Simple text output
   output_parsed?: object;                            // JSON schema enforced output
   output?: Array<{                                   // Fallback: Block-based output
-    type: "reasoning" | "message" | "text";
-    content?: string;
+    type: "reasoning" | "message" | "tool";
+    content?: Array<{
+      type: "output_text" | "output_image" | "output_audio" | "tool_result";
+      text?: string;
+      annotations?: unknown;
+    }>;
     summary?: string;
   }>;
 
@@ -140,7 +144,7 @@ for await (const event of response) {
       const reasoningDelta = event.delta;
       console.log("[Reasoning]", reasoningDelta);
       aggregatedReasoning += reasoningDelta;
-      // Emit to SSE client: send("stream.chunk", { type: "reasoning", delta: reasoningDelta })
+      // Emit to SSE client: send("stream.chunk", { kind: "reasoning", delta: reasoningDelta })
       break;
 
     case "response.reasoning_summary_part.added":
@@ -149,11 +153,13 @@ for await (const event of response) {
       aggregatedReasoning += reasoningPart;
       break;
 
+    case "response.output_text.delta":
+    case "response.content_part.delta":
     case "response.content_part.added":
       // Output text chunks
-      const textDelta = event.part?.text;
+      const textDelta = event.delta ?? event.part?.text ?? "";
       aggregatedOutput += textDelta;
-      // Emit to SSE client: send("stream.chunk", { type: "text", delta: textDelta })
+      // Emit to SSE client: send("stream.chunk", { kind: "text", delta: textDelta })
       break;
 
     case "response.in_progress":
@@ -191,9 +197,14 @@ if (finalResponse.output_text) {
 } else if (finalResponse.output_parsed) {
   outputText = JSON.stringify(finalResponse.output_parsed);  // Structured output
 } else if (finalResponse.output && Array.isArray(finalResponse.output)) {
-  // Extract from output[] array (gpt-5-nano format)
-  const textBlock = finalResponse.output.find(block => block.type === "text");
-  outputText = textBlock?.text || "";
+  // Extract from output[] array (Responses format)
+  const messageBlock = finalResponse.output.find(block => block.type === "message");
+  if (messageBlock?.content && Array.isArray(messageBlock.content)) {
+    const textPart = messageBlock.content.find(
+      (contentItem) => contentItem?.type === "output_text"
+    );
+    outputText = textPart?.text || "";
+  }
 }
 
 // Extract reasoning (priority order)
@@ -313,17 +324,19 @@ app.get("/api/stream/analyze/:taskId/:modelKey", async (req, res) => {
         case "response.reasoning_summary_text.delta":
           res.write(`event: stream.chunk\n`);
           res.write(`data: ${JSON.stringify({
-            type: "reasoning",
+            kind: "reasoning",
             delta: event.delta,
             timestamp: Date.now()
           })}\n\n`);
           break;
 
+        case "response.output_text.delta":
+        case "response.content_part.delta":
         case "response.content_part.added":
           res.write(`event: stream.chunk\n`);
           res.write(`data: ${JSON.stringify({
-            type: "text",
-            delta: event.part?.text,
+            kind: "text",
+            delta: event.delta ?? event.part?.text ?? "",
             timestamp: Date.now()
           })}\n\n`);
           break;
@@ -382,10 +395,10 @@ eventSource.addEventListener("stream.init", (event) => {
 eventSource.addEventListener("stream.chunk", (event) => {
   const chunk = JSON.parse(event.data);
 
-  if (chunk.type === "reasoning") {
+  if (chunk.kind === "reasoning") {
     reasoningBuffer += chunk.delta;
     updateReasoningDisplay(reasoningBuffer);  // Update UI in real-time
-  } else if (chunk.type === "text") {
+  } else if (chunk.kind === "text") {
     outputBuffer += chunk.delta;
     updateOutputDisplay(outputBuffer);
   }
@@ -428,10 +441,10 @@ event: stream.init
 data: {"sessionId":"abc123","taskId":"puzzle_001","modelKey":"gpt-5-mini"}
 
 event: stream.chunk
-data: {"type":"reasoning","delta":"Let me analyze the pattern...","timestamp":1234567890}
+data: {"kind":"reasoning","delta":"Let me analyze the pattern...","timestamp":1234567890}
 
 event: stream.chunk
-data: {"type":"reasoning","delta":" The transformation appears to...","timestamp":1234567891}
+data: {"kind":"reasoning","delta":" The transformation appears to...","timestamp":1234567891}
 
 ...
 

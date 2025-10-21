@@ -81,7 +81,7 @@ const manager = new SseStreamManager(res, {
 // Send events
 manager.init({ debateSessionId: 'abc123' });
 manager.status({ phase: 'streaming' });
-manager.chunk({ type: 'text', delta: 'Hello' });
+manager.chunk({ kind: 'text', delta: 'Hello' });
 manager.complete({ responseId: 'resp_123' });
 manager.error({ error: 'Something failed' });
 ```
