@@ -1,9 +1,7 @@
-"""
-Author: Codex using GPT-5
-Date: `2025-10-02T18:45:00Z`
-PURPOSE: Ensure IdentifyPotentialLevers exposes JSON helpers for pipeline persistence.
-SRP and DRY check: Pass - single data wrapper; reuses existing helpers.
-"""
+# Author: gpt-5-codex
+# Date: 2025-10-22
+# PURPOSE: Ensure IdentifyPotentialLevers orchestrates structured lever discovery safely for the pipeline.
+# SRP and DRY check: Pass. All logic pertains to collecting and normalising lever data while reusing shared helpers.
 """
 Brainstorm what key "levers" can be pulled to change the outcome of the plan.
 
@@ -167,7 +165,23 @@ class IdentifyPotentialLevers:
 
             def execute_function(llm: LLM) -> dict:
                 sllm = llm.as_structured_llm(DocumentDetails)
-                chat_response = sllm.chat(chat_message_list)
+                try:
+                    chat_response = sllm.chat(chat_message_list)
+                except Exception:
+                    raw_payload = None
+                    try:
+                        raw_response = llm.chat(chat_message_list)
+                        raw_payload = getattr(getattr(raw_response, "message", None), "content", None)
+                    except Exception as raw_exc:
+                        logger.debug(
+                            "Failed to capture raw assistant payload after structured chat error: %s",
+                            raw_exc,
+                            exc_info=True,
+                        )
+                    if raw_payload:
+                        logger.error("Structured lever chat failed. Raw assistant payload: %s", raw_payload)
+                    raise
+
                 metadata = dict(llm.metadata)
                 metadata["llm_classname"] = llm.class_name()
                 return {
@@ -185,10 +199,19 @@ class IdentifyPotentialLevers:
                 logger.error("LLM chat interaction failed.", exc_info=True)
                 raise ValueError("LLM chat interaction failed.") from e
             
+            chat_response = result["chat_response"]
+            assistant_message = getattr(getattr(chat_response, "message", None), "content", None)
+            if assistant_message is None:
+                assistant_message = json.dumps(chat_response.raw.model_dump(), indent=2)
+                logger.warning("Assistant message missing textual content; falling back to JSON string payload.")
+            elif not isinstance(assistant_message, str):
+                assistant_message = json.dumps(assistant_message, indent=2)
+                logger.debug("Assistant message content was non-string; coerced to JSON string for chat history reuse.")
+
             chat_message_list.append(
                 ChatMessage(
                     role=MessageRole.ASSISTANT,
-                    content=result["chat_response"].raw.model_dump(),
+                    content=assistant_message,
                 )
             )
 
@@ -198,7 +221,13 @@ class IdentifyPotentialLevers:
         # from the raw_responses, extract the levers into a flatten list
         levers_raw: list[Lever] = []
         for response in responses:
-            levers_raw.extend(response.levers)
+            current_levers = list(response.levers)
+            if len(current_levers) != 5:
+                logger.warning(
+                    "Structured lever response contained %s levers instead of 5; continuing with available entries.",
+                    len(current_levers),
+                )
+            levers_raw.extend(current_levers[:5])
 
         # Clean the raw levers
         levers_cleaned: list[LeverCleaned] = []
