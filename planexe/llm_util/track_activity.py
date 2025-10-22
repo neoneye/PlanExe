@@ -1,6 +1,10 @@
 """
 Usage:
 python -m planexe.llm_util.track_activity
+
+IDEA: TrackActivity only tracks when the LLM succeeds, but not when it fails.
+I don’t have any interception of the response, so the real reason why it failed is speculation. I have no evidence.
+TrackActivity, it would be awesome if it could track whenever the LLM failed and why.
 """
 import json
 import traceback
