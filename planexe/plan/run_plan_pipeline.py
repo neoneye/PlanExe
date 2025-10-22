@@ -1,3 +1,7 @@
+# Author: GPT-5 Codex (Codex CLI)
+# Date: 2025-10-21T22:27:00Z
+# PURPOSE: Strengthen Luigi pipeline bootstrap diagnostics, including API key validation and improved resume guidance.
+# SRP and DRY check: Pass - File already owns pipeline orchestration; additions extend entrypoint validation without duplicating logic.
 """
 PROMPT> python -m planexe.plan.run_plan_pipeline
 
@@ -5543,6 +5547,12 @@ if __name__ == '__main__':
     print(f"[PIPELINE] OPENAI_API_KEY in subprocess: {os.environ.get('OPENAI_API_KEY', 'NOT SET')[:20]}...")
     print(f"[PIPELINE] Total environment variables: {len(os.environ)}")
 
+    openai_key_present = bool(os.environ.get("OPENAI_API_KEY"))
+    if not openai_key_present:
+        logger.error("OPENAI_API_KEY is missing; aborting Luigi pipeline launch.")
+        print("[PIPELINE] OPENAI_API_KEY missing; aborting pipeline launch. Set the key before rerunning.")
+        sys.exit(1)
+
     pipeline_environment = PipelineEnvironment.from_env()
     try:
         run_id_dir: Path = pipeline_environment.get_run_id_dir()
@@ -5551,6 +5561,8 @@ if __name__ == '__main__':
         msg = f"RUN_ID_DIR is not set or invalid. Error getting run_id_dir: {e!r}"
         logger.error(msg)
         print(f"Exiting... {msg}")
+        print("[PIPELINE] Usage: set RUN_ID_DIR to the target run directory and execute `python -m planexe.plan.run_plan_pipeline`.")
+        print("[PIPELINE] Example (PowerShell): $env:RUN_ID_DIR=\"D:\\GitHub\\PlanExe\\run\\PlanExe_<timestamp>\"; python -m planexe.plan.run_plan_pipeline")
         sys.exit(1)
 
     logger = logging.getLogger()

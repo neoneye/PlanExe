@@ -22,6 +22,11 @@
 - Updated `_enforce_openai_schema_requirements` in `planexe/llm_util/simple_openai_llm.py` to automatically require every defined property when emitting strict JSON schemas, resolving OpenAI 400 errors triggered by the Redline Gate decision schema.
 - Verified via `SimpleOpenAILLM.build_text_format_from_schema` that the generated `planexe_diagnostics_redline_gate_Decision` schema now declares all six fields in the `required` array, satisfying Responses API strict-mode validation.
 
+### FIX: Responses SDK Guardrails & Model Catalog
+- Added explicit file header plus OpenAI SDK (`openai>=2.5.0`) validation inside `planexe/llm_util/simple_openai_llm.py:1` to block Luigi runs that would otherwise crash with missing `client.responses` support.
+- Refined `/api/models` to reflect the active `llm_config` priority ordering and health counts, and enhanced the debug payload for ops visibility in `planexe_api/api.py:1`.
+- Hardened the Luigi entrypoint to abort immediately when `OPENAI_API_KEY` is absent and to print the correct PowerShell resume command (`RUN_ID_DIR` usage) in `planexe/plan/run_plan_pipeline.py:5538`.
+
 ### MAJOR: Enriched Plan Intake Schema (v0.5.0-prep)
 Implemented comprehensive intake schema capturing 10 key planning variables (budget, timeline, team, location, scale, risk, constraints, stakeholders, success criteria, domain) through structured Responses API conversations with 100% schema compliance enforcement.
 

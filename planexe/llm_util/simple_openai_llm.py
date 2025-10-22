@@ -1,3 +1,7 @@
+# Author: GPT-5 Codex (Codex CLI)
+# Date: 2025-10-21T22:27:00Z
+# PURPOSE: Enforce Responses API compatibility and streaming behaviour for all OpenAI-backed LLM calls, including SDK version validation and structured output handling.
+# SRP and DRY check: Pass - Single class encapsulates OpenAI Responses interactions reused throughout the pipeline with shared helpers to avoid duplication.
 """OpenAI Responses API client with reasoning-aware streaming hooks for PlanExe."""
 
 from __future__ import annotations
@@ -8,8 +12,10 @@ import os
 from contextlib import suppress
 from typing import Any, Dict, Generator, Iterable, List, Optional, Sequence, Type
 
+import openai
 from llama_index.core.llms.llm import LLM
 from openai import OpenAI
+from packaging import version as packaging_version
 from pydantic import BaseModel, Field, PrivateAttr, ValidationError
 
 from planexe.llm_util.schema_registry import get_schema_entry, sanitize_schema_label
@@ -158,6 +164,22 @@ class SimpleOpenAILLM(LLM):
     _last_extracted_output: Optional[Dict[str, Any]] = PrivateAttr(default=None)
 
     def __init__(self, model: str, provider: str, **kwargs: Any):
+        sdk_version_text = getattr(openai, "__version__", None)
+        if sdk_version_text:
+            try:
+                sdk_version = packaging_version.parse(sdk_version_text)
+            except Exception as exc:  # pragma: no cover - defensive parsing guard
+                logger.warning("Unable to parse OpenAI SDK version %r: %s", sdk_version_text, exc)
+                sdk_version = None
+            else:
+                min_supported = packaging_version.parse("2.5.0")
+                if sdk_version < min_supported:
+                    raise RuntimeError(
+                        f"OpenAI SDK {sdk_version_text} detected; PlanExe requires >=2.5.0 for Responses API support."
+                    )
+        else:
+            logger.warning("OpenAI SDK version could not be determined; ensure openai>=2.5.0 is installed.")
+
         super().__init__(model=model, provider=provider, **kwargs)
 
         if provider != "openai":
@@ -176,7 +198,8 @@ class SimpleOpenAILLM(LLM):
         self._responses_client = self._resolve_responses_client(self._client)
         if self._responses_client is None:
             raise RuntimeError(
-                "OpenAI client does not expose the Responses API; verify openai>=1.3 and that the Responses beta header is enabled."
+                f"OpenAI client does not expose the Responses API (SDK version: {sdk_version_text or 'unknown'}). "
+                "Upgrade to openai>=2.5.0 and ensure the Responses feature flag is enabled."
             )
 
     @staticmethod

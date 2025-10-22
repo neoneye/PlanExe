@@ -1,3 +1,7 @@
+# Author: GPT-5 Codex (Codex CLI)
+# Date: 2025-10-21T22:27:00Z
+# PURPOSE: FastAPI entrypoint refinements to align LLM model metadata and diagnostics with Responses-based execution.
+# SRP and DRY check: Pass - Maintains routing responsibilities while delegating orchestration to services.
 """
 Author: Claude Code using Sonnet 4
 Date: 2025-09-24
@@ -264,7 +268,7 @@ async def health_check():
     return HealthResponse(
         version="1.0.0",
         planexe_version="2025.5.20",
-        available_models=len(llm_info.llm_config_items)
+        available_models=len(llm_config.llm_config_dict)
     )
 
 
@@ -410,20 +414,27 @@ async def stream_analysis_endpoint(task_id: str, model_key: str, session_id: str
 async def get_models():
     """Get available LLM models"""
     try:
-        models = []
-        for config_item in llm_info.llm_config_items:
-            # Get original config data to access comment, priority, etc.
-            original_config = llm_config.llm_config_dict.get(config_item.id, {})
-
-            model = LLMModel(
-                id=config_item.id,
-                label=config_item.label,
-                comment=original_config.get("comment", ""),
-                priority=original_config.get("priority", 999),
-                requires_api_key=True  # All models require API keys in this system
+        prioritized_items: List[LLMModel] = []
+        sorted_configs = sorted(
+            llm_config.llm_config_dict.items(),
+            key=lambda item: (item[1].get("priority", 999), item[0]),
+        )
+        for model_id, config in sorted_configs:
+            label = config.get("label") or model_id
+            comment = config.get("comment", "")
+            priority = config.get("priority", 999)
+            provider = str(config.get("provider", "")).lower()
+            requires_api_key = provider not in {"ollama", "local"}
+            prioritized_items.append(
+                LLMModel(
+                    id=model_id,
+                    label=label,
+                    comment=comment,
+                    priority=priority,
+                    requires_api_key=requires_api_key,
+                )
             )
-            models.append(model)
-        return models
+        return prioritized_items
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get models: {str(e)}")
 
@@ -438,6 +449,7 @@ async def debug_models():
         "llm_info_available": False,
         "config_items_count": 0,
         "config_dict_keys": [],
+        "raw_llm_info_items": 0,
         "error_details": None
     }
     
@@ -445,12 +457,14 @@ async def debug_models():
         # Check if llm_config is available
         if llm_config:
             debug_info["llm_config_available"] = True
-            debug_info["config_dict_keys"] = list(llm_config.llm_config_dict.keys())
+            config_keys = list(llm_config.llm_config_dict.keys())
+            debug_info["config_dict_keys"] = config_keys
+            debug_info["config_items_count"] = len(config_keys)
         
         # Check if llm_info is available  
         if llm_info:
             debug_info["llm_info_available"] = True
-            debug_info["config_items_count"] = len(llm_info.llm_config_items)
+            debug_info["raw_llm_info_items"] = len(llm_info.llm_config_items)
             
     except Exception as e:
         debug_info["error_details"] = str(e)
@@ -1344,6 +1358,3 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", "8080"))
     uvicorn.run(app, host="0.0.0.0", port=port)
-
-
-
