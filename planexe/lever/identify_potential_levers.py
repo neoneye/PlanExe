@@ -13,7 +13,7 @@ PROMPT> python -m planexe.lever.identify_potential_levers
 import json
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 from dataclasses import dataclass
 import uuid
 from llama_index.core.llms.llm import LLM
@@ -22,6 +22,25 @@ from llama_index.core.llms import ChatMessage, MessageRole
 from planexe.llm_util.llm_executor import LLMExecutor, PipelineStopRequested
 
 logger = logging.getLogger(__name__)
+
+
+def _to_json_serialisable(value: Any) -> Any:
+    """Recursively convert complex LLM response payloads into JSON-friendly objects."""
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    if isinstance(value, dict):
+        return {key: _to_json_serialisable(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_to_json_serialisable(item) for item in value]
+
+    model_dump = getattr(value, "model_dump", None)
+    if callable(model_dump):
+        return _to_json_serialisable(model_dump())
+
+    if hasattr(value, "__dict__"):
+        return _to_json_serialisable(vars(value))
+
+    return str(value)
 
 class Lever(BaseModel):
     lever_index: int = Field(
@@ -202,10 +221,15 @@ class IdentifyPotentialLevers:
             chat_response = result["chat_response"]
             assistant_message = getattr(getattr(chat_response, "message", None), "content", None)
             if assistant_message is None:
-                assistant_message = json.dumps(chat_response.raw.model_dump(), indent=2)
+                serialisable_payload = chat_response.raw.model_dump()
+                assistant_message = json.dumps(serialisable_payload, indent=2)
                 logger.warning("Assistant message missing textual content; falling back to JSON string payload.")
             elif not isinstance(assistant_message, str):
-                assistant_message = json.dumps(assistant_message, indent=2)
+                serialisable_payload = _to_json_serialisable(assistant_message)
+                try:
+                    assistant_message = json.dumps(serialisable_payload, indent=2)
+                except TypeError:
+                    assistant_message = json.dumps(chat_response.raw.model_dump(), indent=2)
                 logger.debug("Assistant message content was non-string; coerced to JSON string for chat history reuse.")
 
             chat_message_list.append(

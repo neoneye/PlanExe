@@ -7,7 +7,9 @@
 
 ## [Unreleased]
 
-_No unreleased changes._
+### FIX: Serialise Lever Identification Chat Content Safely
+- Normalised assistant messages in `planexe/lever/identify_potential_levers.py` so complex content types from the Responses API
+  are converted to JSON-friendly structures before reuse, preventing `TypeError` crashes during lever detection.
 
 ## [0.4.2] - 2025-10-22 - Plan Files Metadata Contract
 
