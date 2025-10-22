@@ -25,9 +25,10 @@ import { useConfigStore } from '@/lib/stores/config';
 import { CreatePlanRequest, fastApiClient } from '@/lib/api/fastapi-client';
 import { ConversationFinalizeResult } from '@/lib/conversation/useResponsesConversation';
 
+// Prefer backend-provided models; only use these if the API returns none
 const FALLBACK_MODEL_OPTIONS = [
-  { id: 'gpt-5-mini-2025-08-07', label: 'gpt-5-mini' },
-  { id: 'gpt-5-nano-2025-08-07', label: 'gpt-5-nano' },
+  { id: 'gpt-4o-mini-2024-07-18', label: 'gpt-4o-mini' },
+  { id: 'gpt-4.1-mini', label: 'gpt-4.1-mini' },
 ];
 const PRIMARY_FALLBACK_MODEL_ID = FALLBACK_MODEL_OPTIONS[0].id;
 
@@ -61,22 +62,22 @@ const HomePage: React.FC = () => {
   }, [llmModels]);
 
   useEffect(() => {
-    if (availableModels.length === 0) {
-      return;
-    }
+    if (availableModels.length === 0) return;
 
     const hasSelection = availableModels.some((option) => option.id === selectedModel);
     if (!hasSelection) {
+      // Prefer API-provided first-priority model when available
+      const apiPreferred = llmModels && llmModels.length > 0
+        ? [...llmModels].sort((a, b) => a.priority - b.priority)[0]?.id
+        : undefined;
       const preferred =
+        (apiPreferred && availableModels.find((o) => o.id === apiPreferred)) ||
         availableModels.find((option) => option.id === PRIMARY_FALLBACK_MODEL_ID) ||
-        availableModels.find((option) => option.id.startsWith('gpt-5-mini')) ||
         availableModels[0];
 
-      if (preferred) {
-        setSelectedModel(preferred.id);
-      }
+      if (preferred) setSelectedModel(preferred.id);
     }
-  }, [availableModels, selectedModel]);
+  }, [availableModels, selectedModel, llmModels]);
 
   useEffect(() => {
     loadLLMModels();

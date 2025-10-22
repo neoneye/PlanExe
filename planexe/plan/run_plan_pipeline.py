@@ -101,7 +101,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from planexe_api.database import DatabaseService, get_database_service
 
 logger = logging.getLogger(__name__)
-DEFAULT_LLM_MODEL = "gpt-5-mini-2025-08-07"  # Updated from ollama-llama3.1 (no longer in config)
+DEFAULT_LLM_MODEL = "gpt-4o-mini-2024-07-18"  # Use a real Responses API model id present in llm_config.json
 
 REPORT_EXECUTE_PLAN_SECTION_HIDDEN = True
 # REPORT_EXECUTE_PLAN_SECTION_HIDDEN = False

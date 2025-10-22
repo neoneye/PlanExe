@@ -1,7 +1,7 @@
-# Author: GPT-5 Codex (Codex CLI)
-# Date: 2025-10-21T22:27:00Z
-# PURPOSE: FastAPI entrypoint refinements to align LLM model metadata and diagnostics with Responses-based execution.
-# SRP and DRY check: Pass - Maintains routing responsibilities while delegating orchestration to services.
+# Author: gpt-5-codex
+# Date: 2025-10-22T03:20:00Z
+# PURPOSE: FastAPI entrypoint. Adds model-id validation on plan creation and keeps Responses-based streaming endpoints.
+# SRP and DRY check: Pass — validate inputs and route to services without duplicating business logic.
 """
 Author: Claude Code using Sonnet 4
 Date: 2025-09-24
@@ -495,6 +495,25 @@ async def get_prompts():
 async def create_plan(request: CreatePlanRequest):
     """Create a new plan and start background processing"""
     try:
+        # Resolve/validate requested model id against configured models
+        resolved_llm_model: Optional[str] = None
+        try:
+            configured = PlanExeLLMConfig.load().llm_config_dict
+            if request.llm_model and request.llm_model in configured:
+                resolved_llm_model = request.llm_model
+            else:
+                # choose first by priority when available
+                if configured:
+                    sorted_items = sorted(
+                        configured.items(), key=lambda item: (item[1].get("priority", 999), item[0])
+                    )
+                    resolved_llm_model = sorted_items[0][0]
+                else:
+                    resolved_llm_model = None  # fall back to pipeline default
+        except Exception:
+            # On any error, let pipeline default decide
+            resolved_llm_model = request.llm_model
+
         # Generate unique plan ID and directory
         start_time = datetime.utcnow()
         plan_id = generate_run_id("PlanExe", start_time)
@@ -508,7 +527,7 @@ async def create_plan(request: CreatePlanRequest):
         plan_data = {
             "plan_id": plan_id,
             "prompt": request.prompt,
-            "llm_model": request.llm_model,
+            "llm_model": resolved_llm_model,
             "speed_vs_detail": request.speed_vs_detail.value,
             "status": PlanStatus.pending.value,
             "progress_percentage": 0,
@@ -523,10 +542,18 @@ async def create_plan(request: CreatePlanRequest):
             db.close()
         print(f"DEBUG: Plan created in database")
 
+        # Build an effective request with validated model id for the pipeline
+        effective_request = CreatePlanRequest(
+            prompt=request.prompt,
+            llm_model=resolved_llm_model,
+            speed_vs_detail=request.speed_vs_detail,
+            enriched_intake=request.enriched_intake,
+        )
+
         # Start background execution using threading (Windows compatibility)
         thread = threading.Thread(
             target=execute_plan_async,
-            args=(plan_id, request),
+            args=(plan_id, effective_request),
             name=f"PlanExecution-{plan_id}",
             daemon=True
         )
