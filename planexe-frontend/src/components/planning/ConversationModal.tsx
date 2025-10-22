@@ -280,16 +280,19 @@ export const ConversationModal: React.FC<ConversationModalProps> = ({
               ))}
             </div>
             <footer className="shrink-0 flex flex-col border-t border-slate-800 bg-slate-900/50 px-8 py-5">
-              <div className="flex flex-col gap-3 flex-1">
+              <div className="flex flex-col gap-3 flex-1 items-center text-center">
+                <h3 className="text-base font-semibold uppercase tracking-wide text-slate-300">
+                  Share more details to guide the agent
+                </h3>
                 <Textarea
                   value={draftMessage}
                   onChange={(event) => setDraftMessage(event.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Add constraints, dependencies, resources, dates…"
-                  className="h-32 text-base resize-none"
+                  placeholder="Type your updates, questions, or clarifications here…"
+                  className="h-32 w-full max-w-3xl text-base resize-none bg-white text-slate-900 placeholder-slate-500 shadow-lg border border-slate-200 focus-visible:ring-2 focus-visible:ring-indigo-500"
                   disabled={isStreaming || isFinalizing}
                 />
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex w-full max-w-3xl flex-wrap items-center justify-between gap-3">
                   <p className="text-xs text-slate-400">
                     Press <kbd className="rounded border border-slate-700 bg-slate-800 px-1 text-slate-300">⌘</kbd>
                     +<kbd className="rounded border border-slate-700 bg-slate-800 px-1 text-slate-300">Enter</kbd> to send
