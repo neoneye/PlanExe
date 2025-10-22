@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+## [0.4.2] - 2025-10-22 - Plan Files Metadata Contract
+
 ### UI: Twilight Landing Experience Refresh
 - Rebuilt `planexe-frontend/src/app/page.tsx` to introduce a single-screen, conversation-first landing layout with a new twilight
   gradient background and inline model selector defaulting to `gpt-5-mini`, keeping messaging free of legacy task counts.
@@ -26,6 +30,12 @@
 - Added explicit file header plus OpenAI SDK (`openai>=2.5.0`) validation inside `planexe/llm_util/simple_openai_llm.py:1` to block Luigi runs that would otherwise crash with missing `client.responses` support.
 - Refined `/api/models` to reflect the active `llm_config` priority ordering and health counts, and enhanced the debug payload for ops visibility in `planexe_api/api.py:1`.
 - Hardened the Luigi entrypoint to abort immediately when `OPENAI_API_KEY` is absent and to print the correct PowerShell resume command (`RUN_ID_DIR` usage) in `planexe/plan/run_plan_pipeline.py:5538`.
+
+### FIX: Plan Files Metadata Contract
+- `/api/plans/{id}/files` now returns rich metadata objects (filename, content type, stage, size, timestamps) by reusing artefact records, ensuring parity between backend `PlanFilesResponse` and the frontend `PlanFileEntry` typing.
+- Added filesystem fallback enumeration so files that bypass the database still surface in the response with safe default metadata.
+- Updated `planexe_api/models.py` and `planexe_api/api.py` to emit the new schema, and aligned the TypeScript client in `planexe-frontend/src/lib/api/fastapi-client.ts` to accept nullable timestamps.
+- Verified pipeline execution logs confirm `OPENAI_API_KEY` is forwarded into the Luigi subprocess environment, maintaining Responses API compatibility alongside the enforced `openai>=2.5.0` guard.
 
 ### MAJOR: Enriched Plan Intake Schema (v0.5.0-prep)
 Implemented comprehensive intake schema capturing 10 key planning variables (budget, timeline, team, location, scale, risk, constraints, stakeholders, success criteria, domain) through structured Responses API conversations with 100% schema compliance enforcement.

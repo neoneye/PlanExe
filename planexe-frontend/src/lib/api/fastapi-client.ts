@@ -90,7 +90,7 @@ export interface PlanFileEntry {
   content_type: string;
   stage?: string | null;
   size_bytes: number;
-  created_at: string;
+  created_at: string | null;
   description?: string | null;
   task_name?: string | null;
   order?: number | null;

@@ -806,11 +806,47 @@ async def get_plan_files(plan_id: str, db: DatabaseService = Depends(get_databas
             report_path = Path(plan.output_dir) / report_filename
             has_report = report_path.exists()
 
-        filenames = [entry.filename for entry in artefact_response.artefacts]
+        # Build rich file entries. Prefer DB artefacts, fall back to FS if needed.
+        files: list = []
+        artefacts = artefact_response.artefacts
+
+        # Use artefacts first (already normalized in list_plan_artefacts)
+        for a in artefacts:
+            files.append({
+                "filename": a.filename,
+                "content_type": a.content_type,
+                "stage": getattr(a, "stage", None),
+                "size_bytes": getattr(a, "size_bytes", 0),
+                "created_at": getattr(a, "created_at", None),
+                "description": getattr(a, "description", None),
+                "task_name": getattr(a, "task_name", None),
+                "order": getattr(a, "order", None),
+            })
+
+        # Optionally include any additional files present on disk but not in DB
+        try:
+            if plan and plan.output_dir:
+                for p in Path(plan.output_dir).glob("*"):
+                    if p.is_file():
+                        name = p.name
+                        if not any(f["filename"] == name for f in files):
+                            files.append({
+                                "filename": name,
+                                "content_type": "application/octet-stream",
+                                "stage": None,
+                                "size_bytes": p.stat().st_size if hasattr(p, 'stat') else 0,
+                                "created_at": None,
+                                "description": None,
+                                "task_name": None,
+                                "order": None,
+                            })
+        except Exception:
+            # Non-fatal; continue with DB-derived list
+            pass
 
         return PlanFilesResponse(
             plan_id=plan_id,
-            files=filenames,
+            files=files,
             has_report=has_report
         )
     except HTTPException:

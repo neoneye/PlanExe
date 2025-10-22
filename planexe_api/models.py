@@ -85,10 +85,22 @@ class PromptExample(BaseModel):
     title: Optional[str] = Field(None, description="Short prompt title")
 
 
+class PlanFileEntry(BaseModel):
+    """File metadata entry for plan files listing."""
+    filename: str = Field(..., description="Generated filename")
+    content_type: str = Field("unknown", description="Best known content type")
+    stage: Optional[str] = Field(None, description="Pipeline stage if known")
+    size_bytes: int = Field(0, description="Approximate size on disk or recorded size")
+    created_at: Optional[datetime] = Field(None, description="Creation timestamp if available")
+    description: Optional[str] = Field(None, description="Human-friendly label if available")
+    task_name: Optional[str] = Field(None, description="Luigi task that generated the file")
+    order: Optional[int] = Field(None, description="Sort order derived from filename prefix")
+
+
 class PlanFilesResponse(BaseModel):
     """Response listing files in a completed plan"""
     plan_id: str
-    files: List[str] = Field(..., description="List of generated filenames")
+    files: List[PlanFileEntry] = Field(..., description="List of generated files with metadata")
     has_report: bool = Field(..., description="Whether HTML report is available")
 
 
