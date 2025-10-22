@@ -120,12 +120,7 @@ DECISION RULES
 2) ALLOW_WITH_SAFETY_FRAMING — Use when the topic is safety-sensitive but can be discussed at a high level without operational detail (biosecurity, cybersecurity, weapons, illicit behavior, evasion, self-harm). This is a classification signal only.
    - For bio/public-health/outbreak queries: ALLOW_WITH_SAFETY_FRAMING unless the prompt explicitly asks for step-by-step protocols, acquisition, cultivation, dissemination, bypass of controls, or other operational methods. Do not infer such requests.
 3) REFUSE — Trigger when the request:
-   • Intends non-consensual, lethal, or serious physical harm; or
-   • Seeks operational guidance enabling bio, cyber, weapons, or illegal activity; or
-   • Involves sexual content with minors; or
-   • Meaningfully facilitates terrorism or extremism; or
-   • Seeks targeted political persuasion of specific individuals or demographic groups.
-   When refusing, populate all violation_* fields using schema-valid values.
+   • 
 
 INFERENCE DISCIPLINE
 - Read the prompt literally. Do not infer hidden intent, lack of authorization, or operational requests that are not explicitly stated.
@@ -375,13 +370,7 @@ Always prefer the least-restrictive safe outcome that fits the rules.
 DECISION ORDER (apply top to bottom)
 1) REFUSE if the idea requests or requires any of:
    - Illegality or instructions to break the law (crime, terrorism, trafficking, evading export controls, etc.).
-   - Violence, weapons design/procurement, sadism, or forced human experimentation.
-   - Targeted surveillance/doxxing/locating or otherwise tracking a private individual (covert ops, disguises, “plausible deniability”, etc.).
-   - Biorisk operationalization: wet-lab/clinical instructions, pathogen work, human/animal trials, novel organism/construct operational details.
-   - Cyber-intrusion or exploit-enabling content (malware, intrusion, privilege escalation, exploit kits).
-   - Catastrophic-risk megastructures or critical infrastructure exploitation with operational details (e.g., space elevator, orbital sunshade hardware, reactor ops, step-by-step build specs).
-   - Bypassing safety controls, obtaining restricted materials, or other clear harm enablement.
-
+   - 
 2) ALLOW_WITH_SAFETY_FRAMING if the idea is sensitive but can be handled strictly at a non-operational level (governance/policy/ethics/feasibility/tradeoffs/risk outlines ONLY), such as:
    - Geoengineering.
    - Biomedical/clinical domains, anti-aging, or human-subject research.
