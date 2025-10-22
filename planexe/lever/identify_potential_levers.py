@@ -85,7 +85,7 @@ You are an expert strategic analyst. Generate solution space parameters followin
 2. **Lever Quality Standards**
    - Consequences MUST:
      • Chain three SPECIFIC effects: "Immediate: [effect] → Systemic: [impact] → Strategic: [implication]"
-     • Include measurable outcomes: "Systemic: 25% faster scaling through..."
+     • Include measurable outcomes: "Systemic: Better scaling through..."
      • Explicitly describe trade-offs between core tensions
    - Options MUST:
      • Represent distinct strategic pathways (not just labels)
