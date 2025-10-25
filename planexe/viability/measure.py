@@ -16,97 +16,139 @@ from planexe.llm_util.llm_executor import LLMExecutor, PipelineStopRequested
 
 logger = logging.getLogger(__name__)
 
-class Lever(BaseModel):
-    lever_index: int = Field(
-        description="Index of this lever."
+class Measurement(BaseModel):
+    measurement_index: int = Field(
+        description="Index of this measurement."
     )
     name: str = Field(
-        description="Name of this lever."
+        description="Name of this measurement."
     )
-    consequences: str = Field(
-        description="Briefly describe the likely second-order effects or consequences of pulling this lever (e.g., 'Choosing a high-risk tech strategy will likely increase talent acquisition difficulty and require a larger contingency budget.'). 30 words."
+    explanation: str = Field(
+        description="Explain this measurement. 30 words."
     )
-    options: list[str] = Field(
-        description="2-5 options for this lever."
+    value: int = Field(
+        description="Parameter value -2 to 2. Where -2 is the strong negative, -1 is the weak negative, 0 is neutral, 1 is the weak positive, 2 is the strong positive."
     )
-    review_lever: str = Field(
-        description="Critique this lever. State the core trade-off it controls (e.g., 'Controls Speed vs. Quality'). Then, identify one specific weakness in how its options address that trade-off."
+    reasoning: str = Field(
+        description="Why this measurement value and not another value. Where in the document is there evidence for this measurement value. 60 words."
+    )
+    improve: str = Field(
+        description="Propose changes to the document that would improve on this measurement. 60 words."
     )
 
 class DocumentDetails(BaseModel):
     strategic_rationale: str = Field(
         description="A concise strategic analysis (around 100 words) of the project's core tensions and trade-offs. This rationale must JUSTIFY why the selected levers are the most critical levers for decision-making. For example, explain how the chosen levers navigate the fundamental conflicts between speed, cost, scope, and quality."
     )
-    levers: list[Lever] = Field(
-        description="Propose exactly 5 levers."
+    measurements: list[Measurement] = Field(
+        description="Propose exactly 5 measurements."
     )
     summary: str = Field(
-        description="Are these levers well picked? Are they well balanced? Are they well thought out? Point out flaws. 100 words."
+        description="Are these measurements well picked? Are they well balanced? Are they well thought out? Point out flaws. 100 words."
     )
 
-class LeverCleaned(BaseModel):
+class MeasurementCleaned(BaseModel):
     """
-    The Lever class has some ugly field names, that guide the LLM for what to generate. Changing them and the LLM can't generate as good results.
+    The Measurement class has some ugly field names, that guide the LLM for what to generate. Changing them and the LLM can't generate as good results.
     This class has nicer field names for the final output.
     """
-    lever_id: str = Field(
-        description="A uuid that identifies this lever. The levers can be deduplicated and preserve their lever_id without leaving gaps in the numbering."
+    measurement_id: str = Field(
+        description="A uuid that identifies this measurement. The measurements can be deduplicated and preserve their measurement_id without leaving gaps in the numbering."
     )
     name: str = Field(
-        description="Name of this lever."
+        description="Name of this measurement."
     )
-    consequences: str = Field(
-        description="Briefly describe the likely second-order effects or consequences of pulling this lever (e.g., 'Choosing a high-risk tech strategy will likely increase talent acquisition difficulty and require a larger contingency budget.'). 30 words."
+    explanation: str = Field(
+        description="Explain this measurement. 30 words."
     )
-    options: list[str] = Field(
-        description="2-5 options for this lever."
+    value: int = Field(
+        description="Parameter value -2 to 2. Where -2 is the strong negative, -1 is the weak negative, 0 is neutral, 1 is the weak positive, 2 is the strong positive."
     )
-    review: str = Field(
-        description="Critique this lever. State the core trade-off it controls (e.g., 'Controls Speed vs. Quality'). Then, identify one specific weakness in how its options address that trade-off."
+    reasoning: str = Field(
+        description="Why this measurement value and not another value. Where in the document is there evidence for this measurement value. 60 words."
+    )
+    improve: str = Field(
+        description="Propose changes to the document that would improve on this measurement. 60 words."
     )
 
 SYSTEM_PROMPT = """
 You are an expert strategic analyst. Generate solution space parameters following these directives:
 
+Go through the following list of measurements and add more measurements to fill the 5 measurements per response.
+You must preserve the measurement_id, name, and explanation from the following list, with your own measurements added to the end of the list.
+[
+{
+    "measurement_id": 1,
+    "name": "uses fantasy technology",
+    "explanation": "does this project rely on tech such as faster than light travel, that isn't grounded in reality",
+},
+{
+    "measurement_id": 2,
+    "name": "unproven technology",
+    "explanation": "does this project rely on a new technology that has never been used before. eg. a white paper that hasn't been tested in the real world",
+},
+{
+    "measurement_id": 3,
+    "name": "underestimating risks",
+    "explanation": "does this plan grossly underestimate risks",
+},
+{
+    "measurement_id": 4,
+    "name": "is budget too low",
+    "explanation": "does this plan assume a budget that is too low to achieve the goals",
+},
+{
+    "measurement_id": 5,
+    "name": "is overconfident",
+    "explanation": "does this plan grossly overestimate the likelihood of success",
+},
+{
+    "measurement_id": 6,
+    "name": "is technical vague",
+    "explanation": "does the plan lack the important technical steps",
+},
+{
+    "measurement_id": 7,
+    "name": "is lacking evidence",
+    "explanation": "does the plan do a poor job of providing evidence for the claims",
+},
+{
+    "measurement_id": 8,
+    "name": "deliverables unclear",
+    "explanation": "are the deliverables unclear or missing",
+},
+{
+    "measurement_id": 9,
+    "name": "ready for execution",
+    "explanation": "is the plan ready for beginning execution",
+}
+]
+
 1. **Output Requirements**
-   - You must generate EXACTLY 5 levers per response. Do not generate more or fewer than 5 levers.
-   - Format options as discrete JSON list items with 3 QUALITATIVE choices:
+   - You must generate EXACTLY 5 measurements per response. Do not generate more or fewer than 5 measurements.
+   - Format value as an integer between -2 and 2, where -2 is the strong negative, -1 is the weak negative, 0 is neutral, 1 is the weak positive, 2 is the strong positive:
      ```json
-     "options": ["Descriptive Strategic Choice", "Descriptive Strategic Choice", "Descriptive Strategic Choice"]
+     "value": -2
      ```
 
-2. **Lever Quality Standards**
-   - Consequences MUST:
-     • Chain three SPECIFIC effects: "Immediate: [effect] → Systemic: [impact] → Strategic: [implication]"
-     • Include measurable outcomes: "Systemic: 25% faster scaling through..."
-     • Explicitly describe trade-offs between core tensions
-   - Options MUST:
-     • Represent distinct strategic pathways (not just labels)
-     • Include at least one unconventional/innovative approach
-     • Show clear progression: conservative → moderate → radical
-     • NO prefixes (e.g., "Option A:", "Choice 1:")
-
-3. **Strategic Framing**
-   - Name levers as strategic concepts (e.g., "Material Adaptation Strategy")
+2. **Strategic Framing**
+   - Name measurements as strategic concepts (e.g., "Material Adaptation Strategy")
    - Frame options as complete strategic approaches
-   - Ensure levers challenge core project assumptions
+   - Ensure measurements challenge core project assumptions
 
-4. **Validation Protocols**
-   - For `review_lever`:
-     • State the trade-off explicitly: "Controls [Tension A] vs. [Tension B]."
-     • Identify a specific weakness: "Weakness: The options fail to consider [specific factor]."
+3. **Validation Protocols**
    - For `summary`:
      • Identify ONE critical missing dimension
      • Prescribe CONCRETE addition: "Add '[full strategic option]' to [lever]"
 
-5. **Prohibitions**
+4. **Prohibitions**
    - NO prefixes/labels in options (e.g., "Option A:", "Choice 1:")
    - NO generic option labels (e.g., "Optimize X", "Tolerate Y")
    - NO placeholder consequences
    - NO "[specific innovative option]" placeholders
    - NO value sets without clear strategic progression
 
-6. **Option Structure Enforcement**
+5. **Option Structure Enforcement**
    - Radical option must include emerging tech/business model
    - Maintain parallel grammatical structure across options
    - Ensure options are self-contained descriptions
@@ -117,7 +159,7 @@ class Measure:
     system_prompt: Optional[str]
     user_prompt: str
     responses: list[DocumentDetails]
-    levers: list[LeverCleaned]
+    measurements: list[MeasurementCleaned]
     metadata: dict
 
     @classmethod
@@ -186,23 +228,24 @@ class Measure:
             responses.append(result["chat_response"].raw)
             metadata_list.append(result["metadata"])
 
-        # from the raw_responses, extract the levers into a flatten list
-        levers_raw: list[Lever] = []
+        # from the raw_responses, extract the measurements into a flatten list
+        measurements_raw: list[Measurement] = []
         for response in responses:
-            levers_raw.extend(response.levers)
+            measurements_raw.extend(response.measurements)
 
-        # Clean the raw levers
-        levers_cleaned: list[LeverCleaned] = []
-        for i, lever in enumerate(levers_raw, start=1):
-            lever_id = str(uuid.uuid4())
-            lever_cleaned = LeverCleaned(
-                lever_id=lever_id,
-                name=lever.name,
-                consequences=lever.consequences,
-                options=lever.options,
-                review=lever.review_lever,
+        # Clean the raw measurements
+        measurements_cleaned: list[MeasurementCleaned] = []
+        for i, measurement in enumerate(measurements_raw, start=1):
+            measurement_id = str(uuid.uuid4())
+            measurement_cleaned = MeasurementCleaned(
+                measurement_id=measurement_id,
+                name=measurement.name,
+                explanation=measurement.explanation,
+                reasoning=measurement.reasoning,
+                value=measurement.value,
+                improve=measurement.improve,
             )
-            levers_cleaned.append(lever_cleaned)
+            measurements_cleaned.append(measurement_cleaned)
 
         metadata = {}
         for metadata_index, metadata_item in enumerate(metadata_list, start=1):
@@ -212,17 +255,17 @@ class Measure:
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             responses=responses,
-            levers=levers_cleaned,
+            measurements=measurements_cleaned,
             metadata=metadata,
         )
         return result    
 
-    def to_dict(self, include_responses=True, include_cleaned_levers=True, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
+    def to_dict(self, include_responses=True, include_cleaned_measurments=True, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
         d = {}
         if include_responses:
             d["responses"] = [response.model_dump() for response in self.responses]
-        if include_cleaned_levers:
-            d['levers'] = [lever.model_dump() for lever in self.levers]
+        if include_cleaned_measurments:
+            d['measurements'] = [measurement.model_dump() for measurement in self.measurements]
         if include_metadata:
             d['metadata'] = self.metadata
         if include_system_prompt:
@@ -234,15 +277,15 @@ class Measure:
     def save_raw(self, file_path: str) -> None:
         Path(file_path).write_text(json.dumps(self.to_dict(), indent=2))
 
-    def lever_item_list(self) -> list[dict]:
+    def measurement_item_list(self) -> list[dict]:
         """
-        Return a list of dictionaries, each representing a lever.
+        Return a list of dictionaries, each representing a measurement.
         """
-        return [lever.model_dump() for lever in self.levers]
+        return [measurement.model_dump() for measurement in self.measurements]
     
     def save_clean(self, file_path: str) -> None:
-        levers_dict = self.lever_item_list()
-        Path(file_path).write_text(json.dumps(levers_dict, indent=2))
+        measurements_dict = self.measurement_item_list()
+        Path(file_path).write_text(json.dumps(measurements_dict, indent=2))
     
 if __name__ == "__main__":
     from planexe.llm_util.llm_executor import LLMModelFromName
@@ -263,8 +306,8 @@ if __name__ == "__main__":
     query = prompt_item.prompt
 
     model_names = [
-        "ollama-llama3.1",
-        # "openrouter-paid-gemini-2.0-flash-001",
+        # "ollama-llama3.1",
+        "openrouter-paid-gemini-2.0-flash-001",
         # "openrouter-paid-qwen3-30b-a3b"
     ]
     llm_models = LLMModelFromName.from_names(model_names)
