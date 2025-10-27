@@ -24,12 +24,12 @@ class ChecklistAnswer(BaseModel):
         description="Parameter value -2 to 2. Where -2 is the strong negative, -1 is the weak negative, 0 is neutral, 1 is the weak positive, 2 is the strong positive."
     )
 
-class BatchResponse(BaseModel):
-    batch_index: int = Field(
-        description="Which batch of the checklist is this answer for."
+class GroupOfChecklistAnswers(BaseModel):
+    group: int = Field(
+        description="The group number of the checklist that is being answered."
     )
     answers: list[ChecklistAnswer] = Field(
-        description="Answers to the checklist."
+        description="Answers to the checklist items in the group."
     )
 
 class ChecklistAnswerCleaned(BaseModel):
@@ -102,15 +102,24 @@ CHECKLIST = [
     }
 ]
 
-def enrich_checklist_with_batch_id_and_item_index(checklist: list[dict], batch_size: int = 5) -> list[dict]:
-    enriched_checklist: list[dict] = []
+def enrich_checklist_with_batch_id_and_item_index(checklist: list[dict], batch_size: int = 5) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    flattened_checklist: list[dict[str, Any]] = []
+    nested_checklist: list[dict[str, Any]] = []
+    accumulator: list[dict] = []
     for i, item in enumerate(checklist):
         batch_id = (i // batch_size) + 1
         item_index = i % batch_size
-        id = f"batch={batch_id}&item={item_index}"
+        id = f"group={batch_id}&item={item_index}"
         item_enriched = {"id": id, **item}
-        enriched_checklist.append(item_enriched)
-    return enriched_checklist
+        accumulator.append(item_enriched)
+        flattened_checklist.append(item_enriched)
+
+        # Create batch when we reach the end of a batch or the end of the checklist
+        if item_index == batch_size - 1 or i == len(checklist) - 1:
+            d = {"group": batch_id, "checklist": accumulator}
+            nested_checklist.append(d)
+            accumulator = []
+    return flattened_checklist, nested_checklist
 
 def format_system_prompt(checklist: list[dict], batch_size: int = 5) -> str:
     number_of_batches = len(checklist) // batch_size
@@ -118,37 +127,39 @@ def format_system_prompt(checklist: list[dict], batch_size: int = 5) -> str:
     if remainder > 0:
         number_of_batches += 1
 
-    enriched_checklist = enrich_checklist_with_batch_id_and_item_index(checklist, batch_size)
-    # remove the "index" key from each item in the enriched_checklist
-    enriched_checklist = [{k: v for k, v in item.items() if k != "index"} for item in enriched_checklist]
-    json_enriched_checklist = json.dumps(enriched_checklist, indent=2)
+    checklist_copy = checklist.copy()
+    # remove the "index" key from each item in the checklist_copy
+    checklist_copy = [{k: v for k, v in item.items() if k != "index"} for item in checklist_copy]
+    flattened_checklist, nested_checklist = enrich_checklist_with_batch_id_and_item_index(checklist_copy, batch_size)
+    json_flattened_checklist = json.dumps(flattened_checklist, indent=2)
+    json_nested_checklist = json.dumps(nested_checklist, indent=2)
     # print(f"Enriched checklist: {json_enriched_checklist}")
+    # exit(0)
 
     system_prompt = f"""
-You are an expert strategic analyst. Your task is to analyze the provided query against a checklist of items. You will do this in batches.
+You are an expert strategic analyst. Your task is to analyze the provided query against a checklist of items. You will do this on a group by group basis.
 
-The checklist is divided into {number_of_batches} batches. Each batch has up to 5 items.
-- Each item has a unique "id" like "batch=1&item=0".
-- Only process items from the current batch. Never process a batch that has already been processed.
+The checklist is divided into groups with up to 5 items.
+- Each item has a unique "id" like "group=1&item=0".
+- Only answer items from the current group. Never answer a group that has already been answered.
 - For each item, assign a value from -2 to 2 based on how well the query matches the item's explanation. -2 is strong negative (yes, it's a big problem), -1 is weak negative, 0 is neutral, 1 is weak positive, 2 is strong positive (no, it's not a problem).
 
-# The Complete Checklist
-{json_enriched_checklist}
+# The Checklist that is to be answered group by group
+{json_nested_checklist}
 
 # Turn-by-Turn Instructions
-1. First your task is to process **batch 1**.
-2. In subsequent messages, the user will explicitly tell you which batch to process next. When the user asks "Now process batch 2", then the "batch_index" MUST be 2, and the answers must be for the items in batch 2. When the user asks to process batch 3, then the same rules apply, etc.
+1. First your task is to answer the items in **group 1**.
+2. In subsequent messages, you will have to process the next group. The user asks "Now answer group 2", then the checklist answers must be for the items in group 2. When the user asks to answer group 3, then the same rules apply, etc.
 
 # Output Format
-- Your response MUST be a single, valid JSON object matching the `BatchResponse` schema.
-- The `batch_index` MUST match the batch number you were instructed to process.
-- The `answers` list MUST contain an entry for EVERY item in the requested batch. It must NEVER be empty or incomplete.
+- Your response MUST be a single, valid JSON object matching the `GroupOfChecklistAnswers` schema.
+- The `answers` list MUST contain an answer for EVERY checklist item in the requested group. It must NEVER be empty or incomplete.
 
 Use the following JSON models:
 
-### BatchResponse
-- **batch_index** (int): The current batch that is being processed. Starts at 1, increments by 1 for each subsequent batch.
-- **answers** (list of ChecklistAnswer): Answers to the checklist items in the current batch.
+### GroupOfChecklistAnswers
+- **group** (int): The group number of the checklist that is being answered.
+- **answers** (list of ChecklistAnswer): Answers to the checklist items in the current group.
 
 ### ChecklistAnswer
 - **id** (str): The id of the checklist item, containing the batch number and item index.
@@ -156,26 +167,26 @@ Use the following JSON models:
 
 # Example of a valid response for batch 1:
 {{
-    "batch_index": 1,
+    "group": 1,
     "answers": [
         {{
-            "id": "batch=1&item=0",
+            "id": "group=1&item=0",
             "value": -2
         }},
         {{
-            "id": "batch=1&item=1",
+            "id": "group=1&item=1",
             "value": 0
         }},
         {{
-            "id": "batch=1&item=2",
+            "id": "group=1&item=2",
             "value": -2
         }},
         {{
-            "id": "batch=1&item=3",
+            "id": "group=1&item=3",
             "value": 1
         }},
         {{
-            "id": "batch=1&item=4",
+            "id": "group=1&item=4",
             "value": -1
         }}
     ]
@@ -183,26 +194,26 @@ Use the following JSON models:
 
 # Example of a valid response for batch 2:
 {{
-    "batch_index": 2,
+    "group": 2,
     "answers": [
         {{
-            "id": "batch=2&item=0",
+            "id": "group=2&item=0",
             "value": -2
         }},
         {{
-            "id": "batch=2&item=1",
+            "id": "group=2&item=1",
             "value": 0
         }},
         {{
-            "id": "batch=2&item=2",
+            "id": "group=2&item=2",
             "value": -2
         }},
         {{
-            "id": "batch=2&item=3",
+            "id": "group=2&item=3",
             "value": 1
         }},
         {{
-            "id": "batch=2&item=4",
+            "id": "group=2&item=4",
             "value": -1
         }}
     ]
@@ -217,7 +228,7 @@ SYSTEM_PROMPT = format_system_prompt(CHECKLIST, BATCH_SIZE)
 class Measure:
     system_prompt: Optional[str]
     user_prompt: str
-    responses: list[BatchResponse]
+    responses: list[GroupOfChecklistAnswers]
     measurements: list[ChecklistAnswerCleaned]
     metadata: dict
 
@@ -245,11 +256,11 @@ class Measure:
 
         user_prompt_list = [
             user_prompt,
-            f"Now process batch_index 2",
-            # "next batch",
+            "Now answer group 2",
+            # "Now answer group 3",
         ]
 
-        responses: list[BatchResponse] = []
+        responses: list[GroupOfChecklistAnswers] = []
         metadata_list: list[dict] = []
         for user_prompt_index, user_prompt_item in enumerate(user_prompt_list, start=1):
             logger.info(f"Processing user_prompt_index: {user_prompt_index} of {len(user_prompt_list)}")
@@ -261,7 +272,7 @@ class Measure:
             )
 
             def execute_function(llm: LLM) -> dict:
-                sllm = llm.as_structured_llm(BatchResponse)
+                sllm = llm.as_structured_llm(GroupOfChecklistAnswers)
                 chat_response = sllm.chat(chat_message_list)
                 metadata = dict(llm.metadata)
                 metadata["llm_classname"] = llm.class_name()
@@ -297,8 +308,8 @@ class Measure:
             answers_raw.extend(response.answers)
 
         # convert CHECKLIST from list to dict, using the index as the key
-        enriched_checklist = enrich_checklist_with_batch_id_and_item_index(CHECKLIST, BATCH_SIZE)
-        checklist_dict = {item["id"]: item for item in enriched_checklist}
+        flattened_checklist, nested_checklist = enrich_checklist_with_batch_id_and_item_index(CHECKLIST, BATCH_SIZE)
+        checklist_dict = {item["id"]: item for item in flattened_checklist}
         if len(checklist_dict) != len(CHECKLIST):
             raise ValueError("Checklist dict length does not match checklist list length.")
 
@@ -322,7 +333,7 @@ class Measure:
             measurements_cleaned.append(measurement_cleaned)
 
         # Verify that all the checklist items have been answered
-        set_of_checklist_ids = set[Any]([checklist_item["id"] for checklist_item in enriched_checklist])
+        set_of_checklist_ids = set[Any]([checklist_item["id"] for checklist_item in flattened_checklist])
         set_of_answer_ids = set[str]([measurement.id for measurement in measurements_cleaned])
         if set_of_checklist_ids != set_of_answer_ids:
             diff = set_of_checklist_ids - set_of_answer_ids
