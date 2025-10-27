@@ -107,6 +107,31 @@ CHECKLIST = [
         "index": 10,
         "brief": "overengineered plan",
         "explanation": "is the plan overkill for the problem at hand",
+    },
+    {
+        "index": 11,
+        "brief": "underestimate team size",
+        "explanation": "does the plan underestimate the number of people needed to achieve the goals",
+    },
+    {
+        "index": 12,
+        "brief": "overestimate team size",
+        "explanation": "does the plan overestimate the number of people needed to achieve the goals",
+    },
+    {
+        "index": 13,
+        "brief": "legal minefield",
+        "explanation": "does the plan require lawyers, or have a high chance of getting sued, corruption, harmful, doing things that are illegal, etc.",
+    },
+    {
+        "index": 14,
+        "brief": "impossible to achieve",
+        "explanation": "are there constraints that make it impossible to achieve the goals",
+    },
+    {
+        "index": 15,
+        "brief": "other red flags",
+        "explanation": "are there other red flags not accounted for in this checklist",
     }
 ]
 
