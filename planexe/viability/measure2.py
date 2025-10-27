@@ -132,18 +132,20 @@ The checklist is divided into {number_of_batches} batches. Each batch has up to 
 - Only process items from the current batch.
 - For each item, assign a value from -2 to 2 based on how well the query matches the item's explanation. -2 is strong negative (yes, it's a big problem), -1 is weak negative, 0 is neutral, 1 is weak positive, 2 is strong positive (no, it's not a problem).
 
-checklist:
+# The Complete Checklist
 {json_enriched_checklist}
 
-Process batches one at a time across responses:
-- The first user message contains the query to analyze. Automatically process batch 1 for it.
-- Later user messages will say something like "process batch 2" or "next batch". Process only that batch.
-- Think step-by-step: For the current batch, evaluate each item one by one against the query. Then output the results.
-- Your response must be valid JSON for a single BatchResponse object. Do not add extra text, lists, or wrappers.
-- "batch_index" is the current batch number (starting at 1).
-- "checklist_answers" must include ALL items for the batch (exactly 5 for full batches, fewer for the last). It must NEVER be empty or incomplete.
+# Turn-by-Turn Instructions
+1. When you first receive the user's plan, your task is to process **batch 1**.
+2. In subsequent messages, I will explicitly tell you which batch to process next (e.g., "Now process batch 2").
+3. Always prioritize the most recent user instruction. When the user asks to process batch 2, then the "batch_index" MUST be 2, and the answers must be for the items in batch 2. When the user asks to process batch 3, then the same rules apply, etc.
 
-Example of a valid response (pure JSON, no extra text):
+# Output Format
+- Your response MUST be a single, valid JSON object matching the `BatchResponse` schema.
+- The `batch_index` MUST match the batch number you were instructed to process.
+- The `checklist_answers` list MUST contain an entry for EVERY item in the requested batch. It must NEVER be empty or incomplete.
+
+# Example of a valid response for batch 1:
 {{
     "batch_index": 1,
     "checklist_answers": [
@@ -165,6 +167,33 @@ Example of a valid response (pure JSON, no extra text):
         }},
         {{
             "id": "batch=1&item=4",
+            "value": -1
+        }}
+    ]
+}}
+
+# Example of a valid response for batch 2:
+{{
+    "batch_index": 2,
+    "checklist_answers": [
+        {{
+            "id": "batch=2&item=0",
+            "value": -2
+        }},
+        {{
+            "id": "batch=2&item=1",
+            "value": 0
+        }},
+        {{
+            "id": "batch=2&item=2",
+            "value": -2
+        }},
+        {{
+            "id": "batch=2&item=3",
+            "value": 1
+        }},
+        {{
+            "id": "batch=2&item=4",
             "value": -1
         }}
     ]
