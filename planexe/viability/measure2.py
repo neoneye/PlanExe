@@ -1,7 +1,7 @@
 """
 Measure from a checklist of items, if the plan is viable.
 
-PROMPT> python -m planexe.viability.measure2
+PROMPT> python -u -m planexe.viability.measure2 | tee output.txt
 """
 import json
 import logging
@@ -17,26 +17,32 @@ from planexe.llm_util.llm_executor import LLMExecutor, PipelineStopRequested
 logger = logging.getLogger(__name__)
 
 class ChecklistAnswer(BaseModel):
-    checklist_index: int = Field(
-        description="Index of this checklist item."
+    id: str = Field(
+        description="Id of this checklist item."
     )
     value: int = Field(
         description="Parameter value -2 to 2. Where -2 is the strong negative, -1 is the weak negative, 0 is neutral, 1 is the weak positive, 2 is the strong positive."
     )
 
-class DocumentDetails(BaseModel):
+class BatchResponse(BaseModel):
+    batch_index: int = Field(
+        description="Which batch of the checklist is this answer for."
+    )
     checklist_answers: list[ChecklistAnswer] = Field(
         description="Answers to the checklist."
     )
 
 class ChecklistAnswerCleaned(BaseModel):
-    checklist_index: int = Field(
-        description="Index of this checklist item."
-    )
-    checklist_item_id: str = Field(
+    id: str = Field(
         description="Id of this checklist item."
     )
-    checklist_item_explanation: str = Field(
+    index: int = Field(
+        description="Index of this checklist item."
+    )
+    brief: str = Field(
+        description="Brief description of this checklist item."
+    )
+    explanation: str = Field(
         description="Explain this measurement. 30 words."
     )
     value: int = Field(
@@ -46,73 +52,113 @@ class ChecklistAnswerCleaned(BaseModel):
 CHECKLIST = [
     {
         "index": 1,
-        "id": "fantasy technology",
+        "brief": "fantasy technology",
         "explanation": "does this project rely on tech such as faster than light travel, that isn't grounded in reality",
     },
     {
         "index": 2,
-        "id": "unproven technology",
+        "brief": "unproven technology",
         "explanation": "does this project rely on a new technology that has never been used before. eg. a white paper that hasn't been tested in the real world",
     },
     {
         "index": 3,
-        "id": "use of buzzwords",
+        "brief": "use of buzzwords",
         "explanation": "does the plan use excessive buzzwords without evidence of knowledge",
     },
     {
         "index": 4,
-        "id": "underestimating risks",
+        "brief": "underestimating risks",
         "explanation": "does this plan grossly underestimate risks",
     },
     {
         "index": 5,
-        "id": "budget too low",
+        "brief": "budget too low",
         "explanation": "does this plan assume a budget that is too low to achieve the goals",
     },
     {
         "index": 6,
-        "id": "overconfident",
+        "brief": "overconfident",
         "explanation": "does this plan grossly overestimate the likelihood of success",
     },
     {
         "index": 7,
-        "id": "technical vague",
+        "brief": "technical vague",
         "explanation": "does the plan lack the important technical steps",
     },
     {
         "index": 8,
-        "id": "lack evidence",
+        "brief": "lack evidence",
         "explanation": "does the plan do a poor job of providing evidence for the claims",
     },
     {
         "index": 9,
-        "id": "deliverables unclear",
+        "brief": "deliverables unclear",
         "explanation": "are the deliverables unclear or missing",
     },
     {
         "index": 10,
-        "id": "ready for execution",
+        "brief": "ready for execution",
         "explanation": "is the plan ready for beginning execution",
     }
 ]
 
+def enrich_checklist_with_batch_id_and_item_index(checklist: list[dict], batch_size: int = 5) -> list[dict]:
+    enriched_checklist: list[dict] = []
+    for i, item in enumerate(checklist):
+        batch_id = (i // batch_size) + 1
+        item_index = i % batch_size
+        id = f"batch={batch_id}&item={item_index}"
+        item_enriched = {"id": id, **item}
+        enriched_checklist.append(item_enriched)
+    return enriched_checklist
+
 def format_system_prompt(checklist: list[dict], batch_size: int = 5) -> str:
-    json_checklist = json.dumps(checklist, indent=2)
     number_of_batches = len(checklist) // batch_size
     remainder = len(checklist) % batch_size
     if remainder > 0:
         number_of_batches += 1
 
+    enriched_checklist = enrich_checklist_with_batch_id_and_item_index(checklist, batch_size)
+    # remove the "index" key from each item in the enriched_checklist
+    enriched_checklist = [{k: v for k, v in item.items() if k != "index"} for item in enriched_checklist]
+    json_enriched_checklist = json.dumps(enriched_checklist, indent=2)
+    # print(f"Enriched checklist: {json_enriched_checklist}")
+
     system_prompt = f"""
 You are an expert strategic analyst.
 
-Go through the checklist, you are going to do {number_of_batches} batches, taking {batch_size} items at a time.
-You must preserve the index from the checklist in the output.
+Go through the checklist, you are going to do {number_of_batches} batches.
+Each checklist item has a unique id, defined by the "id" key, that contains the batch index and the item index.
+When asked to process batch N, you should only process the checklist items that have the batch index N.
 
 checklist:
-{json_checklist}
+{json_enriched_checklist}
 
+Your response should be a BatchResponse object. 
+The batch_index should be the index of the batch, starting from 1.
+In the first response you will process batch 1, in the second response you will process batch 2, etc.
+The "checklist_answers" list MUST contain all the items belonging to the batch. It must never be empty.
 
+Example of a valid response:
+[
+    {{
+        "batch_index": 1,
+        "checklist_answers": [
+            {{
+                "id": "batch=1&item=0",
+                "value": -2
+            }},
+            {{
+                "id": "batch=1&item=1",
+                "value": 0
+            }},
+            {{
+                "id": "batch=1&item=2",
+                "value": -2
+            }}
+        ]
+    }}
+]
 """
     return system_prompt
 
@@ -123,7 +169,7 @@ SYSTEM_PROMPT = format_system_prompt(CHECKLIST, BATCH_SIZE)
 class Measure:
     system_prompt: Optional[str]
     user_prompt: str
-    responses: list[DocumentDetails]
+    responses: list[BatchResponse]
     measurements: list[ChecklistAnswerCleaned]
     metadata: dict
 
@@ -135,6 +181,9 @@ class Measure:
             raise ValueError("Invalid user_prompt.")
         
         system_prompt = SYSTEM_PROMPT.strip()
+        print(f"System prompt: {system_prompt}")
+        # exit(0)
+
         chat_message_list = [
             ChatMessage(
                 role=MessageRole.SYSTEM,
@@ -148,11 +197,11 @@ class Measure:
 
         user_prompt_list = [
             user_prompt,
-            f"next batch, checklist indexes from {BATCH_SIZE + 1} to {BATCH_SIZE * 2} (inclusive)",
+            f"Now process batch 2",
             # "next batch",
         ]
 
-        responses: list[DocumentDetails] = []
+        responses: list[BatchResponse] = []
         metadata_list: list[dict] = []
         for user_prompt_index, user_prompt_item in enumerate(user_prompt_list, start=1):
             logger.info(f"Processing user_prompt_index: {user_prompt_index} of {len(user_prompt_list)}")
@@ -164,7 +213,7 @@ class Measure:
             )
 
             def execute_function(llm: LLM) -> dict:
-                sllm = llm.as_structured_llm(DocumentDetails)
+                sllm = llm.as_structured_llm(BatchResponse)
                 chat_response = sllm.chat(chat_message_list)
                 metadata = dict(llm.metadata)
                 metadata["llm_classname"] = llm.class_name()
@@ -190,6 +239,7 @@ class Measure:
                 )
             )
 
+            print(f"Chat response: {result['chat_response'].raw.model_dump()}")
             responses.append(result["chat_response"].raw)
             metadata_list.append(result["metadata"])
 
@@ -199,23 +249,26 @@ class Measure:
             checklist_answers_raw.extend(response.checklist_answers)
 
         # convert CHECKLIST from list to dict, using the index as the key
-        checklist_dict = {item["index"]: item for item in CHECKLIST}
+        enriched_checklist = enrich_checklist_with_batch_id_and_item_index(CHECKLIST, BATCH_SIZE)
+        checklist_dict = {item["id"]: item for item in enriched_checklist}
         if len(checklist_dict) != len(CHECKLIST):
             raise ValueError("Checklist dict length does not match checklist list length.")
 
         # Clean the raw measurements
         measurements_cleaned: list[ChecklistAnswerCleaned] = []
         for i, measurement in enumerate(checklist_answers_raw, start=1):
-            checklist_index = measurement.checklist_index
-            checklist_item = checklist_dict.get(checklist_index)
+            checklist_id = measurement.id
+            checklist_item = checklist_dict.get(checklist_id)
             if checklist_item is None:
-                raise ValueError(f"Checklist item not found for index: {checklist_index}")
-            checklist_item_id = checklist_item["id"]
+                raise ValueError(f"Checklist item not found for id: {checklist_id}")
+            checklist_item_index = checklist_item["index"]
+            checklist_item_brief = checklist_item["brief"]
             checklist_item_explanation = checklist_item["explanation"]
             measurement_cleaned = ChecklistAnswerCleaned(
-                checklist_index=measurement.checklist_index,
-                checklist_item_id=checklist_item_id,
-                checklist_item_explanation=checklist_item_explanation,
+                id=checklist_id,
+                index=checklist_item_index,
+                brief=checklist_item_brief,
+                explanation=checklist_item_explanation,
                 value=measurement.value,
             )
             measurements_cleaned.append(measurement_cleaned)
