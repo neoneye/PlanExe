@@ -266,7 +266,7 @@ class Measure:
 
         # Clean the raw measurements
         measurements_cleaned: list[ChecklistAnswerCleaned] = []
-        for i, measurement in enumerate(checklist_answers_raw, start=1):
+        for measurement in checklist_answers_raw:
             checklist_id = measurement.id
             checklist_item = checklist_dict.get(checklist_id)
             if checklist_item is None:
@@ -283,6 +283,16 @@ class Measure:
             )
             measurements_cleaned.append(measurement_cleaned)
 
+        # Verify that all the checklist items have been answered
+        set_of_checklist_ids = set([checklist_item["id"] for checklist_item in enriched_checklist])
+        set_of_checklist_answers_ids = set([measurement.id for measurement in measurements_cleaned])
+        if set_of_checklist_ids != set_of_checklist_answers_ids:
+            diff = set_of_checklist_ids - set_of_checklist_answers_ids
+            sorted_checklist_ids = sorted(set_of_checklist_ids)
+            sorted_checklist_answers_ids = sorted(set_of_checklist_answers_ids)
+            sorted_diff = sorted(diff)
+            raise ValueError(f"Checklist item not found for ids: {sorted_diff!r} checklist ids: {sorted_checklist_ids!r} checklist answers ids: {sorted_checklist_answers_ids!r}")
+        
         metadata = {}
         for metadata_index, metadata_item in enumerate(metadata_list, start=1):
             metadata[f"metadata_{metadata_index}"] = metadata_item
