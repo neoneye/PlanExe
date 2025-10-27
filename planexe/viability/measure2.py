@@ -125,40 +125,50 @@ def format_system_prompt(checklist: list[dict], batch_size: int = 5) -> str:
     # print(f"Enriched checklist: {json_enriched_checklist}")
 
     system_prompt = f"""
-You are an expert strategic analyst.
+You are an expert strategic analyst. Your task is to analyze the provided query against a checklist of items. You will do this in batches.
 
-Go through the checklist, you are going to do {number_of_batches} batches.
-Each checklist item has a unique id, defined by the "id" key, that contains the batch index and the item index.
-When asked to process batch N, you should only process the checklist items that have the batch index N.
+The checklist is divided into {number_of_batches} batches. Each batch has up to 5 items.
+- Each item has a unique "id" like "batch=1&item=0".
+- Only process items from the current batch.
+- For each item, assign a value from -2 to 2 based on how well the query matches the item's explanation. -2 is strong negative (yes, it's a big problem), -1 is weak negative, 0 is neutral, 1 is weak positive, 2 is strong positive (no, it's not a problem).
 
 checklist:
 {json_enriched_checklist}
 
-Your response should be a BatchResponse object. 
-The batch_index should be the index of the batch, starting from 1.
-In the first response you will process batch 1, in the second response you will process batch 2, etc.
-The "checklist_answers" list MUST contain all the items belonging to the batch. It must never be empty.
+Process batches one at a time across responses:
+- The first user message contains the query to analyze. Automatically process batch 1 for it.
+- Later user messages will say something like "process batch 2" or "next batch". Process only that batch.
+- Think step-by-step: For the current batch, evaluate each item one by one against the query. Then output the results.
+- Your response must be valid JSON for a single BatchResponse object. Do not add extra text, lists, or wrappers.
+- "batch_index" is the current batch number (starting at 1).
+- "checklist_answers" must include ALL items for the batch (exactly 5 for full batches, fewer for the last). It must NEVER be empty or incomplete.
 
-Example of a valid response:
-[
-    {{
-        "batch_index": 1,
-        "checklist_answers": [
-            {{
-                "id": "batch=1&item=0",
-                "value": -2
-            }},
-            {{
-                "id": "batch=1&item=1",
-                "value": 0
-            }},
-            {{
-                "id": "batch=1&item=2",
-                "value": -2
-            }}
-        ]
-    }}
-]
+Example of a valid response (pure JSON, no extra text):
+{{
+    "batch_index": 1,
+    "checklist_answers": [
+        {{
+            "id": "batch=1&item=0",
+            "value": -2
+        }},
+        {{
+            "id": "batch=1&item=1",
+            "value": 0
+        }},
+        {{
+            "id": "batch=1&item=2",
+            "value": -2
+        }},
+        {{
+            "id": "batch=1&item=3",
+            "value": 1
+        }},
+        {{
+            "id": "batch=1&item=4",
+            "value": -1
+        }}
+    ]
+}}
 """
     return system_prompt
 
