@@ -6,7 +6,7 @@ PROMPT> python -u -m planexe.viability.measure2 | tee output.txt
 import json
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 from dataclasses import dataclass
 import uuid
 from llama_index.core.llms.llm import LLM
@@ -284,8 +284,8 @@ class Measure:
             measurements_cleaned.append(measurement_cleaned)
 
         # Verify that all the checklist items have been answered
-        set_of_checklist_ids = set([checklist_item["id"] for checklist_item in enriched_checklist])
-        set_of_checklist_answers_ids = set([measurement.id for measurement in measurements_cleaned])
+        set_of_checklist_ids = set[Any]([checklist_item["id"] for checklist_item in enriched_checklist])
+        set_of_checklist_answers_ids = set[str]([measurement.id for measurement in measurements_cleaned])
         if set_of_checklist_ids != set_of_checklist_answers_ids:
             diff = set_of_checklist_ids - set_of_checklist_answers_ids
             sorted_checklist_ids = sorted(set_of_checklist_ids)
