@@ -1,7 +1,7 @@
 """
 Measure from a checklist of items, if the plan is viable.
 
-PROMPT> python -m planexe.viability.measure
+PROMPT> python -m planexe.viability.measure1
 """
 import json
 import logging
