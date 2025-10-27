@@ -28,7 +28,7 @@ class BatchResponse(BaseModel):
     batch_index: int = Field(
         description="Which batch of the checklist is this answer for."
     )
-    checklist_answers: list[ChecklistAnswer] = Field(
+    answers: list[ChecklistAnswer] = Field(
         description="Answers to the checklist."
     )
 
@@ -129,26 +129,35 @@ You are an expert strategic analyst. Your task is to analyze the provided query 
 
 The checklist is divided into {number_of_batches} batches. Each batch has up to 5 items.
 - Each item has a unique "id" like "batch=1&item=0".
-- Only process items from the current batch.
+- Only process items from the current batch. Never process a batch that has already been processed.
 - For each item, assign a value from -2 to 2 based on how well the query matches the item's explanation. -2 is strong negative (yes, it's a big problem), -1 is weak negative, 0 is neutral, 1 is weak positive, 2 is strong positive (no, it's not a problem).
 
 # The Complete Checklist
 {json_enriched_checklist}
 
 # Turn-by-Turn Instructions
-1. When you first receive the user's plan, your task is to process **batch 1**.
-2. In subsequent messages, I will explicitly tell you which batch to process next (e.g., "Now process batch 2").
-3. Always prioritize the most recent user instruction. When the user asks to process batch 2, then the "batch_index" MUST be 2, and the answers must be for the items in batch 2. When the user asks to process batch 3, then the same rules apply, etc.
+1. First your task is to process **batch 1**.
+2. In subsequent messages, the user will explicitly tell you which batch to process next. When the user asks "Now process batch 2", then the "batch_index" MUST be 2, and the answers must be for the items in batch 2. When the user asks to process batch 3, then the same rules apply, etc.
 
 # Output Format
 - Your response MUST be a single, valid JSON object matching the `BatchResponse` schema.
 - The `batch_index` MUST match the batch number you were instructed to process.
-- The `checklist_answers` list MUST contain an entry for EVERY item in the requested batch. It must NEVER be empty or incomplete.
+- The `answers` list MUST contain an entry for EVERY item in the requested batch. It must NEVER be empty or incomplete.
+
+Use the following JSON models:
+
+### BatchResponse
+- **batch_index** (int): The current batch that is being processed. Starts at 1, increments by 1 for each subsequent batch.
+- **answers** (list of ChecklistAnswer): Answers to the checklist items in the current batch.
+
+### ChecklistAnswer
+- **id** (str): The id of the checklist item, containing the batch number and item index.
+- **value** (int): The value of the answer to the checklist item.
 
 # Example of a valid response for batch 1:
 {{
     "batch_index": 1,
-    "checklist_answers": [
+    "answers": [
         {{
             "id": "batch=1&item=0",
             "value": -2
@@ -175,7 +184,7 @@ The checklist is divided into {number_of_batches} batches. Each batch has up to 
 # Example of a valid response for batch 2:
 {{
     "batch_index": 2,
-    "checklist_answers": [
+    "answers": [
         {{
             "id": "batch=2&item=0",
             "value": -2
@@ -236,7 +245,7 @@ class Measure:
 
         user_prompt_list = [
             user_prompt,
-            f"Now process batch 2",
+            f"Now process batch_index 2",
             # "next batch",
         ]
 
@@ -283,9 +292,9 @@ class Measure:
             metadata_list.append(result["metadata"])
 
         # from the raw_responses, extract the measurements into a flatten list
-        checklist_answers_raw: list[ChecklistAnswer] = []
+        answers_raw: list[ChecklistAnswer] = []
         for response in responses:
-            checklist_answers_raw.extend(response.checklist_answers)
+            answers_raw.extend(response.answers)
 
         # convert CHECKLIST from list to dict, using the index as the key
         enriched_checklist = enrich_checklist_with_batch_id_and_item_index(CHECKLIST, BATCH_SIZE)
@@ -295,7 +304,7 @@ class Measure:
 
         # Clean the raw measurements
         measurements_cleaned: list[ChecklistAnswerCleaned] = []
-        for measurement in checklist_answers_raw:
+        for measurement in answers_raw:
             checklist_id = measurement.id
             checklist_item = checklist_dict.get(checklist_id)
             if checklist_item is None:
@@ -314,13 +323,13 @@ class Measure:
 
         # Verify that all the checklist items have been answered
         set_of_checklist_ids = set[Any]([checklist_item["id"] for checklist_item in enriched_checklist])
-        set_of_checklist_answers_ids = set[str]([measurement.id for measurement in measurements_cleaned])
-        if set_of_checklist_ids != set_of_checklist_answers_ids:
-            diff = set_of_checklist_ids - set_of_checklist_answers_ids
+        set_of_answer_ids = set[str]([measurement.id for measurement in measurements_cleaned])
+        if set_of_checklist_ids != set_of_answer_ids:
+            diff = set_of_checklist_ids - set_of_answer_ids
             sorted_checklist_ids = sorted(set_of_checklist_ids)
-            sorted_checklist_answers_ids = sorted(set_of_checklist_answers_ids)
+            sorted_answer_ids = sorted(set_of_answer_ids)
             sorted_diff = sorted(diff)
-            raise ValueError(f"Checklist item not found for ids: {sorted_diff!r} checklist ids: {sorted_checklist_ids!r} checklist answers ids: {sorted_checklist_answers_ids!r}")
+            raise ValueError(f"Checklist item not found for ids: {sorted_diff!r} checklist ids: {sorted_checklist_ids!r} answer ids: {sorted_answer_ids!r}")
         
         metadata = {}
         for metadata_index, metadata_item in enumerate(metadata_list, start=1):
@@ -371,10 +380,10 @@ if __name__ == "__main__":
     prompt_catalog = PromptCatalog()
     prompt_catalog.load_simple_plan_prompts()
 
-    # prompt_id = "b9afce6c-f98d-4e9d-8525-267a9d153b51"
-    # prompt_id = "a6bef08b-c768-4616-bc28-7503244eff02"
+    prompt_id = "b9afce6c-f98d-4e9d-8525-267a9d153b51"
+    prompt_id = "a6bef08b-c768-4616-bc28-7503244eff02"
     # prompt_id = "19dc0718-3df7-48e3-b06d-e2c664ecc07d"
-    prompt_id = "e42eafce-5c8c-4801-b9f1-b8b2a402cd78"
+    # prompt_id = "e42eafce-5c8c-4801-b9f1-b8b2a402cd78"
     prompt_item = prompt_catalog.find(prompt_id)
     if not prompt_item:
         raise ValueError("Prompt item not found.")
