@@ -248,8 +248,8 @@ BATCH_SIZE = 5
 
 @dataclass
 class ViabilityChecklist:
-    system_prompt: Optional[str]
-    user_prompt: str
+    system_prompt_list: list[str]
+    user_prompt_list: list[str]
     responses: list[ChecklistResponse]
     measurements: list[ChecklistAnswerCleaned]
     metadata: dict
@@ -270,12 +270,11 @@ class ViabilityChecklist:
         system_prompt_list = []
         for group_index in range(0, number_of_groups):
             system_prompt = format_system_prompt(checklist=CHECKLIST, batch_size=BATCH_SIZE, current_batch_index=group_index)
-            print(f"system prompt[{group_index}]:\n{system_prompt}")
             system_prompt_list.append(system_prompt)
-
 
         responses: list[ChecklistResponse] = []
         metadata_list: list[dict] = []
+        user_prompt_list = []
         for group_index in range(0, number_of_groups):
             logger.info(f"Processing group {group_index+1} of {number_of_groups}")
             system_prompt = system_prompt_list[group_index]
@@ -287,11 +286,11 @@ class ViabilityChecklist:
                     checklist_answers_raw.extend(response.checklist_answers)
                 previous_responses_dict = [answer.model_dump() for answer in checklist_answers_raw]
                 previous_responses_str = json.dumps(previous_responses_dict, indent=2)
-                # print(f"Previous responses: {previous_responses_str}")
-                # exit(0)
                 user_prompt_with_previous_responses = f"{user_prompt}\n\n# Checklist Answers\n{previous_responses_str}"
             else:
                 user_prompt_with_previous_responses = user_prompt
+
+            user_prompt_list.append(user_prompt_with_previous_responses)
 
             chat_message_list = [
                 ChatMessage(
@@ -331,7 +330,7 @@ class ViabilityChecklist:
                 )
             )
 
-            print(f"Chat response: {result['chat_response'].raw.model_dump()}")
+            logger.debug(f"Chat response: {result['chat_response'].raw.model_dump()}")
             responses.append(result["chat_response"].raw)
             metadata_list.append(result["metadata"])
 
@@ -384,8 +383,8 @@ class ViabilityChecklist:
         markdown = cls.convert_to_markdown(measurements_cleaned)
 
         result = ViabilityChecklist(
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
+            system_prompt_list=system_prompt_list,
+            user_prompt_list=user_prompt_list,
             responses=responses,
             measurements=measurements_cleaned,
             metadata=metadata,
@@ -397,14 +396,14 @@ class ViabilityChecklist:
         d = {}
         if include_responses:
             d["responses"] = [response.model_dump() for response in self.responses]
-        if include_cleaned_measurments:
-            d['measurements'] = [measurement.model_dump() for measurement in self.measurements]
         if include_metadata:
             d['metadata'] = self.metadata
         if include_system_prompt:
-            d['system_prompt'] = self.system_prompt
+            d['system_prompt_list'] = self.system_prompt_list
         if include_user_prompt:
-            d['user_prompt'] = self.user_prompt
+            d['user_prompt_list'] = self.user_prompt_list
+        if include_cleaned_measurments:
+            d['measurements'] = [measurement.model_dump() for measurement in self.measurements]
         return d
 
     def save_raw(self, file_path: str) -> None:
