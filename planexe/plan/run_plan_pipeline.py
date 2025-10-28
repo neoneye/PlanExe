@@ -77,6 +77,7 @@ from planexe.viability.summary import ViabilitySummary
 from planexe.viability.domains import ViabilityDomains
 from planexe.viability.blockers import ViabilityBlockers
 from planexe.viability.fixpack import ViabilityFixPack
+from planexe.viability.checklist import ViabilityChecklist
 from planexe.wbs.wbs_task import WBSTask, WBSProject
 from planexe.wbs.wbs_populate import WBSPopulate
 from planexe.wbs.wbs_task_tooltip import WBSTaskTooltip
@@ -3885,6 +3886,96 @@ class ViabilitySummaryTask(PlanTask):
         markdown_path = self.output()['markdown'].path
         viability_summary.save_markdown(markdown_path)
 
+class ViabilityChecklistTask(PlanTask):
+    def output(self):
+        return {
+            'raw': self.local_target(FilenameEnum.VIABILITY_CHECKLIST_RAW),
+            'markdown': self.local_target(FilenameEnum.VIABILITY_CHECKLIST_MARKDOWN)
+        }
+    
+    def requires(self):
+        return {
+            'strategic_decisions_markdown': self.clone(StrategicDecisionsMarkdownTask),
+            'scenarios_markdown': self.clone(ScenariosMarkdownTask),
+            'consolidate_assumptions_markdown': self.clone(ConsolidateAssumptionsMarkdownTask),
+            'team_markdown': self.clone(TeamMarkdownTask),
+            'related_resources': self.clone(RelatedResourcesTask),
+            'consolidate_governance': self.clone(ConsolidateGovernanceTask),
+            'swot_analysis': self.clone(SWOTAnalysisTask),
+            'pitch_markdown': self.clone(ConvertPitchToMarkdownTask),
+            'data_collection': self.clone(DataCollectionTask),
+            'documents_to_create_and_find': self.clone(MarkdownWithDocumentsToCreateAndFindTask),
+            'wbs_project123': self.clone(WBSProjectLevel1AndLevel2AndLevel3Task),
+            'expert_review': self.clone(ExpertReviewTask),
+            'project_plan': self.clone(ProjectPlanTask),
+            'review_plan': self.clone(ReviewPlanTask),
+            'questions_and_answers': self.clone(QuestionsAndAnswersTask),
+            'premortem': self.clone(PremortemTask)
+        }
+    
+    def run_inner(self):
+        llm_executor: LLMExecutor = self.create_llm_executor()
+
+        # Read inputs from required tasks.
+        with self.input()['strategic_decisions_markdown']['markdown'].open("r") as f:
+            strategic_decisions_markdown = f.read()
+        with self.input()['scenarios_markdown']['markdown'].open("r") as f:
+            scenarios_markdown = f.read()
+        with self.input()['consolidate_assumptions_markdown']['short'].open("r") as f:
+            assumptions_markdown = f.read()
+        with self.input()['project_plan']['markdown'].open("r") as f:
+            project_plan_markdown = f.read()
+        with self.input()['data_collection']['markdown'].open("r") as f:
+            data_collection_markdown = f.read()
+        with self.input()['related_resources']['markdown'].open("r") as f:
+            related_resources_markdown = f.read()
+        with self.input()['swot_analysis']['markdown'].open("r") as f:
+            swot_analysis_markdown = f.read()
+        with self.input()['team_markdown'].open("r") as f:
+            team_markdown = f.read()
+        with self.input()['pitch_markdown']['markdown'].open("r") as f:
+            pitch_markdown = f.read()
+        with self.input()['expert_review'].open("r") as f:
+            expert_review = f.read()
+        with self.input()['wbs_project123']['csv'].open("r") as f:
+            wbs_project_csv = f.read()
+        with self.input()['review_plan']['markdown'].open("r") as f:
+            review_plan_markdown = f.read()
+        with self.input()['questions_and_answers']['markdown'].open("r") as f:
+            questions_and_answers_markdown = f.read()
+        with self.input()['premortem']['markdown'].open("r") as f:
+            premortem_markdown = f.read()
+
+        # Build the query.
+        user_prompt = (
+            f"File 'strategic_decisions.md':\n{strategic_decisions_markdown}\n\n"
+            f"File 'scenarios.md':\n{scenarios_markdown}\n\n"
+            f"File 'assumptions.md':\n{assumptions_markdown}\n\n"
+            f"File 'project-plan.md':\n{project_plan_markdown}\n\n"
+            f"File 'data-collection.md':\n{data_collection_markdown}\n\n"
+            f"File 'related-resources.md':\n{related_resources_markdown}\n\n"
+            f"File 'swot-analysis.md':\n{swot_analysis_markdown}\n\n"
+            f"File 'team.md':\n{team_markdown}\n\n"
+            f"File 'pitch.md':\n{pitch_markdown}\n\n"
+            f"File 'expert-review.md':\n{expert_review}\n\n"
+            f"File 'work-breakdown-structure.csv':\n{wbs_project_csv}\n\n"
+            f"File 'review-plan.md':\n{review_plan_markdown}\n\n"
+            f"File 'questions-and-answers.md':\n{questions_and_answers_markdown}\n\n"
+            f"File 'premortem.md':\n{premortem_markdown}"
+        )
+
+        # Invoke the LLM
+        viability_checklist = ViabilityChecklist.execute(
+            llm_executor=llm_executor, 
+            user_prompt=user_prompt,
+        )
+
+        # Save the results.
+        json_path = self.output()['raw'].path
+        viability_checklist.save_raw(json_path)
+        markdown_path = self.output()['markdown'].path
+        viability_checklist.save_markdown(markdown_path)
+
 class ReportTask(PlanTask):
     """
     Generate a report html document.
@@ -3919,7 +4010,8 @@ class ReportTask(PlanTask):
             'viability_domains': self.clone(ViabilityDomainsTask),
             'viability_blockers': self.clone(ViabilityBlockersTask),
             'viability_fix_packs': self.clone(ViabilityFixPacksTask),
-            'viability_summary': self.clone(ViabilitySummaryTask)
+            'viability_summary': self.clone(ViabilitySummaryTask),
+            'viability_checklist': self.clone(ViabilityChecklistTask)
         }
     
     def run_inner(self):
@@ -3956,6 +4048,7 @@ class ReportTask(PlanTask):
             summary_critical_issues_markdown_file_path=Path(self.input()['viability_summary']['critical_issues_markdown'].path),
             summary_flips_to_go_markdown_file_path=Path(self.input()['viability_summary']['flips_to_go_markdown'].path),
         )
+        rg.append_markdown('Viability Checklist', self.input()['viability_checklist']['markdown'].path)
         rg.append_initial_prompt_vetted(
             document_title='Initial Prompt Vetted', 
             initial_prompt_file_path=self.input()['setup'].path, 
@@ -4031,6 +4124,7 @@ class FullPlanPipeline(PlanTask):
             'viability_blockers': self.clone(ViabilityBlockersTask),
             'viability_fix_packs': self.clone(ViabilityFixPacksTask),
             'viability_summary': self.clone(ViabilitySummaryTask),
+            'viability_checklist': self.clone(ViabilityChecklistTask),
             'report': self.clone(ReportTask),
         }
 
