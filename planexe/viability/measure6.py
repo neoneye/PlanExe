@@ -74,7 +74,7 @@ CHECKLIST = [
         "index": 3,
         "brief": "use of buzzwords",
         "explanation": "does the plan use excessive buzzwords without evidence of knowledge",
-        "comment": "PlanExe often ends up using buzzwords such as blockchain, DAO, VR, AR, and expects that a one person without developer background can implement the plan."
+        "comment": "PlanExe often ends up using buzzwords such as blockchain, DAO, VR, AR, and expects that one person without developer background can implement the plan."
     },
     {
         "index": 4,
