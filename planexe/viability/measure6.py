@@ -62,76 +62,91 @@ CHECKLIST = [
         "index": 1,
         "brief": "fantasy technology",
         "explanation": "does this project rely on tech such as faster than light travel, that isn't grounded in reality",
+        "comment": "If the initial prompt is vague/scifi/aggressive or asks for something that is physically impossible, then the generated plan usually end up with some fantasy parts, making the plan unrealistic."
     },
     {
         "index": 2,
         "brief": "unproven technology",
         "explanation": "does this project rely on a new technology that has never been used before. eg. a white paper that hasn't been tested in the real world",
+        "comment": "It's rarely smooth sailing when using new technology that no human has ever been used before. PlanExe sometimes picking a scenario that is way too ambitious."
     },
     {
         "index": 3,
         "brief": "use of buzzwords",
         "explanation": "does the plan use excessive buzzwords without evidence of knowledge",
+        "comment": "PlanExe often ends up using buzzwords such as blockchain, DAO, VR, AR, and expects that a one person without developer background can implement the plan."
     },
     {
         "index": 4,
         "brief": "underestimating risks",
         "explanation": "does this plan grossly underestimate risks",
+        "comment": "Despite PlanExe trying to uncover many risks, there are often risks that are not identified, or some significant risk gets neglected."
     },
     {
         "index": 5,
         "brief": "budget too low",
         "explanation": "does this plan assume a budget that is too low to achieve the goals",
+        "comment": "Often the user specifies a 100 USD budget in the initial prompt, where the generated plan requires millions of dollars to implement. Or the budget grows during the plan generation, so the money needed ends up being much higher than expected."
     },
     {
         "index": 6,
         "brief": "overconfident",
         "explanation": "does this plan grossly overestimate the likelihood of success",
+        "comment": "The generated plan describes a sunshine scenario that is likely to go wrong, without any buffers or contingency plans."
     },
     {
         "index": 7,
         "brief": "technical vague",
         "explanation": "does the plan lack the important technical steps",
+        "comment": "Some plans involves serious engineering, but the generated plan is missing the technical details that explain how to overcome the technical challenges. Nailing the technical details is crucial."
     },
     {
         "index": 8,
         "brief": "lack evidence",
         "explanation": "does the plan do a poor job of providing evidence for the claims",
+        "comment": "Often the generated plan specifies numbers/facts/concepts without any evidence to support the claims. These will have to be fact checked and adjusted in a refinement of the plan."
     },
     {
         "index": 9,
         "brief": "deliverables unclear",
         "explanation": "are the deliverables unclear or missing",
+        "comment": "Some projects involves many components, without a clear specification of each component."
     },
     {
         "index": 10,
         "brief": "overengineered plan",
         "explanation": "is the plan overkill for the problem at hand",
+        "comment": "For a 'Make me a cup of coffee' prompt, then the generated plan is overkill and involves lots of people and resources."
     },
     {
         "index": 11,
         "brief": "underestimate team size",
         "explanation": "does the plan underestimate the number of people needed to achieve the goals",
+        "comment": "For a 'Construct a bridge' prompt, then the generated plan is likely to underestimate the number of people needed to achieve the goals."
     },
     {
         "index": 12,
         "brief": "overestimate team size",
         "explanation": "does the plan overestimate the number of people needed to achieve the goals",
+        "comment": "For a 'Im a solo entrepreneur and is making everything myself' prompt, then the generated plan is likely suggesting to hire a huge team of people, and ignoring the fact that the entrepreneur is doing everything themselves."
     },
     {
         "index": 13,
         "brief": "legal minefield",
         "explanation": "does the plan require lawyers, or have a high chance of getting sued, corruption, harmful, doing things that are illegal, etc.",
+        "comment": "Sometimes the generated plan describes a sunshine scenario where everything goes smoothly, without any lawyers or legal issues."
     },
     {
         "index": 14,
         "brief": "impossible to achieve",
         "explanation": "are there constraints that make it impossible to achieve the goals",
+        "comment": "Getting a permit to build a spaceship launch pad in the center of the city is likely going to be rejected."
     },
     {
         "index": 15,
         "brief": "other red flags",
         "explanation": "are there other red flags not accounted for in this checklist",
+        "comment": "This checklist is not exhaustive. Besides what is listed in this checklist, there are other red flags that are not accounted for in this checklist."
     }
 ]
 
@@ -152,6 +167,9 @@ def format_system_prompt(*, checklist: list[dict], batch_size: int = 5, current_
         number_of_batches += 1
 
     enriched_checklist = enrich_checklist_with_batch_id_and_item_index(checklist, batch_size)
+
+    # remove the "comment" key from each item in the enriched_checklist
+    enriched_checklist = [{k: v for k, v in item.items() if k != "comment"} for item in enriched_checklist]
 
     # assign status=TODO to the items that have batch_index == current_batch_index
     for item in enriched_checklist:
