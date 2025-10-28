@@ -1,7 +1,7 @@
 """
-Measure from a checklist of items, if the plan is viable.
+Go through a checklist, to determine if there are problems with the plan.
 
-PROMPT> python -u -m planexe.viability.measure6 | tee output.txt
+PROMPT> python -u -m planexe.viability.checklist | tee output.txt
 """
 import json
 import logging
@@ -247,7 +247,7 @@ Your job is to answer the checklist items that have status TODO.
 BATCH_SIZE = 5
 
 @dataclass
-class Measure:
+class ViabilityChecklist:
     system_prompt: Optional[str]
     user_prompt: str
     responses: list[ChecklistResponse]
@@ -256,7 +256,7 @@ class Measure:
     markdown: str
 
     @classmethod
-    def execute(cls, llm_executor: LLMExecutor, user_prompt: str) -> 'Measure':
+    def execute(cls, llm_executor: LLMExecutor, user_prompt: str) -> 'ViabilityChecklist':
         if not isinstance(llm_executor, LLMExecutor):
             raise ValueError("Invalid LLMExecutor instance.")
         if not isinstance(user_prompt, str):
@@ -383,7 +383,7 @@ class Measure:
 
         markdown = cls.convert_to_markdown(measurements_cleaned)
 
-        result = Measure(
+        result = ViabilityChecklist(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             responses=responses,
@@ -475,16 +475,16 @@ if __name__ == "__main__":
     llm_executor = LLMExecutor(llm_models=llm_models)
 
     print(f"Query: {query}")
-    result = Measure.execute(llm_executor, query)
+    result = ViabilityChecklist.execute(llm_executor, query)
 
     print("\nResult:")
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print(json.dumps(json_response, indent=2))
 
-    test_data_filename = f"measure_{prompt_id}.json"
+    test_data_filename = f"viability_checklist_{prompt_id}.json"
     result.save_clean(Path(test_data_filename))
     print(f"Test data saved to: {test_data_filename!r}")
 
-    markdown_filename = f"measure_{prompt_id}.md"
+    markdown_filename = f"viability_checklist_{prompt_id}.md"
     result.save_markdown(Path(markdown_filename))
     print(f"Markdown saved to: {markdown_filename!r}")
