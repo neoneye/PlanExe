@@ -435,7 +435,7 @@ class ViabilityChecklist:
         for index, item in enumerate(checklist_answers):
             if index > 0:
                 rows.append("\n")
-            rows.append(f"## Checklist Item {index+1} - {item.brief}\n")
+            rows.append(f"## {index+1}. {item.brief}\n")
             rows.append(f"*{item.explanation}*\n")
             value_description = value_map.get(item.value, "unknown")
             rows.append(f"**Value**: {value_description}\n")
