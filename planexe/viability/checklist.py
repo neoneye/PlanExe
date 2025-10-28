@@ -219,12 +219,14 @@ You must answer the checklist items with the following ids (in this EXACT order)
 
 Your job is to answer the checklist items that have status TODO.
 - Only process items with status TODO. Ignore items with status DONE or PENDING.
-- For each item, assign a value from -2 to 2 based on how well the query matches the item's explanation:
-  -2 = strong no, it's not a problem
+- For each item, assign a value from -2 to 2. Remember: every item is a RED FLAG.
+  -2 = strong no (red flag absent)
   -1 = weak no
-   0 = neutral/uncertain
-   1 = weak yes
-   2 = strong yes, it's a big problem
+   0 = uncertain
+   1 = weak yes (red flag present)
+   2 = strong yes (red flag clearly present)
+
+- In your reasoning, include 1–2 short **verbatim quotes** from the query that justify the value. If you cannot quote anything concrete, say “No direct evidence” and consider lowering the value.
 - For each item, provide a reasoning for the value and not another value.
 - For each item, provide a proposal for improvement that would make the problem go away.
 - The reasoning and improve should be 30 words.
