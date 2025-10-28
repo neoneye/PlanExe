@@ -253,6 +253,7 @@ class Measure:
     responses: list[ChecklistResponse]
     measurements: list[ChecklistAnswerCleaned]
     metadata: dict
+    markdown: str
 
     @classmethod
     def execute(cls, llm_executor: LLMExecutor, user_prompt: str) -> 'Measure':
@@ -380,12 +381,15 @@ class Measure:
         for metadata_index, metadata_item in enumerate(metadata_list, start=1):
             metadata[f"metadata_{metadata_index}"] = metadata_item
 
+        markdown = cls.convert_to_markdown(measurements_cleaned)
+
         result = Measure(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             responses=responses,
             measurements=measurements_cleaned,
             metadata=metadata,
+            markdown=markdown,
         )
         return result    
 
@@ -415,7 +419,35 @@ class Measure:
     def save_clean(self, file_path: str) -> None:
         measurements_dict = self.measurement_item_list()
         Path(file_path).write_text(json.dumps(measurements_dict, indent=2))
-    
+
+    @staticmethod
+    def convert_to_markdown(checklist_answers: list[ChecklistAnswerCleaned]) -> str:
+        """
+        Convert the raw checklist answers to markdown.
+        """
+        value_map = {
+            -2: "Strong no",
+            -1: "Weak no",
+            0: "Neutral",
+            1: "Weak yes",
+            2: "Strong yes",
+        }
+        rows = []
+        for index, item in enumerate(checklist_answers):
+            if index > 0:
+                rows.append("\n")
+            rows.append(f"## Checklist Item {index+1} - {item.brief}\n")
+            rows.append(f"*{item.explanation}*\n")
+            value_description = value_map.get(item.value, "unknown")
+            rows.append(f"**Value**: {value_description}\n")
+            rows.append(f"**Reasoning**: {item.reasoning}\n")
+            rows.append(f"**Improve**: {item.improve}")
+        return "\n".join(rows)
+
+    def save_markdown(self, output_file_path: str):
+        with open(output_file_path, 'w', encoding='utf-8') as f:
+            f.write(self.markdown)
+
 if __name__ == "__main__":
     from planexe.llm_util.llm_executor import LLMModelFromName
     from planexe.prompt.prompt_catalog import PromptCatalog
@@ -452,3 +484,7 @@ if __name__ == "__main__":
     test_data_filename = f"measure_{prompt_id}.json"
     result.save_clean(Path(test_data_filename))
     print(f"Test data saved to: {test_data_filename!r}")
+
+    markdown_filename = f"measure_{prompt_id}.md"
+    result.save_markdown(Path(markdown_filename))
+    print(f"Markdown saved to: {markdown_filename!r}")
