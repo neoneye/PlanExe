@@ -425,11 +425,11 @@ class ViabilityChecklist:
         Convert the raw checklist answers to markdown.
         """
         value_map = {
-            -2: "Strong no",
-            -1: "Weak no",
-            0: "Neutral",
-            1: "Weak yes",
-            2: "Strong yes",
+            -2: "Absent (strong), clear evidence the red flag is not present.",
+            -1: "Absent (weak), likely not present, minor doubt.",
+            0: "Uncertain, insufficient evidence.",
+            1: "Present (weak), some evidence the red flag is present.",
+            2: "Present (strong), clear evidence the red flag is present.",
         }
         rows = []
         for index, item in enumerate(checklist_answers):
@@ -437,7 +437,7 @@ class ViabilityChecklist:
                 rows.append("\n")
             rows.append(f"## {index+1}. {item.brief}\n")
             rows.append(f"*{item.explanation}*\n")
-            value_description = value_map.get(item.value, "unknown")
+            value_description = value_map.get(item.value, "Unknown value")
             rows.append(f"**Value**: {value_description}\n")
             rows.append(f"**Reasoning**: {item.reasoning}\n")
             rows.append(f"**Improve**: {item.improve}")
