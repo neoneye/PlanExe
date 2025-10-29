@@ -19,14 +19,14 @@ class ChecklistAnswer(BaseModel):
     id: str = Field(
         description="Id of this checklist item."
     )
-    value: int = Field(
-        description="Parameter value -2 to 2. Where -2 is the strong no, -1 is the weak no, 0 is neutral, 1 is the weak yes, 2 is the strong yes."
+    level: int = Field(
+        description="A level between -2 and 2. Where -2 is the strong no, -1 is the weak no, 0 is neutral, 1 is the weak yes, 2 is the strong yes."
     )
     reasoning: str = Field(
-        description="Why this value and not another value. 30 words."
+        description="Why this level and not another level. 30 words."
     )
     improve: str = Field(
-        description="Propose changes to the plan that would improve the value. 30 words."
+        description="Propose changes to the plan that would improve the level. 30 words."
     )
 
 class ChecklistResponse(BaseModel):
@@ -47,14 +47,14 @@ class ChecklistAnswerCleaned(BaseModel):
     explanation: str = Field(
         description="Explain this measurement. 30 words."
     )
-    value: int = Field(
-        description="Parameter value -2 to 2. Where -2 is the strong no, -1 is the weak no, 0 is neutral, 1 is the weak yes, 2 is the strong yes."
+    level: int = Field(
+        description="A level between -2 and 2. Where -2 is the strong no, -1 is the weak no, 0 is neutral, 1 is the weak yes, 2 is the strong yes."
     )
     reasoning: str = Field(
-        description="Why this value and not another value. 30 words."
+        description="Why this level and not another level. 30 words."
     )
     improve: str = Field(
-        description="Propose changes to the plan that would improve the value. 30 words."
+        description="Propose changes to the plan that would improve the level. 30 words."
     )
 
 CHECKLIST = [
@@ -187,7 +187,7 @@ def format_system_prompt(*, checklist: list[dict], batch_size: int = 5, current_
             continue
         checklist_answer = ChecklistAnswer(
             id=item["id"],
-            value=0,
+            level=0,
             reasoning="",
             improve="",
         )
@@ -219,15 +219,15 @@ You must answer the checklist items with the following ids (in this EXACT order)
 
 Your job is to answer the checklist items that have status TODO.
 - Only process items with status TODO. Ignore items with status DONE or PENDING.
-- For each item, assign a value from -2 to 2. Remember: every item is a RED FLAG.
+- For each item, assign a level from -2 to 2. Remember: every item is a RED FLAG.
   -2 = strong no (red flag absent)
   -1 = weak no
    0 = uncertain
    1 = weak yes (red flag present)
    2 = strong yes (red flag clearly present)
 
-- In your reasoning, include 1–2 short **verbatim quotes** from the query that justify the value. If you cannot quote anything concrete, say “No direct evidence” and consider lowering the value.
-- For each item, provide a reasoning for the value and not another value.
+- In your reasoning, include 1–2 short **verbatim quotes** from the query that justify the level. If you cannot quote anything concrete, say “No direct evidence” and consider lowering the level.
+- For each item, provide a reasoning for the level and not another level.
 - For each item, provide a proposal for improvement that would make the problem go away.
 - The reasoning and improve should be 30 words.
 
@@ -236,7 +236,7 @@ Your job is to answer the checklist items that have status TODO.
 - The "checklist_answers" array MUST contain EXACTLY {len(expected_ids)} objects, in the EXACT SAME ORDER as listed above.
 - Include EVERY id exactly once. Do NOT add or remove ids.
 - If uncertain about any item, USE 0 rather than omitting the id.
-- Each "value" MUST be one of: -2, -1, 0, 1, 2 (integers only).
+- Each "level" MUST be one of: -2, -1, 0, 1, 2 (integers only).
 
 # Output Template (fill in ONLY the numbers; DO NOT change ids or order)
 {json_response_skeleton}
@@ -362,7 +362,7 @@ class ViabilityChecklist:
                 index=checklist_item_index,
                 brief=checklist_item_brief,
                 explanation=checklist_item_explanation,
-                value=measurement.value,
+                level=measurement.level,
                 reasoning=measurement.reasoning,
                 improve=measurement.improve,
             )
@@ -426,7 +426,7 @@ class ViabilityChecklist:
         """
         Convert the raw checklist answers to markdown.
         """
-        value_map = {
+        level_map = {
             -2: "Absent (strong), clear evidence the red flag is not present.",
             -1: "Absent (weak), likely not present, minor doubt.",
             0: "Uncertain, insufficient evidence.",
@@ -439,8 +439,8 @@ class ViabilityChecklist:
                 rows.append("\n")
             rows.append(f"## {index+1}. {item.brief}\n")
             rows.append(f"*{item.explanation}*\n")
-            value_description = value_map.get(item.value, "Unknown value")
-            rows.append(f"**Value**: {value_description}\n")
+            level_description = level_map.get(item.level, "Unknown level")
+            rows.append(f"**Level**: {level_description}\n")
             rows.append(f"**Reasoning**: {item.reasoning}\n")
             rows.append(f"**Improve**: {item.improve}")
         return "\n".join(rows)
