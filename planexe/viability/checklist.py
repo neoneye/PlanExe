@@ -22,11 +22,11 @@ class ChecklistAnswer(BaseModel):
     level: int = Field(
         description="A level between -2 and 2. Where -2 is the strong no, -1 is the weak no, 0 is neutral, 1 is the weak yes, 2 is the strong yes."
     )
-    reasoning: str = Field(
+    justification: str = Field(
         description="Why this level and not another level. 30 words."
     )
-    improve: str = Field(
-        description="Propose changes to the plan that would improve the level. 30 words."
+    mitigation: str = Field(
+        description="One concrete action that reduces/removes the flag. 30 words."
     )
 
 class ChecklistResponse(BaseModel):
@@ -50,11 +50,11 @@ class ChecklistAnswerCleaned(BaseModel):
     level: int = Field(
         description="A level between -2 and 2. Where -2 is the strong no, -1 is the weak no, 0 is neutral, 1 is the weak yes, 2 is the strong yes."
     )
-    reasoning: str = Field(
+    justification: str = Field(
         description="Why this level and not another level. 30 words."
     )
-    improve: str = Field(
-        description="Propose changes to the plan that would improve the level. 30 words."
+    mitigation: str = Field(
+        description="One concrete action that reduces/removes the flag. 30 words."
     )
 
 CHECKLIST = [
@@ -188,8 +188,8 @@ def format_system_prompt(*, checklist: list[dict], batch_size: int = 5, current_
         checklist_answer = ChecklistAnswer(
             id=item["id"],
             level=0,
-            reasoning="",
-            improve="",
+            justification="",
+            mitigation="",
         )
         checklist_answers.append(checklist_answer)
     checklist_response = ChecklistResponse(
@@ -226,19 +226,62 @@ Your job is to answer the checklist items that have status TODO.
    1 = weak yes (red flag present)
    2 = strong yes (red flag clearly present)
 
-- In your reasoning, include 1–2 short **verbatim quotes** from the query that justify the level. If you cannot quote anything concrete, say “No direct evidence” and consider lowering the level.
-- For each item, provide a reasoning for the level and not another level.
-- For each item, provide a proposal for improvement that would make the problem go away.
-- The reasoning and improve should be 30 words.
+FIELD NAMES
+- Use these field names exactly (lowercase): "level", "justification", "mitigation".
+- All keys in the JSON you return must be lowercase.
+
+EVIDENCE RULES
+- In "justification", include 1–2 short verbatim quotes from the plan that support the level.
+- Use double quotes for verbatim quotes. Do not paraphrase inside quotes. If omitting words, use […] without changing wording.
+- If the flag is due to a true omission of that specific thing, write: "No direct evidence due to omission: <what is missing>."
+- Do not use omissions from unrelated areas as evidence (e.g., missing construction/logistics/permits is not evidence for Fantasy Technology).
+- Scope discipline: justify only with evidence relevant to the specific red flag.
+
+MITIGATION RULES
+- "mitigation" must be a single, concrete action that can reduce or remove the red flag (e.g., produce an artifact, run a pilot with success criteria, obtain an external review).
+- If no action is needed (e.g., level is -2 or -1 for that flag), set "mitigation" to "None needed."
+- If level is 0 (uncertain), you MUST propose a diagnostic action to obtain the missing evidence (e.g., define acceptance criteria, gather data, stakeholder interviews, independent review).
+
+FANTASY TECHNOLOGY (STRICT)
+- Definition: physics-violating or currently physically impossible claims (e.g., faster-than-light travel, warp drive, perpetual motion/over-unity, time travel, reactionless drive, antigravity, instantaneous teleportation, infinite energy, 100% security/accuracy, "violates the laws of thermodynamics").
+- Not fantasy: illegal, politically infeasible, logistically infeasible, or merely unproven/novel technologies.
+- Default: if no physics-violating claim is quoted, set "level" to -2 for Fantasy Technology. Do not set 0 due to missing construction, permits, or politics.
+- Only set +1/+2 for Fantasy Technology when you quote a physics-violating claim in "justification".
+
+COMPLETENESS RULES (STRICT)
+- "justification" MUST be a non-empty string (≥20 characters). It MUST contain either:
+  (a) at least one double-quoted excerpt from the plan relevant to the flag, OR
+  (b) the omission clause defined above.
+- Do NOT use the omission clause with Absent levels (-2, -1). For Absent levels, explicitly state the absence (e.g., "No physics-violating claims are quoted in the plan.").
+- "mitigation" MUST be a non-empty string (≥15 characters). If level is -2 or -1, set "mitigation" to "None needed." Otherwise, propose a concrete action.
+- Never leave "justification" or "mitigation" blank. Do not return empty strings or placeholders such as "", "N/A", or "TBD".
+
+REPLACEMENT RULES (STRICT)
+- The provided "json_response_skeleton" shows the schema and order ONLY. Do NOT copy its string values.
+- You MUST REPLACE ALL FIELD VALUES for "level", "justification", and "mitigation" with your own content for every item.
+- Do NOT copy or preserve any empty strings ("") from the skeleton.
+
+QUALITY CHECK BEFORE OUTPUT (STRICT)
+- Before returning JSON, verify for EVERY object in "checklist_answers":
+  - "level" is one of: -2, -1, 0, 1, 2.
+  - "justification" is non-empty and satisfies COMPLETENESS RULES.
+  - "mitigation" is non-empty and satisfies COMPLETENESS RULES.
+- If any check fails, revise that item until all checks pass.
+- There must be NO empty string values for "justification" or "mitigation" anywhere in the output.
+
+- For each item, provide a justification for the level and not another level.
+- For each item, provide a proposal for mitigation that would make the problem go away.
+- The "justification" and "mitigation" should be ~30 words each.
 
 # Output Rules (STRICT)
 - Output MUST be a single valid JSON object. No extra text, no markdown, no explanations.
 - The "checklist_answers" array MUST contain EXACTLY {len(expected_ids)} objects, in the EXACT SAME ORDER as listed above.
 - Include EVERY id exactly once. Do NOT add or remove ids.
+- Each object MUST include the fields: "id", "level", "justification", "mitigation".
 - If uncertain about any item, USE 0 rather than omitting the id.
 - Each "level" MUST be one of: -2, -1, 0, 1, 2 (integers only).
 
-# Output Template (fill in ONLY the numbers; DO NOT change ids or order)
+# Output Template (schema and order only; REPLACE ALL FIELD VALUES)
 {json_response_skeleton}
    
 # The Complete Checklist
@@ -363,8 +406,8 @@ class ViabilityChecklist:
                 brief=checklist_item_brief,
                 explanation=checklist_item_explanation,
                 level=measurement.level,
-                reasoning=measurement.reasoning,
-                improve=measurement.improve,
+                justification=measurement.justification,
+                mitigation=measurement.mitigation,
             )
             measurements_cleaned.append(measurement_cleaned)
 
@@ -441,8 +484,8 @@ class ViabilityChecklist:
             rows.append(f"*{item.explanation}*\n")
             level_description = level_map.get(item.level, "Unknown level")
             rows.append(f"**Level**: {level_description}\n")
-            rows.append(f"**Reasoning**: {item.reasoning}\n")
-            rows.append(f"**Improve**: {item.improve}")
+            rows.append(f"**Justification**: {item.justification}\n")
+            rows.append(f"**Mitigation**: {item.mitigation}")
         return "\n".join(rows)
 
     def save_markdown(self, output_file_path: str):
