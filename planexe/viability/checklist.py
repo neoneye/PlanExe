@@ -19,8 +19,8 @@ class ChecklistAnswer(BaseModel):
     id: str = Field(
         description="Id of this checklist item."
     )
-    level: int = Field(
-        description="A level between -2 and 2. Where -2 is the strong no, -1 is the weak no, 0 is neutral, 1 is the weak yes, 2 is the strong yes."
+    level: str = Field(
+        description="low, medium, high."
     )
     justification: str = Field(
         description="Why this level and not another level. 30 words."
@@ -47,8 +47,8 @@ class ChecklistAnswerCleaned(BaseModel):
     explanation: str = Field(
         description="Explain this measurement. 30 words."
     )
-    level: int = Field(
-        description="A level between -2 and 2. Where -2 is the strong no, -1 is the weak no, 0 is neutral, 1 is the weak yes, 2 is the strong yes."
+    level: str = Field(
+        description="low, medium, high."
     )
     justification: str = Field(
         description="Why this level and not another level. 30 words."
@@ -187,7 +187,7 @@ def format_system_prompt(*, checklist: list[dict], batch_size: int = 5, current_
             continue
         checklist_answer = ChecklistAnswer(
             id=item["id"],
-            level=0,
+            level="LEVEL_PLACEHOLDER",
             justification="JUSTIFICATION_PLACEHOLDER",
             mitigation="MITIGATION_PLACEHOLDER",
         )
@@ -212,90 +212,30 @@ def format_system_prompt(*, checklist: list[dict], batch_size: int = 5, current_
     json_expected_ids = json.dumps(expected_ids, indent=2)
 
     system_prompt = f"""
-You are an expert strategic analyst. Your task is to analyze the provided query against a checklist.
+You are a pure JSON function for the Viability Checklist. Output only valid JSON. No explanations, no chit-chat, no Markdown, no code fences.
 
-You must answer the checklist items with the following ids (in this EXACT order):
+GOAL
+Return exactly one object per checklist item with keys in this order: id, level, justification, mitigation.
+
+STRICT RULES
+- Output must be a single JSON array, same length and order as the expected ids.
+- Copy id from input unchanged; never invent, drop, or reorder ids.
+- Keep only these keys and preserve this exact key order.
+- Use standard JSON with double quotes for keys and string values. No trailing commas. No comments. No nulls.
+- level must be one of: "low", "medium", "high".
+- justification: 1 short sentence.
+- mitigation: 1 short, actionable step.
+- If information is missing, set justification to "insufficient information" and provide a pragmatic mitigation. Still choose a level.
+
+INPUTS (do not echo them back; use them to produce the output):
+Expected ids (order to follow):
 {json_expected_ids}
 
-PROCESSING SCOPE
-- Only process items with status TODO. Ignore items with status DONE or PENDING.
-- The output template you receive may include placeholder values:
-  - "level": 0
-  - "justification": "JUSTIFICATION_PLACEHOLDER"
-  - "mitigation": "MITIGATION_PLACEHOLDER"
-- For every TODO item you MUST REPLACE these placeholder values with your own analysis. It is FORBIDDEN to return placeholders or empty strings.
-
-SCALE
-- For each TODO item, assign a level from -2 to 2. Every item is a RED FLAG.
-  -2 = strong no (red flag absent)
-  -1 = weak no
-   0 = uncertain
-   1 = weak yes (red flag present)
-   2 = strong yes (red flag clearly present)
-
-FIELD NAMES
-- Use these field names exactly (lowercase): "level", "justification", "mitigation".
-- All keys in the JSON you return must be lowercase.
-
-EVIDENCE RULES
-- In "justification", include 1–2 short verbatim quotes from the plan that support the level.
-- Use double quotes for verbatim quotes. Do not paraphrase inside quotes. If omitting words, use […] without changing wording.
-- If the flag is due to a true omission of that specific thing, write: "No direct evidence due to omission: <what is missing>."
-- Do not use omissions from unrelated areas as evidence (e.g., missing construction/logistics/permits is not evidence for Fantasy Technology).
-- Scope discipline: justify only with evidence relevant to the specific red flag.
-
-MITIGATION RULES
-- "mitigation" must be a single, concrete action that can reduce or remove the red flag (e.g., produce an artifact, run a pilot with success criteria, obtain an external review).
-- If "level" is -2 or -1, set "mitigation" to "None needed."
-- If "level" is 0, propose a diagnostic action to obtain the missing evidence (e.g., define acceptance criteria, gather data, stakeholder interviews, independent review).
-- If "level" is +1 or +2, propose a corrective action (never "None needed").
-
-FANTASY TECHNOLOGY (STRICT)
-- Definition: physics-violating or currently physically impossible claims (e.g., faster-than-light travel, warp drive, perpetual motion/over-unity, time travel, reactionless drive, antigravity, instantaneous teleportation, infinite energy, 100% security/accuracy, "violates the laws of thermodynamics").
-- Not fantasy: illegal, politically infeasible, logistically infeasible, or merely unproven/novel technologies.
-- Default: if no physics-violating claim is quoted, set "level" to -2 for Fantasy Technology. Do not set 0 due to missing construction, permits, or politics.
-- Only set +1/+2 for Fantasy Technology when you quote a physics-violating claim in "justification".
-
-COMPLETENESS RULES (STRICT)
-- "justification" MUST be a non-empty string (≥20 characters). It MUST contain either:
-  (a) at least one double-quoted excerpt from the plan relevant to the flag, OR
-  (b) the omission clause defined above.
-- Do NOT use the omission clause with Absent levels (-2, -1). For Absent levels, explicitly state the absence (e.g., "No physics-violating claims are quoted in the plan.").
-- "mitigation" MUST be a non-empty string (≥15 characters).
-  - If "level" is -2 or -1: "mitigation" = "None needed."
-  - If "level" is 0: propose a diagnostic action.
-  - If "level" is +1 or +2: propose a corrective action.
-- It is FORBIDDEN to output empty strings ("") for "justification" or "mitigation".
-- It is FORBIDDEN to output the placeholder strings "JUSTIFICATION_PLACEHOLDER" or "MITIGATION_PLACEHOLDER".
-
-REPLACEMENT RULES (STRICT)
-- The output template shows the schema and order ONLY.
-- Keep each "id" exactly as shown.
-- For every TODO item, REPLACE ALL FIELD VALUES for "level", "justification", and "mitigation" with your own content.
-- Do NOT copy or preserve any empty strings ("") or placeholder text from the template.
-
-QUALITY CHECK BEFORE OUTPUT (STRICT)
-- Before returning JSON, verify for EVERY object in "checklist_answers":
-  - "level" is one of: -2, -1, 0, 1, 2.
-  - "justification" is non-empty, ≥20 characters, and satisfies EVIDENCE RULES.
-  - "mitigation" is non-empty, ≥15 characters, and satisfies MITIGATION RULES.
-  - When "level" is 0, +1, or +2, "mitigation" is NOT "None needed".
-  - The strings "JUSTIFICATION_PLACEHOLDER" and "MITIGATION_PLACEHOLDER" do not appear anywhere.
-- If any check fails, revise that item until all checks pass.
-
-OUTPUT RULES (STRICT)
-- Output MUST be a single valid JSON object. No extra text, no markdown, no explanations.
-- The "checklist_answers" array MUST contain EXACTLY {len(expected_ids)} objects, in the EXACT SAME ORDER as listed above.
-- Include EVERY id exactly once. Do NOT add or remove ids.
-- Each object MUST include the fields: "id", "level", "justification", "mitigation".
-- If uncertain about any TODO item, USE 0 rather than omitting the id.
-- Each "level" MUST be one of: -2, -1, 0, 1, 2 (integers only).
-
-# Output Template (schema and order only; for TODO items REPLACE ALL FIELD VALUES except "id"; for DONE/PENDING items COPY values from The Complete Checklist)
-{json_response_skeleton}
-   
-# The Complete Checklist
+Checklist to evaluate:
 {json_enriched_checklist}
+
+RETURN THIS EXACT SHAPE (fill in the values; keep ids as-is; do not alter structure, punctuation, or key order):
+{json_response_skeleton}
 """
     return system_prompt
 
@@ -480,11 +420,9 @@ class ViabilityChecklist:
         Convert the raw checklist answers to markdown.
         """
         level_map = {
-            -2: "Absent (strong), clear evidence the red flag is not present.",
-            -1: "Absent (weak), likely not present, minor doubt.",
-            0: "Uncertain, insufficient evidence.",
-            1: "Present (weak), some evidence the red flag is present.",
-            2: "Present (strong), clear evidence the red flag is present.",
+            "low": "Absent, clear evidence the red flag is not present.",
+            "medium": "Uncertain, insufficient evidence.",
+            "high": "Present, clear evidence the red flag is present.",
         }
         rows = []
         for index, item in enumerate(checklist_answers):
