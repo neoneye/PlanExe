@@ -212,7 +212,8 @@ def format_system_prompt(*, checklist: list[dict], batch_size: int = 5, current_
     json_expected_ids = json.dumps(expected_ids, indent=2)
 
     system_prompt = f"""
-You are a pure JSON function for the Viability Checklist. Output only valid JSON. No explanations, no chit-chat, no Markdown, no code fences.
+You are an expert strategic analyst. Your task is to answer a checklist with red flags.
+You will output only valid JSON. No explanations, no chit-chat, no Markdown, no code fences.
 
 GOAL
 Return exactly one object per checklist item with keys in this order: id, level, justification, mitigation.
@@ -223,8 +224,8 @@ STRICT RULES
 - Keep only these keys and preserve this exact key order.
 - Use standard JSON with double quotes for keys and string values. No trailing commas. No comments. No nulls.
 - level must be one of: "low", "medium", "high".
-- justification: 1 short sentence.
-- mitigation: 1 short, actionable step.
+- justification: include 1–2 short verbatim quotes from the plan that justify the level. ~30 words.
+- mitigation: 1 short, actionable step. ~30 words.
 - If information is missing, set justification to "insufficient information" and provide a pragmatic mitigation. Still choose a level.
 
 INPUTS (do not echo them back; use them to produce the output):
@@ -420,9 +421,9 @@ class ViabilityChecklist:
         Convert the raw checklist answers to markdown.
         """
         level_map = {
-            "low": "Absent, clear evidence the red flag is not present.",
-            "medium": "Uncertain, insufficient evidence.",
-            "high": "Present, clear evidence the red flag is present.",
+            "low": "✅ Low",
+            "medium": "⚠️ Medium",
+            "high": "🛑 High",
         }
         rows = []
         for index, item in enumerate(checklist_answers):
