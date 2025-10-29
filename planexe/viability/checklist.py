@@ -188,8 +188,8 @@ def format_system_prompt(*, checklist: list[dict], batch_size: int = 5, current_
         checklist_answer = ChecklistAnswer(
             id=item["id"],
             level=0,
-            justification="",
-            mitigation="",
+            justification="JUSTIFICATION_PLACEHOLDER",
+            mitigation="MITIGATION_PLACEHOLDER",
         )
         checklist_answers.append(checklist_answer)
     checklist_response = ChecklistResponse(
@@ -217,9 +217,16 @@ You are an expert strategic analyst. Your task is to analyze the provided query 
 You must answer the checklist items with the following ids (in this EXACT order):
 {json_expected_ids}
 
-Your job is to answer the checklist items that have status TODO.
-- Only process items with status TODO. Ignore items with status DONE or PENDING for analysis.
-- For each TODO item, assign a level from -2 to 2. Remember: every item is a RED FLAG.
+PROCESSING SCOPE
+- Only process items with status TODO. Ignore items with status DONE or PENDING.
+- The output template you receive may include placeholder values:
+  - "level": 0
+  - "justification": "JUSTIFICATION_PLACEHOLDER"
+  - "mitigation": "MITIGATION_PLACEHOLDER"
+- For every TODO item you MUST REPLACE these placeholder values with your own analysis. It is FORBIDDEN to return placeholders or empty strings.
+
+SCALE
+- For each TODO item, assign a level from -2 to 2. Every item is a RED FLAG.
   -2 = strong no (red flag absent)
   -1 = weak no
    0 = uncertain
@@ -241,7 +248,7 @@ MITIGATION RULES
 - "mitigation" must be a single, concrete action that can reduce or remove the red flag (e.g., produce an artifact, run a pilot with success criteria, obtain an external review).
 - If "level" is -2 or -1, set "mitigation" to "None needed."
 - If "level" is 0, propose a diagnostic action to obtain the missing evidence (e.g., define acceptance criteria, gather data, stakeholder interviews, independent review).
-- If "level" is +1 or +2, propose a corrective action (not "None needed").
+- If "level" is +1 or +2, propose a corrective action (never "None needed").
 
 FANTASY TECHNOLOGY (STRICT)
 - Definition: physics-violating or currently physically impossible claims (e.g., faster-than-light travel, warp drive, perpetual motion/over-unity, time travel, reactionless drive, antigravity, instantaneous teleportation, infinite energy, 100% security/accuracy, "violates the laws of thermodynamics").
@@ -257,30 +264,26 @@ COMPLETENESS RULES (STRICT)
 - "mitigation" MUST be a non-empty string (≥15 characters).
   - If "level" is -2 or -1: "mitigation" = "None needed."
   - If "level" is 0: propose a diagnostic action.
-  - If "level" is +1 or +2: propose a corrective action (never "None needed").
-- Never leave "justification" or "mitigation" blank. Do not return empty strings or placeholders such as "", "N/A", or "TBD".
+  - If "level" is +1 or +2: propose a corrective action.
+- It is FORBIDDEN to output empty strings ("") for "justification" or "mitigation".
+- It is FORBIDDEN to output the placeholder strings "JUSTIFICATION_PLACEHOLDER" or "MITIGATION_PLACEHOLDER".
 
-TEMPLATE & REPLACEMENT RULES (STRICT)
-- The Output Template that follows shows the exact schema and order ONLY.
+REPLACEMENT RULES (STRICT)
+- The output template shows the schema and order ONLY.
 - Keep each "id" exactly as shown.
-- For items with status TODO, you MUST REPLACE ALL FIELD VALUES for "level", "justification", and "mitigation" with your analysis output.
-- For items with status DONE or PENDING: do NOT analyze; COPY the existing values for "level", "justification", and "mitigation" exactly as they appear in The Complete Checklist. Do not leave blanks.
-- Do NOT copy or preserve any empty strings ("") from the template.
+- For every TODO item, REPLACE ALL FIELD VALUES for "level", "justification", and "mitigation" with your own content.
+- Do NOT copy or preserve any empty strings ("") or placeholder text from the template.
 
 QUALITY CHECK BEFORE OUTPUT (STRICT)
 - Before returning JSON, verify for EVERY object in "checklist_answers":
   - "level" is one of: -2, -1, 0, 1, 2.
-  - "justification" is non-empty and satisfies COMPLETENESS RULES for TODO items, or is copied (non-empty) from The Complete Checklist for DONE/PENDING items.
-  - "mitigation" is non-empty and satisfies COMPLETENESS RULES for TODO items, or is copied (non-empty) from The Complete Checklist for DONE/PENDING items.
-  - When "level" is 0, +1, or +2, "mitigation" is not "None needed".
+  - "justification" is non-empty, ≥20 characters, and satisfies EVIDENCE RULES.
+  - "mitigation" is non-empty, ≥15 characters, and satisfies MITIGATION RULES.
+  - When "level" is 0, +1, or +2, "mitigation" is NOT "None needed".
+  - The strings "JUSTIFICATION_PLACEHOLDER" and "MITIGATION_PLACEHOLDER" do not appear anywhere.
 - If any check fails, revise that item until all checks pass.
-- There must be NO empty string values for "justification" or "mitigation" anywhere in the output.
 
-- For each TODO item, provide a justification for the level and not another level.
-- For each TODO item, provide a proposal for mitigation that would make the problem go away.
-- For TODO items, "justification" and "mitigation" should be ~30 words each.
-
-# Output Rules (STRICT)
+OUTPUT RULES (STRICT)
 - Output MUST be a single valid JSON object. No extra text, no markdown, no explanations.
 - The "checklist_answers" array MUST contain EXACTLY {len(expected_ids)} objects, in the EXACT SAME ORDER as listed above.
 - Include EVERY id exactly once. Do NOT add or remove ids.
