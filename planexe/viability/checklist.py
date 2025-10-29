@@ -85,37 +85,37 @@ CHECKLIST = [
     {
         "index": 5,
         "brief": "Budget Too Low",
-        "explanation": "Does this plan assume a budget that is too low to achieve the goals.",
+        "explanation": "Is there a significant mismatch between the project's stated goals and the financial resources allocated, suggesting an unrealistic or inadequate budget.",
         "comment": "Often the user specifies a 100 USD budget in the initial prompt, where the generated plan requires millions of dollars to implement. Or the budget grows during the plan generation, so the money needed ends up being much higher than expected."
     },
     {
         "index": 6,
-        "brief": "Overconfident",
-        "explanation": "Does this plan grossly overestimate the likelihood of success.",
+        "brief": "Overly Optimistic Projections",
+        "explanation": "Does this plan grossly overestimate the likelihood of success, while neglecting potential setbacks, buffers, or contingency plans.",
         "comment": "The generated plan describes a sunshine scenario that is likely to go wrong, without any buffers or contingency plans."
     },
     {
         "index": 7,
-        "brief": "Technical Vague",
-        "explanation": "Does the plan lack the important technical steps.",
+        "brief": "Lacks Technical Depth",
+        "explanation": "Does the plan omit critical technical details or engineering steps required to overcome foreseeable challenges, especially for complex components of the project.",
         "comment": "Some plans involves serious engineering, but the generated plan is missing the technical details that explain how to overcome the technical challenges. Nailing the technical details is crucial."
     },
     {
         "index": 8,
-        "brief": "Lack Evidence",
-        "explanation": "Does the plan do a poor job of providing evidence for the claims.",
+        "brief": "Unsupported Claims",
+        "explanation": "Does the plan make significant claims or state facts and figures without providing supporting evidence, citations, or a clear rationale for its assumptions.",
         "comment": "Often the generated plan specifies numbers/facts/concepts without any evidence to support the claims. These will have to be fact checked and adjusted in a refinement of the plan."
     },
     {
         "index": 9,
-        "brief": "Deliverables Unclear",
-        "explanation": "Are the deliverables unclear or missing.",
+        "brief": "Unclear Deliverables",
+        "explanation": "Are the project's final outputs or key milestones poorly defined, lacking specific criteria for completion, making success difficult to measure objectively.",
         "comment": "Some projects involves many components, without a clear specification of each component."
     },
     {
         "index": 10,
         "brief": "Overengineered Plan",
-        "explanation": "Is the plan overkill for the problem at hand.",
+        "explanation": "Is the proposed solution disproportionately complex or resource-intensive relative to the problem it aims to solve, suggesting over-engineering.",
         "comment": "For a 'Make me a cup of coffee' prompt, then the generated plan is overkill and involves lots of people and resources."
     },
     {
@@ -133,19 +133,19 @@ CHECKLIST = [
     {
         "index": 13,
         "brief": "Legal Minefield",
-        "explanation": "Does the plan require lawyers, or have a high chance of getting sued, corruption, harmful, doing things that are illegal, etc.",
+        "explanation": "Does the plan involve activities with high legal, regulatory, or ethical exposure, such as potential lawsuits, corruption, illegal actions, or societal harm.",
         "comment": "Sometimes the generated plan describes a sunshine scenario where everything goes smoothly, without any lawyers or legal issues."
     },
     {
         "index": 14,
-        "brief": "Impossible to Achieve",
-        "explanation": "Are there constraints that make it impossible to achieve the goals.",
+        "brief": "Infeasible Constraints",
+        "explanation": "Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
         "comment": "Getting a permit to build a spaceship launch pad in the center of the city is likely going to be rejected."
     },
     {
         "index": 15,
-        "brief": "Other Red Flags",
-        "explanation": "Are there other red flags not accounted for in this checklist.",
+        "brief": "Uncategorized Red Flags",
+        "explanation": "Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
         "comment": "This checklist is not exhaustive. Besides what is listed in this checklist, there are other red flags that are not accounted for in this checklist."
     }
 ]
