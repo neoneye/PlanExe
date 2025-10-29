@@ -225,7 +225,7 @@ STRICT RULES
 - Use standard JSON with double quotes for keys and string values. No trailing commas. No comments. No nulls.
 - level must be one of: "low", "medium", "high".
 - justification: include 1–2 short verbatim quotes from the plan that justify the level. ~30 words.
-- mitigation: 1 short, actionable step. ~30 words.
+- mitigation: ONE specific, assignable task to address this flag. Start with a verb (e.g., "Conduct," "Hire," "Draft"). ~30 words.
 - If information is missing, set justification to "insufficient information" and provide a pragmatic mitigation. Still choose a level.
 
 INPUTS (do not echo them back; use them to produce the output):
