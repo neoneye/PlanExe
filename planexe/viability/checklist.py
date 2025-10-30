@@ -426,6 +426,20 @@ class ViabilityChecklist:
             "high": "🛑 High",
         }
         rows = []
+
+        # Histogram
+        num_low = sum(1 for item in checklist_answers if item.level == "low")
+        num_medium = sum(1 for item in checklist_answers if item.level == "medium")
+        num_high = sum(1 for item in checklist_answers if item.level == "high")
+
+        rows.append("### Summary\n")
+        rows.append("| Level | Count |")
+        rows.append("|---|---|")
+        rows.append(f"| {level_map['low']} | {num_low} |")
+        rows.append(f"| {level_map['medium']} | {num_medium} |")
+        rows.append(f"| {level_map['high']} | {num_high} |")
+
+        rows.append("\n\n## Checklist\n")
         for index, item in enumerate(checklist_answers):
             if index > 0:
                 rows.append("\n")

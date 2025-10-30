@@ -4048,7 +4048,7 @@ class ReportTask(PlanTask):
         #     summary_critical_issues_markdown_file_path=Path(self.input()['viability_summary']['critical_issues_markdown'].path),
         #     summary_flips_to_go_markdown_file_path=Path(self.input()['viability_summary']['flips_to_go_markdown'].path),
         # )
-        rg.append_markdown('Viability Checklist', self.input()['viability_checklist']['markdown'].path)
+        rg.append_markdown_with_tables('Viability Checklist', self.input()['viability_checklist']['markdown'].path)
         rg.append_initial_prompt_vetted(
             document_title='Initial Prompt Vetted', 
             initial_prompt_file_path=self.input()['setup'].path, 
