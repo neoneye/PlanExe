@@ -69,7 +69,7 @@ CHECKLIST = [
         "index": 2,
         "title": "Unproven Technology",
         "subtitle": "New technology that has never been used before. eg. a white paper that hasn't been tested in the real world.",
-        "instruction": "Evaluate if any critical project component relies on a mechanism, system, or conceptual model that lacks a proven track record in a comparable real-world context. Set Level to HIGH if the plan describes a 'first-of-its-kind' application, or if it combines existing technologies in an unprecedented way for a high-stakes domain. In the absence of explicit evidence in the text citing successful prior deployments at this scale, assume the technology is unproven. Do not let theoretical feasibility, whitepapers, or lab-scale pilots lower the rating.",
+        "instruction": "Evaluate if a critical project component relies on a technical, operational, or systemic mechanism that lacks a proven real-world track record. This is distinct from novel marketing or social strategies. Set Level to HIGH if the plan describes a 'first-of-its-kind' application or combines existing technologies in an unprecedented way for a high-stakes domain. In the absence of explicit evidence in the text citing successful prior deployments, you MUST assume the technology is unproven. For mitigation, propose an action that generates evidence of viability, such as a proof-of-concept (PoC) or a prototype, and assign it to a specific technical team.",
         "comment": "It's rarely smooth sailing when using new technology, novel concepts that no human has ever been used before. PlanExe sometimes picking a scenario that is way too ambitious."
     },
     {
