@@ -287,12 +287,21 @@ class ViabilityChecklist:
             system_prompt = format_system_prompt(checklist=CHECKLIST, batch_size=BATCH_SIZE, current_batch_index=group_index)
             system_prompt_list.append(system_prompt)
 
+        enriched_checklist = enrich_checklist_with_batch_id_and_item_index(CHECKLIST, BATCH_SIZE)
+        expected_ids_list = []
+        for group_index in range(0, number_of_groups):
+            ids_for_this_group = [item["id"] for item in enriched_checklist if item["batch_index"] == group_index]
+            expected_ids_list.append(ids_for_this_group)
+        # print(f"Expected ids list: {expected_ids_list}")
+        # exit(0)
+
         responses: list[ChecklistResponse] = []
         metadata_list: list[dict] = []
         user_prompt_list = []
         for group_index in range(0, number_of_groups):
             logger.info(f"Processing group {group_index+1} of {number_of_groups}")
             system_prompt = system_prompt_list[group_index]
+            expected_ids = expected_ids_list[group_index]
 
             # Add previous checklist responses to the bottom of the user prompt
             if group_index > 0:
@@ -321,6 +330,20 @@ class ViabilityChecklist:
             def execute_function(llm: LLM) -> dict:
                 sllm = llm.as_structured_llm(ChecklistResponse)
                 chat_response = sllm.chat(chat_message_list)
+
+                # Ensure that all the checklist items for this batch have been answered just once.
+                # Sometimes the LLM answers the checklist in a different order. This is ok.
+                # Sometimes the LLM answers the same checklist item multiple times. This is not ok.
+                # Sometimes the LLM answers all the checklist items, ignoring the small batch it was supposed to answer, so the response is huge. This is not ok.
+                response_ids: list[str] = [answer.id for answer in chat_response.raw.checklist_answers]
+
+                response_ids_set = set[str](response_ids)
+                expected_ids_set = set[str](expected_ids)
+                if response_ids_set != expected_ids_set or len(response_ids_set) != len(expected_ids_set):
+                    diff = expected_ids_set - response_ids_set
+                    sorted_diff = sorted(diff)
+                    raise ValueError(f"Mismatch between expected and response ids. Expected ids: {expected_ids!r} but got response ids: {response_ids!r}. Group index: {group_index}. Missing ids: {sorted_diff!r}")
+
                 metadata = dict(llm.metadata)
                 metadata["llm_classname"] = llm.class_name()
                 return {
@@ -355,7 +378,6 @@ class ViabilityChecklist:
             checklist_answers_raw.extend(response.checklist_answers)
 
         # convert CHECKLIST from list to dict, using the index as the key
-        enriched_checklist = enrich_checklist_with_batch_id_and_item_index(CHECKLIST, BATCH_SIZE)
         checklist_dict = {item["id"]: item for item in enriched_checklist}
         if len(checklist_dict) != len(CHECKLIST):
             raise ValueError("Checklist dict length does not match checklist list length.")
@@ -380,17 +402,10 @@ class ViabilityChecklist:
                 mitigation=measurement.mitigation,
             )
             measurements_cleaned.append(measurement_cleaned)
-
-        # Verify that all the checklist items have been answered
-        set_of_checklist_ids = set[Any]([checklist_item["id"] for checklist_item in enriched_checklist])
-        set_of_checklist_answers_ids = set[str]([measurement.id for measurement in measurements_cleaned])
-        if set_of_checklist_ids != set_of_checklist_answers_ids:
-            diff = set_of_checklist_ids - set_of_checklist_answers_ids
-            sorted_checklist_ids = sorted(set_of_checklist_ids)
-            sorted_checklist_answers_ids = sorted(set_of_checklist_answers_ids)
-            sorted_diff = sorted(diff)
-            raise ValueError(f"Checklist item not found for ids: {sorted_diff!r} checklist ids: {sorted_checklist_ids!r} checklist answers ids: {sorted_checklist_answers_ids!r}")
         
+        # Sort checklist answers by index, in case the LLM answers the checklist items in a different order.
+        measurements_cleaned.sort(key=lambda x: x.index)
+
         metadata = {}
         for metadata_index, metadata_item in enumerate(metadata_list, start=1):
             metadata[f"metadata_{metadata_index}"] = metadata_item
