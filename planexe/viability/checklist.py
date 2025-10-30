@@ -60,15 +60,15 @@ class ChecklistAnswerCleaned(BaseModel):
 CHECKLIST = [
     {
         "index": 1,
-        "title": "Physics-Breaking Dependency",
-        "subtitle": "Fantasy technology such as faster than light travel that isn't grounded in reality.",
+        "title": "Violates Known Physics",
+        "subtitle": "The project cannot succeed without a major, unpredictable discovery in fundamental science.",
         "instruction": "Does the plan violate physics, eg. FTL. Speculative but physics-compatible tech (fusion, large-scale quantum computing, advanced materials, bigger rockets) is allowed.",
-        "comment": "If the initial prompt is vague/scifi/aggressive or asks for something that is physically impossible, then the generated plan usually end up with some fantasy parts, making the plan unrealistic. This item distinguishes hard engineering from physical impossibility. If any listed dependency is essential, mark FAIL; otherwise PASS."
+        "comment": "If the initial prompt is vague/scifi/aggressive or asks for something that is physically impossible, then the generated plan usually end up with some fantasy parts, making the plan unrealistic."
     },
     {
         "index": 2,
-        "title": "Unproven Technology",
-        "subtitle": "New technology that has never been used before. eg. a white paper that hasn't been tested in the real world.",
+        "title": "No Real-World Proof",
+        "subtitle": "Success depends on a technology or system that has not been proven in real projects at this scale or in this domain.",
         "instruction": "Evaluate if a critical project component relies on a technical, operational, or systemic mechanism that lacks a proven real-world track record. This is distinct from novel marketing or social strategies. Set Level to HIGH if the plan describes a 'first-of-its-kind' application or combines existing technologies in an unprecedented way for a high-stakes domain. In the absence of explicit evidence in the text citing successful prior deployments, you MUST assume the technology is unproven. For mitigation, propose an action that generates evidence of viability, such as a proof-of-concept (PoC) or a prototype, and assign it to a specific technical team.",
         "comment": "It's rarely smooth sailing when using new technology, novel concepts that no human has ever been used before. PlanExe sometimes picking a scenario that is way too ambitious."
     },
