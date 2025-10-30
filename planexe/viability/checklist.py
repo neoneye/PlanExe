@@ -83,7 +83,7 @@ CHECKLIST = [
         "index": 4,
         "title": "Underestimating Risks",
         "subtitle": "Does this plan grossly underestimate risks.",
-        "instruction": "Underestimating Risks: Does this plan grossly underestimate risks.",
+        "instruction": "Perform a risk gap analysis. Compare the risks explicitly mentioned in the plan's risk assessment against the risks implied by the project's core activities (e.g., high-impact, controversial actions). Set LEVEL to HIGH if the plan ignores or significantly downplays 'showstopper' risks (e.g., public outrage, political backlash, insurmountable barriers). Justify by naming a critical, unaddressed risk.",
         "comment": "Despite PlanExe trying to uncover many risks, there are often risks that are not identified, or some significant risk gets neglected."
     },
     {
@@ -97,7 +97,7 @@ CHECKLIST = [
         "index": 6,
         "title": "Money Issues",
         "subtitle": "Flaws in the money calculations.",
-        "instruction": "Money Issues: Does the plan lack a revenue model or does it grossly overestimate the revenue. Are the calculations flawed. Are there any money issues that are not identified.",
+        "instruction": "Assess the financial strategy's viability. First, evaluate the core revenue or funding model: is it based on proven methods or highly speculative concepts (e.g., unproven monetization schemes, first-of-its-kind financial instruments)? Second, check for major internal inconsistencies between stated budget, revenue/funding projections, and operational costs. Set LEVEL to HIGH if the model is unproven/high-risk OR if there are clear contradictions in the financial data. Justify by citing the specific model or inconsistency.",
         "comment": "PlanExe currently has no Cost Breakdown Structure. Some projects are intended to generate revenue, other projects are not intended for profit, but for a specific purpose. Yet, there can be significant money issues that are not identified."
     },
     {
