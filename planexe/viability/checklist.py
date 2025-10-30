@@ -88,76 +88,90 @@ CHECKLIST = [
     },
     {
         "index": 5,
+        "title": "Timeline Issues",
+        "subtitle": "Does this plan have unrealistic timelines.",
+        "instruction": "Timeline Issues: Does this plan have unrealistic timelines. Can it be parallelized to be done in a shorter timeframe.",
+        "comment": "PlanExe currently has no knowledge about the resources available. In the first draft of the plan makes no attempt at parallelizing the tasks to be done in a shorter timeframe. I imagine a human will have to configure the resources, before rescheduling the tasks to be done in a shorter timeframe."
+    },
+    {
+        "index": 6,
+        "title": "Money Issues",
+        "subtitle": "Flaws in the money calculations.",
+        "instruction": "Money Issues: Does the plan lack a revenue model or does it grossly overestimate the revenue. Are the calculations flawed. Are there any money issues that are not identified.",
+        "comment": "PlanExe currently has no Cost Breakdown Structure. Some projects are intended to generate revenue, other projects are not intended for profit, but for a specific purpose. Yet, there can be significant money issues that are not identified."
+    },
+    {
+        "index": 7,
         "title": "Budget Too Low",
         "subtitle": "Is there a significant mismatch between the project's stated goals and the financial resources allocated, suggesting an unrealistic or inadequate budget.",
         "instruction": "Budget Too Low: Is there a significant mismatch between the project's stated goals and the financial resources allocated, suggesting an unrealistic or inadequate budget.",
         "comment": "Often the user specifies a 100 USD budget in the initial prompt, where the generated plan requires millions of dollars to implement. Or the budget grows during the plan generation, so the money needed ends up being much higher than expected."
     },
     {
-        "index": 6,
+        "index": 8,
         "title": "Overly Optimistic Projections",
         "subtitle": "Does this plan grossly overestimate the likelihood of success, while neglecting potential setbacks, buffers, or contingency plans.",
         "instruction": "Overly Optimistic Projections: Does this plan grossly overestimate the likelihood of success, while neglecting potential setbacks, buffers, or contingency plans.",
         "comment": "The generated plan describes a sunshine scenario that is likely to go wrong, without any buffers or contingency plans."
     },
     {
-        "index": 7,
+        "index": 9,
         "title": "Lacks Technical Depth",
         "subtitle": "Does the plan omit critical technical details or engineering steps required to overcome foreseeable challenges, especially for complex components of the project.",
         "instruction": "Act as a technical due-diligence checker. Evaluate technical completeness and assign LEVEL.\n\nSteps:\n1) Identify critical technical challenges (cover the full critical path; don’t cap at 3).\n2) Scrutinize the HOW: look for concrete methods, calculations, materials/tolerances, data specs, algorithms, logistics/method statements.\n3) Evidence quality: require reviewable artifacts—architecture + interfaces, BOM, capacity/performance budgets, safety/compliance plan, security/threat model, test & validation plan (incl. acceptance criteria), and TRL/prototype plan.\n4) Flag “magic box” claims (e.g., “AI will optimize X”) that lack inputs/outputs/assumptions.\n\nSet LEVEL:\n- LOW: All critical challenges have specific artifacts above; a competent engineer could estimate cost/schedule with only minor clarifications.\n- MEDIUM: One or more critical subsystems are underspecified OR artifacts exist but lack key specifics (interfaces, budgets, tests), creating estimation risk.\n- HIGH: Novel/critical components lack core artifacts (architecture/interfaces, safety/compliance, test/validation) or rely on “magic box” claims—credible cost/schedule or execution planning is not possible.",
         "comment": "Some plans involves serious engineering, but the generated plan is missing the technical details that explain how to overcome the technical challenges. Nailing the technical details is crucial."
     },
     {
-        "index": 8,
+        "index": 10,
         "title": "Unsupported Claims",
         "subtitle": "Does the plan make significant claims or state facts and figures without providing supporting evidence, citations, or a clear rationale for its assumptions.",
         "instruction": "Unsupported Claims: Does the plan make significant claims or state facts and figures without providing supporting evidence, citations, or a clear rationale for its assumptions.",
         "comment": "Often the generated plan specifies numbers/facts/concepts without any evidence to support the claims. These will have to be fact checked and adjusted in a refinement of the plan."
     },
     {
-        "index": 9,
+        "index": 11,
         "title": "Unclear Deliverables",
         "subtitle": "Are the project's final outputs or key milestones poorly defined, lacking specific criteria for completion, making success difficult to measure objectively.",
         "instruction": "Unclear Deliverables: Are the project's final outputs or key milestones poorly defined, lacking specific criteria for completion, making success difficult to measure objectively.",
         "comment": "Some projects involves many components, without a clear specification of each component."
     },
     {
-        "index": 10,
+        "index": 12,
         "title": "Overengineered Plan",
         "subtitle": "Is the proposed solution disproportionately complex or resource-intensive relative to the problem it aims to solve, suggesting over-engineering.",
         "instruction": "Overengineered Plan: Is the proposed solution disproportionately complex or resource-intensive relative to the problem it aims to solve, suggesting over-engineering.",
         "comment": "For a 'Make me a cup of coffee' prompt, then the generated plan is overkill and involves lots of people and resources."
     },
     {
-        "index": 11,
+        "index": 13,
         "title": "Underestimate Team Size",
         "subtitle": "Does the plan underestimate the number of people needed to achieve the goals.",
         "instruction": "Underestimate Team Size: Does the plan underestimate the number of people needed to achieve the goals.",
         "comment": "For a 'Construct a bridge' prompt, then the generated plan is likely to underestimate the number of people needed to achieve the goals."
     },
     {
-        "index": 12,
+        "index": 14,
         "title": "Overestimate Team Size",
         "subtitle": "Does the plan overestimate the number of people needed to achieve the goals.",
         "instruction": "Overestimate Team Size: Does the plan overestimate the number of people needed to achieve the goals.",
         "comment": "For a 'Im a solo entrepreneur and is making everything myself' prompt, then the generated plan is likely suggesting to hire a huge team of people, and ignoring the fact that the entrepreneur is doing everything themselves."
     },
     {
-        "index": 13,
+        "index": 15,
         "title": "Legal Minefield",
         "subtitle": "Does the plan involve activities with high legal, regulatory, or ethical exposure, such as potential lawsuits, corruption, illegal actions, or societal harm.",
         "instruction": "Legal Minefield: Does the plan involve activities with high legal, regulatory, or ethical exposure, such as potential lawsuits, corruption, illegal actions, or societal harm.",
         "comment": "Sometimes the generated plan describes a sunshine scenario where everything goes smoothly, without any lawyers or legal issues."
     },
     {
-        "index": 14,
+        "index": 16,
         "title": "Infeasible Constraints",
         "subtitle": "Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
         "instruction": "Infeasible Constraints: Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
         "comment": "Getting a permit to build a spaceship launch pad in the center of the city is likely going to be rejected."
     },
     {
-        "index": 15,
+        "index": 17,
         "title": "Uncategorized Red Flags",
         "subtitle": "Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
         "instruction": "Uncategorized Red Flags: Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
