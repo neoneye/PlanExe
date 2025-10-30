@@ -237,7 +237,9 @@ Return exactly one object per checklist item with keys in this order: id, level,
 
 STRICT RULES
 - Output must be a single JSON array, same length and order as the expected ids.
+- Answer only for checklist entries whose status is "TODO"; treat "DONE" or "PENDING" items as read-only context and never output them.
 - Copy id from input unchanged; never invent, drop, or reorder ids.
+- If you output any id that is not listed in the expected ids, you fail the task; do not add or duplicate ids.
 - Keep only these keys and preserve this exact key order.
 - Use standard JSON with double quotes for keys and string values. No trailing commas. No comments. No nulls.
 - level must be one of: "low", "medium", "high".
@@ -246,6 +248,9 @@ STRICT RULES
 - If information is missing, set justification to "insufficient information" and provide a pragmatic mitigation. Still choose a level.
 
 INPUTS (do not echo them back; use them to produce the output):
+status legend:
+- "TODO": must answer.
+- "DONE" or "PENDING": ignore completely; never include in output.
 Expected ids (order to follow):
 {json_expected_ids}
 
