@@ -65,11 +65,11 @@ CHECKLIST = [
         "instruction": "Does the plan violate physics, eg. FTL. Speculative but physics-compatible tech (fusion, large-scale quantum computing, advanced materials, bigger rockets) is allowed.",
         "comment": "If the initial prompt is vague/scifi/aggressive or asks for something that is physically impossible, then the generated plan usually end up with some fantasy parts, making the plan unrealistic. This item distinguishes hard engineering from physical impossibility. If any listed dependency is essential, mark FAIL; otherwise PASS."
     },
-    {   
+    {
         "index": 2,
         "title": "Unproven Technology",
         "subtitle": "New technology that has never been used before. eg. a white paper that hasn't been tested in the real world.",
-        "instruction": "Unproven Technology: Does this project rely on a new technology that has never been used before. eg. a white paper that hasn't been tested in the real world.",
+        "instruction": "Evaluate if any critical project component relies on a mechanism, system, or conceptual model that lacks a proven track record in a comparable real-world context. Set Level to HIGH if the plan describes a 'first-of-its-kind' application, or if it combines existing technologies in an unprecedented way for a high-stakes domain. In the absence of explicit evidence in the text citing successful prior deployments at this scale, assume the technology is unproven. Do not let theoretical feasibility, whitepapers, or lab-scale pilots lower the rating.",
         "comment": "It's rarely smooth sailing when using new technology, novel concepts that no human has ever been used before. PlanExe sometimes picking a scenario that is way too ambitious."
     },
     {
