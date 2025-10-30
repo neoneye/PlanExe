@@ -69,7 +69,7 @@ CHECKLIST = [
         "index": 2,
         "title": "No Real-World Proof",
         "subtitle": "Success depends on a technology or system that has not been proven in real projects at this scale or in this domain.",
-        "instruction": "Evaluate if a critical project component relies on a technical, operational, or systemic mechanism that lacks a proven real-world track record. This is distinct from novel marketing or social strategies. Set Level to HIGH if the plan describes a 'first-of-its-kind' application or combines existing technologies in an unprecedented way for a high-stakes domain. In the absence of explicit evidence in the text citing successful prior deployments, you MUST assume the technology is unproven. For mitigation, propose an action that generates evidence of viability, such as a proof-of-concept (PoC) or a prototype, and assign it to a specific technical team.",
+        "instruction": "No Real-World Proof: Is there credible, real-world evidence that the core mechanism works outside of a lab/demo? If this is a first-of-its-kind or unregulated/novel construct, set level to 'high'. In the justification, cite the exact areas with no precedent (markets, technology, policy) rather than saying 'insufficient information'. In the mitigation, propose a parallel, multi‑track validation that includes: (T1) technical threat‑model + security PoC with red‑team; (T2) legal/compliance review for the relevant domains (e.g., securities/market integrity/AML/data protection) and licensing feasibility; (T3) market validation (letters of intent, regulator pre‑reads, partner commitments); (T4) ethics/abuse analysis (manipulation/foreign‑influence/dual‑use). Define explicit go/no‑go gates and realistic timeframes; declare NO‑GO if any track blocks.",
         "comment": "It's rarely smooth sailing when using new technology, novel concepts that no human has ever been used before. PlanExe sometimes picking a scenario that is way too ambitious."
     },
     {
@@ -132,7 +132,7 @@ CHECKLIST = [
         "index": 11,
         "title": "Unclear Deliverables",
         "subtitle": "Are the project's final outputs or key milestones poorly defined, lacking specific criteria for completion, making success difficult to measure objectively.",
-        "instruction": "Unclear Deliverables: Are the project's final outputs or key milestones poorly defined, lacking specific criteria for completion, making success difficult to measure objectively.",
+        "instruction": "Unclear Deliverables: Are success criteria and acceptance tests defined for the key work‑packages, not just the end artifact? If deliverables are vague, set level to 'medium' and in the justification identify the specific missing definitions (e.g., permits/process milestones, security acceptance tests, construction logistics plan, commissioning/operational readiness, stakeholder approvals). In the mitigation, require a Deliverables & Acceptance spec with SMART criteria and a 'Definition of Done' per work‑package, each tied to dated milestones and go/no‑go tripwires.",
         "comment": "Some projects involves many components, without a clear specification of each component."
     },
     {
@@ -160,7 +160,7 @@ CHECKLIST = [
         "index": 15,
         "title": "Legal Minefield",
         "subtitle": "Does the plan involve activities with high legal, regulatory, or ethical exposure, such as potential lawsuits, corruption, illegal actions, or societal harm.",
-        "instruction": "Legal Minefield: Does the plan involve activities with high legal, regulatory, or ethical exposure, such as potential lawsuits, corruption, illegal actions, or societal harm.",
+        "instruction": "Legal Minefield: Does the plan trigger multiple overlapping jurisdictions or regimes with low probability of approval and high litigation risk (e.g., environmental impact, land use/zoning, sector‑specific licensing, securities/market integrity, data protection, export controls, financial crime/AML, public safety)? If so, set level to 'high'. In the justification, reference the specific regimes/laws/processes implicated (by name where possible) and explain why approval is unlikely. In the mitigation, propose a legal feasibility & pathway study (12–16 weeks) that delivers: (1) a statute/regulation matrix; (2) regulatory process maps (e.g., impact assessment steps and required agency consultations); (3) preliminary regulator/agency readouts; (4) case analogs; (5) a permit/approval probability model with confidence intervals; (6) litigation exposure; and (7) alternatives analysis. Include explicit go/no‑go gates (e.g., NO‑GO if approval probability <10% or an agency indicates no plausible path).",
         "comment": "Sometimes the generated plan describes a sunshine scenario where everything goes smoothly, without any lawyers or legal issues."
     },
     {
