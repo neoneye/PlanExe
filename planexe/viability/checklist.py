@@ -60,15 +60,15 @@ class ChecklistAnswerCleaned(BaseModel):
 CHECKLIST = [
     {
         "index": 1,
-        "brief": "Fantasy Technology",
-        "explanation": "Does this project rely on tech such as faster than light travel, that isn't grounded in reality.",
-        "comment": "If the initial prompt is vague/scifi/aggressive or asks for something that is physically impossible, then the generated plan usually end up with some fantasy parts, making the plan unrealistic."
+        "brief": "Physics-Breaking Dependency",
+        "explanation": "Fail this item if any essential step (i.e., cannot be removed or replaced without materially changing the core outcome or ≥10× performance) requires: (a) creating energy or momentum from nowhere (over-unity/perpetual motion), (b) transmitting information or moving matter faster than light, (c) reactionless propulsion or “anti-gravity” defined as gravitational shielding or inertia negation without external fields/propellant, (d) 100% efficiency, zero loss/noise, infinite compute/storage/bandwidth, or instantaneous anything, (e) time travel or retrocausal signaling (causality violations/closed timelike curves), (f) macroscopic exotic matter or sustained negative energy densities to keep wormholes/warp bubbles stable, or (g) matter or information teleportation without a classical channel. Speculative but physics-compatible tech (fusion, large-scale quantum computing, advanced materials, bigger rockets) is allowed.",
+        "comment": "If the initial prompt is vague/scifi/aggressive or asks for something that is physically impossible, then the generated plan usually end up with some fantasy parts, making the plan unrealistic. This item distinguishes hard engineering from physical impossibility. If any listed dependency is essential, mark FAIL; otherwise PASS."
     },
     {
         "index": 2,
         "brief": "Unproven Technology",
         "explanation": "Does this project rely on a new technology that has never been used before. eg. a white paper that hasn't been tested in the real world.",
-        "comment": "It's rarely smooth sailing when using new technology that no human has ever been used before. PlanExe sometimes picking a scenario that is way too ambitious."
+        "comment": "It's rarely smooth sailing when using new technology, novel concepts that no human has ever been used before. PlanExe sometimes picking a scenario that is way too ambitious."
     },
     {
         "index": 3,
