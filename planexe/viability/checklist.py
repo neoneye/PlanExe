@@ -243,11 +243,16 @@ STRICT RULES
 - Keep only these keys and preserve this exact key order.
 - Use standard JSON with double quotes for keys and string values. No trailing commas. No comments. No nulls.
 - level must be one of: "low", "medium", "high".
-- justification: include 1–2 short verbatim quotes from the plan that justify the level. ~30 words.
+- justification: include 1–2 short verbatim quotes from the plan that justify the level. Quotes are mandatory; no quote means the output is invalid.
 - justification must quote only from the plan text; never quote or paraphrase the checklist instructions or inject examples that are not present in the plan.
+- Only conclude "insufficient information" when the plan truly lacks relevant content; do not default to this if ordinary, real-world activities are described.
+- If no supporting quote exists, set justification to exactly "insufficient information" (lowercase) and do not add any other words.
+- If justification is "insufficient information", you must set level to either "medium" or "high".
 - mitigation: ONE assignable task. Start with a suggested role/team, followed by a verb, and include a suggested timeframe (e.g., "Legal Team: Draft a memo... within 30 days."). ~30 words.
 - mitigation must be actionable; never respond with "N/A" or similar placeholders.
-- If information is missing, set justification to "insufficient information" and provide a pragmatic mitigation. Still choose a level.
+- Mitigation must be specific to the identified issue; avoid vague directives like "review the plan", "consult experts", or "investigate" unless paired with a concrete deliverable that directly reduces the flagged risk.
+- If the level is "low", mitigation should reinforce existing good practice (e.g., document evidence, schedule routine monitoring) rather than delegating a broad re-check of the entire plan.
+- If information is genuinely missing, set justification to "insufficient information", choose level "medium" or "high", and craft mitigation that acquires the missing evidence.
 
 INPUTS (do not echo them back; use them to produce the output):
 status legend:
