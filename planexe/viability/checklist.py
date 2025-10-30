@@ -41,11 +41,11 @@ class ChecklistAnswerCleaned(BaseModel):
     index: int = Field(
         description="Index of this checklist item."
     )
-    brief: str = Field(
-        description="Brief description of this checklist item."
+    title: str = Field(
+        description="Title of this checklist item."
     )
-    explanation: str = Field(
-        description="Explain this measurement. 30 words."
+    subtitle: str = Field(
+        description="Subtitle of this checklist item."
     )
     level: str = Field(
         description="low, medium, high."
@@ -60,92 +60,107 @@ class ChecklistAnswerCleaned(BaseModel):
 CHECKLIST = [
     {
         "index": 1,
-        "brief": "Physics-Breaking Dependency",
-        "explanation": "Fail this item if any essential step (i.e., cannot be removed or replaced without materially changing the core outcome or ≥10× performance) requires: (a) creating energy or momentum from nowhere (over-unity/perpetual motion), (b) transmitting information or moving matter faster than light, (c) reactionless propulsion or “anti-gravity” defined as gravitational shielding or inertia negation without external fields/propellant, (d) 100% efficiency, zero loss/noise, infinite compute/storage/bandwidth, or instantaneous anything, (e) time travel or retrocausal signaling (causality violations/closed timelike curves), (f) macroscopic exotic matter or sustained negative energy densities to keep wormholes/warp bubbles stable, or (g) matter or information teleportation without a classical channel. Speculative but physics-compatible tech (fusion, large-scale quantum computing, advanced materials, bigger rockets) is allowed.",
+        "title": "Physics-Breaking Dependency",
+        "subtitle": "Fantasy technology such as faster than light travel that isn't grounded in reality.",
+        "instruction": "Does the plan violate physics, eg. FTL. Speculative but physics-compatible tech (fusion, large-scale quantum computing, advanced materials, bigger rockets) is allowed.",
         "comment": "If the initial prompt is vague/scifi/aggressive or asks for something that is physically impossible, then the generated plan usually end up with some fantasy parts, making the plan unrealistic. This item distinguishes hard engineering from physical impossibility. If any listed dependency is essential, mark FAIL; otherwise PASS."
     },
-    {
+    {   
         "index": 2,
-        "brief": "Unproven Technology",
-        "explanation": "Does this project rely on a new technology that has never been used before. eg. a white paper that hasn't been tested in the real world.",
+        "title": "Unproven Technology",
+        "subtitle": "New technology that has never been used before. eg. a white paper that hasn't been tested in the real world.",
+        "instruction": "Unproven Technology: Does this project rely on a new technology that has never been used before. eg. a white paper that hasn't been tested in the real world.",
         "comment": "It's rarely smooth sailing when using new technology, novel concepts that no human has ever been used before. PlanExe sometimes picking a scenario that is way too ambitious."
     },
     {
         "index": 3,
-        "brief": "Buzzwords",
-        "explanation": "Does the plan use excessive buzzwords without evidence of knowledge.",
+        "title": "Buzzwords",
+        "subtitle": "Does the plan use excessive buzzwords without evidence of knowledge.",
+        "instruction": "Buzzwords: Does the plan use excessive buzzwords without evidence of knowledge.",
         "comment": "PlanExe often ends up using buzzwords such as blockchain, DAO, VR, AR, and expects that one person without developer background can implement the plan."
     },
     {
         "index": 4,
-        "brief": "Underestimating Risks",
-        "explanation": "Does this plan grossly underestimate risks.",
+        "title": "Underestimating Risks",
+        "subtitle": "Does this plan grossly underestimate risks.",
+        "instruction": "Underestimating Risks: Does this plan grossly underestimate risks.",
         "comment": "Despite PlanExe trying to uncover many risks, there are often risks that are not identified, or some significant risk gets neglected."
     },
     {
         "index": 5,
-        "brief": "Budget Too Low",
-        "explanation": "Is there a significant mismatch between the project's stated goals and the financial resources allocated, suggesting an unrealistic or inadequate budget.",
+        "title": "Budget Too Low",
+        "subtitle": "Is there a significant mismatch between the project's stated goals and the financial resources allocated, suggesting an unrealistic or inadequate budget.",
+        "instruction": "Budget Too Low: Is there a significant mismatch between the project's stated goals and the financial resources allocated, suggesting an unrealistic or inadequate budget.",
         "comment": "Often the user specifies a 100 USD budget in the initial prompt, where the generated plan requires millions of dollars to implement. Or the budget grows during the plan generation, so the money needed ends up being much higher than expected."
     },
     {
         "index": 6,
-        "brief": "Overly Optimistic Projections",
-        "explanation": "Does this plan grossly overestimate the likelihood of success, while neglecting potential setbacks, buffers, or contingency plans.",
+        "title": "Overly Optimistic Projections",
+        "subtitle": "Does this plan grossly overestimate the likelihood of success, while neglecting potential setbacks, buffers, or contingency plans.",
+        "instruction": "Overly Optimistic Projections: Does this plan grossly overestimate the likelihood of success, while neglecting potential setbacks, buffers, or contingency plans.",
         "comment": "The generated plan describes a sunshine scenario that is likely to go wrong, without any buffers or contingency plans."
     },
     {
         "index": 7,
-        "brief": "Lacks Technical Depth",
-        "explanation": "Does the plan omit critical technical details or engineering steps required to overcome foreseeable challenges, especially for complex components of the project.",
+        "title": "Lacks Technical Depth",
+        "subtitle": "Does the plan omit critical technical details or engineering steps required to overcome foreseeable challenges, especially for complex components of the project.",
+        "instruction": "Lacks Technical Depth: Does the plan omit critical technical details or engineering steps required to overcome foreseeable challenges, especially for complex components of the project.",
         "comment": "Some plans involves serious engineering, but the generated plan is missing the technical details that explain how to overcome the technical challenges. Nailing the technical details is crucial."
     },
     {
         "index": 8,
-        "brief": "Unsupported Claims",
-        "explanation": "Does the plan make significant claims or state facts and figures without providing supporting evidence, citations, or a clear rationale for its assumptions.",
+        "title": "Unsupported Claims",
+        "subtitle": "Does the plan make significant claims or state facts and figures without providing supporting evidence, citations, or a clear rationale for its assumptions.",
+        "instruction": "Unsupported Claims: Does the plan make significant claims or state facts and figures without providing supporting evidence, citations, or a clear rationale for its assumptions.",
         "comment": "Often the generated plan specifies numbers/facts/concepts without any evidence to support the claims. These will have to be fact checked and adjusted in a refinement of the plan."
     },
     {
         "index": 9,
-        "brief": "Unclear Deliverables",
-        "explanation": "Are the project's final outputs or key milestones poorly defined, lacking specific criteria for completion, making success difficult to measure objectively.",
+        "title": "Unclear Deliverables",
+        "subtitle": "Are the project's final outputs or key milestones poorly defined, lacking specific criteria for completion, making success difficult to measure objectively.",
+        "instruction": "Unclear Deliverables: Are the project's final outputs or key milestones poorly defined, lacking specific criteria for completion, making success difficult to measure objectively.",
         "comment": "Some projects involves many components, without a clear specification of each component."
     },
     {
         "index": 10,
-        "brief": "Overengineered Plan",
-        "explanation": "Is the proposed solution disproportionately complex or resource-intensive relative to the problem it aims to solve, suggesting over-engineering.",
+        "title": "Overengineered Plan",
+        "subtitle": "Is the proposed solution disproportionately complex or resource-intensive relative to the problem it aims to solve, suggesting over-engineering.",
+        "instruction": "Overengineered Plan: Is the proposed solution disproportionately complex or resource-intensive relative to the problem it aims to solve, suggesting over-engineering.",
         "comment": "For a 'Make me a cup of coffee' prompt, then the generated plan is overkill and involves lots of people and resources."
     },
     {
         "index": 11,
-        "brief": "Underestimate Team Size",
-        "explanation": "Does the plan underestimate the number of people needed to achieve the goals.",
+        "title": "Underestimate Team Size",
+        "subtitle": "Does the plan underestimate the number of people needed to achieve the goals.",
+        "instruction": "Underestimate Team Size: Does the plan underestimate the number of people needed to achieve the goals.",
         "comment": "For a 'Construct a bridge' prompt, then the generated plan is likely to underestimate the number of people needed to achieve the goals."
     },
     {
         "index": 12,
-        "brief": "Overestimate Team Size",
-        "explanation": "Does the plan overestimate the number of people needed to achieve the goals.",
+        "title": "Overestimate Team Size",
+        "subtitle": "Does the plan overestimate the number of people needed to achieve the goals.",
+        "instruction": "Overestimate Team Size: Does the plan overestimate the number of people needed to achieve the goals.",
         "comment": "For a 'Im a solo entrepreneur and is making everything myself' prompt, then the generated plan is likely suggesting to hire a huge team of people, and ignoring the fact that the entrepreneur is doing everything themselves."
     },
     {
         "index": 13,
-        "brief": "Legal Minefield",
-        "explanation": "Does the plan involve activities with high legal, regulatory, or ethical exposure, such as potential lawsuits, corruption, illegal actions, or societal harm.",
+        "title": "Legal Minefield",
+        "subtitle": "Does the plan involve activities with high legal, regulatory, or ethical exposure, such as potential lawsuits, corruption, illegal actions, or societal harm.",
+        "instruction": "Legal Minefield: Does the plan involve activities with high legal, regulatory, or ethical exposure, such as potential lawsuits, corruption, illegal actions, or societal harm.",
         "comment": "Sometimes the generated plan describes a sunshine scenario where everything goes smoothly, without any lawyers or legal issues."
     },
     {
         "index": 14,
-        "brief": "Infeasible Constraints",
-        "explanation": "Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
+        "title": "Infeasible Constraints",
+        "subtitle": "Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
+        "instruction": "Infeasible Constraints: Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
         "comment": "Getting a permit to build a spaceship launch pad in the center of the city is likely going to be rejected."
     },
     {
         "index": 15,
-        "brief": "Uncategorized Red Flags",
-        "explanation": "Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
+        "title": "Uncategorized Red Flags",
+        "subtitle": "Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
+        "instruction": "Uncategorized Red Flags: Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
         "comment": "This checklist is not exhaustive. Besides what is listed in this checklist, there are other red flags that are not accounted for in this checklist."
     }
 ]
@@ -170,6 +185,8 @@ def format_system_prompt(*, checklist: list[dict], batch_size: int = 5, current_
 
     # remove the "comment" key from each item in the enriched_checklist
     enriched_checklist = [{k: v for k, v in item.items() if k != "comment"} for item in enriched_checklist]
+    enriched_checklist = [{k: v for k, v in item.items() if k != "title"} for item in enriched_checklist]
+    enriched_checklist = [{k: v for k, v in item.items() if k != "subtitle"} for item in enriched_checklist]
 
     # assign status=TODO to the items that have batch_index == current_batch_index
     for item in enriched_checklist:
@@ -238,6 +255,8 @@ Checklist to evaluate:
 RETURN THIS EXACT SHAPE (fill in the values; keep ids as-is; do not alter structure, punctuation, or key order):
 {json_response_skeleton}
 """
+    # print(f"System prompt:\n{system_prompt}")
+    # exit(0)
     return system_prompt
 
 BATCH_SIZE = 5
@@ -349,13 +368,13 @@ class ViabilityChecklist:
             if checklist_item is None:
                 raise ValueError(f"Checklist item not found for id: {checklist_id}")
             checklist_item_index = checklist_item["index"]
-            checklist_item_brief = checklist_item["brief"]
-            checklist_item_explanation = checklist_item["explanation"]
+            checklist_item_title = checklist_item["title"]
+            checklist_item_subtitle = checklist_item["subtitle"]
             measurement_cleaned = ChecklistAnswerCleaned(
                 id=checklist_id,
                 index=checklist_item_index,
-                brief=checklist_item_brief,
-                explanation=checklist_item_explanation,
+                title=checklist_item_title,
+                subtitle=checklist_item_subtitle,
                 level=measurement.level,
                 justification=measurement.justification,
                 mitigation=measurement.mitigation,
@@ -443,8 +462,8 @@ class ViabilityChecklist:
         for index, item in enumerate(checklist_answers):
             if index > 0:
                 rows.append("\n")
-            rows.append(f"## {index+1}. {item.brief}\n")
-            rows.append(f"*{item.explanation}*\n")
+            rows.append(f"## {index+1}. {item.title}\n")
+            rows.append(f"*{item.subtitle}*\n")
             level_description = level_map.get(item.level, "Unknown level")
             rows.append(f"**Level**: {level_description}\n")
             rows.append(f"**Justification**: {item.justification}\n")
