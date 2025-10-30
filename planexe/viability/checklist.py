@@ -123,9 +123,9 @@ CHECKLIST = [
     },
     {
         "index": 10,
-        "title": "Unsupported Claims",
-        "subtitle": "Does the plan make significant claims or state facts and figures without providing supporting evidence, citations, or a clear rationale for its assumptions.",
-        "instruction": "Unsupported Claims: Does the plan make significant claims or state facts and figures without providing supporting evidence, citations, or a clear rationale for its assumptions.",
+        "title": "Assertions Without Evidence",
+        "subtitle": "Exclude timeline & budget. Find one hard proof for a critical claim.",
+        "instruction": "Scope: Exclude timeline and budget (handled elsewhere). Evaluate existential assertions about: legality/permits; stakeholder/partner commitment; safety/security/compliance effectiveness; technical feasibility of the core approach; and operational capacity to deliver/run. Action: Identify the single most impactful assertion in scope and look for one verifiable evidence item in the plan (e.g., statutory/regulatory citation or formal opinion; signed LOI/MOU; independent test/inspection/validation report; prototype/PoC results or expert review; accredited certification or prior deployment). If none is found, flag it. Scoring: High—no verifiable evidence or only hand-waving; Medium—evidence exists but is weak/unverifiable or contradicts the plan; Low—one clear, checkable item exists. Output: Justification ≤2 sentences naming the assertion and where evidence was/wasn’t found. Mitigation 1 sentence naming the single next proof step (e.g., obtain formal opinion; secure written commitment; deliver independent test/validation).",
         "comment": "Often the generated plan specifies numbers/facts/concepts without any evidence to support the claims. These will have to be fact checked and adjusted in a refinement of the plan."
     },
     {
