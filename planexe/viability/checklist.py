@@ -205,12 +205,10 @@ def format_system_prompt(*, checklist: list[dict], batch_size: int = 5, current_
     # assign status=TODO to the items that have batch_index == current_batch_index
     for item in enriched_checklist:
         batch_index = item["batch_index"]
-        if batch_index < current_batch_index:
-            item["status"] = "DONE"
-        elif batch_index > current_batch_index:
-            item["status"] = "PENDING"
-        else:
+        if batch_index == current_batch_index:
             item["status"] = "TODO"
+        else:
+            item["status"] = "IGNORE"
 
     checklist_answers: list[ChecklistAnswer] = []
     for item in enriched_checklist:
@@ -251,7 +249,7 @@ Return exactly one object per checklist item with keys in this order: id, level,
 
 STRICT RULES
 - Output must be a single JSON array, same length and order as the expected ids.
-- Answer only for checklist entries whose status is "TODO"; treat "DONE" or "PENDING" items as read-only context and never output them.
+- Answer only for checklist entries whose status is "TODO"; treat "IGNORE" items as read-only context and never output them.
 - Copy id from input unchanged; never invent, drop, or reorder ids.
 - If you output any id that is not listed in the expected ids, you fail the task; do not add or duplicate ids.
 - Keep only these keys and preserve this exact key order.
@@ -271,7 +269,7 @@ STRICT RULES
 INPUTS (do not echo them back; use them to produce the output):
 status legend:
 - "TODO": must answer.
-- "DONE" or "PENDING": ignore completely; never include in output.
+- "IGNORE": ignore completely; never include in output.
 Expected ids (order to follow):
 {json_expected_ids}
 
