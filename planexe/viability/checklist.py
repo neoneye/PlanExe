@@ -62,7 +62,7 @@ CHECKLIST = [
         "index": 1,
         "title": "Violates Known Physics",
         "subtitle": "The project cannot succeed without a major, unpredictable discovery in fundamental science.",
-        "instruction": "Does the plan violate physics, eg. FTL. Speculative but physics-compatible tech (fusion, large-scale quantum computing, advanced materials, bigger rockets) is allowed.",
+        "instruction": "Evaluate if the plan violates physics (e.g., FTL). If no violations are found and the plan relies on known engineering, set level to 'low' and justify this.",
         "comment": "If the initial prompt is vague/scifi/aggressive or asks for something that is physically impossible, then the generated plan usually end up with some fantasy parts, making the plan unrealistic."
     },
     {
@@ -243,7 +243,7 @@ STRICT RULES
 - Keep only these keys and preserve this exact key order.
 - Use standard JSON with double quotes for keys and string values. No trailing commas. No comments. No nulls.
 - level must be one of: "low", "medium", "high".
-- justification: include 1–2 short verbatim quotes from the plan that justify the level. Quotes are mandatory; no quote means the output is invalid.
+- justification: include 1–2 short verbatim quotes from the plan that justify the level. As the only exception, if a red flag is absent, state that no evidence was found and briefly explain why the level is 'low'.
 - justification must quote only from the plan text; never quote or paraphrase the checklist instructions or inject examples that are not present in the plan.
 - Only conclude "insufficient information" when the plan truly lacks relevant content; do not default to this if ordinary, real-world activities are described.
 - If no supporting quote exists, set justification to exactly "insufficient information" (lowercase) and do not add any other words.
