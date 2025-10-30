@@ -104,7 +104,7 @@ CHECKLIST = [
         "index": 7,
         "title": "Lacks Technical Depth",
         "subtitle": "Does the plan omit critical technical details or engineering steps required to overcome foreseeable challenges, especially for complex components of the project.",
-        "instruction": "Lacks Technical Depth: Does the plan omit critical technical details or engineering steps required to overcome foreseeable challenges, especially for complex components of the project.",
+        "instruction": "Verify that for any significant technical challenge (e.g., construction, software, logistics), the plan provides a credible 'how,' not just a 'what.' Look for specific details like system architecture diagrams, material specifications, data flow models, or detailed implementation steps. Flag plans that 'hand-wave' complex issues, such as saying 'build a secure platform' without outlining the security model or protocols.",
         "comment": "Some plans involves serious engineering, but the generated plan is missing the technical details that explain how to overcome the technical challenges. Nailing the technical details is crucial."
     },
     {
