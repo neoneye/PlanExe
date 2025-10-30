@@ -244,7 +244,9 @@ STRICT RULES
 - Use standard JSON with double quotes for keys and string values. No trailing commas. No comments. No nulls.
 - level must be one of: "low", "medium", "high".
 - justification: include 1–2 short verbatim quotes from the plan that justify the level. ~30 words.
+- justification must quote only from the plan text; never quote or paraphrase the checklist instructions or inject examples that are not present in the plan.
 - mitigation: ONE assignable task. Start with a suggested role/team, followed by a verb, and include a suggested timeframe (e.g., "Legal Team: Draft a memo... within 30 days."). ~30 words.
+- mitigation must be actionable; never respond with "N/A" or similar placeholders.
 - If information is missing, set justification to "insufficient information" and provide a pragmatic mitigation. Still choose a level.
 
 INPUTS (do not echo them back; use them to produce the output):
