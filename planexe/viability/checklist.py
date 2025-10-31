@@ -142,10 +142,10 @@ ALL_CHECKLIST_ITEMS = [
     },
     {
         "index": 12,
-        "title": "Overengineered Plan",
-        "subtitle": "Is the proposed solution disproportionately complex or resource-intensive relative to the problem it aims to solve, suggesting over-engineering.",
-        "instruction": "Flag this when proposed scope/complexity/cost materially exceeds what’s needed to meet stated outcomes. Require an options analysis (MVP/pilot-first + off-the-shelf vs. proposed design) and compare cost-to-risk-reduction/ROI. Front-loading global protocols or bespoke infrastructure before proving core technologies is a red flag.",
-        "comment": "For a 'Make me a cup of coffee' prompt, then the generated plan is overkill and involves lots of people and resources."
+        "title": "Gold Plating",
+        "subtitle": "Does the plan add unnecessary features, complexity, or cost beyond the core goal?",
+        "instruction": "Your task is to detect 'Gold Plating'. Flag as HIGH RISK any feature, component, or activity that adds significant cost or complexity without demonstrably supporting one of the project's primary, stated objectives or satisfying a binding legal/contractual requirement.\n\nYour justification MUST:\n  (1) Identify the feature you are flagging as potential Gold Plating.\n  (2) State that it does not appear to directly support the core project goals (list 1-2 core goals from the plan for context).\n\nMitigation for HIGH must require a 'Benefit Case Review': For each flagged feature, the project team must produce a one-page benefit case justifying its inclusion, complete with a KPI, owner, and estimated cost, or else move the feature to the project backlog.",
+        "comment": "For a 'Make me a cup of coffee' prompt, then the generated plan is overkill and involves lots of people and resources. Flags when the solution is excessively elaborate for the problem. A feature is Gold Plating if it doesn't directly serve a core project goal or meet a mandatory requirement. https://en.wikipedia.org/wiki/Gold_plating_(project_management)"
     },
     {
         "index": 13,
