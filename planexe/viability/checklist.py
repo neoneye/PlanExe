@@ -80,7 +80,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 4,
         "title": "Underestimating Risks",
         "subtitle": "Does this plan grossly underestimate risks.",
-        "instruction": "Perform a risk gap analysis. Compare the risks explicitly mentioned in the plan's risk assessment against the risks implied by the project's core activities (e.g., high-impact, controversial actions). Set LEVEL to HIGH if the plan ignores or significantly downplays 'showstopper' risks (e.g., public outrage, political backlash, insurmountable barriers). Justify by naming a critical, unaddressed risk.",
+        "instruction": "Do a risk gap check. Beyond listed risks, verify coverage of second-order risks: reputational impact, regulatory/approval delays, long-term OPEX/lifecycle, community/ESG backlash, key-person dependency, vendor lock-in, data/privacy. Set HIGH if the risk section is purely technical/financial or lacks owner, trigger, and contingency for critical risks. Justify by naming one critical unaddressed risk and its consequence.",
         "comment": "Despite PlanExe trying to uncover many risks, there are often risks that are not identified, or some significant risk gets neglected."
     },
     {
@@ -143,14 +143,14 @@ ALL_CHECKLIST_ITEMS = [
         "index": 13,
         "title": "Underestimate Team Size",
         "subtitle": "Does the plan underestimate the number of people needed to achieve the goals.",
-        "instruction": "Underestimate Team Size: Does the plan underestimate the number of people needed to achieve the goals.",
+        "instruction": "Evaluate staffing rationale vs. workload. Set HIGH if complex/specialized tasks (e.g., compliance, engineering, construction) lack named roles or the plan hand-waves a generic ‘team’. Do not guess headcount; flag mismatch of roles to work. Mitigation: add a roles/responsibilities (RACI) and minimal staffing model per work-package.",
         "comment": "For a 'Construct a bridge' prompt, then the generated plan is likely to underestimate the number of people needed to achieve the goals."
     },
     {
         "index": 14,
         "title": "Overestimate Team Size",
         "subtitle": "Does the plan overestimate the number of people needed to achieve the goals.",
-        "instruction": "Overestimate Team Size: Does the plan overestimate the number of people needed to achieve the goals.",
+        "instruction": "Flag HIGH if the team described materially exceeds the stated workload/complexity (redundant roles, idle capacity, 10 people for trivial tasks). Require a lean baseline with justification.",
         "comment": "For a 'Im a solo entrepreneur and is making everything myself' prompt, then the generated plan is likely suggesting to hire a huge team of people, and ignoring the fact that the entrepreneur is doing everything themselves."
     },
     {
@@ -190,6 +190,13 @@ ALL_CHECKLIST_ITEMS = [
     },
     {
         "index": 20,
+        "title": "No Adaptive Framework",
+        "subtitle": "The plan lacks a clear process for monitoring progress and managing changes, treating the initial plan as final.",
+        "instruction": "Set HIGH if the plan lacks a feedback loop: KPIs, review cadence, owners, and a basic change-control process with thresholds (when to re-plan/stop). Vague ‘we will monitor’ is insufficient. In justification, name which element(s) are missing. Mitigation: add a monthly review with KPI dashboard and a lightweight change board.",
+        "comment": "A plan is a starting point, not a final script. Without a way to measure progress and adapt to unforeseen problems (scope creep, delays, new requirements), even the best initial plan will fail. This checks if the project has a steering wheel."
+    },
+    {
+        "index": 21,
         "title": "Uncategorized Red Flags",
         "subtitle": "Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
         "instruction": "Uncategorized Red Flags: Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
