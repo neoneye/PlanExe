@@ -216,6 +216,9 @@ def format_system_prompt(*, checklist: list[dict], batch_size: int = 5, current_
         else:
             item["status"] = "IGNORE"
 
+    # Older LLMs can't handle with all the long instruction text. 
+    # The solution is to only show the long instruction for the current batch,
+    # and show title/subtitle for the other batches, these texts are much shorter.
     for item in enriched_checklist:
         batch_index = item["batch_index"]
         if batch_index != current_batch_index:
