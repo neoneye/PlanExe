@@ -65,7 +65,7 @@ class ChecklistAnswerCleaned(BaseModel):
         description="One concrete action that reduces/removes the flag. 30 words."
     )
 
-CHECKLIST = [
+ALL_CHECKLIST_ITEMS = [
     {
         "index": 1,
         "title": "Violates Known Physics",
@@ -171,21 +171,45 @@ CHECKLIST = [
         "instruction": "Legal Minefield: Does the plan trigger multiple overlapping jurisdictions or regimes with low probability of approval and high litigation risk (e.g., environmental impact, land use/zoning, sector‑specific licensing, securities/market integrity, data protection, export controls, financial crime/AML, public safety)? If so, set level to 'high'. In the justification, reference the specific regimes/laws/processes implicated (by name where possible) and explain why approval is unlikely. In the mitigation, propose a legal feasibility & pathway study (12–16 weeks) that delivers: (1) a statute/regulation matrix; (2) regulatory process maps (e.g., impact assessment steps and required agency consultations); (3) preliminary regulator/agency readouts; (4) case analogs; (5) a permit/approval probability model with confidence intervals; (6) litigation exposure; and (7) alternatives analysis. Include explicit go/no‑go gates (e.g., NO‑GO if approval probability <10% or an agency indicates no plausible path).",
         "comment": "Sometimes the generated plan describes a sunshine scenario where everything goes smoothly, without any lawyers or legal issues."
     },
-    # {
-    #     "index": 16,
-    #     "title": "Infeasible Constraints",
-    #     "subtitle": "Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
-    #     "instruction": "Infeasible Constraints: Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
-    #     "comment": "Getting a permit to build a spaceship launch pad in the center of the city is likely going to be rejected."
-    # },
-    # {
-    #     "index": 17,
-    #     "title": "Uncategorized Red Flags",
-    #     "subtitle": "Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
-    #     "instruction": "Uncategorized Red Flags: Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
-    #     "comment": "This checklist is not exhaustive. Besides what is listed in this checklist, there are other red flags that are not accounted for in this checklist."
-    # }
+    {
+        "index": 16,
+        "title": "Lacks Operational Sustainability",
+        "subtitle": "Even if the project is successfully completed, can it be sustained, maintained, and operated effectively over the long term without ongoing issues.",
+        "instruction": "Lacks Operational Sustainability: Assess whether the project can be sustained post-completion. Evaluate: (1) Ongoing operational costs vs. available funding/revenue—is there a sustainable business model? (2) Maintenance requirements—are specialized skills, parts, or vendors needed that may not be available long-term? (3) Scalability—can the system handle growth or changing conditions? (4) Personnel dependency—does operation depend on specific individuals who may leave? (5) Technology obsolescence—will critical technology become unsupported or obsolete? (6) Environmental/social impact—can negative impacts be managed long-term? Set LEVEL to HIGH if: operational costs exceed sustainable funding, maintenance requires unavailable resources, or the system cannot adapt to changing conditions. Set LEVEL to MEDIUM if: sustainability concerns exist but can be addressed with planning. Set LEVEL to LOW if: a clear, sustainable operational model exists with adequate resources. In the justification, identify the specific sustainability gap (funding, maintenance, scalability, etc.). In the mitigation, propose an operational sustainability plan including: funding/resource strategy, maintenance schedule, succession planning, technology roadmap, or adaptation mechanisms.",
+        "comment": "Many projects focus on completion but ignore operational sustainability. A perfectly built project can fail if it requires unsustainable funding, impossible maintenance, or cannot adapt to changing conditions. PlanExe may generate plans that work in theory but cannot be sustained in practice."
+    },
+    {
+        "index": 17,
+        "title": "Infeasible Constraints",
+        "subtitle": "Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
+        "instruction": "Infeasible Constraints: Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
+        "comment": "Getting a permit to build a spaceship launch pad in the center of the city is likely going to be rejected."
+    },
+    {
+        "index": 18,
+        "title": "External Dependencies",
+        "subtitle": "Does the project depend on critical external factors, third parties, suppliers, or vendors that may fail, delay, or be unavailable when needed.",
+        "instruction": "External Dependencies: Identify all critical dependencies on external entities (vendors, suppliers, partners, third-party services, infrastructure providers, regulatory agencies, or market conditions). Evaluate the risk of each dependency: single-source suppliers, uncommitted partners, third-party services with no SLA, or infrastructure that may not be available. Set LEVEL to HIGH if the project has critical dependencies on entities that: (1) have not provided formal commitments/contracts, (2) are single-source with no alternatives, (3) have a history of delays or failures, (4) operate in unstable markets/regions, or (5) may have conflicting interests. Set LEVEL to MEDIUM if dependencies exist but have mitigations or alternatives. Set LEVEL to LOW if all critical dependencies are secured with contracts/commitments and have backup options. In the justification, name the specific dependency and why it is risky. In the mitigation, propose securing formal commitments, identifying alternatives, or establishing backup suppliers/providers.",
+        "comment": "Plans often assume external parties will deliver as expected, without considering vendor lock-in, supplier failures, or partner non-commitment. Real projects can fail if a critical supplier goes out of business or a partner doesn't follow through."
+    },
+    {
+        "index": 19,
+        "title": "Stakeholder Misalignment",
+        "subtitle": "Are there conflicting interests, misaligned incentives, or lack of genuine commitment from key stakeholders that could derail the project.",
+        "instruction": "Stakeholder Misalignment: Map all key stakeholders (funders, partners, end users, regulators, affected communities, internal teams). Evaluate alignment: (1) Do stakeholders have conflicting goals or incentives? (2) Are stakeholders genuinely committed, or just giving lip service? (3) Do stakeholders have the authority/resources to deliver on commitments? (4) Will stakeholders remain supportive if costs increase or timelines slip? (5) Are there power imbalances or political dynamics that could sabotage the project? Set LEVEL to HIGH if: stakeholders have fundamentally conflicting interests, key stakeholders are uncommitted or have made no formal agreements, or there are political/social dynamics likely to cause opposition. Set LEVEL to MEDIUM if: some misalignment exists but can be managed through negotiation or incentives. Set LEVEL to LOW if: all stakeholders are aligned with formal agreements and shared incentives. In the justification, identify the specific stakeholder(s) and the misalignment. In the mitigation, propose stakeholder alignment workshops, formal agreements (MOUs/contracts), incentive restructuring, or conflict resolution processes.",
+        "comment": "Projects can fail even with perfect technical execution if stakeholders have hidden agendas, conflicting priorities, or lose interest halfway through. PlanExe may assume stakeholders are fully supportive without verifying commitment or alignment."
+    },
+    {
+        "index": 20,
+        "title": "Uncategorized Red Flags",
+        "subtitle": "Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
+        "instruction": "Uncategorized Red Flags: Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
+        "comment": "This checklist is not exhaustive. Besides what is listed in this checklist, there are other red flags that are not accounted for in this checklist."
+    }
 ]
+
+# Older LLMs seem to handle the first 15 ok, but beyond that the LLMs starts to ignore the batching of items.
+CHECKLIST = ALL_CHECKLIST_ITEMS[:15]
 
 def enrich_checklist_with_batch_id_and_item_index(checklist: list[dict], batch_size: int = 5) -> list[dict]:
     enriched_checklist: list[dict] = []
