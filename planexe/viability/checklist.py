@@ -171,20 +171,20 @@ CHECKLIST = [
         "instruction": "Legal Minefield: Does the plan trigger multiple overlapping jurisdictions or regimes with low probability of approval and high litigation risk (e.g., environmental impact, land use/zoning, sector‑specific licensing, securities/market integrity, data protection, export controls, financial crime/AML, public safety)? If so, set level to 'high'. In the justification, reference the specific regimes/laws/processes implicated (by name where possible) and explain why approval is unlikely. In the mitigation, propose a legal feasibility & pathway study (12–16 weeks) that delivers: (1) a statute/regulation matrix; (2) regulatory process maps (e.g., impact assessment steps and required agency consultations); (3) preliminary regulator/agency readouts; (4) case analogs; (5) a permit/approval probability model with confidence intervals; (6) litigation exposure; and (7) alternatives analysis. Include explicit go/no‑go gates (e.g., NO‑GO if approval probability <10% or an agency indicates no plausible path).",
         "comment": "Sometimes the generated plan describes a sunshine scenario where everything goes smoothly, without any lawyers or legal issues."
     },
-    {
-        "index": 16,
-        "title": "Infeasible Constraints",
-        "subtitle": "Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
-        "instruction": "Infeasible Constraints: Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
-        "comment": "Getting a permit to build a spaceship launch pad in the center of the city is likely going to be rejected."
-    },
-    {
-        "index": 17,
-        "title": "Uncategorized Red Flags",
-        "subtitle": "Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
-        "instruction": "Uncategorized Red Flags: Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
-        "comment": "This checklist is not exhaustive. Besides what is listed in this checklist, there are other red flags that are not accounted for in this checklist."
-    }
+    # {
+    #     "index": 16,
+    #     "title": "Infeasible Constraints",
+    #     "subtitle": "Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
+    #     "instruction": "Infeasible Constraints: Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
+    #     "comment": "Getting a permit to build a spaceship launch pad in the center of the city is likely going to be rejected."
+    # },
+    # {
+    #     "index": 17,
+    #     "title": "Uncategorized Red Flags",
+    #     "subtitle": "Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
+    #     "instruction": "Uncategorized Red Flags: Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
+    #     "comment": "This checklist is not exhaustive. Besides what is listed in this checklist, there are other red flags that are not accounted for in this checklist."
+    # }
 ]
 
 def enrich_checklist_with_batch_id_and_item_index(checklist: list[dict], batch_size: int = 5) -> list[dict]:
@@ -207,8 +207,6 @@ def format_system_prompt(*, checklist: list[dict], batch_size: int = 5, current_
 
     # remove the "comment" key from each item in the enriched_checklist
     enriched_checklist = [{k: v for k, v in item.items() if k != "comment"} for item in enriched_checklist]
-    enriched_checklist = [{k: v for k, v in item.items() if k != "title"} for item in enriched_checklist]
-    enriched_checklist = [{k: v for k, v in item.items() if k != "subtitle"} for item in enriched_checklist]
 
     # assign status=TODO to the items that have batch_index == current_batch_index
     for item in enriched_checklist:
@@ -217,6 +215,14 @@ def format_system_prompt(*, checklist: list[dict], batch_size: int = 5, current_
             item["status"] = "TODO"
         else:
             item["status"] = "IGNORE"
+
+    for item in enriched_checklist:
+        batch_index = item["batch_index"]
+        if batch_index != current_batch_index:
+            item["instruction"] = item["title"] + "\n" + item["subtitle"]
+
+    enriched_checklist = [{k: v for k, v in item.items() if k != "title"} for item in enriched_checklist]
+    enriched_checklist = [{k: v for k, v in item.items() if k != "subtitle"} for item in enriched_checklist]
 
     checklist_answers: list[ChecklistAnswer] = []
     for item in enriched_checklist:
