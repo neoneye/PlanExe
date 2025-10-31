@@ -484,7 +484,11 @@ if __name__ == "__main__":
     from planexe.llm_util.llm_executor import LLMModelFromName
     from planexe.prompt.prompt_catalog import PromptCatalog
 
-    # logging.basicConfig(level=logging.DEBUG)
+    # Configure logging to only show __main__ logs
+    logging.basicConfig(level=logging.WARNING)  # Set root logger to WARNING to suppress most logs
+    logging.getLogger("__main__").setLevel(logging.INFO)  # Only show INFO for __main__
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # Suppress httpx logs
+    logging.getLogger("planexe.llm_util.llm_executor").setLevel(logging.WARNING)  # Suppress llm_executor logs
 
     prompt_catalog = PromptCatalog()
     prompt_catalog.load_simple_plan_prompts()
