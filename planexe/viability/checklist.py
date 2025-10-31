@@ -197,9 +197,6 @@ ALL_CHECKLIST_ITEMS = [
     }
 ]
 
-# Older LLMs seem to handle the first 15 ok, but beyond that the LLMs starts to ignore the batching of items.
-CHECKLIST = ALL_CHECKLIST_ITEMS[:3]
-
 def format_system_prompt(*, checklist: list[dict], current_index: int) -> str:
     if current_index < 0 or current_index >= len(checklist):
         raise ValueError(f"Current index must be between 0 and {len(checklist)-1}. Got {current_index}.")
@@ -302,13 +299,17 @@ class ViabilityChecklist:
     markdown: str
 
     @classmethod
-    def execute(cls, llm_executor: LLMExecutor, user_prompt: str) -> 'ViabilityChecklist':
+    def execute(cls, llm_executor: LLMExecutor, user_prompt: str, max_number_of_items: Optional[int] = None) -> 'ViabilityChecklist':
         if not isinstance(llm_executor, LLMExecutor):
             raise ValueError("Invalid LLMExecutor instance.")
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
+        if max_number_of_items is not None and not isinstance(max_number_of_items, int):
+            raise ValueError("Invalid max_number_of_items.")
 
-        checklist_items = CHECKLIST
+        checklist_items = ALL_CHECKLIST_ITEMS
+        if max_number_of_items is not None:
+            checklist_items = checklist_items[:max_number_of_items]
         
         system_prompt_list = []
         for index in range(0, len(checklist_items)):
@@ -508,7 +509,7 @@ if __name__ == "__main__":
     llm_executor = LLMExecutor(llm_models=llm_models)
 
     print(f"Query: {query}")
-    result = ViabilityChecklist.execute(llm_executor, query)
+    result = ViabilityChecklist.execute(llm_executor=llm_executor, user_prompt=query, max_number_of_items=3)
 
     print("\nResult:")
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)

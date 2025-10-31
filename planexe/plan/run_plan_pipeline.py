@@ -3968,6 +3968,7 @@ class ViabilityChecklistTask(PlanTask):
         viability_checklist = ViabilityChecklist.execute(
             llm_executor=llm_executor, 
             user_prompt=user_prompt,
+            max_number_of_items=None,
         )
 
         # Save the results.
