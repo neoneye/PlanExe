@@ -80,14 +80,14 @@ ALL_CHECKLIST_ITEMS = [
     {
         "index": 3,
         "title": "Buzzwords",
-        "subtitle": "Does the plan use excessive buzzwords without evidence of knowledge.",
+        "subtitle": "Does the plan use excessive buzzwords without evidence of knowledge?",
         "instruction": "Flag any term that reads like a buzzword and require a one-page mechanism-of-action per term: role in the system; inputs/outputs & interface/architecture sketch; measurable success criteria; dependencies; abuse/failure modes; accountable owner. Log any missing piece as a gap with an owner + due date.",
         "comment": "PlanExe often ends up using buzzwords such as blockchain, NFT, DAO, VR, AR, and expects that one person without developer background can implement the plan."
     },
     {
         "index": 4,
         "title": "Underestimating Risks",
-        "subtitle": "Does this plan grossly underestimate risks.",
+        "subtitle": "Does this plan grossly underestimate risks?",
         "instruction": "Find a critical risk that is mentioned in the plan's risk register. Then, describe a plausible second-order (knock-on) effect of that risk materializing that the plan fails to consider. Your justification must explain this causal chain (If Risk X happens, then Consequence Y will follow, which the plan ignores). The mitigation must be a task to add this specific second-order risk and its contingency plan to the risk register.",
         "comment": "Despite PlanExe trying to uncover many risks, there are often risks that are not identified, or some significant risk gets neglected."
     },
@@ -108,21 +108,21 @@ ALL_CHECKLIST_ITEMS = [
     {
         "index": 7,
         "title": "Budget Too Low",
-        "subtitle": "Is there a significant mismatch between the project's stated goals and the financial resources allocated, suggesting an unrealistic or inadequate budget.",
+        "subtitle": "Is there a significant mismatch between the project's stated goals and the financial resources allocated, suggesting an unrealistic or inadequate budget?",
         "instruction": "Budget Too Low: Is there a significant mismatch between the project's stated goals and the allocated budget? In the justification, after citing the plan's budget figures, provide Order-of-Magnitude (OOM) context by comparing them to analogous real-world projects (e.g., 'The plan budgets $5M, but similar public infrastructure projects typically exceed $50M.'). Set level to 'high' if the mismatch is significant. Mitigation must be a task to produce an independent, detailed cost analysis.",
         "comment": "Often the user specifies a 100 USD budget in the initial prompt, where the generated plan requires millions of dollars to implement. Or the budget grows during the plan generation, so the money needed ends up being much higher than expected."
     },
     {
         "index": 8,
         "title": "Overly Optimistic Projections",
-        "subtitle": "Does this plan grossly overestimate the likelihood of success, while neglecting potential setbacks, buffers, or contingency plans.",
+        "subtitle": "Does this plan grossly overestimate the likelihood of success, while neglecting potential setbacks, buffers, or contingency plans?",
         "instruction": "Assess if the plan's projections are one-sided. Set LEVEL to HIGH if the plan presents key projections (e.g., revenue, user adoption, completion dates) as a single number without providing a range, confidence interval, or discussing alternative scenarios (e.g., a 'worst-case' or 'conservative' case). The lack of contingency planning for projections indicates optimism. For mitigation, require a sensitivity analysis or a best/worst/base-case scenario analysis for the most critical projection.",
         "comment": "The generated plan describes a sunshine scenario that is likely to go wrong, without any buffers or contingency plans."
     },
     {
         "index": 9,
         "title": "Lacks Technical Depth",
-        "subtitle": "Does the plan omit critical technical details or engineering steps required to overcome foreseeable challenges, especially for complex components of the project.",
+        "subtitle": "Does the plan omit critical technical details or engineering steps required to overcome foreseeable challenges, especially for complex components of the project?",
         "instruction": "Flag this when any critical-path component lacks concrete engineering artifacts: (1) mechanism-of-action/architecture or process flow, (2) quantified performance targets with acceptance tests/DoE, and (3) integration & dependency mapping (interfaces, resources, capacities). If ≥2 are missing for a critical area, mark this item.",
         "comment": "Some plans involves serious engineering, but the generated plan is missing the technical details that explain how to overcome the technical challenges. Nailing the technical details is crucial."
     },
@@ -136,7 +136,7 @@ ALL_CHECKLIST_ITEMS = [
     {
         "index": 11,
         "title": "Unclear Deliverables",
-        "subtitle": "Are the project's final outputs or key milestones poorly defined, lacking specific criteria for completion, making success difficult to measure objectively.",
+        "subtitle": "Are the project's final outputs or key milestones poorly defined, lacking specific criteria for completion, making success difficult to measure objectively?",
         "instruction": "Unclear Deliverables: Are the project's final outputs or key milestones poorly defined? Set LEVEL to HIGH if a major deliverable is mentioned without specific, verifiable qualities. For justification, name the abstract deliverable. The mitigation must be a task to define SMART acceptance criteria for that deliverable, including at least one specific, quantifiable Key Performance Indicator (KPI). For example, for 'a new system,' the mitigation could be 'Define SMART criteria, including a KPI for system uptime (e.g., 99.9% availability).'",
         "comment": "Some projects involves many components, without a clear specification of each component."
     },
@@ -157,35 +157,35 @@ ALL_CHECKLIST_ITEMS = [
     {
         "index": 14,
         "title": "Legal Minefield",
-        "subtitle": "Does the plan involve activities with high legal, regulatory, or ethical exposure, such as potential lawsuits, corruption, illegal actions, or societal harm.",
+        "subtitle": "Does the plan involve activities with high legal, regulatory, or ethical exposure, such as potential lawsuits, corruption, illegal actions, or societal harm?",
         "instruction": "Legal Minefield: Does the plan trigger multiple overlapping jurisdictions or regimes with low probability of approval and high litigation risk (e.g., environmental impact, land use, data protection, public safety)? Set level to 'high' if so. In the justification, reference the specific regimes/laws implicated. In the mitigation, propose a phased legal validation with early go/no-go points, starting with the lowest-cost step first. Example: \"Phase 1 (Immediate): A 'Fatal Flaw Analysis' to find absolute statutory blockers. Phase 2 (Short-Term): If viable, 'Preliminary Engagement' with a key regulator. Phase 3 (Full Study): Only if engagement is positive, commission a full 'Regulatory Pathway Study'.\"",
         "comment": "Sometimes the generated plan describes a sunshine scenario where everything goes smoothly, without any lawyers or legal issues."
     },
     {
         "index": 15,
         "title": "Lacks Operational Sustainability",
-        "subtitle": "Even if the project is successfully completed, can it be sustained, maintained, and operated effectively over the long term without ongoing issues.",
+        "subtitle": "Even if the project is successfully completed, can it be sustained, maintained, and operated effectively over the long term without ongoing issues?",
         "instruction": "Lacks Operational Sustainability: Assess whether the project can be sustained post-completion. Evaluate: (1) Ongoing operational costs vs. available funding/revenue—is there a sustainable business model? (2) Maintenance requirements—are specialized skills, parts, or vendors needed that may not be available long-term? (3) Scalability—can the system handle growth or changing conditions? (4) Personnel dependency—does operation depend on specific individuals who may leave? (5) Technology obsolescence—will critical technology become unsupported or obsolete? (6) Environmental/social impact—can negative impacts be managed long-term? Set LEVEL to HIGH if: operational costs exceed sustainable funding, maintenance requires unavailable resources, or the system cannot adapt to changing conditions. Set LEVEL to MEDIUM if: sustainability concerns exist but can be addressed with planning. Set LEVEL to LOW if: a clear, sustainable operational model exists with adequate resources. In the justification, identify the specific sustainability gap (funding, maintenance, scalability, etc.). In the mitigation, propose an operational sustainability plan including: funding/resource strategy, maintenance schedule, succession planning, technology roadmap, or adaptation mechanisms.",
         "comment": "Many projects focus on completion but ignore operational sustainability. A perfectly built project can fail if it requires unsustainable funding, impossible maintenance, or cannot adapt to changing conditions. PlanExe may generate plans that work in theory but cannot be sustained in practice."
     },
     {
         "index": 16,
         "title": "Infeasible Constraints",
-        "subtitle": "Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
+        "subtitle": "Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied?",
         "instruction": "Infeasible Constraints: Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
         "comment": "Getting a permit to build a spaceship launch pad in the center of the city is likely going to be rejected."
     },
     {
         "index": 17,
         "title": "External Dependencies",
-        "subtitle": "Does the project depend on critical external factors, third parties, suppliers, or vendors that may fail, delay, or be unavailable when needed.",
+        "subtitle": "Does the project depend on critical external factors, third parties, suppliers, or vendors that may fail, delay, or be unavailable when needed?",
         "instruction": "Scan for critical third-party dependencies on the critical path (e.g., regulatory approvals, vendors, data/platform access, facilities, financing tranches). Set HIGH if any critical milestone depends on an external party without a signed commitment (LOI/MOU/contract), regulator pre-read, capacity confirmation, or equivalent artifact. If dependencies are mentioned but unproven, set at least MEDIUM. In justification, name the specific dependency and the missing artifact. Mitigation: produce a Dependency Register (owner, artifact, lead time, fallback).",
         "comment": "Plans often assume external parties will deliver as expected, without considering vendor lock-in, supplier failures, or partner non-commitment. Real projects can fail if a critical supplier goes out of business or a partner doesn't follow through."
     },
     {
         "index": 18,
         "title": "Stakeholder Misalignment",
-        "subtitle": "Are there conflicting interests, misaligned incentives, or lack of genuine commitment from key stakeholders that could derail the project.",
+        "subtitle": "Are there conflicting interests, misaligned incentives, or lack of genuine commitment from key stakeholders that could derail the project?",
         "instruction": "Analyze the stated goals of two key stakeholders (e.g., 'Finance Department' and 'R&D Team'). Identify a plausible, unstated conflict in their underlying incentives (e.g., Finance is incentivized by quarterly budget adherence, while R&D is incentivized by long-term innovation, creating a conflict over experimental spending). The justification must state the two stakeholders and their conflicting incentives. The mitigation must be a task to create a shared, measurable objective (OKR) that aligns both stakeholders on a common outcome.",
         "comment": "Projects can fail even with perfect technical execution if stakeholders have hidden agendas, conflicting priorities, or lose interest halfway through. PlanExe may assume stakeholders are fully supportive without verifying commitment or alignment."
     },
@@ -199,7 +199,7 @@ ALL_CHECKLIST_ITEMS = [
     {
         "index": 20,
         "title": "Uncategorized Red Flags",
-        "subtitle": "Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
+        "subtitle": "Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability?",
         "instruction": "Uncategorized Red Flags: Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
         "comment": "This checklist is not exhaustive. Besides what is listed in this checklist, there are other red flags that are not accounted for in this checklist."
     }
