@@ -122,7 +122,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 10,
         "title": "Assertions Without Evidence",
         "subtitle": "Exclude timeline & budget. Find one hard proof for a critical claim.",
-        "instruction": "Scope: Exclude timeline and budget (handled elsewhere). Evaluate existential assertions about: legality/permits; stakeholder/partner commitment; safety/security/compliance effectiveness; technical feasibility of the core approach; and operational capacity to deliver/run. Action: Identify the single most impactful assertion in scope and look for one verifiable evidence item in the plan (e.g., statutory/regulatory citation or formal opinion; signed LOI/MOU; independent test/inspection/validation report; prototype/PoC results or expert review; accredited certification or prior deployment). If none is found, flag it. Scoring: High—no verifiable evidence or only hand-waving; Medium—evidence exists but is weak/unverifiable or contradicts the plan; Low—one clear, checkable item exists. Output: Justification ≤2 sentences naming the assertion and where evidence was/wasn’t found. Mitigation 1 sentence naming the single next proof step (e.g., obtain formal opinion; secure written commitment; deliver independent test/validation).",
+        "instruction": "Exclude timeline & budget. Pick one pivotal claim from the plan. If there is no hard evidence artifact in the plan (e.g., signed LOI/MOU, permit/approval, contract/SOW, vendor quote, audited KPI, peer-reviewed ref, or replication data), set LEVEL = HIGH. In JUSTIFICATION, quote the claim and name the missing artifact type. In MITIGATION, specify the exact artifact required (e.g., ‘Obtain signed LOI from X’).",
         "comment": "Often the generated plan specifies numbers/facts/concepts without any evidence to support the claims. These will have to be fact checked and adjusted in a refinement of the plan."
     },
     {
@@ -141,62 +141,55 @@ ALL_CHECKLIST_ITEMS = [
     },
     {
         "index": 13,
-        "title": "Underestimate Team Size",
-        "subtitle": "Does the plan underestimate the number of people needed to achieve the goals.",
-        "instruction": "Evaluate staffing logic vs. work complexity. Set LEVEL=HIGH if the plan lists complex/specialized work (e.g., compliance, construction, data engineering) but omits specific roles or assigns implausibly thin coverage (e.g., a single ‘project team’). Justify by citing the mismatched task/role. Mitigation: require a minimal RACI and role-by-role workload estimate tied to work packages.",
-        "comment": "For a 'Construct a bridge' prompt, then the generated plan is likely to underestimate the number of people needed to achieve the goals."
+        "title": "Staffing Fit & Rationale",
+        "subtitle": "Roles, capacity, and skills don’t match the work (under- or over-staffed).",
+        "instruction": "Evaluate work packages/deliverables against the described team (roles, skills, capacity). Do not guess headcount.\nSet LEVEL = HIGH if any of the following are true:\n	1.	Complex/specialized tasks (e.g., compliance, safety, engineering, operations, data) lack named accountable roles or required skills.\n	2.	Capacity math is missing or impossible (e.g., one person expected to do parallel critical tasks within the same windows, or workload exceeds feasible hours implied by the schedule).\n	3.	The plan lists redundant or idle roles with no corresponding work packages/SLAs (bloat).\n	4.	Stated coverage requirements (shifts, uptime/SLAs, on-call) cannot be met by the proposed staffing.\n\nThis check is size-agnostic: a one-person team is acceptable only if roles are explicitly assigned and capacity/sequence make the schedule feasible.\nIn JUSTIFICATION, quote the mismatched text (task ↔ role/capacity).\nIn MITIGATION, require a minimal RACI mapped to work packages and a simple effort–capacity check (hours × calendar constraints), or consolidate/remove roles.",
+        "comment": "For a 'Im a solo entrepreneur and is making everything myself' prompt, then the generated plan is likely suggesting to hire a huge team of people, and ignoring the fact that the entrepreneur is doing everything themselves. For a 'Construct a bridge' prompt, then the generated plan is likely to underestimate the number of people needed to achieve the goals."
     },
     {
         "index": 14,
-        "title": "Overestimate Team Size",
-        "subtitle": "Does the plan overestimate the number of people needed to achieve the goals.",
-        "instruction": "Flag unjustified bloat. Set LEVEL=HIGH if the plan proposes large teams or layered roles for routine tasks without workload drivers (scope, SLAs, coverage hours, compliance gates). Justify by pointing to redundant/idle roles or lack of workload math. Mitigation: down-scope to essentials and derive staffing from a simple effort model (work packages × hours × calendar constraints), then RACI.",
-        "comment": "For a 'Im a solo entrepreneur and is making everything myself' prompt, then the generated plan is likely suggesting to hire a huge team of people, and ignoring the fact that the entrepreneur is doing everything themselves."
-    },
-    {
-        "index": 15,
         "title": "Legal Minefield",
         "subtitle": "Does the plan involve activities with high legal, regulatory, or ethical exposure, such as potential lawsuits, corruption, illegal actions, or societal harm.",
         "instruction": "Legal Minefield: Does the plan trigger multiple overlapping jurisdictions or regimes with low probability of approval and high litigation risk (e.g., environmental impact, land use/zoning, sector‑specific licensing, securities/market integrity, data protection, export controls, financial crime/AML, public safety)? If so, set level to 'high'. In the justification, reference the specific regimes/laws/processes implicated (by name where possible) and explain why approval is unlikely. In the mitigation, propose a legal feasibility & pathway study (12–16 weeks) that delivers: (1) a statute/regulation matrix; (2) regulatory process maps (e.g., impact assessment steps and required agency consultations); (3) preliminary regulator/agency readouts; (4) case analogs; (5) a permit/approval probability model with confidence intervals; (6) litigation exposure; and (7) alternatives analysis. Include explicit go/no‑go gates (e.g., NO‑GO if approval probability <10% or an agency indicates no plausible path).",
         "comment": "Sometimes the generated plan describes a sunshine scenario where everything goes smoothly, without any lawyers or legal issues."
     },
     {
-        "index": 16,
+        "index": 15,
         "title": "Lacks Operational Sustainability",
         "subtitle": "Even if the project is successfully completed, can it be sustained, maintained, and operated effectively over the long term without ongoing issues.",
         "instruction": "Lacks Operational Sustainability: Assess whether the project can be sustained post-completion. Evaluate: (1) Ongoing operational costs vs. available funding/revenue—is there a sustainable business model? (2) Maintenance requirements—are specialized skills, parts, or vendors needed that may not be available long-term? (3) Scalability—can the system handle growth or changing conditions? (4) Personnel dependency—does operation depend on specific individuals who may leave? (5) Technology obsolescence—will critical technology become unsupported or obsolete? (6) Environmental/social impact—can negative impacts be managed long-term? Set LEVEL to HIGH if: operational costs exceed sustainable funding, maintenance requires unavailable resources, or the system cannot adapt to changing conditions. Set LEVEL to MEDIUM if: sustainability concerns exist but can be addressed with planning. Set LEVEL to LOW if: a clear, sustainable operational model exists with adequate resources. In the justification, identify the specific sustainability gap (funding, maintenance, scalability, etc.). In the mitigation, propose an operational sustainability plan including: funding/resource strategy, maintenance schedule, succession planning, technology roadmap, or adaptation mechanisms.",
         "comment": "Many projects focus on completion but ignore operational sustainability. A perfectly built project can fail if it requires unsustainable funding, impossible maintenance, or cannot adapt to changing conditions. PlanExe may generate plans that work in theory but cannot be sustained in practice."
     },
     {
-        "index": 17,
+        "index": 16,
         "title": "Infeasible Constraints",
         "subtitle": "Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
         "instruction": "Infeasible Constraints: Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
         "comment": "Getting a permit to build a spaceship launch pad in the center of the city is likely going to be rejected."
     },
     {
-        "index": 18,
+        "index": 17,
         "title": "External Dependencies",
         "subtitle": "Does the project depend on critical external factors, third parties, suppliers, or vendors that may fail, delay, or be unavailable when needed.",
-        "instruction": "External Dependencies: Identify all critical dependencies on external entities (vendors, suppliers, partners, third-party services, infrastructure providers, regulatory agencies, or market conditions). Evaluate the risk of each dependency: single-source suppliers, uncommitted partners, third-party services with no SLA, or infrastructure that may not be available. Set LEVEL to HIGH if the project has critical dependencies on entities that: (1) have not provided formal commitments/contracts, (2) are single-source with no alternatives, (3) have a history of delays or failures, (4) operate in unstable markets/regions, or (5) may have conflicting interests. Set LEVEL to MEDIUM if dependencies exist but have mitigations or alternatives. Set LEVEL to LOW if all critical dependencies are secured with contracts/commitments and have backup options. In the justification, name the specific dependency and why it is risky. In the mitigation, propose securing formal commitments, identifying alternatives, or establishing backup suppliers/providers.",
+        "instruction": "Scan for third-party approvals, suppliers, facilities, data feeds, or regulators referenced by the plan. If any critical dependency lacks a formal commitment (contract/LOI/MOU/permit pre-read) or a documented fallback, set LEVEL = HIGH. In JUSTIFICATION, list the specific uncommitted dependencies. Mitigation: obtain commitments or define qualified alternates with lead times.",
         "comment": "Plans often assume external parties will deliver as expected, without considering vendor lock-in, supplier failures, or partner non-commitment. Real projects can fail if a critical supplier goes out of business or a partner doesn't follow through."
     },
     {
-        "index": 19,
+        "index": 18,
         "title": "Stakeholder Misalignment",
         "subtitle": "Are there conflicting interests, misaligned incentives, or lack of genuine commitment from key stakeholders that could derail the project.",
         "instruction": "Stakeholder Misalignment: Map all key stakeholders (funders, partners, end users, regulators, affected communities, internal teams). Evaluate alignment: (1) Do stakeholders have conflicting goals or incentives? (2) Are stakeholders genuinely committed, or just giving lip service? (3) Do stakeholders have the authority/resources to deliver on commitments? (4) Will stakeholders remain supportive if costs increase or timelines slip? (5) Are there power imbalances or political dynamics that could sabotage the project? Set LEVEL to HIGH if: stakeholders have fundamentally conflicting interests, key stakeholders are uncommitted or have made no formal agreements, or there are political/social dynamics likely to cause opposition. Set LEVEL to MEDIUM if: some misalignment exists but can be managed through negotiation or incentives. Set LEVEL to LOW if: all stakeholders are aligned with formal agreements and shared incentives. In the justification, identify the specific stakeholder(s) and the misalignment. In the mitigation, propose stakeholder alignment workshops, formal agreements (MOUs/contracts), incentive restructuring, or conflict resolution processes.",
         "comment": "Projects can fail even with perfect technical execution if stakeholders have hidden agendas, conflicting priorities, or lose interest halfway through. PlanExe may assume stakeholders are fully supportive without verifying commitment or alignment."
     },
     {
-        "index": 20,
+        "index": 19,
         "title": "No Adaptive Framework",
         "subtitle": "The plan lacks a clear process for monitoring progress and managing changes, treating the initial plan as final.",
         "instruction": "Set HIGH if the plan lacks a feedback loop: KPIs, review cadence, owners, and a basic change-control process with thresholds (when to re-plan/stop). Vague ‘we will monitor’ is insufficient. In justification, name which element(s) are missing. Mitigation: add a monthly review with KPI dashboard and a lightweight change board.",
         "comment": "A plan is a starting point, not a final script. Without a way to measure progress and adapt to unforeseen problems (scope creep, delays, new requirements), even the best initial plan will fail. This checks if the project has a steering wheel."
     },
     {
-        "index": 21,
+        "index": 20,
         "title": "Uncategorized Red Flags",
         "subtitle": "Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
         "instruction": "Uncategorized Red Flags: Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
