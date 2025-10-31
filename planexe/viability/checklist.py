@@ -122,14 +122,14 @@ ALL_CHECKLIST_ITEMS = [
         "index": 10,
         "title": "Assertions Without Evidence",
         "subtitle": "Exclude timeline & budget. Find one hard proof for a critical claim.",
-        "instruction": "Exclude timeline & budget. Pick one pivotal claim from the plan. If there is no hard evidence artifact in the plan (e.g., signed LOI/MOU, permit/approval, contract/SOW, vendor quote, audited KPI, peer-reviewed ref, or replication data), set LEVEL = HIGH. In JUSTIFICATION, quote the claim and name the missing artifact type. In MITIGATION, specify the exact artifact required (e.g., ‘Obtain signed LOI from X’).",
+        "instruction": "Find one critical claim in the plan that is stated as fact but lacks supporting evidence. A 'critical claim' is an assumption the project's success depends on (e.g., obtaining a specific permit, securing a partnership, market demand). Set LEVEL to HIGH if no verifiable proof is provided. For justification, quote the specific unproven claim. For mitigation, propose a single action to validate that exact claim.",
         "comment": "Often the generated plan specifies numbers/facts/concepts without any evidence to support the claims. These will have to be fact checked and adjusted in a refinement of the plan."
     },
     {
         "index": 11,
         "title": "Unclear Deliverables",
         "subtitle": "Are the project's final outputs or key milestones poorly defined, lacking specific criteria for completion, making success difficult to measure objectively.",
-        "instruction": "Unclear Deliverables: Are success criteria and acceptance tests defined for the key work‑packages, not just the end artifact? If deliverables are vague, set level to 'medium' and in the justification identify the specific missing definitions (e.g., permits/process milestones, security acceptance tests, construction logistics plan, commissioning/operational readiness, stakeholder approvals). In the mitigation, require a Deliverables & Acceptance spec with SMART criteria and a 'Definition of Done' per work‑package, each tied to dated milestones and go/no‑go tripwires.",
+        "instruction": "Evaluate if the plan's key deliverables have measurable acceptance criteria. Set LEVEL to HIGH if a major deliverable (e.g., 'a finished product', 'a new system') is mentioned without any specific, verifiable qualities (e.g., 'meets X performance metric', 'certified against Y standard'). For justification, name a deliverable that lacks measurable success criteria. For mitigation, require the definition of SMART (Specific, Measurable, Achievable, Relevant, Time-bound) acceptance criteria for that deliverable.",
         "comment": "Some projects involves many components, without a clear specification of each component."
     },
     {
