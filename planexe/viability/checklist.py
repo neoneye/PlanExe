@@ -123,7 +123,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 9,
         "title": "Lacks Technical Depth",
         "subtitle": "Does the plan omit critical technical details or engineering steps required to overcome foreseeable challenges, especially for complex components of the project.",
-        "instruction": "Act as a technical due-diligence checker. Evaluate technical completeness and assign LEVEL.\n\nSteps:\n1) Identify critical technical challenges (cover the full critical path; don’t cap at 3).\n2) Scrutinize the HOW: look for concrete methods, calculations, materials/tolerances, data specs, algorithms, logistics/method statements.\n3) Evidence quality: require reviewable artifacts—architecture + interfaces, BOM, capacity/performance budgets, safety/compliance plan, security/threat model, test & validation plan (incl. acceptance criteria), and TRL/prototype plan.\n4) Flag “magic box” claims (e.g., “AI will optimize X”) that lack inputs/outputs/assumptions.\n\nSet LEVEL:\n- LOW: All critical challenges have specific artifacts above; a competent engineer could estimate cost/schedule with only minor clarifications.\n- MEDIUM: One or more critical subsystems are underspecified OR artifacts exist but lack key specifics (interfaces, budgets, tests), creating estimation risk.\n- HIGH: Novel/critical components lack core artifacts (architecture/interfaces, safety/compliance, test/validation) or rely on “magic box” claims—credible cost/schedule or execution planning is not possible.",
+        "instruction": "Flag this when any critical-path component lacks concrete engineering artifacts: (1) mechanism-of-action/architecture or process flow, (2) quantified performance targets with acceptance tests/DoE, and (3) integration & dependency mapping (interfaces, resources, capacities). If ≥2 are missing for a critical area, mark this item.",
         "comment": "Some plans involves serious engineering, but the generated plan is missing the technical details that explain how to overcome the technical challenges. Nailing the technical details is crucial."
     },
     {
@@ -144,7 +144,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 12,
         "title": "Overengineered Plan",
         "subtitle": "Is the proposed solution disproportionately complex or resource-intensive relative to the problem it aims to solve, suggesting over-engineering.",
-        "instruction": "Compare the plan's stated goal with the complexity of its proposed solution. Set LEVEL to HIGH if the solution seems disproportionately complex, costly, or resource-intensive for the problem it aims to solve (e.g., using a global satellite network to find a lost pet). For justification, describe this mismatch between the simple goal and the complex solution. Mitigation should require a 'value engineering' review to identify simpler, more cost-effective alternatives.",
+        "instruction": "Flag this when proposed scope/complexity/cost materially exceeds what’s needed to meet stated outcomes. Require an options analysis (MVP/pilot-first + off-the-shelf vs. proposed design) and compare cost-to-risk-reduction/ROI. Front-loading global protocols or bespoke infrastructure before proving core technologies is a red flag.",
         "comment": "For a 'Make me a cup of coffee' prompt, then the generated plan is overkill and involves lots of people and resources."
     },
     {
