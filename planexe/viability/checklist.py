@@ -73,8 +73,8 @@ ALL_CHECKLIST_ITEMS = [
         "index": 3,
         "title": "Buzzwords",
         "subtitle": "Does the plan use excessive buzzwords without evidence of knowledge.",
-        "instruction": "Buzzwords: Does the plan use excessive buzzwords without evidence of knowledge.",
-        "comment": "PlanExe often ends up using buzzwords such as blockchain, DAO, VR, AR, and expects that one person without developer background can implement the plan."
+        "instruction": "Identify technology-related terms (e.g., AI, blockchain, smart contracts, digital twin, NFT, DAO, VR, AR). Set LEVEL to HIGH if such a term is mentioned as a solution without any description of HOW it will be used or what it will do. If the user has explicitly stated that some words are banned, then the generated plan should not use them. For justification, quote the buzzword and note the lack of a concrete application. Mitigation should require defining the specific use case and success criteria for the technology.",
+        "comment": "PlanExe often ends up using buzzwords such as blockchain, NFT, DAO, VR, AR, and expects that one person without developer background can implement the plan."
     },
     {
         "index": 4,
@@ -108,7 +108,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 8,
         "title": "Overly Optimistic Projections",
         "subtitle": "Does this plan grossly overestimate the likelihood of success, while neglecting potential setbacks, buffers, or contingency plans.",
-        "instruction": "Overly Optimistic Projections: Does this plan grossly overestimate the likelihood of success, while neglecting potential setbacks, buffers, or contingency plans.",
+        "instruction": "Assess if the plan's projections are one-sided. Set LEVEL to HIGH if the plan presents key projections (e.g., revenue, user adoption, completion dates) as a single number without providing a range, confidence interval, or discussing alternative scenarios (e.g., a 'worst-case' or 'conservative' case). The lack of contingency planning for projections indicates optimism. For mitigation, require a sensitivity analysis or a best/worst/base-case scenario analysis for the most critical projection.",
         "comment": "The generated plan describes a sunshine scenario that is likely to go wrong, without any buffers or contingency plans."
     },
     {
@@ -143,14 +143,14 @@ ALL_CHECKLIST_ITEMS = [
         "index": 13,
         "title": "Underestimate Team Size",
         "subtitle": "Does the plan underestimate the number of people needed to achieve the goals.",
-        "instruction": "Evaluate staffing rationale vs. workload. Set HIGH if complex/specialized tasks (e.g., compliance, engineering, construction) lack named roles or the plan hand-waves a generic ‘team’. Do not guess headcount; flag mismatch of roles to work. Mitigation: add a roles/responsibilities (RACI) and minimal staffing model per work-package.",
+        "instruction": "Evaluate staffing logic vs. work complexity. Set LEVEL=HIGH if the plan lists complex/specialized work (e.g., compliance, construction, data engineering) but omits specific roles or assigns implausibly thin coverage (e.g., a single ‘project team’). Justify by citing the mismatched task/role. Mitigation: require a minimal RACI and role-by-role workload estimate tied to work packages.",
         "comment": "For a 'Construct a bridge' prompt, then the generated plan is likely to underestimate the number of people needed to achieve the goals."
     },
     {
         "index": 14,
         "title": "Overestimate Team Size",
         "subtitle": "Does the plan overestimate the number of people needed to achieve the goals.",
-        "instruction": "Flag HIGH if the team described materially exceeds the stated workload/complexity (redundant roles, idle capacity, 10 people for trivial tasks). Require a lean baseline with justification.",
+        "instruction": "Flag unjustified bloat. Set LEVEL=HIGH if the plan proposes large teams or layered roles for routine tasks without workload drivers (scope, SLAs, coverage hours, compliance gates). Justify by pointing to redundant/idle roles or lack of workload math. Mitigation: down-scope to essentials and derive staffing from a simple effort model (work packages × hours × calendar constraints), then RACI.",
         "comment": "For a 'Im a solo entrepreneur and is making everything myself' prompt, then the generated plan is likely suggesting to hire a huge team of people, and ignoring the fact that the entrepreneur is doing everything themselves."
     },
     {
