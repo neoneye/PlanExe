@@ -456,14 +456,14 @@ class ViabilityChecklist:
         Convert the raw checklist answers to markdown.
         """
         level_map = {
-            "low": "✅ Low",
-            "medium": "⚠️ Medium",
             "high": "🛑 High",
+            "medium": "⚠️ Medium",
+            "low": "✅ Low",
         }
         explanation_map = {
-            "low": "Strong evidence or controls already cover the risk; only minor follow-up remains.",
-            "medium": "Partial coverage exists but material gaps or untested assumptions could cause issues.",
-            "high": "Critical controls or evidence are missing, making failure likely without intervention.",
+            "high": "Existential blocker without credible mitigation.",
+            "medium": "Material risk with plausible path.",
+            "low": "Minor/controlled risk.",
         }
         rows = []
 
