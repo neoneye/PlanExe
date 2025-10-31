@@ -73,7 +73,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 3,
         "title": "Buzzwords",
         "subtitle": "Does the plan use excessive buzzwords without evidence of knowledge.",
-        "instruction": "Identify technology-related terms (e.g., AI, blockchain, smart contracts, digital twin, NFT, DAO, VR, AR). Set LEVEL to HIGH if such a term is mentioned as a solution without any description of HOW it will be used or what it will do. If the user has explicitly stated that some words are banned, then the generated plan should not use them. For justification, quote the buzzword and note the lack of a concrete application. Mitigation should require defining the specific use case and success criteria for the technology.",
+        "instruction": "Extract each technology/strategy term (e.g., AI, blockchain, tokenization). For each, require: (a) concrete role in the system, (b) brief architecture/data-flow sketch, (c) measurable success criteria, (d) security/abuse considerations. Set HIGH if two or more terms lack any of those four items. Justification must list the terms and the missing pieces. Mitigation: add a one-page ‘Mechanism of Action’ note per term.",
         "comment": "PlanExe often ends up using buzzwords such as blockchain, NFT, DAO, VR, AR, and expects that one person without developer background can implement the plan."
     },
     {
@@ -122,7 +122,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 10,
         "title": "Assertions Without Evidence",
         "subtitle": "Exclude timeline & budget. Find one hard proof for a critical claim.",
-        "instruction": "Find one critical claim in the plan that is stated as fact but lacks supporting evidence. A 'critical claim' is an assumption the project's success depends on (e.g., obtaining a specific permit, securing a partnership, market demand). Set LEVEL to HIGH if no verifiable proof is provided. For justification, quote the specific unproven claim. For mitigation, propose a single action to validate that exact claim.",
+        "instruction": "Exclude schedule/budget (covered elsewhere). Identify the single most viability-critical claim and check for hard evidence in the plan: executed agreement, signed LOI/MOU, regulator letter/email pre-read, audited data, production benchmark, or an in-use reference deployment. Set HIGH if the claim lacks a verifiable artifact or only cites intentions (‘plan to’, ‘expect to’). Justification must quote the claim and name the missing artifact. Mitigation: obtain the specific artifact or downgrade the claim.",
         "comment": "Often the generated plan specifies numbers/facts/concepts without any evidence to support the claims. These will have to be fact checked and adjusted in a refinement of the plan."
     },
     {
@@ -136,7 +136,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 12,
         "title": "Overengineered Plan",
         "subtitle": "Is the proposed solution disproportionately complex or resource-intensive relative to the problem it aims to solve, suggesting over-engineering.",
-        "instruction": "Overengineered Plan: Is the proposed solution disproportionately complex or resource-intensive relative to the problem it aims to solve, suggesting over-engineering.",
+        "instruction": "Compare the plan's stated goal with the complexity of its proposed solution. Set LEVEL to HIGH if the solution seems disproportionately complex, costly, or resource-intensive for the problem it aims to solve (e.g., using a global satellite network to find a lost pet). For justification, describe this mismatch between the simple goal and the complex solution. Mitigation should require a 'value engineering' review to identify simpler, more cost-effective alternatives.",
         "comment": "For a 'Make me a cup of coffee' prompt, then the generated plan is overkill and involves lots of people and resources."
     },
     {
@@ -171,14 +171,14 @@ ALL_CHECKLIST_ITEMS = [
         "index": 17,
         "title": "External Dependencies",
         "subtitle": "Does the project depend on critical external factors, third parties, suppliers, or vendors that may fail, delay, or be unavailable when needed.",
-        "instruction": "Scan for third-party approvals, suppliers, facilities, data feeds, or regulators referenced by the plan. If any critical dependency lacks a formal commitment (contract/LOI/MOU/permit pre-read) or a documented fallback, set LEVEL = HIGH. In JUSTIFICATION, list the specific uncommitted dependencies. Mitigation: obtain commitments or define qualified alternates with lead times.",
+        "instruction": "Scan for critical third-party dependencies on the critical path (e.g., regulatory approvals, vendors, data/platform access, facilities, financing tranches). Set HIGH if any critical milestone depends on an external party without a signed commitment (LOI/MOU/contract), regulator pre-read, capacity confirmation, or equivalent artifact. If dependencies are mentioned but unproven, set at least MEDIUM. In justification, name the specific dependency and the missing artifact. Mitigation: produce a Dependency Register (owner, artifact, lead time, fallback).",
         "comment": "Plans often assume external parties will deliver as expected, without considering vendor lock-in, supplier failures, or partner non-commitment. Real projects can fail if a critical supplier goes out of business or a partner doesn't follow through."
     },
     {
         "index": 18,
         "title": "Stakeholder Misalignment",
         "subtitle": "Are there conflicting interests, misaligned incentives, or lack of genuine commitment from key stakeholders that could derail the project.",
-        "instruction": "Stakeholder Misalignment: Map all key stakeholders (funders, partners, end users, regulators, affected communities, internal teams). Evaluate alignment: (1) Do stakeholders have conflicting goals or incentives? (2) Are stakeholders genuinely committed, or just giving lip service? (3) Do stakeholders have the authority/resources to deliver on commitments? (4) Will stakeholders remain supportive if costs increase or timelines slip? (5) Are there power imbalances or political dynamics that could sabotage the project? Set LEVEL to HIGH if: stakeholders have fundamentally conflicting interests, key stakeholders are uncommitted or have made no formal agreements, or there are political/social dynamics likely to cause opposition. Set LEVEL to MEDIUM if: some misalignment exists but can be managed through negotiation or incentives. Set LEVEL to LOW if: all stakeholders are aligned with formal agreements and shared incentives. In the justification, identify the specific stakeholder(s) and the misalignment. In the mitigation, propose stakeholder alignment workshops, formal agreements (MOUs/contracts), incentive restructuring, or conflict resolution processes.",
+        "instruction": "Scan the plan for evidence of conflicting stakeholder interests or goals. Set LEVEL to HIGH if the plan explicitly mentions stakeholders with opposing objectives (e.g., developers vs. preservation societies) or if different sections of the plan imply contradictory priorities for success (e.g., maximizing speed vs. maximizing community consensus). For justification, quote the conflicting goals or name the misaligned stakeholders. For mitigation, require a stakeholder alignment workshop to create a single, shared set of prioritized objectives.",
         "comment": "Projects can fail even with perfect technical execution if stakeholders have hidden agendas, conflicting priorities, or lose interest halfway through. PlanExe may assume stakeholders are fully supportive without verifying commitment or alignment."
     },
     {
