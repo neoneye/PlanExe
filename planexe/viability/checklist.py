@@ -200,11 +200,22 @@ ALL_CHECKLIST_ITEMS = [
 # Older LLMs seem to handle the first 15 ok, but beyond that the LLMs starts to ignore the batching of items.
 CHECKLIST = ALL_CHECKLIST_ITEMS[:3]
 
-def format_system_prompt(*, checklist: list[dict], current_index: int = 0) -> str:
+def format_system_prompt(*, checklist: list[dict], current_index: int) -> str:
+    if current_index < 0 or current_index >= len(checklist):
+        raise ValueError(f"Current index must be between 0 and {len(checklist)-1}. Got {current_index}.")
+    
     enriched_checklist = checklist
 
     # remove the "comment" key from each item in the enriched_checklist
     enriched_checklist = [{k: v for k, v in item.items() if k != "comment"} for item in enriched_checklist]
+
+    expected_index_to_be_answered = None
+    instruction_to_follow = None
+    for index, item in enumerate(enriched_checklist):
+        if index == current_index:
+            expected_index_to_be_answered = item["index"]
+            instruction_to_follow = item["instruction"]
+            break
 
     # assign status=TODO to the items that have index == current_index
     for index, item in enumerate(enriched_checklist):
@@ -239,28 +250,15 @@ def format_system_prompt(*, checklist: list[dict], current_index: int = 0) -> st
     # print(f"Enriched checklist: {json_enriched_checklist}")
     # exit(0)
 
-    expected_index = None
-    instruction = None
-    for index, item in enumerate(enriched_checklist):
-        if item == current_index:
-            expected_index = item["index"]
-            instruction = item["instruction"]
-            break
-
     system_prompt = f"""
 You are an expert strategic analyst. Your task is to answer a checklist with red flags.
 You will output only valid JSON. No explanations, no chit-chat, no Markdown, no code fences.
 
 GOAL
-Return exactly one object per checklist item with keys in this order: id, level, justification, mitigation.
+Return exactly one object per checklist item with keys in this order: level, justification, mitigation.
 
 STRICT RULES
-- Output must be a single JSON array, same length and order as the expected ids.
 - Answer only for checklist entries whose status is "TODO"; treat "IGNORE" items as read-only context and never output them.
-- Copy id from input unchanged; never invent, drop, or reorder ids.
-- If you output any id that is not listed in the expected ids, you fail the task; do not add or duplicate ids.
-- Keep only these keys and preserve this exact key order.
-- Use standard JSON with double quotes for keys and string values. No trailing commas. No comments. No nulls.
 - level must be one of: "low", "medium", "high".
 - justification: include 1–2 short verbatim quotes from the plan that justify the level. As the only exception, if a red flag is absent, state that no evidence was found and briefly explain why the level is 'low'.
 - justification must quote only from the plan text; never quote or paraphrase the checklist instructions or inject examples that are not present in the plan.
@@ -277,11 +275,12 @@ INPUTS (do not echo them back; use them to produce the output):
 status legend:
 - "TODO": must answer.
 - "IGNORE": ignore completely; never include in output.
+
 Expected index to answer:
-{expected_index}
+{expected_index_to_be_answered}
 
 Follow these instructions to answer the item:
-{instruction}
+{instruction_to_follow}
 
 Checklist to evaluate:
 {json_enriched_checklist}
@@ -378,10 +377,8 @@ class ViabilityChecklist:
             checklist_answer: ChecklistAnswer = result["chat_response"].raw
             checklist_item = checklist_items[index]
             checklist_item_index = checklist_item["index"]
-            checklist_item_title = checklist_item["title"]
-            checklist_item_subtitle = checklist_item["subtitle"]
             checklist_answer_cleaned = ChecklistAnswerCleaned(
-                index=checklist_item["index"],
+                index=checklist_item_index,
                 title=checklist_item["title"],
                 subtitle=checklist_item["subtitle"],
                 level=checklist_answer.level,
@@ -390,7 +387,7 @@ class ViabilityChecklist:
             )
             checklist_answers_cleaned.append(checklist_answer_cleaned)
 
-            responses[index] = checklist_answer
+            responses[checklist_item_index] = checklist_answer
             metadata_list.append(result["metadata"])
 
         
