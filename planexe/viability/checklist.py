@@ -67,7 +67,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 1,
         "title": "Violates Known Physics",
         "subtitle": "Does the project require a major, unpredictable discovery in fundamental science to succeed?",
-        "instruction": "Assess whether the project's core goal or claimed mechanisms contradict well-established scientific laws or consensus (e.g., in physics, biology, earth sciences). You must judge the scientific validity of the subject matter itself, NOT just the methods of implementation.\n\n**Crucially, you must distinguish between a violation of fundamental scientific laws (e.g., perpetual motion) and an extreme-scale engineering or logistical challenge (e.g., constructing a space elevator or a massive ocean platform). An engineering challenge, no matter how immense, is NOT a violation for this specific check.**\n\nSet LEVEL=HIGH **only if** any success condition requires a true physical impossibility, treats pseudoscience as fact, or assumes overturning a well-tested scientific law without extraordinary evidence. **Do not set LEVEL=HIGH for projects that are merely politically, legally, or financially infeasible; other checklist items will capture those flaws.** Otherwise, set LEVEL=LOW.\n\nIn the justification, you MUST follow this exact 3-part structure:\n  (1) Name the specific scientific principle(s) being violated.\n  (2) Quote the exact line(s) from the plan that reveal this conflict.\n  (3) In one sentence, state the direct project-level consequence, explaining why this makes the plan's goal fundamentally non-viable.\n\nMitigation for HIGH must be a stop/go fatal-flaw gate assigned to the specific highest-level stakeholder identified in the plan text (e.g., 'Project Sponsor', 'CEO'). The gate must be evidence-based.",
+        "instruction": "Scope: screen for pseudoscience only (e.g., perpetual motion, faster‑than‑light). HIGH if success requires violating established physics; MEDIUM if mechanism is unclear; LOW otherwise. If rated LOW, **no mitigation required**—state “None” and move on. If ≥ MEDIUM, provide ≤30‑word justification + mitigation with Owner/Deliverable/Date.",
         "comment": "If the initial prompt is vague/scifi/aggressive or asks for something that is physically impossible, then the generated plan usually end up with some fantasy parts, making the plan unrealistic."
     },
     {
@@ -81,7 +81,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 3,
         "title": "Buzzwords",
         "subtitle": "Does the plan use excessive buzzwords without evidence of knowledge?",
-        "instruction": "Flag any term that reads like a buzzword and require a one-page mechanism-of-action per term: role in the system; inputs/outputs & interface/architecture sketch; measurable success criteria; dependencies; abuse/failure modes; accountable owner. Log any missing piece as a gap with an owner + due date.",
+        "instruction": "Strategic clarity / buzzwords: Are named frameworks/strategies defined with a business‑level mechanism‑of‑action (inputs→process→customer value), an owner, and measurable outcomes? HIGH if any **strategic** concept driving the plan is undefined; MEDIUM if minor terms are vague; LOW if one‑pagers exist. Justify the strategic blind spot. Mitigation: assign owners to produce one‑pagers with value hypotheses, success metrics, and decision hooks, by date.",
         "comment": "PlanExe often ends up using buzzwords such as blockchain, NFT, DAO, VR, AR, and expects that one person without developer background can implement the plan."
     },
     {
@@ -95,7 +95,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 5,
         "title": "Timeline Issues",
         "subtitle": "Does the plan rely on unrealistic or internally inconsistent schedules?",
-        "instruction": "Assess the project timeline for realism. Set LEVEL to HIGH if the durations are obviously too short for the described tasks (e.g., 'build a new software platform in one week') or if critical preparatory steps like 'securing permits' or 'design approval' are given no time at all. Also flag if the plan has a hard deadline but no clear path to meet it. In the justification, cite the specific unrealistic duration or the missing critical step. For mitigation, require the creation of a more detailed timeline with key milestones, ensuring the deadline is realistic for the project's actual scope and urgency.",
+        "instruction": "Timeline realism (permits, long‑lead procurement, predecessors, buffers). HIGH if required approvals/lead times typically exceed the planned schedule OR if critical predecessors are unmapped/contradictory—rate HIGH regardless of added “buffer”. MEDIUM if aggressive but plausible with explicit dependencies; LOW if buffered and consistent. Mitigation: rebuild the critical path with dated predecessors, authoritative permit lead times, and a NO‑GO threshold on slip. Provide ≤30‑word justification + mitigation with Owner/Deliverable/Date.",
         "comment": "PlanExe currently has no knowledge about the resources available. In the first draft of the plan makes no attempt at parallelizing the tasks to be done in a shorter timeframe. I imagine a human will have to configure the resources, before rescheduling the tasks to be done in a shorter timeframe. A plan for a funeral for some rock star legend and it's happening next week, here a 60 days delay wont work. There are tiny plans such as 'I want to make a cup of coffee, I have all the ingredients, I know how to do it'. Typical projects are people that want to make changes to their business or renovate their house."
     },
     {
@@ -123,7 +123,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 9,
         "title": "Lacks Technical Depth",
         "subtitle": "Does the plan omit critical technical details or engineering steps required to overcome foreseeable challenges, especially for complex components of the project?",
-        "instruction": "Flag this when any critical-path component lacks concrete engineering artifacts: (1) mechanism-of-action/architecture or process flow, (2) quantified performance targets with acceptance tests/DoE, and (3) integration & dependency mapping (interfaces, resources, capacities). If ≥2 are missing for a critical area, mark this item.",
+        "instruction": "Engineering depth: Do build‑critical components have engineering artifacts—specs, interface contracts, acceptance tests, integration plan, and non‑functional requirements? HIGH if core components lack these; MEDIUM if moderate gaps; LOW if artifacts exist. Justify missing engineering artifacts. Mitigation: produce technical specs, interface definitions, test plans, and an integration map with owners/dates.",
         "comment": "Some plans involves serious engineering, but the generated plan is missing the technical details that explain how to overcome the technical challenges. Nailing the technical details is crucial."
     },
     {
@@ -179,7 +179,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 17,
         "title": "External Dependencies",
         "subtitle": "Does the project depend on critical external factors, third parties, suppliers, or vendors that may fail, delay, or be unavailable when needed?",
-        "instruction": "Scan for critical third-party dependencies on the critical path (e.g., regulatory approvals, vendors, data/platform access, facilities, financing tranches). Set HIGH if any critical milestone depends on an external party without a signed commitment (LOI/MOU/contract), regulator pre-read, capacity confirmation, or equivalent artifact. If dependencies are mentioned but unproven, set at least MEDIUM. In justification, name the specific dependency and the missing artifact. Mitigation: produce a Dependency Register (owner, artifact, lead time, fallback).",
+        "instruction": "External dependencies & resilience (vendors, data, facilities). HIGH if single points of failure with no tested fallback; MEDIUM if partial redundancy; LOW if contracts/SLAs plus tested failovers exist. Do **not** duplicate #10 (evidence gaps); this item evaluates redundancy and continuity. Mitigation: secure SLAs, add a secondary supplier/path, and test failover by a set date. Provide ≤30‑word justification + mitigation with Owner/Deliverable/Date.",
         "comment": "Plans often assume external parties will deliver as expected, without considering vendor lock-in, supplier failures, or partner non-commitment. Real projects can fail if a critical supplier goes out of business or a partner doesn't follow through."
     },
     {
@@ -200,7 +200,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 20,
         "title": "Uncategorized Red Flags",
         "subtitle": "Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability?",
-        "instruction": "Uncategorized Red Flags: Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability.",
+        "instruction": "Systemic/uncaptured risk. Do **not** brainstorm “black swans”. Instead analyze **interactions** among known risks using cross‑impact, bow‑tie, or FTA to surface cascades. HIGH if combined effects threaten viability; MEDIUM if localized; LOW if none. Mitigation: produce an interdependency map + bow‑tie/FTA + combined heatmap with owner/date and NO‑GO/contingency thresholds. Provide ≤30‑word justification + mitigation with Owner/Deliverable/Date.",
         "comment": "This checklist is not exhaustive. Besides what is listed in this checklist, there are other red flags that are not accounted for in this checklist."
     }
 ]
