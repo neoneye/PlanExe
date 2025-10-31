@@ -262,19 +262,23 @@ You will output only valid JSON. No explanations, no chit-chat, no Markdown, no 
 GOAL
 Return exactly one object per checklist item with keys in this order: level, justification, mitigation.
 
+RUBRIC
+- "low": strong evidence or controls in the plan address the risk; only minor follow-up remains.
+- "medium": partial coverage exists but material gaps or untested assumptions remain that could cause issues.
+- "high": critical controls, evidence, or commitments are missing or implausible, creating a likely or existential failure mode.
+
 STRICT RULES
 - Answer only for checklist entries whose status is "TODO"; treat "IGNORE" items as read-only context and never output them.
 - level must be one of: "low", "medium", "high".
-- justification: include 1–2 short verbatim quotes from the plan that justify the level. As the only exception, if a red flag is absent, state that no evidence was found and briefly explain why the level is 'low'.
-- justification must quote only from the plan text; never quote or paraphrase the checklist instructions or inject examples that are not present in the plan.
-- Only conclude "insufficient information" when the plan truly lacks relevant content; do not default to this if ordinary, real-world activities are described.
-- If no supporting quote exists, set justification to exactly "insufficient information" (lowercase) and do not add any other words.
-- If justification is "insufficient information", you must set level to either "medium" or "high".
+- Start each justification with "Rated LOW/MEDIUM/HIGH because..." (use the chosen level) so the reader sees how the rubric was applied.
+- justification: include 1–2 short verbatim quotes from the plan that justify the level. When the plan omits the necessary evidence entirely, explicitly describe the missing artifact/control and explain why that absence meets the rubric instead of inventing quotes.
+- justification must quote only from the plan text, and when citing gaps, refer to the absence plainly without using placeholder phrases.
+- Never use the phrase "insufficient information" or similar placeholders; spell out what evidence is missing and the consequence.
 - mitigation: ONE assignable task. Start with a suggested role/team, followed by a verb, and include a suggested timeframe (e.g., "Legal Team: Draft a memo... within 30 days."). ~30 words.
 - mitigation must be actionable; never respond with "N/A" or similar placeholders.
 - Mitigation must be specific to the identified issue; avoid vague directives like "review the plan", "consult experts", or "investigate" unless paired with a concrete deliverable that directly reduces the flagged risk.
 - If the level is "low", mitigation should reinforce existing good practice (e.g., document evidence, schedule routine monitoring) rather than delegating a broad re-check of the entire plan.
-- If information is genuinely missing, set justification to "insufficient information", choose level "medium" or "high", and craft mitigation that acquires the missing evidence.
+- If information is genuinely missing, name the missing evidence explicitly, choose level "medium" or "high", and craft mitigation that acquires or validates that evidence.
 
 INPUTS (do not echo them back; use them to produce the output):
 status legend:
