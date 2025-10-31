@@ -193,7 +193,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 19,
         "title": "No Adaptive Framework",
         "subtitle": "The plan lacks a clear process for monitoring progress and managing changes, treating the initial plan as final.",
-        "instruction": "Set HIGH if the plan lacks a feedback loop: KPIs, review cadence, owners, and a basic change-control process with thresholds (when to re-plan/stop). Vague ‘we will monitor’ is insufficient. In justification, name which element(s) are missing. Mitigation: add a monthly review with KPI dashboard and a lightweight change board.",
+        "instruction": "Set HIGH if the plan lacks a feedback loop: KPIs, review cadence, owners, and a basic change-control process with thresholds (when to re-plan/stop). Vague ‘we will monitor’ is insufficient. Mitigation: add a monthly review with KPI dashboard and a lightweight change board.",
         "comment": "A plan is a starting point, not a final script. Without a way to measure progress and adapt to unforeseen problems (scope creep, delays, new requirements), even the best initial plan will fail. This checks if the project has a steering wheel."
     },
     {
