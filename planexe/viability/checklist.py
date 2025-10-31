@@ -81,7 +81,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 3,
         "title": "Buzzwords",
         "subtitle": "Does the plan use excessive buzzwords without evidence of knowledge.",
-        "instruction": "Extract each technology/strategy term (e.g., AI, blockchain, tokenization). For each, require: (a) concrete role in the system, (b) brief architecture/data-flow sketch, (c) measurable success criteria, (d) security/abuse considerations. Set HIGH if two or more terms lack any of those four items. Justification must list the terms and the missing pieces. Mitigation: add a one-page ‘Mechanism of Action’ note per term.",
+        "instruction": "Flag any term that reads like a buzzword and require a one-page mechanism-of-action per term: role in the system; inputs/outputs & interface/architecture sketch; measurable success criteria; dependencies; abuse/failure modes; accountable owner. Log any missing piece as a gap with an owner + due date.",
         "comment": "PlanExe often ends up using buzzwords such as blockchain, NFT, DAO, VR, AR, and expects that one person without developer background can implement the plan."
     },
     {
@@ -130,7 +130,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 10,
         "title": "Assertions Without Evidence",
         "subtitle": "Exclude timeline & budget. Find one hard proof for a critical claim.",
-        "instruction": "Exclude schedule/budget (covered elsewhere). Identify the single most viability-critical claim and check for hard evidence in the plan: executed agreement, signed LOI/MOU, regulator letter/email pre-read, audited data, production benchmark, or an in-use reference deployment. Set HIGH if the claim lacks a verifiable artifact or only cites intentions (‘plan to’, ‘expect to’). Justification must quote the claim and name the missing artifact. Mitigation: obtain the specific artifact or downgrade the claim.",
+        "instruction": "For every critical claim (excluding schedule/budget), require one verifiable artifact: signed LOI/MOU/contract, regulator pre-read, benchmark/validation report with methods, or public dataset + reproducible analysis. If none exists, record as a gap with owner, due date, and the specific artifact to obtain.",
         "comment": "Often the generated plan specifies numbers/facts/concepts without any evidence to support the claims. These will have to be fact checked and adjusted in a refinement of the plan."
     },
     {
@@ -158,7 +158,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 14,
         "title": "Legal Minefield",
         "subtitle": "Does the plan involve activities with high legal, regulatory, or ethical exposure, such as potential lawsuits, corruption, illegal actions, or societal harm.",
-        "instruction": "Legal Minefield: Does the plan trigger multiple overlapping jurisdictions or regimes with low probability of approval and high litigation risk (e.g., environmental impact, land use/zoning, sector‑specific licensing, data protection, public safety)? If so, set level to 'high'. In the justification, reference the specific regimes/laws implicated and explain why approval is unlikely. In the mitigation, propose a phased legal validation with early go/no-go points: 1. Immediate: A 'Fatal Flaw Analysis' to identify any absolute statutory blockers. 2. Short-Term: If no fatal flaw exists, conduct 'Preliminary Engagement' with the single most critical regulatory body. 3. Full Study: Only if engagement is positive, commission a full 'Regulatory Pathway Study.'",
+        "instruction": "Legal Minefield: Does the plan trigger multiple overlapping jurisdictions or regimes with low probability of approval and high litigation risk (e.g., environmental impact, land use, data protection, public safety)? Set level to 'high' if so. In the justification, reference the specific regimes/laws implicated. In the mitigation, propose a phased legal validation with early go/no-go points, starting with the lowest-cost step first. Example: \"Phase 1 (Immediate): A 'Fatal Flaw Analysis' to find absolute blockers. Phase 2 (Short-Term): If viable, 'Preliminary Engagement' with the key regulator. Phase 3 (Full Study): Only if engagement is positive, commission a full 'Regulatory Pathway Study'.\"",
         "comment": "Sometimes the generated plan describes a sunshine scenario where everything goes smoothly, without any lawyers or legal issues."
     },
     {
