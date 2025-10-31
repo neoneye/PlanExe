@@ -88,7 +88,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 4,
         "title": "Underestimating Risks",
         "subtitle": "Does this plan grossly underestimate risks?",
-        "instruction": "Find a critical risk that is mentioned in the plan's risk register. Then, describe a plausible second-order (knock-on) effect of that risk materializing that the plan fails to consider. Your justification must explain this causal chain (If Risk X happens, then Consequence Y will follow, which the plan ignores). The mitigation must be a task to add this specific second-order risk and its contingency plan to the risk register. Provide ≤30‑word justification and a mitigation with Owner, Deliverable, and Date.",
+        "instruction": "Underestimated second‑order risks (legal, safety, financial, reputational). HIGH if a major hazard class is absent or minimized; MEDIUM if partially treated; LOW if register covers hazards with owners/controls. Analyze cascades explicitly (e.g., permit delay → missed peak season → revenue shortfall → cash crunch; OR permit delay → lease penalties/LDs). Mitigation: expand the register, map cascades, add controls and dated review cadence. Provide ≤30‑word justification and a mitigation with Owner, Deliverable, and Date.",
         "comment": "Despite PlanExe trying to uncover many risks, there are often risks that are not identified, or some significant risk gets neglected."
     },
     {
@@ -109,7 +109,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 7,
         "title": "Budget Too Low",
         "subtitle": "Is there a significant mismatch between the project's stated goals and the financial resources allocated, suggesting an unrealistic or inadequate budget?",
-        "instruction": "Budget Too Low: Is there a significant mismatch between the project's stated goals and the allocated budget? In the justification, after citing the plan's budget figures, provide Order-of-Magnitude (OOM) context by comparing them to analogous real-world projects (e.g., 'The plan budgets $5M, but similar public infrastructure projects typically exceed $50M.'). Set level to 'high' if the mismatch is significant. Mitigation must be a task to produce an independent, detailed cost analysis. Normalize comparators: express costs per-year, per-hectare, or per-objective; note scope differences (R&D vs enforcement/commercialization); include 2–3 analogous programs. Provide ≤30‑word justification and a mitigation with Owner, Deliverable, and Date.",
+        "instruction": "Cost realism vs scope/market. HIGH if the budget conflicts with vendor quotes or **relevant** benchmarks (capex/fit‑out/opex) or omits contingency; MEDIUM if adequacy is unknown; LOW if ≥3 **scale‑appropriate** comparables plus quotes substantiate the figure with 10–20% contingency. **Normalize by area** (cost per m²/ft²) and apply to the stated footprint; avoid mega‑projects as analogues unless normalized. Mitigation: benchmark (≥3), obtain quotes, normalize per‑area, and adjust budget or de‑scope by a set date. Provide ≤30‑word justification and a mitigation with Owner, Deliverable, and Date.",
         "comment": "Often the user specifies a 100 USD budget in the initial prompt, where the generated plan requires millions of dollars to implement. Or the budget grows during the plan generation, so the money needed ends up being much higher than expected."
     },
     {
@@ -158,7 +158,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 14,
         "title": "Legal Minefield",
         "subtitle": "Does the plan involve activities with high legal, regulatory, or ethical exposure, such as potential lawsuits, corruption, illegal actions, or societal harm?",
-        "instruction": "Legal Minefield: Does the plan trigger multiple overlapping jurisdictions or regimes with low probability of approval and high litigation risk (e.g., environmental impact, land use, data protection, public safety)? Set level to 'high' if so. In the justification, reference the specific regimes/laws implicated. In the mitigation, propose a phased legal validation with early go/no-go points, starting with the lowest-cost step first. Example: \"Phase 1 (Immediate): A 'Fatal Flaw Analysis' to find absolute statutory blockers. Phase 2 (Short-Term): If viable, 'Preliminary Engagement' with a key regulator. Phase 3 (Full Study): Only if engagement is positive, commission a full 'Regulatory Pathway Study'.\" Provide ≤30‑word justification and a mitigation with Owner, Deliverable, and Date.",
+        "instruction": "Legal/regulatory feasibility (permits, licenses, codes, jurisdiction). HIGH if legality is unclear or required approvals are unmapped—treat as a potential showstopper; MEDIUM if a pathway exists but is unmapped/uncosted; LOW if mapped with counsel and lead times in plan. Name controlling regimes/statutes (e.g., investment/foreign‑investment restrictions such as a country’s **Foreign Investment Law** or equivalent; land‑use/zoning; building/fire; content/IP; entertainment/venue). Mitigation: **Fatal‑Flaw Analysis**, regulatory matrix (authority, artifact, lead time, predecessors), early regulator engagement, and **NO‑GO** on adverse findings. Provide ≤30‑word justification and a mitigation with Owner, Deliverable, and Date.",
         "comment": "Sometimes the generated plan describes a sunshine scenario where everything goes smoothly, without any lawyers or legal issues."
     },
     {
@@ -172,7 +172,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 16,
         "title": "Infeasible Constraints",
         "subtitle": "Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied?",
-        "instruction": "Infeasible Constraints: Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied. Explicitly assess land-tenure insecurity and conflicting national interests as structural blockers; either identify jurisdictions with viable permitting paths (or historical approval/denial rates) or rate as high risk. Provide ≤30‑word justification and a mitigation with Owner, Deliverable, and Date.",
+        "instruction": "Hard constraints (zoning/land‑use, occupancy/egress, fire load, structural limits, noise, permits). This is **not** about real‑world proof (#2). HIGH if success hinges on non‑waivable or unlikely approvals/limits; MEDIUM if uncertain; LOW if constraints are satisfied or viable alternatives exist. Mitigation: perform a **fatal‑flaw screen** with authorities/experts; seek written confirmation where feasible; define fallback designs/sites and dated **NO‑GO** thresholds tied to constraint outcomes. Provide ≤30‑word justification and a mitigation with Owner, Deliverable, and Date.",
         "comment": "Getting a permit to build a spaceship launch pad in the center of the city is likely going to be rejected."
     },
     {
@@ -200,7 +200,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 20,
         "title": "Uncategorized Red Flags",
         "subtitle": "Are there any other significant risks or major issues that are not covered by other items in this checklist but still threaten the project's viability?",
-        "instruction": "Systemic/uncaptured risk. Do **not** brainstorm “black swans”. Instead analyze **interactions** among known risks using cross‑impact, bow‑tie, or FTA to surface cascades. HIGH if combined effects threaten viability; MEDIUM if localized; LOW if none. Mitigation: produce an interdependency map + bow‑tie/FTA + combined heatmap with owner/date and NO‑GO/contingency thresholds. Provide ≤30‑word justification + mitigation with Owner/Deliverable/Date.",
+        "instruction": "Systemic/uncaptured risk. Do not duplicate #4’s single‑chain cascades; assess **interactions** among risks using cross‑impact, bow‑tie, or FTA to surface multi‑node cascades and common‑mode failures. **Rate HIGH** if ≥3 High risks are strongly coupled or a single dependency can trigger multi‑domain failure; MEDIUM if localized/weakly coupled; LOW if none. Mitigation: interdependency map + bow‑tie/FTA + combined heatmap with owner/date and **NO‑GO/contingency** thresholds. Provide ≤30‑word justification and a mitigation with Owner, Deliverable, and Date.",
         "comment": "This checklist is not exhaustive. Besides what is listed in this checklist, there are other red flags that are not accounted for in this checklist."
     }
 ]
