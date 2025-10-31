@@ -24,9 +24,6 @@ from planexe.llm_util.llm_executor import LLMExecutor, PipelineStopRequested
 logger = logging.getLogger(__name__)
 
 class ChecklistAnswer(BaseModel):
-    id: str = Field(
-        description="Id of this checklist item."
-    )
     level: str = Field(
         description="low, medium, high."
     )
@@ -37,15 +34,7 @@ class ChecklistAnswer(BaseModel):
         description="One concrete action that reduces/removes the flag. 30 words."
     )
 
-class ChecklistResponse(BaseModel):
-    checklist_answers: list[ChecklistAnswer] = Field(
-        description="Answers to the checklist items."
-    )
-
 class ChecklistAnswerCleaned(BaseModel):
-    id: str = Field(
-        description="Id of this checklist item."
-    )
     index: int = Field(
         description="Index of this checklist item."
     )
@@ -209,33 +198,17 @@ ALL_CHECKLIST_ITEMS = [
 ]
 
 # Older LLMs seem to handle the first 15 ok, but beyond that the LLMs starts to ignore the batching of items.
-CHECKLIST = ALL_CHECKLIST_ITEMS[:15]
+CHECKLIST = ALL_CHECKLIST_ITEMS[:3]
 
-def enrich_checklist_with_batch_id_and_item_index(checklist: list[dict], batch_size: int = 5) -> list[dict]:
-    enriched_checklist: list[dict] = []
-    for i, item in enumerate(checklist):
-        batch_id = i // batch_size
-        item_index = i % batch_size
-        id = f"batch={batch_id}&item={item_index}"
-        item_enriched = {"id": id, "batch_index": batch_id, **item}
-        enriched_checklist.append(item_enriched)
-    return enriched_checklist
-
-def format_system_prompt(*, checklist: list[dict], batch_size: int = 5, current_batch_index: int = 0) -> str:
-    number_of_batches = len(checklist) // batch_size
-    remainder = len(checklist) % batch_size
-    if remainder > 0:
-        number_of_batches += 1
-
-    enriched_checklist = enrich_checklist_with_batch_id_and_item_index(checklist, batch_size)
+def format_system_prompt(*, checklist: list[dict], current_index: int = 0) -> str:
+    enriched_checklist = checklist
 
     # remove the "comment" key from each item in the enriched_checklist
     enriched_checklist = [{k: v for k, v in item.items() if k != "comment"} for item in enriched_checklist]
 
-    # assign status=TODO to the items that have batch_index == current_batch_index
-    for item in enriched_checklist:
-        batch_index = item["batch_index"]
-        if batch_index == current_batch_index:
+    # assign status=TODO to the items that have index == current_index
+    for index, item in enumerate(enriched_checklist):
+        if index == current_index:
             item["status"] = "TODO"
         else:
             item["status"] = "IGNORE"
@@ -243,43 +216,36 @@ def format_system_prompt(*, checklist: list[dict], batch_size: int = 5, current_
     # Older LLMs can't handle with all the long instruction text. 
     # The solution is to only show the long instruction for the current batch,
     # and show title/subtitle for the other batches, these texts are much shorter.
-    for item in enriched_checklist:
-        batch_index = item["batch_index"]
-        if batch_index != current_batch_index:
+    for index, item in enumerate(enriched_checklist):
+        if index != current_index:
             item["instruction"] = item["title"] + "\n" + item["subtitle"]
 
     enriched_checklist = [{k: v for k, v in item.items() if k != "title"} for item in enriched_checklist]
     enriched_checklist = [{k: v for k, v in item.items() if k != "subtitle"} for item in enriched_checklist]
 
-    checklist_answers: list[ChecklistAnswer] = []
-    for item in enriched_checklist:
-        if item["batch_index"] != current_batch_index:
-            continue
-        checklist_answer = ChecklistAnswer(
-            id=item["id"],
-            level="LEVEL_PLACEHOLDER",
-            justification="JUSTIFICATION_PLACEHOLDER",
-            mitigation="MITIGATION_PLACEHOLDER",
-        )
-        checklist_answers.append(checklist_answer)
-    checklist_response = ChecklistResponse(
-        checklist_answers=checklist_answers,
+    checklist_answer = ChecklistAnswer(
+        level="LEVEL_PLACEHOLDER",
+        justification="JUSTIFICATION_PLACEHOLDER",
+        mitigation="MITIGATION_PLACEHOLDER",
     )
-    json_response_skeleton: str = json.dumps(checklist_response.model_dump(), indent=2)
+    json_response_skeleton: str = json.dumps(checklist_answer.model_dump(), indent=2)
     # print(f"json_response_skeleton: {json_response_skeleton}")
     # exit(0)
 
     # remove the "index" key from each item in the enriched_checklist
-    enriched_checklist = [{k: v for k, v in item.items() if k != "index"} for item in enriched_checklist]
-    # remove the "batch_index" key from each item in the enriched_checklist
-    enriched_checklist = [{k: v for k, v in item.items() if k != "batch_index"} for item in enriched_checklist]
+    # enriched_checklist = [{k: v for k, v in item.items() if k != "index"} for item in enriched_checklist]
 
     json_enriched_checklist = json.dumps(enriched_checklist, indent=2)
     # print(f"Enriched checklist: {json_enriched_checklist}")
     # exit(0)
 
-    expected_ids = [item["id"] for item in enriched_checklist if item["status"] == "TODO"]
-    json_expected_ids = json.dumps(expected_ids, indent=2)
+    expected_index = None
+    instruction = None
+    for index, item in enumerate(enriched_checklist):
+        if item == current_index:
+            expected_index = item["index"]
+            instruction = item["instruction"]
+            break
 
     system_prompt = f"""
 You are an expert strategic analyst. Your task is to answer a checklist with red flags.
@@ -311,27 +277,28 @@ INPUTS (do not echo them back; use them to produce the output):
 status legend:
 - "TODO": must answer.
 - "IGNORE": ignore completely; never include in output.
-Expected ids (order to follow):
-{json_expected_ids}
+Expected index to answer:
+{expected_index}
+
+Follow these instructions to answer the item:
+{instruction}
 
 Checklist to evaluate:
 {json_enriched_checklist}
 
-RETURN THIS EXACT SHAPE (fill in the values; keep ids as-is; do not alter structure, punctuation, or key order):
+RETURN THIS EXACT SHAPE (fill in the values):
 {json_response_skeleton}
 """
     # print(f"System prompt:\n{system_prompt}")
     # exit(0)
     return system_prompt
 
-BATCH_SIZE = 5
-
 @dataclass
 class ViabilityChecklist:
     system_prompt_list: list[str]
     user_prompt_list: list[str]
-    responses: list[ChecklistResponse]
-    measurements: list[ChecklistAnswerCleaned]
+    responses: dict[int, ChecklistAnswer]
+    checklist_answers_cleaned: list[ChecklistAnswerCleaned]
     metadata: dict
     markdown: str
 
@@ -341,39 +308,25 @@ class ViabilityChecklist:
             raise ValueError("Invalid LLMExecutor instance.")
         if not isinstance(user_prompt, str):
             raise ValueError("Invalid user_prompt.")
-        
-        number_of_groups = len(CHECKLIST) // BATCH_SIZE
-        remainder = len(CHECKLIST) % BATCH_SIZE
-        if remainder > 0:
-            number_of_groups += 1
 
+        checklist_items = CHECKLIST
+        
         system_prompt_list = []
-        for group_index in range(0, number_of_groups):
-            system_prompt = format_system_prompt(checklist=CHECKLIST, batch_size=BATCH_SIZE, current_batch_index=group_index)
+        for index in range(0, len(checklist_items)):
+            system_prompt = format_system_prompt(checklist=checklist_items, current_index=index)
             system_prompt_list.append(system_prompt)
 
-        enriched_checklist = enrich_checklist_with_batch_id_and_item_index(CHECKLIST, BATCH_SIZE)
-        expected_ids_list = []
-        for group_index in range(0, number_of_groups):
-            ids_for_this_group = [item["id"] for item in enriched_checklist if item["batch_index"] == group_index]
-            expected_ids_list.append(ids_for_this_group)
-        # print(f"Expected ids list: {expected_ids_list}")
-        # exit(0)
-
-        responses: list[ChecklistResponse] = []
+        responses: dict[int, ChecklistAnswer] = {}
         metadata_list: list[dict] = []
         user_prompt_list = []
-        for group_index in range(0, number_of_groups):
-            logger.info(f"Processing group {group_index+1} of {number_of_groups}")
-            system_prompt = system_prompt_list[group_index]
-            expected_ids = expected_ids_list[group_index]
+        checklist_answers_cleaned: list[ChecklistAnswerCleaned] = []
+        for index in range(0, len(checklist_items)):
+            logger.info(f"Processing item {index+1} of {len(checklist_items)}")
+            system_prompt = system_prompt_list[index]
 
             # Add previous checklist responses to the bottom of the user prompt
-            if group_index > 0:
-                checklist_answers_raw: list[ChecklistAnswer] = []
-                for response in responses:
-                    checklist_answers_raw.extend(response.checklist_answers)
-                previous_responses_dict = [answer.model_dump() for answer in checklist_answers_raw]
+            if index > 0:
+                previous_responses_dict = {k: v.model_dump() for k, v in responses.items()}
                 previous_responses_str = json.dumps(previous_responses_dict, indent=2)
                 user_prompt_with_previous_responses = f"{user_prompt}\n\n# Checklist Answers\n{previous_responses_str}"
             else:
@@ -393,21 +346,8 @@ class ViabilityChecklist:
             ]
 
             def execute_function(llm: LLM) -> dict:
-                sllm = llm.as_structured_llm(ChecklistResponse)
+                sllm = llm.as_structured_llm(ChecklistAnswer)
                 chat_response = sllm.chat(chat_message_list)
-
-                # Ensure that all the checklist items for this batch have been answered just once.
-                # Sometimes the LLM answers the checklist in a different order. This is ok.
-                # Sometimes the LLM answers the same checklist item multiple times. This is not ok.
-                # Sometimes the LLM answers all the checklist items, ignoring the small batch it was supposed to answer, so the response is huge. This is not ok.
-                response_ids: list[str] = [answer.id for answer in chat_response.raw.checklist_answers]
-
-                response_ids_set = set[str](response_ids)
-                expected_ids_set = set[str](expected_ids)
-                if response_ids_set != expected_ids_set or len(response_ids_set) != len(expected_ids_set):
-                    diff = expected_ids_set - response_ids_set
-                    sorted_diff = sorted(diff)
-                    raise ValueError(f"Mismatch between expected and response ids. Expected ids: {expected_ids!r} but got response ids: {response_ids!r}. Group index: {group_index}. Missing ids: {sorted_diff!r}")
 
                 metadata = dict(llm.metadata)
                 metadata["llm_classname"] = llm.class_name()
@@ -434,71 +374,57 @@ class ViabilityChecklist:
             )
 
             logger.debug(f"Chat response: {result['chat_response'].raw.model_dump()}")
-            responses.append(result["chat_response"].raw)
-            metadata_list.append(result["metadata"])
 
-        # from the raw_responses, extract the measurements into a flatten list
-        checklist_answers_raw: list[ChecklistAnswer] = []
-        for response in responses:
-            checklist_answers_raw.extend(response.checklist_answers)
-
-        # convert CHECKLIST from list to dict, using the index as the key
-        checklist_dict = {item["id"]: item for item in enriched_checklist}
-        if len(checklist_dict) != len(CHECKLIST):
-            raise ValueError("Checklist dict length does not match checklist list length.")
-
-        # Clean the raw measurements
-        measurements_cleaned: list[ChecklistAnswerCleaned] = []
-        for measurement in checklist_answers_raw:
-            checklist_id = measurement.id
-            checklist_item = checklist_dict.get(checklist_id)
-            if checklist_item is None:
-                raise ValueError(f"Checklist item not found for id: {checklist_id}")
+            checklist_answer: ChecklistAnswer = result["chat_response"].raw
+            checklist_item = checklist_items[index]
             checklist_item_index = checklist_item["index"]
             checklist_item_title = checklist_item["title"]
             checklist_item_subtitle = checklist_item["subtitle"]
-            measurement_cleaned = ChecklistAnswerCleaned(
-                id=checklist_id,
-                index=checklist_item_index,
-                title=checklist_item_title,
-                subtitle=checklist_item_subtitle,
-                level=measurement.level,
-                justification=measurement.justification,
-                mitigation=measurement.mitigation,
+            checklist_answer_cleaned = ChecklistAnswerCleaned(
+                index=checklist_item["index"],
+                title=checklist_item["title"],
+                subtitle=checklist_item["subtitle"],
+                level=checklist_answer.level,
+                justification=checklist_answer.justification,
+                mitigation=checklist_answer.mitigation,
             )
-            measurements_cleaned.append(measurement_cleaned)
+            checklist_answers_cleaned.append(checklist_answer_cleaned)
+
+            responses[index] = checklist_answer
+            metadata_list.append(result["metadata"])
+
         
         # Sort checklist answers by index, in case the LLM answers the checklist items in a different order.
-        measurements_cleaned.sort(key=lambda x: x.index)
+        checklist_answers_cleaned.sort(key=lambda x: x.index)
 
         metadata = {}
         for metadata_index, metadata_item in enumerate(metadata_list, start=1):
             metadata[f"metadata_{metadata_index}"] = metadata_item
 
-        markdown = cls.convert_to_markdown(measurements_cleaned)
+        markdown = cls.convert_to_markdown(checklist_answers_cleaned)
 
         result = ViabilityChecklist(
             system_prompt_list=system_prompt_list,
             user_prompt_list=user_prompt_list,
             responses=responses,
-            measurements=measurements_cleaned,
+            checklist_answers_cleaned=checklist_answers_cleaned,
             metadata=metadata,
             markdown=markdown,
         )
         return result    
 
-    def to_dict(self, include_responses=True, include_cleaned_measurments=True, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
+    def to_dict(self, include_responses=True, include_cleaned_answers=True, include_metadata=True, include_system_prompt=True, include_user_prompt=True) -> dict:
         d = {}
         if include_responses:
-            d["responses"] = [response.model_dump() for response in self.responses]
+            d["responses"] = {k: v.model_dump() for k, v in self.responses.items()}
         if include_metadata:
             d['metadata'] = self.metadata
         if include_system_prompt:
             d['system_prompt_list'] = self.system_prompt_list
         if include_user_prompt:
             d['user_prompt_list'] = self.user_prompt_list
-        if include_cleaned_measurments:
-            d['measurements'] = [measurement.model_dump() for measurement in self.measurements]
+        if include_cleaned_answers:
+            d['checklist_answers_cleaned'] = [checklist_answer.model_dump() for checklist_answer in self.checklist_answers_cleaned]
         return d
 
     def save_raw(self, file_path: str) -> None:
@@ -508,7 +434,7 @@ class ViabilityChecklist:
         """
         Return a list of dictionaries, each representing a measurement.
         """
-        return [measurement.model_dump() for measurement in self.measurements]
+        return [checklist_answer.model_dump() for checklist_answer in self.checklist_answers_cleaned]
     
     def save_clean(self, file_path: str) -> None:
         measurements_dict = self.measurement_item_list()
