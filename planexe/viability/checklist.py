@@ -9,6 +9,12 @@ The Secondary Reader (The Project Manager/Lead): This is the person tasked with 
 
     Value: It serves as a prioritized "fix-it" list. It tells the project manager which fires are the biggest. They don't need to worry about the team size (a ⚠️ Medium risk) if the entire project is a 🛑 High "Legal Minefield." It focuses their attention on the foundational, existential threats to the project's success.
 
+Calibration. They may all be red. Holding the items up against each other is not the job for this checklist. It's further downstream.
+The primary task is to detect that there is something fundamentally wrong with the plan.
+
+Some of the checklist items overlaps with each other, and I don't care about things being mutually exclusive where things are not supposed to overlap.
+I care about what problems I observe in the generated reports.
+
 PROMPT> python -u -m planexe.viability.checklist | tee output.txt
 """
 import json
@@ -80,7 +86,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 4,
         "title": "Underestimating Risks",
         "subtitle": "Does this plan grossly underestimate risks.",
-        "instruction": "Do a risk gap check. Beyond listed risks, verify coverage of second-order risks: reputational impact, regulatory/approval delays, long-term OPEX/lifecycle, community/ESG backlash, key-person dependency, vendor lock-in, data/privacy. Set HIGH if the risk section is purely technical/financial or lacks owner, trigger, and contingency for critical risks. Justify by naming one critical unaddressed risk and its consequence.",
+        "instruction": "Find a critical risk that is mentioned in the plan's risk register. Then, describe a plausible second-order (knock-on) effect of that risk materializing that the plan fails to consider. Your justification must explain this causal chain (If Risk X happens, then Consequence Y will follow, which the plan ignores). The mitigation must be a task to add this specific second-order risk and its contingency plan to the risk register.",
         "comment": "Despite PlanExe trying to uncover many risks, there are often risks that are not identified, or some significant risk gets neglected."
     },
     {
@@ -178,7 +184,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 18,
         "title": "Stakeholder Misalignment",
         "subtitle": "Are there conflicting interests, misaligned incentives, or lack of genuine commitment from key stakeholders that could derail the project.",
-        "instruction": "Scan the plan for evidence of conflicting stakeholder interests or goals. Set LEVEL to HIGH if the plan explicitly mentions stakeholders with opposing objectives (e.g., developers vs. preservation societies) or if different sections of the plan imply contradictory priorities for success (e.g., maximizing speed vs. maximizing community consensus). For justification, quote the conflicting goals or name the misaligned stakeholders. For mitigation, require a stakeholder alignment workshop to create a single, shared set of prioritized objectives.",
+        "instruction": "Analyze the stated goals of two key stakeholders (e.g., 'Finance Department' and 'R&D Team'). Identify a plausible, unstated conflict in their underlying incentives (e.g., Finance is incentivized by quarterly budget adherence, while R&D is incentivized by long-term innovation, creating a conflict over experimental spending). The justification must state the two stakeholders and their conflicting incentives. The mitigation must be a task to create a shared, measurable objective (OKR) that aligns both stakeholders on a common outcome.",
         "comment": "Projects can fail even with perfect technical execution if stakeholders have hidden agendas, conflicting priorities, or lose interest halfway through. PlanExe may assume stakeholders are fully supportive without verifying commitment or alignment."
     },
     {
