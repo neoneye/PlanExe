@@ -74,7 +74,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 2,
         "title": "No Real-World Proof",
         "subtitle": "Success depends on a technology or system that has not been proven in real projects at this scale or in this domain.",
-        "instruction": "No Real-World Proof: Is there credible, real-world evidence that the core mechanism works outside of a lab/demo? If this is a first-of-its-kind or unregulated/novel construct, set level to 'high'. In the justification, cite the exact areas with no precedent (markets, technology, policy) rather than saying 'insufficient information'. In the mitigation, propose a parallel, multi‑track validation that includes: (T1) technical threat‑model + security PoC with red‑team; (T2) legal/compliance review for the relevant domains (e.g., securities/market integrity/AML/data protection) and licensing feasibility; (T3) market validation (letters of intent, regulator pre‑reads, partner commitments); (T4) ethics/abuse analysis (manipulation/foreign‑influence/dual‑use). Define explicit go/no‑go gates and realistic timeframes; declare NO‑GO if any track blocks.",
+        "instruction": "No Real-World Proof: Is there credible, real-world evidence that the core mechanism works outside of a lab/demo? If this is a first-of-its-kind or unregulated/novel construct, set level to 'high'. In the justification, cite the exact areas with no precedent (markets, technology, policy) rather than saying 'missing referenced artifacts'. In the mitigation, propose a parallel, multi‑track validation that includes: (T1) technical threat‑model + security PoC with red‑team; (T2) legal/compliance review for the relevant domains (e.g., securities/market integrity/AML/data protection) and licensing feasibility; (T3) market validation (letters of intent, regulator pre‑reads, partner commitments); (T4) ethics/abuse analysis (manipulation/foreign‑influence/dual‑use). Define explicit go/no‑go gates and realistic timeframes; declare NO‑GO if any track blocks.",
         "comment": "It's rarely smooth sailing when using new technology, novel concepts that no human has ever been used before. PlanExe sometimes picking a scenario that is way too ambitious."
     },
     {
@@ -109,7 +109,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 7,
         "title": "Budget Too Low",
         "subtitle": "Is there a significant mismatch between the project's stated goals and the financial resources allocated, suggesting an unrealistic or inadequate budget?",
-        "instruction": "Budget Too Low: Is there a significant mismatch between the project's stated goals and the allocated budget? In the justification, after citing the plan's budget figures, provide Order-of-Magnitude (OOM) context by comparing them to analogous real-world projects (e.g., 'The plan budgets $5M, but similar public infrastructure projects typically exceed $50M.'). Set level to 'high' if the mismatch is significant. Mitigation must be a task to produce an independent, detailed cost analysis.",
+        "instruction": "Budget Too Low: Is there a significant mismatch between the project's stated goals and the allocated budget? In the justification, after citing the plan's budget figures, provide Order-of-Magnitude (OOM) context by comparing them to analogous real-world projects (e.g., 'The plan budgets $5M, but similar public infrastructure projects typically exceed $50M.'). Set level to 'high' if the mismatch is significant. Mitigation must be a task to produce an independent, detailed cost analysis. Normalize comparators: express costs per-year, per-hectare, or per-objective; note scope differences (R&D vs enforcement/commercialization); include 2–3 analogous programs.",
         "comment": "Often the user specifies a 100 USD budget in the initial prompt, where the generated plan requires millions of dollars to implement. Or the budget grows during the plan generation, so the money needed ends up being much higher than expected."
     },
     {
@@ -172,7 +172,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 16,
         "title": "Infeasible Constraints",
         "subtitle": "Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied?",
-        "instruction": "Infeasible Constraints: Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied.",
+        "instruction": "Infeasible Constraints: Does the project depend on overcoming constraints that are practically insurmountable, such as obtaining permits that are almost certain to be denied. Explicitly assess land-tenure insecurity and conflicting national interests as structural blockers; either identify jurisdictions with viable permitting paths (or historical approval/denial rates) or rate as high risk.",
         "comment": "Getting a permit to build a spaceship launch pad in the center of the city is likely going to be rejected."
     },
     {
@@ -273,7 +273,7 @@ STRICT RULES
 - Start each justification with "Rated LOW/MEDIUM/HIGH because..." (use the chosen level) so the reader sees how the rubric was applied.
 - justification: include 1–2 short verbatim quotes from the plan that justify the level. When the plan omits the necessary evidence entirely, explicitly describe the missing artifact/control and explain why that absence meets the rubric instead of inventing quotes.
 - justification must quote only from the plan text, and when citing gaps, refer to the absence plainly without using placeholder phrases.
-- Never use the phrase "insufficient information" or similar placeholders; spell out what evidence is missing and the consequence.
+- Never use the phrase "missing referenced artifacts" or similar placeholders; spell out what evidence is missing and the consequence.
 - mitigation: ONE assignable task. Start with a suggested role/team, followed by a verb, and include a suggested timeframe (e.g., "Legal Team: Draft a memo... within 30 days."). ~30 words.
 - mitigation must be actionable; never respond with "N/A" or similar placeholders.
 - Mitigation must be specific to the identified issue; avoid vague directives like "review the plan", "consult experts", or "investigate" unless paired with a concrete deliverable that directly reduces the flagged risk.
