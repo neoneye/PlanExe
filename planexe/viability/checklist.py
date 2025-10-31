@@ -9,8 +9,10 @@ The Secondary Reader (The Project Manager/Lead): This is the person tasked with 
 
     Value: It serves as a prioritized "fix-it" list. It tells the project manager which fires are the biggest. They don't need to worry about the team size (a ⚠️ Medium risk) if the entire project is a 🛑 High "Legal Minefield." It focuses their attention on the foundational, existential threats to the project's success.
 
-Calibration. They may all be red. Holding the items up against each other is not the job for this checklist. It's further downstream.
-The primary task is to detect that there is something fundamentally wrong with the plan.
+Calibation. Skewed distribution: 16 “High” flags out of 20 reads like alarm fatigue. 
+Yes, the majority may be red. Holding the items up against each other is not the job for this checklist. It's further downstream.
+I'm not going to reserve High for the most significant issues.
+The primary task with this checklist is to detect that there is something fundamentally wrong with the plan.
 
 Some of the checklist items overlaps with each other, and I don't care about things being mutually exclusive where things are not supposed to overlap.
 I care about what problems I observe in the generated reports.
