@@ -66,14 +66,14 @@ ALL_CHECKLIST_ITEMS = [
     {
         "index": 1,
         "title": "Violates Known Physics",
-        "subtitle": "The project cannot succeed without a major, unpredictable discovery in fundamental science.",
+        "subtitle": "Does the project require a major, unpredictable discovery in fundamental science to succeed?",
         "instruction": "Assess whether the project's core goal or claimed mechanisms contradict well-established scientific laws or consensus (e.g., in physics, biology, earth sciences). You must judge the scientific validity of the subject matter itself, NOT just the methods of implementation.\n\n**Crucially, you must distinguish between a violation of fundamental scientific laws (e.g., perpetual motion) and an extreme-scale engineering or logistical challenge (e.g., constructing a space elevator or a massive ocean platform). An engineering challenge, no matter how immense, is NOT a violation for this specific check.**\n\nSet LEVEL=HIGH **only if** any success condition requires a true physical impossibility, treats pseudoscience as fact, or assumes overturning a well-tested scientific law without extraordinary evidence. **Do not set LEVEL=HIGH for projects that are merely politically, legally, or financially infeasible; other checklist items will capture those flaws.** Otherwise, set LEVEL=LOW.\n\nIn the justification, you MUST follow this exact 3-part structure:\n  (1) Name the specific scientific principle(s) being violated.\n  (2) Quote the exact line(s) from the plan that reveal this conflict.\n  (3) In one sentence, state the direct project-level consequence, explaining why this makes the plan's goal fundamentally non-viable.\n\nMitigation for HIGH must be a stop/go fatal-flaw gate assigned to the specific highest-level stakeholder identified in the plan text (e.g., 'Project Sponsor', 'CEO'). The gate must be evidence-based.",
         "comment": "If the initial prompt is vague/scifi/aggressive or asks for something that is physically impossible, then the generated plan usually end up with some fantasy parts, making the plan unrealistic."
     },
     {
         "index": 2,
         "title": "No Real-World Proof",
-        "subtitle": "Success depends on a technology or system that has not been proven in real projects at this scale or in this domain.",
+        "subtitle": "Does success depend on a technology or system that has not been proven in real projects at this scale or in this domain?",
         "instruction": "No Real-World Proof: Is there credible, real-world evidence that the core mechanism works outside of a lab/demo? If this is a first-of-its-kind or unregulated/novel construct, set level to 'high'. In the justification, cite the exact areas with no precedent (markets, technology, policy) rather than saying 'missing referenced artifacts'. In the mitigation, propose a parallel, multi‑track validation that includes: (T1) technical threat‑model + security PoC with red‑team; (T2) legal/compliance review for the relevant domains (e.g., securities/market integrity/AML/data protection) and licensing feasibility; (T3) market validation (letters of intent, regulator pre‑reads, partner commitments); (T4) ethics/abuse analysis (manipulation/foreign‑influence/dual‑use). Define explicit go/no‑go gates and realistic timeframes; declare NO‑GO if any track blocks.",
         "comment": "It's rarely smooth sailing when using new technology, novel concepts that no human has ever been used before. PlanExe sometimes picking a scenario that is way too ambitious."
     },
@@ -94,14 +94,14 @@ ALL_CHECKLIST_ITEMS = [
     {
         "index": 5,
         "title": "Timeline Issues",
-        "subtitle": "Unrealistic or internally inconsistent schedules.",
+        "subtitle": "Does the plan rely on unrealistic or internally inconsistent schedules?",
         "instruction": "Assess the project timeline for realism. Set LEVEL to HIGH if the durations are obviously too short for the described tasks (e.g., 'build a new software platform in one week') or if critical preparatory steps like 'securing permits' or 'design approval' are given no time at all. Also flag if the plan has a hard deadline but no clear path to meet it. In the justification, cite the specific unrealistic duration or the missing critical step. For mitigation, require the creation of a more detailed timeline with key milestones, ensuring the deadline is realistic for the project's actual scope and urgency.",
         "comment": "PlanExe currently has no knowledge about the resources available. In the first draft of the plan makes no attempt at parallelizing the tasks to be done in a shorter timeframe. I imagine a human will have to configure the resources, before rescheduling the tasks to be done in a shorter timeframe. A plan for a funeral for some rock star legend and it's happening next week, here a 60 days delay wont work. There are tiny plans such as 'I want to make a cup of coffee, I have all the ingredients, I know how to do it'. Typical projects are people that want to make changes to their business or renovate their house."
     },
     {
         "index": 6,
         "title": "Money Issues",
-        "subtitle": "Flaws in the financial model, funding, or cost realism.",
+        "subtitle": "Are there flaws in the financial model, funding plan, or cost realism?",
         "instruction": "Assess the plan's financial realism. First, check if any cost or budget numbers are provided. Set LEVEL to HIGH if the plan describes activities with obvious costs (e.g., purchasing, construction, hiring) but provides no budget figures, or if the stated budget is grossly mismatched with the project's scale. If funding sources are mentioned, note whether they are confirmed or speculative. In the justification, cite the specific lack of figures or the uncommitted nature of funding. For mitigation, propose developing an initial cost estimate and funding plan, making the deadline proportional to the project's lifecycle (e.g., 'as a prerequisite for the execution phase', or 'within the first week' for urgent projects).",
         "comment": "PlanExe currently has no Cost Breakdown Structure. Some projects are intended to generate revenue, other projects are not intended for profit, but for a specific purpose. Yet, there can be significant money issues that are not identified. For a solo entrepeneur it may be overkill with a CBS. For a private project it's likely not relevant."
     },
@@ -129,7 +129,7 @@ ALL_CHECKLIST_ITEMS = [
     {
         "index": 10,
         "title": "Assertions Without Evidence",
-        "subtitle": "Exclude timeline & budget. Find one hard proof for a critical claim.",
+        "subtitle": "Does each critical claim (excluding timeline and budget) include at least one verifiable piece of evidence?",
         "instruction": "For every critical claim (excluding schedule/budget), require one verifiable artifact: signed LOI/MOU/contract, regulator pre-read, benchmark/validation report with methods, or public dataset + reproducible analysis. If none exists, record as a gap with owner, due date, and the specific artifact to obtain.",
         "comment": "Often the generated plan specifies numbers/facts/concepts without any evidence to support the claims. These will have to be fact checked and adjusted in a refinement of the plan."
     },
@@ -150,7 +150,7 @@ ALL_CHECKLIST_ITEMS = [
     {
         "index": 13,
         "title": "Staffing Fit & Rationale",
-        "subtitle": "Roles, capacity, and skills don’t match the work (under- or over-staffed).",
+        "subtitle": "Do the roles, capacity, and skills match the work, or is the plan under- or over-staffed?",
         "instruction": "Staffing Fit & Rationale: Analyze the plan to identify the single most specialized, novel, or mission-critical role required for success (the 'unicorn role'). Set level to 'high' if this role is both essential and likely difficult to fill. The justification must name this unicorn role and explain why its expertise is both critical and rare. The mitigation must be a task to validate the talent market for that specific role as an early go/no-go check.",
         "comment": "For a 'Im a solo entrepreneur and is making everything myself' prompt, then the generated plan is likely suggesting to hire a huge team of people, and ignoring the fact that the entrepreneur is doing everything themselves. For a 'Construct a bridge' prompt, then the generated plan is likely to underestimate the number of people needed to achieve the goals."
     },
@@ -192,7 +192,7 @@ ALL_CHECKLIST_ITEMS = [
     {
         "index": 19,
         "title": "No Adaptive Framework",
-        "subtitle": "The plan lacks a clear process for monitoring progress and managing changes, treating the initial plan as final.",
+        "subtitle": "Does the plan lack a clear process for monitoring progress and managing changes, treating the initial plan as final?",
         "instruction": "Set HIGH if the plan lacks a feedback loop: KPIs, review cadence, owners, and a basic change-control process with thresholds (when to re-plan/stop). Vague ‘we will monitor’ is insufficient. Mitigation: add a monthly review with KPI dashboard and a lightweight change board.",
         "comment": "A plan is a starting point, not a final script. Without a way to measure progress and adapt to unforeseen problems (scope creep, delays, new requirements), even the best initial plan will fail. This checks if the project has a steering wheel."
     },
