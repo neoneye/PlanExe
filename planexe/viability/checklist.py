@@ -390,11 +390,12 @@ class ViabilityChecklist:
             checklist_answer: ChecklistAnswer = result["chat_response"].raw
             checklist_item = checklist_items[index]
             checklist_item_index = checklist_item["index"]
+            level: str = checklist_answer.level.lower()
             checklist_answer_cleaned = ChecklistAnswerCleaned(
                 index=checklist_item_index,
                 title=checklist_item["title"],
                 subtitle=checklist_item["subtitle"],
-                level=checklist_answer.level,
+                level=level,
                 justification=checklist_answer.justification,
                 mitigation=checklist_answer.mitigation,
             )
