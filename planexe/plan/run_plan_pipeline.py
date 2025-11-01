@@ -77,7 +77,7 @@ from planexe.viability.summary import ViabilitySummary
 from planexe.viability.domains import ViabilityDomains
 from planexe.viability.blockers import ViabilityBlockers
 from planexe.viability.fixpack import ViabilityFixPack
-from planexe.self_audit.checklist import SelfAudit
+from planexe.self_audit.self_audit import SelfAudit
 from planexe.wbs.wbs_task import WBSTask, WBSProject
 from planexe.wbs.wbs_populate import WBSPopulate
 from planexe.wbs.wbs_task_tooltip import WBSTaskTooltip

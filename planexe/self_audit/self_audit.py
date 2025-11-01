@@ -17,7 +17,7 @@ The primary task with this checklist is to detect that there is something fundam
 Some of the checklist items overlaps with each other, and I don't care about things being mutually exclusive where things are not supposed to overlap.
 I care about what problems I observe in the generated reports.
 
-PROMPT> python -u -m planexe.self_audit.checklist | tee output.txt
+PROMPT> python -u -m planexe.self_audit.self_audit | tee output.txt
 """
 import json
 import logging
