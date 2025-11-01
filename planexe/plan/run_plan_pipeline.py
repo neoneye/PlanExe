@@ -3964,11 +3964,19 @@ class SelfAuditTask(PlanTask):
             f"File 'premortem.md':\n{premortem_markdown}"
         )
 
+        logger.info(f"SelfAuditTask.speedvsdetail: {self.speedvsdetail}")
+        max_number_of_items: Optional[int] = None
+        if self.speedvsdetail == SpeedVsDetailEnum.FAST_BUT_SKIP_DETAILS:
+            logger.info("FAST_BUT_SKIP_DETAILS mode, truncating to 2 items for testing a subset of the SelfAudit items.")
+            max_number_of_items = 2
+        else:
+            logger.info("Processing all SelfAudit items.")
+
         # Invoke the LLM
         self_audit = SelfAudit.execute(
             llm_executor=llm_executor, 
             user_prompt=user_prompt,
-            max_number_of_items=None,
+            max_number_of_items=max_number_of_items,
         )
 
         # Save the results.
