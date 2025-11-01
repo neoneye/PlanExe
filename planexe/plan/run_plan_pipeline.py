@@ -77,7 +77,7 @@ from planexe.viability.summary import ViabilitySummary
 from planexe.viability.domains import ViabilityDomains
 from planexe.viability.blockers import ViabilityBlockers
 from planexe.viability.fixpack import ViabilityFixPack
-from planexe.self_audit.checklist import ViabilityChecklist
+from planexe.self_audit.checklist import SelfAudit
 from planexe.wbs.wbs_task import WBSTask, WBSProject
 from planexe.wbs.wbs_populate import WBSPopulate
 from planexe.wbs.wbs_task_tooltip import WBSTaskTooltip
@@ -3965,7 +3965,7 @@ class ViabilityChecklistTask(PlanTask):
         )
 
         # Invoke the LLM
-        viability_checklist = ViabilityChecklist.execute(
+        self_audit = SelfAudit.execute(
             llm_executor=llm_executor, 
             user_prompt=user_prompt,
             max_number_of_items=None,
@@ -3973,9 +3973,9 @@ class ViabilityChecklistTask(PlanTask):
 
         # Save the results.
         json_path = self.output()['raw'].path
-        viability_checklist.save_raw(json_path)
+        self_audit.save_raw(json_path)
         markdown_path = self.output()['markdown'].path
-        viability_checklist.save_markdown(markdown_path)
+        self_audit.save_markdown(markdown_path)
 
 class ReportTask(PlanTask):
     """

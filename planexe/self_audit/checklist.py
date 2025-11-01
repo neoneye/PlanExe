@@ -302,7 +302,7 @@ RETURN THIS EXACT SHAPE (fill in the values):
     return system_prompt
 
 @dataclass
-class ViabilityChecklist:
+class SelfAudit:
     system_prompt_list: list[str]
     user_prompt_list: list[str]
     responses: dict[int, ChecklistAnswer]
@@ -311,7 +311,7 @@ class ViabilityChecklist:
     markdown: str
 
     @classmethod
-    def execute(cls, llm_executor: LLMExecutor, user_prompt: str, max_number_of_items: Optional[int] = None) -> 'ViabilityChecklist':
+    def execute(cls, llm_executor: LLMExecutor, user_prompt: str, max_number_of_items: Optional[int] = None) -> 'SelfAudit':
         if not isinstance(llm_executor, LLMExecutor):
             raise ValueError("Invalid LLMExecutor instance.")
         if not isinstance(user_prompt, str):
@@ -414,7 +414,7 @@ class ViabilityChecklist:
 
         markdown = cls.convert_to_markdown(checklist_answers_cleaned)
 
-        result = ViabilityChecklist(
+        result = SelfAudit(
             system_prompt_list=system_prompt_list,
             user_prompt_list=user_prompt_list,
             responses=responses,
@@ -528,16 +528,16 @@ if __name__ == "__main__":
     llm_executor = LLMExecutor(llm_models=llm_models)
 
     print(f"Query: {query}")
-    result = ViabilityChecklist.execute(llm_executor=llm_executor, user_prompt=query, max_number_of_items=3)
+    result = SelfAudit.execute(llm_executor=llm_executor, user_prompt=query, max_number_of_items=3)
 
     print("\nResult:")
     json_response = result.to_dict(include_system_prompt=False, include_user_prompt=False)
     print(json.dumps(json_response, indent=2))
 
-    test_data_filename = f"viability_checklist_{prompt_id}.json"
+    test_data_filename = f"self_audit_{prompt_id}.json"
     result.save_clean(Path(test_data_filename))
     print(f"Test data saved to: {test_data_filename!r}")
 
-    markdown_filename = f"viability_checklist_{prompt_id}.md"
+    markdown_filename = f"self_audit_{prompt_id}.md"
     result.save_markdown(Path(markdown_filename))
     print(f"Markdown saved to: {markdown_filename!r}")
