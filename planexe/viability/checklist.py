@@ -472,6 +472,7 @@ class ViabilityChecklist:
         num_medium = sum(1 for item in checklist_answers if item.level == "medium")
         num_high = sum(1 for item in checklist_answers if item.level == "high")
 
+        rows.append("Reality check: fix before go.\n")
         rows.append("### Summary\n")
         rows.append("| Level | Count | Explanation |")
         rows.append("|---|---|---|")
