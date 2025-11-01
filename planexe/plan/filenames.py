@@ -126,8 +126,8 @@ class FilenameEnum(str, Enum):
     VIABILITY_SUMMARY_HEADER_MARKDOWN = "029-9-viability_summary_header.md"
     VIABILITY_SUMMARY_CRITICAL_ISSUES_MARKDOWN = "029-10-viability_summary_critical_issues.md"
     VIABILITY_SUMMARY_FLIPS_TO_GO_MARKDOWN = "029-11-viability_summary_flips_to_go.md"
-    VIABILITY_CHECKLIST_RAW = "029-12-viability_checklist_raw.json"
-    VIABILITY_CHECKLIST_MARKDOWN = "029-13-viability_checklist.md"
+    SELF_AUDIT_RAW = "029-12-self_audit_raw.json"
+    SELF_AUDIT_MARKDOWN = "029-13-self_audit.md"
     REPORT = "030-report.html"
     PIPELINE_COMPLETE = "999-pipeline_complete.txt"
 

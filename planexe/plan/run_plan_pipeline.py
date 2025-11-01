@@ -3886,11 +3886,11 @@ class ViabilitySummaryTask(PlanTask):
         markdown_path = self.output()['markdown'].path
         viability_summary.save_markdown(markdown_path)
 
-class ViabilityChecklistTask(PlanTask):
+class SelfAuditTask(PlanTask):
     def output(self):
         return {
-            'raw': self.local_target(FilenameEnum.VIABILITY_CHECKLIST_RAW),
-            'markdown': self.local_target(FilenameEnum.VIABILITY_CHECKLIST_MARKDOWN)
+            'raw': self.local_target(FilenameEnum.SELF_AUDIT_RAW),
+            'markdown': self.local_target(FilenameEnum.SELF_AUDIT_MARKDOWN)
         }
     
     def requires(self):
@@ -4012,7 +4012,7 @@ class ReportTask(PlanTask):
             'viability_blockers': self.clone(ViabilityBlockersTask),
             'viability_fix_packs': self.clone(ViabilityFixPacksTask),
             'viability_summary': self.clone(ViabilitySummaryTask),
-            'viability_checklist': self.clone(ViabilityChecklistTask)
+            'self_audit': self.clone(SelfAuditTask)
         }
     
     def run_inner(self):
@@ -4049,7 +4049,7 @@ class ReportTask(PlanTask):
         #     summary_critical_issues_markdown_file_path=Path(self.input()['viability_summary']['critical_issues_markdown'].path),
         #     summary_flips_to_go_markdown_file_path=Path(self.input()['viability_summary']['flips_to_go_markdown'].path),
         # )
-        rg.append_markdown_with_tables('Self Audit', self.input()['viability_checklist']['markdown'].path)
+        rg.append_markdown_with_tables('Self Audit', self.input()['self_audit']['markdown'].path)
         rg.append_initial_prompt_vetted(
             document_title='Initial Prompt Vetted', 
             initial_prompt_file_path=self.input()['setup'].path, 
@@ -4125,7 +4125,7 @@ class FullPlanPipeline(PlanTask):
             'viability_blockers': self.clone(ViabilityBlockersTask),
             'viability_fix_packs': self.clone(ViabilityFixPacksTask),
             'viability_summary': self.clone(ViabilitySummaryTask),
-            'viability_checklist': self.clone(ViabilityChecklistTask),
+            'self_audit': self.clone(SelfAuditTask),
             'report': self.clone(ReportTask),
         }
 
