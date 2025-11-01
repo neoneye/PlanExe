@@ -126,6 +126,55 @@ class ReportGenerator:
             return
         html = markdown.markdown(md_data, extensions=['tables'])
         self.report_item_list.append(ReportDocumentItem(document_title, html, css_classes=css_classes))
+
+    def append_viability(
+        self,
+        document_title: str,
+        summary_header_markdown_file_path: Path,
+        domains_markdown_file_path: Path,
+        blockers_markdown_file_path: Path,
+        fixpack_markdown_file_path: Path,
+        summary_critical_issues_markdown_file_path: Path,
+        summary_flips_to_go_markdown_file_path: Path,
+        css_classes: Optional[list[str]] = None,
+    ) -> None:
+        """Append the consolidated viability section to the report."""
+
+        resolved_css_classes = css_classes or []
+        sections: list[tuple[str, Path, list[str]]] = [
+            ("Overall Health", summary_header_markdown_file_path, []),
+            ("Go/No-Go Criteria", summary_flips_to_go_markdown_file_path, []),
+            ("Domain Health", domains_markdown_file_path, ['tables']),
+            ("Blockers (Required Actions)", blockers_markdown_file_path, []),
+            ("Fix Packs (Prioritized Action Groups)", fixpack_markdown_file_path, ['tables']),
+            ("Summary of Critical Issues by Domain", summary_critical_issues_markdown_file_path, ['tables']),
+        ]
+
+        html_sections: list[str] = []
+        for section_title, file_path, extensions in sections:
+            md_content = self.read_markdown_file(file_path)
+            if not md_content:
+                logging.warning(
+                    "Document: '%s'. Could not read markdown file for section '%s': %s",
+                    document_title,
+                    section_title,
+                    file_path,
+                )
+                continue
+            html_fragment = markdown.markdown(md_content, extensions=extensions)
+            html_sections.append(f"<h2>{section_title}</h2>\n{html_fragment}")
+
+        if not html_sections:
+            logging.warning(
+                "Document: '%s'. Viability section omitted because no source files could be read.",
+                document_title,
+            )
+            return
+
+        html = "\n".join(html_sections)
+        self.report_item_list.append(
+            ReportDocumentItem(document_title, html, css_classes=resolved_css_classes)
+        )
     
     def append_csv(self, document_title: str, file_path: Path, css_classes: list[str] = []):
         """Append a CSV to the report."""

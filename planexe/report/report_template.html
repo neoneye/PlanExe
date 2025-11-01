@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <title>HEAD_TITLE_INSERT_HERE</title>
     <style>
+        :root {
+            --green-50: #eef8f3; --green-700: #0f6b3c; --green-500: #10b981;
+            --yellow-50: #fff7e6; --yellow-700: #8a5a00; --yellow-500: #f59e0b;
+            --red-50: #ffecec; --red-700: #8b1d1d; --red-500: #ef4444;
+            --gray-50: #f7f7f7; --gray-700: #444; --gray-500: #9ca3af;
+        }
         body { 
             font-family: Arial, sans-serif; 
             margin: 40px;
@@ -130,6 +136,68 @@
             margin-top: 5px; /* Adds a small space between the Question and the Answer */
             margin-bottom: 0; /* Removes default bottom margin from the last paragraph */
         }
+
+        /* Domains Grid */
+        .domains-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 12px;
+        }
+        .domain-card {
+            border-radius: 5px;
+            border: 1px solid #c2c2c2;
+            padding-top: 12px;
+            padding-right: 14px;
+            padding-bottom: 0;
+            padding-left: 14px;
+        }
+        .domain-card__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+        .domain-card__left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+        .domain-card__icon {
+            display: inline-grid;
+            place-items: center;
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            font-weight: 800;
+            line-height: 1;
+            font-size: 16px;
+            flex: 0 0 28px;
+        }
+        .domain-card__status-name {
+            font-weight: 800;
+            letter-spacing: .02em;
+        }
+        .domain-card__count {
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            opacity: .85;
+            white-space: nowrap;
+        }
+        .domain-card__body {
+            color: #2a2a2a;
+            font-size: .95rem;
+        }
+        /* Domain States */
+        .domain-card--green .domain-card__icon { background: var(--green-500); color: #fff; }
+        .domain-card--green .domain-card__status-name { color: var(--green-700); }
+        .domain-card--yellow .domain-card__icon { background: var(--yellow-500); color: #111; }
+        .domain-card--yellow .domain-card__status-name { color: var(--yellow-700); }
+        .domain-card--red .domain-card__icon { background: var(--red-500); color: #fff; }
+        .domain-card--red .domain-card__status-name { color: var(--red-700); }
+        .domain-card--gray .domain-card__icon { background: var(--gray-500); color: #fff; }
+        .domain-card--gray .domain-card__status-name { color: var(--gray-700); }
+        .domain-card--count-zero .domain-card__body { color: #979797; }
     </style>
     <!--HTML_HEAD_INSERT_HERE-->
 </head>
