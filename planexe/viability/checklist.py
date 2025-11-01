@@ -67,7 +67,7 @@ ALL_CHECKLIST_ITEMS = [
         "index": 1,
         "title": "Violates Known Physics",
         "subtitle": "Does the project require a major, unpredictable discovery in fundamental science to succeed?",
-        "instruction": "Scope: screen for pseudoscience only (e.g., perpetual motion, faster‑than‑light). HIGH if success requires violating established physics; MEDIUM if mechanism is unclear; LOW otherwise. If rated LOW, **no mitigation required**—state “None” and move on. If ≥ MEDIUM, provide ≤30‑word justification + mitigation with Owner/Deliverable/Date.",
+        "instruction": "Scope: physics-only (e.g., perpetual motion, FTL, reactionless/anti-gravity, time travel). HIGH if success requires breaking physical laws; MEDIUM only if a physics-consistent but unproven physical effect at required scale is mandatory with no conventional fallback; otherwise LOW. Economics/crypto/tokenization/governance/AI/regulation/engineering-scale are out of scope—rate LOW. If you can’t name a specific law/limit, rate LOW. If LOW: Mitigation=None. If ≥ MEDIUM: ≤30-word justification + mitigation with Owner/Deliverable/Date.",
         "comment": "If the initial prompt is vague/scifi/aggressive or asks for something that is physically impossible, then the generated plan usually end up with some fantasy parts, making the plan unrealistic."
     },
     {
