@@ -47,6 +47,22 @@
             background: #f8fafc;
         }
 
+        .panel.right .selected-node-banner {
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: #e0f2fe;
+            color: #0369a1;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel.right .selected-node-banner span {
+            font-weight: 500;
+            color: #0f172a;
+        }
+
         .panel.right h2 {
             margin: 0;
             font-size: 1rem;
@@ -129,6 +145,9 @@
         <div id="graph" role="img" aria-label="Plan DAG"></div>
     </section>
     <section class="panel right" aria-label="Markdown editor panel">
+        <div class="selected-node-banner" aria-live="polite" aria-atomic="true">
+            Active node: <span id="selected-node-display">None</span>
+        </div>
         <h2>Markdown Editor</h2>
         <div class="editor-wrapper">
             <textarea id="markdown-editor" aria-label="Markdown content"></textarea>
@@ -140,7 +159,13 @@
 <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", () => {
-        cytoscape({
+        const selectedNodeDisplay = document.getElementById("selected-node-display");
+
+        const updateSelectedNode = (label) => {
+            selectedNodeDisplay.textContent = label || "None";
+        };
+
+        const cy = cytoscape({
             container: document.getElementById("graph"),
             layout: {
                 name: "breadthfirst",
@@ -184,6 +209,16 @@
                     { data: { id: "bd", source: "b", target: "d" } },
                     { data: { id: "ce", source: "c", target: "e" } }
                 ]
+            }
+        });
+
+        cy.on("tap", "node", (event) => {
+            updateSelectedNode(event.target.id());
+        });
+
+        cy.on("tap", (event) => {
+            if (event.target === cy) {
+                updateSelectedNode();
             }
         });
 
