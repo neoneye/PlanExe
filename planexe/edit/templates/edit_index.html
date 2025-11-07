@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <title>PlanExe Editor</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
     <style>
         :root {
             color-scheme: light dark;
@@ -38,6 +39,84 @@
             position: relative;
         }
 
+        .panel.right {
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            gap: 12px;
+            background: #f8fafc;
+        }
+
+        .panel.right h2 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .editor-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #markdown-editor {
+            flex: 1;
+        }
+
+        .EasyMDEContainer {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .EasyMDEContainer .CodeMirror {
+            flex: 1;
+            height: 100% !important;
+        }
+
+        .EasyMDEContainer .editor-toolbar {
+            background: #e2e8f0;
+            border: 1px solid #cbd5f5;
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            padding: 4px;
+        }
+
+        .EasyMDEContainer .editor-toolbar button,
+        .EasyMDEContainer .editor-toolbar a {
+            color: #0f172a;
+            border-radius: 6px;
+            padding: 4px 8px;
+            line-height: 1.4;
+            background: transparent;
+            border: none;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .EasyMDEContainer .editor-toolbar button:hover,
+        .EasyMDEContainer .editor-toolbar button:focus,
+        .EasyMDEContainer .editor-toolbar a:hover,
+        .EasyMDEContainer .editor-toolbar a:focus {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .EasyMDEContainer .editor-toolbar button.active,
+        .EasyMDEContainer .editor-toolbar a.active,
+        .EasyMDEContainer .editor-toolbar button.selected,
+        .EasyMDEContainer .editor-toolbar a.selected {
+            background: #2563eb;
+            color: #ffffff;
+        }
+
+        .EasyMDEContainer .editor-statusbar {
+            border: 1px solid #cbd5f5;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            background: #f1f5f9;
+        }
+
         #graph {
             position: absolute;
             inset: 0;
@@ -49,10 +128,16 @@
     <section class="panel left" aria-label="Graph editor panel">
         <div id="graph" role="img" aria-label="Plan DAG"></div>
     </section>
-    <section class="panel right" aria-label="Markdown editor panel"></section>
+    <section class="panel right" aria-label="Markdown editor panel">
+        <h2>Markdown Editor</h2>
+        <div class="editor-wrapper">
+            <textarea id="markdown-editor" aria-label="Markdown content"></textarea>
+        </div>
+    </section>
 </main>
 
 <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
+<script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", () => {
         cytoscape({
@@ -100,6 +185,15 @@
                     { data: { id: "ce", source: "c", target: "e" } }
                 ]
             }
+        });
+
+        new EasyMDE({
+            element: document.getElementById("markdown-editor"),
+            autofocus: true,
+            spellChecker: false,
+            status: false,
+            autoDownloadFontAwesome: true,
+            placeholder: "Write plan notes in Markdown..."
         });
     });
 </script>
