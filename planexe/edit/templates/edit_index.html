@@ -35,13 +35,73 @@
 
         .panel.left {
             border-right: 1px solid #e2e8f0;
+            position: relative;
+        }
+
+        #graph {
+            position: absolute;
+            inset: 0;
         }
     </style>
 </head>
 <body>
 <main aria-label="Editor split panels">
-    <section class="panel left" aria-label="Graph editor panel"></section>
+    <section class="panel left" aria-label="Graph editor panel">
+        <div id="graph" role="img" aria-label="Plan DAG"></div>
+    </section>
     <section class="panel right" aria-label="Markdown editor panel"></section>
 </main>
+
+<script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        cytoscape({
+            container: document.getElementById("graph"),
+            layout: {
+                name: "breadthfirst",
+                directed: true,
+                padding: 30
+            },
+            style: [
+                {
+                    selector: "node",
+                    style: {
+                        "background-color": "#2563eb",
+                        "color": "#ffffff",
+                        "text-valign": "center",
+                        "text-halign": "center",
+                        "label": "data(id)",
+                        "font-size": 14
+                    }
+                },
+                {
+                    selector: "edge",
+                    style: {
+                        "width": 2,
+                        "line-color": "#94a3b8",
+                        "target-arrow-color": "#94a3b8",
+                        "target-arrow-shape": "triangle",
+                        "curve-style": "bezier"
+                    }
+                }
+            ],
+            elements: {
+                nodes: [
+                    { data: { id: "a" } },
+                    { data: { id: "b" } },
+                    { data: { id: "c" } },
+                    { data: { id: "d" } },
+                    { data: { id: "e" } }
+                ],
+                edges: [
+                    { data: { id: "ab", source: "a", target: "b" } },
+                    { data: { id: "ac", source: "a", target: "c" } },
+                    { data: { id: "bd", source: "b", target: "d" } },
+                    { data: { id: "ce", source: "c", target: "e" } }
+                ]
+            }
+        });
+    });
+</script>
 </body>
 </html>
