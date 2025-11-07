@@ -45,22 +45,36 @@
             padding: 16px;
             gap: 12px;
             background: #f8fafc;
+            overflow: hidden;
         }
 
         .panel.right .selected-node-banner {
             padding: 8px 12px;
             border-radius: 8px;
             background: #e0f2fe;
-            color: #0369a1;
-            font-weight: 600;
             display: flex;
-            align-items: center;
-            justify-content: space-between;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
         }
 
         .panel.right .selected-node-banner span {
-            font-weight: 500;
             color: #0f172a;
+        }
+
+        .panel.right .selected-node-banner .node-name {
+            font-weight: 600;
+        }
+
+        .panel.right .selected-node-banner .node-status {
+            font-size: 0.85rem;
+            color: #0369a1;
+            font-weight: 500;
+        }
+
+        .panel.right .selected-node-banner .node-file {
+            font-size: 0.85rem;
+            color: #1e293b;
         }
 
         .panel.right h2 {
@@ -74,6 +88,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            min-height: 0;
         }
 
         #markdown-editor {
@@ -84,11 +99,20 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            min-height: 0;
         }
 
         .EasyMDEContainer .CodeMirror {
             flex: 1;
             height: 100% !important;
+            min-height: 0;
+            overflow: auto;
+        }
+
+        .EasyMDEContainer .CodeMirror-scroll {
+            max-height: 100%;
+            min-height: 0;
+            overflow: auto;
         }
 
         .EasyMDEContainer .editor-toolbar {
@@ -137,6 +161,16 @@
             position: absolute;
             inset: 0;
         }
+
+        #graph .graph-empty {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #475569;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -146,7 +180,9 @@
     </section>
     <section class="panel right" aria-label="Markdown editor panel">
         <div class="selected-node-banner" aria-live="polite" aria-atomic="true">
-            Active node: <span id="selected-node-display">None</span>
+            <div>Active node: <span id="selected-node-display" class="node-name">None</span></div>
+            <div id="selected-node-status" class="node-status">Status: —</div>
+            <div>File: <span id="selected-node-file" class="node-file">—</span></div>
         </div>
         <h2>Markdown Editor</h2>
         <div class="editor-wrapper">
@@ -159,18 +195,64 @@
 <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", () => {
+        const graphElements = {{ graph_elements | default({'nodes': [], 'edges': []}) | tojson }};
         const selectedNodeDisplay = document.getElementById("selected-node-display");
+        const selectedNodeStatus = document.getElementById("selected-node-status");
+        const selectedNodeFile = document.getElementById("selected-node-file");
 
-        const updateSelectedNode = (label) => {
-            selectedNodeDisplay.textContent = label || "None";
+        const easyMDE = new EasyMDE({
+            element: document.getElementById("markdown-editor"),
+            autofocus: true,
+            spellChecker: false,
+            status: false,
+            autoDownloadFontAwesome: true,
+            placeholder: "Write plan notes in Markdown..."
+        });
+
+        const setEditorContent = (content, fileName) => {
+            easyMDE.value(content || "");
+            selectedNodeFile.textContent = fileName || "—";
         };
+
+        const updateSelectedNode = (data = null) => {
+            if (!data) {
+                selectedNodeDisplay.textContent = "None";
+                selectedNodeStatus.textContent = "Status: —";
+                setEditorContent("", "—");
+                return;
+            }
+            selectedNodeDisplay.textContent = data.label || data.id;
+            selectedNodeStatus.textContent = `Status: ${(data.status || "—").toUpperCase()}`;
+        };
+
+        const loadNodeFile = async (taskId) => {
+            setEditorContent("", "Loading...");
+            try {
+                const response = await fetch(`/api/task/${encodeURIComponent(taskId)}/file`);
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.error || "Failed to load file");
+                }
+                setEditorContent(payload.content, payload.fileName);
+            } catch (error) {
+                console.error(error);
+                setEditorContent("", "Not available");
+            }
+        };
+
+        if (!graphElements.nodes.length) {
+            const graphContainer = document.getElementById("graph");
+            graphContainer.innerHTML = "<div class='graph-empty'>No DAG data available.</div>";
+            return;
+        }
 
         const cy = cytoscape({
             container: document.getElementById("graph"),
             layout: {
-                name: "breadthfirst",
-                directed: true,
-                padding: 30
+                name: "preset",
+                padding: 30,
+                animate: false,
+                fit: true
             },
             style: [
                 {
@@ -180,9 +262,25 @@
                         "color": "#ffffff",
                         "text-valign": "center",
                         "text-halign": "center",
-                        "label": "data(id)",
-                        "font-size": 14
+                        "label": "data(label)",
+                        "font-size": 13
                     }
+                },
+                {
+                    selector: "node[status = 'complete']",
+                    style: { "background-color": "#16a34a" }
+                },
+                {
+                    selector: "node[status = 'partial']",
+                    style: { "background-color": "#f59e0b" }
+                },
+                {
+                    selector: "node[status = 'pending']",
+                    style: { "background-color": "#2563eb" }
+                },
+                {
+                    selector: "node[status = 'unknown']",
+                    style: { "background-color": "#94a3b8" }
                 },
                 {
                     selector: "edge",
@@ -195,40 +293,19 @@
                     }
                 }
             ],
-            elements: {
-                nodes: [
-                    { data: { id: "a" } },
-                    { data: { id: "b" } },
-                    { data: { id: "c" } },
-                    { data: { id: "d" } },
-                    { data: { id: "e" } }
-                ],
-                edges: [
-                    { data: { id: "ab", source: "a", target: "b" } },
-                    { data: { id: "ac", source: "a", target: "c" } },
-                    { data: { id: "bd", source: "b", target: "d" } },
-                    { data: { id: "ce", source: "c", target: "e" } }
-                ]
-            }
+            elements: graphElements
         });
 
         cy.on("tap", "node", (event) => {
-            updateSelectedNode(event.target.id());
+            const nodeData = event.target.data();
+            updateSelectedNode(nodeData);
+            loadNodeFile(nodeData.id);
         });
 
         cy.on("tap", (event) => {
             if (event.target === cy) {
                 updateSelectedNode();
             }
-        });
-
-        new EasyMDE({
-            element: document.getElementById("markdown-editor"),
-            autofocus: true,
-            spellChecker: false,
-            status: false,
-            autoDownloadFontAwesome: true,
-            placeholder: "Write plan notes in Markdown..."
         });
     });
 </script>
