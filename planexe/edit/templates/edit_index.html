@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>PlanExe Editor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root {
+            color-scheme: light dark;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f5f7fb;
+            color: #0f172a;
+        }
+
+        main {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .panel {
+            flex: 1 1 0;
+            min-width: 0;
+            padding: 0;
+            background: #ffffff;
+        }
+
+        .panel.left {
+            border-right: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+<main aria-label="Editor split panels">
+    <section class="panel left" aria-label="Graph editor panel"></section>
+    <section class="panel right" aria-label="Markdown editor panel"></section>
+</main>
+</body>
+</html>
