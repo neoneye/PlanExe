@@ -37,6 +37,8 @@
         .panel.left {
             border-right: 1px solid #e2e8f0;
             position: relative;
+            display: flex;
+            flex-direction: column;
         }
 
         .panel.right {
@@ -70,11 +72,6 @@
             font-size: 0.85rem;
             color: #0369a1;
             font-weight: 500;
-        }
-
-        .panel.right .selected-node-banner .node-file {
-            font-size: 0.85rem;
-            color: #1e293b;
         }
 
         .panel.right h2 {
@@ -157,32 +154,73 @@
             background: #f1f5f9;
         }
 
-        #graph {
-            position: absolute;
-            inset: 0;
+        .file-list-header {
+            padding: 12px 16px;
+            font-weight: 600;
+            color: #0f172a;
+            border-bottom: 1px solid #e2e8f0;
         }
 
-        #graph .graph-empty {
-            position: absolute;
-            inset: 0;
+        .file-list-container {
+            flex: 1;
+            overflow: auto;
+            padding: 8px;
+            background: #f8fafc;
             display: flex;
-            align-items: center;
-            justify-content: center;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .file-item {
+            border: 1px solid #cbd5f5;
+            border-radius: 8px;
+            background: #ffffff;
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 0.95rem;
+            color: #0f172a;
+            cursor: pointer;
+            transition: background 0.15s ease, border 0.15s ease;
+        }
+
+        .file-item:hover,
+        .file-item:focus {
+            background: #dbeafe;
+            border-color: #93c5fd;
+            outline: none;
+        }
+
+        .file-item.active {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: #ffffff;
+        }
+
+        .file-list-empty {
             color: #475569;
-            font-weight: 600;
+            padding: 16px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 <main aria-label="Editor split panels">
-    <section class="panel left" aria-label="Graph editor panel">
-        <div id="graph" role="img" aria-label="Plan DAG"></div>
+    <section class="panel left" aria-label="File list panel">
+        <div class="file-list-header">Files</div>
+        <div class="file-list-container" role="listbox" aria-label="Plan files">
+            {% if file_list %}
+                {% for file_name in file_list %}
+                    <button class="file-item" data-filename="{{ file_name }}">{{ file_name }}</button>
+                {% endfor %}
+            {% else %}
+                <div class="file-list-empty">No files available.</div>
+            {% endif %}
+        </div>
     </section>
     <section class="panel right" aria-label="Markdown editor panel">
         <div class="selected-node-banner" aria-live="polite" aria-atomic="true">
-            <div>Active node: <span id="selected-node-display" class="node-name">None</span></div>
-            <div id="selected-node-status" class="node-status">Status: —</div>
-            <div>File: <span id="selected-node-file" class="node-file">—</span></div>
+            <div>Active file: <span id="selected-file-name" class="node-name">None</span></div>
+            <div id="selected-file-status" class="node-status">Select a file to preview</div>
         </div>
         <h2>Markdown Editor</h2>
         <div class="editor-wrapper">
@@ -191,14 +229,12 @@
     </section>
 </main>
 
-<script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
 <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", () => {
-        const graphElements = {{ graph_elements | default({'nodes': [], 'edges': []}) | tojson }};
-        const selectedNodeDisplay = document.getElementById("selected-node-display");
-        const selectedNodeStatus = document.getElementById("selected-node-status");
-        const selectedNodeFile = document.getElementById("selected-node-file");
+        const selectedFileName = document.getElementById("selected-file-name");
+        const selectedFileStatus = document.getElementById("selected-file-status");
+        const fileButtons = Array.from(document.querySelectorAll(".file-item"));
 
         const easyMDE = new EasyMDE({
             element: document.getElementById("markdown-editor"),
@@ -209,104 +245,55 @@
             placeholder: "Write plan notes in Markdown..."
         });
 
-        const setEditorContent = (content, fileName) => {
+        let activeButton = null;
+
+        const updateBanner = (fileName, statusMessage) => {
+            selectedFileName.textContent = fileName || "None";
+            selectedFileStatus.textContent = statusMessage || (fileName ? "Loaded" : "Select a file to preview");
+        };
+
+        const setEditorContent = (content, fileName, statusMessage) => {
             easyMDE.value(content || "");
-            selectedNodeFile.textContent = fileName || "—";
+            updateBanner(fileName, statusMessage);
         };
 
-        const updateSelectedNode = (data = null) => {
-            if (!data) {
-                selectedNodeDisplay.textContent = "None";
-                selectedNodeStatus.textContent = "Status: —";
-                setEditorContent("", "—");
-                return;
+        const highlightButton = (button) => {
+            if (activeButton) {
+                activeButton.classList.remove("active");
             }
-            selectedNodeDisplay.textContent = data.label || data.id;
-            selectedNodeStatus.textContent = `Status: ${(data.status || "—").toUpperCase()}`;
+            activeButton = button || null;
+            if (activeButton) {
+                activeButton.classList.add("active");
+            }
         };
 
-        const loadNodeFile = async (taskId) => {
-            setEditorContent("", "Loading...");
+        const loadFileContent = async (fileName, button) => {
+            highlightButton(button);
+            setEditorContent("", fileName, "Loading...");
             try {
-                const response = await fetch(`/api/task/${encodeURIComponent(taskId)}/file`);
+                const response = await fetch(`/api/file/${encodeURIComponent(fileName)}`);
                 const payload = await response.json();
                 if (!response.ok) {
                     throw new Error(payload.error || "Failed to load file");
                 }
-                setEditorContent(payload.content, payload.fileName);
+                setEditorContent(payload.content, payload.fileName, "Loaded");
             } catch (error) {
                 console.error(error);
-                setEditorContent("", "Not available");
+                setEditorContent("", fileName, error.message || "Unable to load file");
+                highlightButton(null);
             }
         };
 
-        if (!graphElements.nodes.length) {
-            const graphContainer = document.getElementById("graph");
-            graphContainer.innerHTML = "<div class='graph-empty'>No DAG data available.</div>";
-            return;
+        fileButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                const fileName = button.dataset.filename;
+                loadFileContent(fileName, button);
+            });
+        });
+
+        if (fileButtons.length && fileButtons[0].dataset.filename) {
+            loadFileContent(fileButtons[0].dataset.filename, fileButtons[0]);
         }
-
-        const cy = cytoscape({
-            container: document.getElementById("graph"),
-            layout: {
-                name: "preset",
-                padding: 30,
-                animate: false,
-                fit: true
-            },
-            style: [
-                {
-                    selector: "node",
-                    style: {
-                        "background-color": "#2563eb",
-                        "color": "#ffffff",
-                        "text-valign": "center",
-                        "text-halign": "center",
-                        "label": "data(label)",
-                        "font-size": 13
-                    }
-                },
-                {
-                    selector: "node[status = 'complete']",
-                    style: { "background-color": "#16a34a" }
-                },
-                {
-                    selector: "node[status = 'partial']",
-                    style: { "background-color": "#f59e0b" }
-                },
-                {
-                    selector: "node[status = 'pending']",
-                    style: { "background-color": "#2563eb" }
-                },
-                {
-                    selector: "node[status = 'unknown']",
-                    style: { "background-color": "#94a3b8" }
-                },
-                {
-                    selector: "edge",
-                    style: {
-                        "width": 2,
-                        "line-color": "#94a3b8",
-                        "target-arrow-color": "#94a3b8",
-                        "target-arrow-shape": "triangle",
-                        "curve-style": "bezier"
-                    }
-                }
-            ],
-            elements: graphElements
-        });
-
-        cy.on("tap", "node", (event) => {
-            const nodeData = event.target.data();
-            updateSelectedNode(nodeData);
-            loadNodeFile(nodeData.id);
-        });
-
-        cy.on("tap", (event) => {
-            if (event.target === cy) {
-                updateSelectedNode();
-            }
-        });
     });
 </script>
 </body>

@@ -4,9 +4,10 @@ import ast
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
+import re
 from typing import Dict, List, Optional, Set
 
-from flask import Flask, jsonify, render_template, abort
+from flask import Flask, abort, jsonify, render_template
 
 from planexe.plan.filenames import FilenameEnum
 
@@ -19,6 +20,7 @@ ABSOLUTE_PATH_TO_A_PLANEXE_PROJECT = Path(
 ).expanduser()
 
 FILENAME_LOOKUP: Dict[str, str] = {name: enum.value for name, enum in FilenameEnum.__members__.items()}
+_NAT_SORT_PATTERN = re.compile(r"(\d+)")
 
 
 @dataclass(frozen=True)
@@ -179,6 +181,30 @@ def _determine_status(project_dir: Path, filenames: List[str]) -> str:
     return "pending"
 
 
+def _natural_sort_key(value: str) -> List[tuple[int, object]]:
+    key_parts: List[tuple[int, object]] = []
+    for part in _NAT_SORT_PATTERN.split(value):
+        if not part:
+            continue
+        if part.isdigit():
+            key_parts.append((0, int(part)))
+        else:
+            key_parts.append((1, part.lower()))
+    return key_parts
+
+
+def _list_project_files(project_dir: Path) -> List[str]:
+    if not project_dir.exists():
+        return []
+    files = [
+        path.name
+        for path in project_dir.iterdir()
+        if path.is_file()
+    ]
+    files.sort(key=_natural_sort_key)
+    return files
+
+
 def _compute_layers(task_definitions: Dict[str, TaskDefinition]) -> Dict[str, int]:
     from collections import defaultdict, deque
 
@@ -288,43 +314,30 @@ def create_app() -> Flask:
 
     @app.route("/")
     def index() -> str:
-        graph_elements = _build_pipeline_graph(ABSOLUTE_PATH_TO_A_PLANEXE_PROJECT)
+        file_list = _list_project_files(ABSOLUTE_PATH_TO_A_PLANEXE_PROJECT)
         return render_template(
             "edit_index.html",
-            graph_elements=graph_elements,
+            file_list=file_list,
             project_dir=str(ABSOLUTE_PATH_TO_A_PLANEXE_PROJECT),
         )
 
-    @app.route("/api/task/<task_name>/file")
-    def task_first_file(task_name: str):
-        graph_elements = _build_pipeline_graph(ABSOLUTE_PATH_TO_A_PLANEXE_PROJECT)
-        task_node = next(
-            (node for node in graph_elements["nodes"] if node["data"]["id"] == task_name),
-            None,
-        )
-        if not task_node:
-            return jsonify({"error": f"Task '{task_name}' not found"}), 404
-
-        files = task_node["data"].get("files") or []
-        if not files:
-            return jsonify({"error": f"No output files for task '{task_name}'"}), 404
-
-        file_name = files[0]
-        file_path = (ABSOLUTE_PATH_TO_A_PLANEXE_PROJECT / file_name).resolve()
+    @app.route("/api/file/<path:filename>")
+    def get_file_content(filename: str):
+        file_path = (ABSOLUTE_PATH_TO_A_PLANEXE_PROJECT / filename).resolve()
         try:
             file_path.relative_to(ABSOLUTE_PATH_TO_A_PLANEXE_PROJECT)
-        except ValueError:  # pragma: no cover - safety guard
+        except ValueError:
             abort(400, description="Invalid file path")
 
-        if not file_path.exists():
-            return jsonify({"error": f"File '{file_name}' not found"}), 404
+        if not file_path.exists() or not file_path.is_file():
+            return jsonify({"error": f"File '{filename}' not found"}), 404
 
         try:
             content = file_path.read_text(encoding="utf-8", errors="replace")
-        except OSError as exc:  # pragma: no cover - file read failure
+        except OSError as exc:
             return jsonify({"error": str(exc)}), 500
 
-        return jsonify({"fileName": file_name, "content": content})
+        return jsonify({"fileName": filename, "content": content})
 
     return app
 
