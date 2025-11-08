@@ -84,6 +84,35 @@
             color: #0f172a;
         }
 
+        .right-header {
+            display: flex;
+            align-items: stretch;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .save-button {
+            align-self: flex-start;
+            border: none;
+            border-radius: 8px;
+            background: #0ea5e9;
+            color: #ffffff;
+            font-weight: 600;
+            padding: 10px 18px;
+            cursor: pointer;
+            transition: background 0.15s ease, opacity 0.15s ease;
+        }
+
+        .save-button:hover:enabled,
+        .save-button:focus-visible:enabled {
+            background: #0284c7;
+        }
+
+        .save-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .editor-wrapper {
             flex: 1;
             display: flex;
@@ -221,9 +250,12 @@
         </div>
     </section>
     <section class="panel right" aria-label="Markdown editor panel">
-        <div class="selected-node-banner" aria-live="polite" aria-atomic="true">
-            <div>Active file: <span id="selected-file-name" class="node-name">None</span></div>
-            <div id="selected-file-status" class="node-status">Select a file to preview</div>
+        <div class="right-header">
+            <div class="selected-node-banner" aria-live="polite" aria-atomic="true">
+                <div>Active file: <span id="selected-file-name" class="node-name">None</span></div>
+                <div id="selected-file-status" class="node-status">Select a file to preview</div>
+            </div>
+            <button id="save-button" class="save-button" type="button" disabled>Save</button>
         </div>
         <h2>Markdown Editor</h2>
         <div class="editor-wrapper">
@@ -238,6 +270,7 @@
         const selectedFileName = document.getElementById("selected-file-name");
         const selectedFileStatus = document.getElementById("selected-file-status");
         const fileButtons = Array.from(document.querySelectorAll(".file-item"));
+        const saveButton = document.getElementById("save-button");
 
         const easyMDE = new EasyMDE({
             element: document.getElementById("markdown-editor"),
@@ -249,6 +282,7 @@
         });
 
         let activeButton = null;
+        let currentFileName = null;
 
         const updateBanner = (fileName, statusMessage) => {
             selectedFileName.textContent = fileName || "None";
@@ -272,6 +306,9 @@
 
         const loadFileContent = async (fileName, button) => {
             highlightButton(button);
+            currentFileName = null;
+            saveButton.disabled = true;
+            saveButton.textContent = "Save";
             setEditorContent("", fileName, "Loading...");
             try {
                 const response = await fetch(`/api/file/${encodeURIComponent(fileName)}`);
@@ -280,10 +317,44 @@
                     throw new Error(payload.error || "Failed to load file");
                 }
                 setEditorContent(payload.content, payload.fileName, "Loaded");
+                currentFileName = payload.fileName;
+                saveButton.disabled = false;
             } catch (error) {
                 console.error(error);
                 setEditorContent("", fileName, error.message || "Unable to load file");
                 highlightButton(null);
+                currentFileName = null;
+                saveButton.disabled = true;
+            }
+        };
+
+        const saveCurrentFile = async () => {
+            if (!currentFileName) {
+                return;
+            }
+            const content = easyMDE.value();
+            saveButton.disabled = true;
+            const previousLabel = saveButton.textContent;
+            saveButton.textContent = "Saving...";
+            updateBanner(currentFileName, "Saving...");
+            try {
+                const response = await fetch(`/api/file/${encodeURIComponent(currentFileName)}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ content })
+                });
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.error || "Failed to save file");
+                }
+                const backupMessage = payload.backup ? `Saved (backup: ${payload.backup})` : "Saved";
+                updateBanner(currentFileName, backupMessage);
+            } catch (error) {
+                console.error(error);
+                updateBanner(currentFileName, error.message || "Save failed");
+            } finally {
+                saveButton.textContent = previousLabel;
+                saveButton.disabled = !currentFileName;
             }
         };
 
@@ -297,6 +368,8 @@
         if (fileButtons.length && fileButtons[0].dataset.filename) {
             loadFileContent(fileButtons[0].dataset.filename, fileButtons[0]);
         }
+
+        saveButton.addEventListener("click", saveCurrentFile);
     });
 </script>
 </body>

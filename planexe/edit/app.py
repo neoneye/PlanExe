@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 from typing import Dict, List, Optional, Set
 
-from flask import Flask, abort, jsonify, render_template
+from flask import Flask, abort, jsonify, render_template, request
 
 from planexe.plan.filenames import FilenameEnum
 
@@ -21,6 +21,7 @@ ABSOLUTE_PATH_TO_A_PLANEXE_PROJECT = Path(
 
 FILENAME_LOOKUP: Dict[str, str] = {name: enum.value for name, enum in FilenameEnum.__members__.items()}
 _NAT_SORT_PATTERN = re.compile(r"(\d+)")
+_VERSION_SUFFIX_PATTERN = re.compile(r"_v(\d+)$")
 
 
 @dataclass(frozen=True)
@@ -205,6 +206,24 @@ def _list_project_files(project_dir: Path) -> List[str]:
     return files
 
 
+def _resolve_project_file(filename: str) -> Path:
+    file_path = (ABSOLUTE_PATH_TO_A_PLANEXE_PROJECT / filename).resolve()
+    file_path.relative_to(ABSOLUTE_PATH_TO_A_PLANEXE_PROJECT)
+    return file_path
+
+
+def _next_version_path(file_path: Path) -> Path:
+    stem = file_path.stem
+    suffix = file_path.suffix
+    pattern = re.compile(rf"^{re.escape(stem)}_v(\d+){re.escape(suffix)}$")
+    max_version = 0
+    for sibling in file_path.parent.glob(f"{stem}_v*{suffix}"):
+        match = pattern.match(sibling.name)
+        if match:
+            max_version = max(max_version, int(match.group(1)))
+    return file_path.parent / f"{stem}_v{max_version + 1}{suffix}"
+
+
 def _compute_layers(task_definitions: Dict[str, TaskDefinition]) -> Dict[str, int]:
     from collections import defaultdict, deque
 
@@ -321,23 +340,43 @@ def create_app() -> Flask:
             project_dir=str(ABSOLUTE_PATH_TO_A_PLANEXE_PROJECT),
         )
 
-    @app.route("/api/file/<path:filename>")
-    def get_file_content(filename: str):
-        file_path = (ABSOLUTE_PATH_TO_A_PLANEXE_PROJECT / filename).resolve()
+    @app.route("/api/file/<path:filename>", methods=["GET", "POST"])
+    def file_content(filename: str):
         try:
-            file_path.relative_to(ABSOLUTE_PATH_TO_A_PLANEXE_PROJECT)
+            file_path = _resolve_project_file(filename)
         except ValueError:
             abort(400, description="Invalid file path")
 
-        if not file_path.exists() or not file_path.is_file():
-            return jsonify({"error": f"File '{filename}' not found"}), 404
+        if request.method == "GET":
+            if not file_path.exists() or not file_path.is_file():
+                return jsonify({"error": f"File '{filename}' not found"}), 404
+            try:
+                content = file_path.read_text(encoding="utf-8", errors="replace")
+            except OSError as exc:
+                return jsonify({"error": str(exc)}), 500
+            return jsonify({"fileName": filename, "content": content})
+
+        data = request.get_json(silent=True) or {}
+        if "content" not in data:
+            return jsonify({"error": "Missing 'content' field"}), 400
+        content = data["content"]
+
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        backup_name = None
+        if file_path.exists():
+            backup_path = _next_version_path(file_path)
+            try:
+                file_path.rename(backup_path)
+            except OSError as exc:
+                return jsonify({"error": f"Failed to create backup: {exc}"}), 500
+            backup_name = backup_path.name
 
         try:
-            content = file_path.read_text(encoding="utf-8", errors="replace")
+            file_path.write_text(content, encoding="utf-8")
         except OSError as exc:
-            return jsonify({"error": str(exc)}), 500
+            return jsonify({"error": f"Failed to write file: {exc}"}), 500
 
-        return jsonify({"fileName": filename, "content": content})
+        return jsonify({"fileName": filename, "backup": backup_name})
 
     return app
 
