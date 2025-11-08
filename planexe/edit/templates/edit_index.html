@@ -28,13 +28,14 @@
         }
 
         .panel {
-            flex: 1 1 0;
             min-width: 0;
             padding: 0;
             background: #ffffff;
         }
 
         .panel.left {
+            flex: 0 0 30%;
+            max-width: 30%;
             border-right: 1px solid #e2e8f0;
             position: relative;
             display: flex;
@@ -42,6 +43,8 @@
         }
 
         .panel.right {
+            flex: 1 1 70%;
+            max-width: 70%;
             display: flex;
             flex-direction: column;
             padding: 16px;
