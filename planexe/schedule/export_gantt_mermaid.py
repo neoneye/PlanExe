@@ -19,7 +19,14 @@ class ExportGanttMermaid:
     @staticmethod
     def _escape_mermaid(text: str) -> str:
         """Escape special characters for Mermaid syntax. Replace characters that could break Mermaid syntax."""
-        text = text.replace(':', '\\:')
+
+        # Mermaid has problems with the colon character. 
+        # The Mermaid docs says colon can be escaped with backslash colon. Alas it doesn't work for me. 
+        # I have tried &colon; and \colon; and wrapping it all in quotes, but no luck.
+        # My poor mans solution is to replace colon with a semicolon.
+        text = text.replace(':', ';')
+
+        # Escape other characters that may break the Mermaid syntax.
         text = text.replace('[', '\\[')
         text = text.replace(']', '\\]')
         text = text.replace('{', '\\{')
