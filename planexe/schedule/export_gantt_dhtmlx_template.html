@@ -10,8 +10,14 @@
     }
   </style>
   <!--HTML_HEAD_START-->
-  <link rel="stylesheet" href="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.css">
-  <script src="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.js"></script>
+  <!-- 
+  Versions available at:
+  https://www.jsdelivr.com/package/npm/dhtmlx-gantt 
+  Version 9.1.0 breaks the zoom in/out/fit buttons.
+  Version 9.0.15 normal. The zoom in/out/fit buttons works.
+  -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dhtmlx-gantt@9.0.15/codebase/dhtmlxgantt.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/dhtmlx-gantt@9.0.15/codebase/dhtmlxgantt.min.js"></script>
   <style>
     .gantt_container_with_controls {
         margin-top: 1rem;
