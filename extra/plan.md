@@ -42,6 +42,14 @@ Ideally take an entire plan and go with it.
 
 ## Improve plan
 
+**Prompt optimizing with A/B testing:** Make tiny tweaks to one system prompt at a time, and see how it compares to baseline.
+If most generated plans gets improved, then keep the new system prompt.
+Verify across multiple LLMs/reasoning models, that the new system prompt makes an improvement.
+Store the new system prompt in the repo.
+Find weaknesses that are common for the generated plans.
+Pick the earliest task in the pipeline that impact this weakness.
+Schedule this weakness for the next A/B test improvement iteration.
+
 **Boost initial prompt:** The `initial prompt` has the biggest impact on the generated plan, if it's bad then the final plan is bad.
 If it's well written, concise, there is a higher chance for a realistic/feasible plan.
 Currently I use AIs to write the initial prompt for me by first having a long conversation about the topic,
