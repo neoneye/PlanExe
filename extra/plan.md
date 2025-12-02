@@ -136,6 +136,12 @@ Can I obtain relevant info via MCP?, when I instead could provide a longer initi
 
 # Tertiary issues
 
+## Table of content
+
+Currently the generated report has expandable/collapsible sections. There is an overwhelming amount of content inside each sections.
+I'm considering having a table of content in the left sidebar, similar to this:
+https://docs.railway.com/guides/dockerfiles
+
 ## Eliminate redundant user prompts in the log file
 
 Get rid of some of the many user prompt logging statements, so the log.txt is less noisy.
