@@ -1,0 +1,37 @@
+services:
+  frontend_gradio:
+    build:
+      context: .
+      dockerfile: frontend_gradio/Dockerfile
+    container_name: frontend_gradio
+    env_file:
+      - .env
+    environment:
+      PLANEXE_CONFIG_PATH: /app
+      GRADIO_SERVER_NAME: 0.0.0.0
+      GRADIO_SERVER_PORT: 7860
+      PLANEXE_HOST_RUN_DIR: ${PLANEXE_HOST_RUN_DIR:-${PWD}/run}
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./.env:/app/.env:ro
+      - ./llm_config.json:/app/llm_config.json:ro
+      - ./run:/app/run
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend_gradio
+          target: /app/frontend_gradio
+        - action: restart
+          path: ./frontend_gradio
+        - action: sync
+          path: ./llm_config.json
+          target: /app/llm_config.json
+        - action: sync
+          path: ./.env
+          target: /app/.env
+        - action: rebuild
+          path: ./frontend_gradio/pyproject.toml
+        - action: restart
+          path: ./docker-compose.yml

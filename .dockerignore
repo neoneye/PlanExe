@@ -1,0 +1,15 @@
+.git
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+.DS_Store
+.env
+venv
+run
+build
+PlanExe.egg-info
+*.egg-info

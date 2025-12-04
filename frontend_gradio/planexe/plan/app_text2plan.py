@@ -14,6 +14,8 @@ import sys
 import threading
 import logging
 import json
+import shutil
+from pathlib import Path
 from dataclasses import dataclass
 from math import ceil
 from planexe.llm_factory import LLMInfo, OllamaStatus
@@ -186,8 +188,10 @@ class SessionState:
         self.stop_event = threading.Event()
         # Stores the unique identifier of the last submitted run.
         self.latest_run_id = None
-        # Stores the absolute path to the directory for the last submitted run.
-        self.latest_run_dir = None
+        # Stores the absolute path (inside the current runtime) to the directory for the last submitted run.
+        self.latest_run_dir_container = None
+        # Stores a host-visible path (if provided via env) to the directory for the last submitted run.
+        self.latest_run_dir_display = None
 
     def __deepcopy__(self, memo):
         """
@@ -261,7 +265,11 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
             raise ValueError("No previous run to retry. Please submit a plan first.")
         run_id = session_state.latest_run_id
         run_path = os.path.join(RUN_DIR, run_id)
-        absolute_path_to_run_dir = session_state.latest_run_dir
+        absolute_container_run_dir = os.path.abspath(run_path)
+        host_run_dir_base = os.environ.get("PLANEXE_HOST_RUN_DIR")
+        display_run_dir = os.path.abspath(os.path.join(host_run_dir_base, run_id)) if host_run_dir_base else absolute_container_run_dir
+        session_state.latest_run_dir_container = absolute_container_run_dir
+        session_state.latest_run_dir_display = display_run_dir
         print(f"Retrying the run with ID: {run_id}")
         if not os.path.exists(run_path):
             raise Exception(f"The run path is supposed to exist from an earlier run. However the no run path exists: {run_path}")
@@ -270,12 +278,16 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
         start_time: datetime = datetime.now().astimezone()
         run_id = generate_run_id(use_uuid=CONFIG.use_uuid_as_run_id, start_time=start_time)
         run_path = os.path.join(RUN_DIR, run_id)
-        absolute_path_to_run_dir = os.path.abspath(run_path)
+        absolute_container_run_dir = os.path.abspath(run_path)
+        host_run_dir_base = os.environ.get("PLANEXE_HOST_RUN_DIR")
+        display_run_dir = os.path.join(host_run_dir_base, run_id) if host_run_dir_base else absolute_container_run_dir
+        display_run_dir = os.path.abspath(display_run_dir)
 
         print(f"Submitting a new run with ID: {run_id}")
         # Prepare a new run directory.
         session_state.latest_run_id = run_id
-        session_state.latest_run_dir = absolute_path_to_run_dir
+        session_state.latest_run_dir_container = absolute_container_run_dir
+        session_state.latest_run_dir_display = display_run_dir
         if os.path.exists(run_path):
             raise Exception(f"The run path is not supposed to exist at this point. However the run path already exists: {run_path}")
         os.makedirs(run_path)
@@ -299,7 +311,7 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
 
     # Set environment variables for the pipeline.
     env = os.environ.copy()
-    env[PipelineEnvironmentEnum.RUN_ID_DIR.value] = absolute_path_to_run_dir
+    env[PipelineEnvironmentEnum.RUN_ID_DIR.value] = absolute_container_run_dir
     env[PipelineEnvironmentEnum.LLM_MODEL.value] = session_state.llm_model
     env[PipelineEnvironmentEnum.SPEED_VS_DETAIL.value] = speedvsdetail_string
 
@@ -358,7 +370,7 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
 
             markdown_builder = MarkdownBuilder()
             markdown_builder.status("Process terminated by user.")
-            markdown_builder.path_to_run_dir(absolute_path_to_run_dir)
+            markdown_builder.path_to_run_dir(display_run_dir)
             markdown_builder.list_files(run_path)
             zip_file_path = create_zip_archive(run_path)
             if zip_file_path:
@@ -369,7 +381,7 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
         last_update = ceil(time_since_last_modification(run_path))
         markdown_builder = MarkdownBuilder()
         markdown_builder.status(f"Working. {duration} seconds elapsed. Last output update was {last_update} seconds ago.")
-        markdown_builder.path_to_run_dir(absolute_path_to_run_dir)
+        markdown_builder.path_to_run_dir(display_run_dir)
         markdown_builder.list_files(run_path)
 
         # Create a new zip archive every ZIP_INTERVAL_SECONDS seconds.
@@ -408,7 +420,7 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
     # Final file listing update.
     markdown_builder = MarkdownBuilder()
     markdown_builder.status(f"{status_message} {duration} seconds elapsed.")
-    markdown_builder.path_to_run_dir(absolute_path_to_run_dir)
+    markdown_builder.path_to_run_dir(display_run_dir)
     markdown_builder.list_files(run_path)
 
     # Create zip archive
@@ -439,23 +451,29 @@ def stop_planner(session_state: SessionState):
 
 def open_output_dir(session_state: SessionState):
     """
-    Opens the latest output directory in the native file explorer.
+    Presents a host-visible path (and clickable link) to the latest output directory.
+    Note: containers cannot launch host-native file explorers; users must open manually.
     """
 
-    latest_run_dir = session_state.latest_run_dir
-    if not latest_run_dir or not os.path.exists(latest_run_dir):
+    container_run_dir = session_state.latest_run_dir_container
+    display_run_dir = session_state.latest_run_dir_display or container_run_dir
+
+    if not container_run_dir or not os.path.exists(container_run_dir):
         return "No output directory available.", session_state
 
+    open_path = display_run_dir or container_run_dir
     try:
-        if sys.platform == "darwin":  # macOS
-            subprocess.Popen(["open", latest_run_dir])
-        elif sys.platform == "win32":  # Windows
-            subprocess.Popen(["explorer", latest_run_dir])
-        else:  # Linux or other Unix-like OS
-            subprocess.Popen(["xdg-open", latest_run_dir])
-        return f"Opened the directory: {latest_run_dir}", session_state
-    except Exception as e:
-        return f"Failed to open directory: {e}", session_state
+        file_uri = Path(open_path).resolve().as_uri()
+    except Exception:
+        file_uri = None
+
+    # Browsers often block file:// links; provide explicit instructions.
+    mac_hint = f'Run on host: `open "{open_path}"`' if sys.platform == "darwin" else ""
+    link_part = f"[{open_path}]({file_uri})" if file_uri else open_path
+    parts = [f"Open manually: {link_part}"]
+    if mac_hint:
+        parts.append(mac_hint)
+    return "\n\n".join(parts), session_state
 
 def check_api_key(session_state: SessionState):
     """Checks if the API key is provided and returns a warning if not."""
