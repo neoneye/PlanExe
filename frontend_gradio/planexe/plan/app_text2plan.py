@@ -2,8 +2,6 @@
 Start the UI in single user mode.
 PROMPT> python -m planexe.plan.app_text2plan
 
-Start the UI in multi user mode, as on: Hugging Face Spaces.
-PROMPT> IS_HUGGINGFACE_SPACES=true HUGGINGFACE_SPACES_BROWSERSTATE_SECRET=random123 python -m planexe.plan.app_text2plan
 """
 from datetime import datetime
 import gradio as gr
@@ -28,8 +26,6 @@ from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
 from planexe.plan.start_time import StartTime
 from planexe.prompt.prompt_catalog import PromptCatalog
 from planexe.purge.purge_old_runs import start_purge_scheduler
-from planexe.huggingface_spaces.is_huggingface_spaces import is_huggingface_spaces
-from planexe.huggingface_spaces.huggingface_spaces_browserstate_secret import huggingface_spaces_browserstate_secret
 from planexe.utils.time_since_last_modification import time_since_last_modification
 
 logger = logging.getLogger(__name__)
@@ -40,10 +36,6 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
-
-# Slightly different behavior when running inside Hugging Face Spaces, where it's not possible to open a file explorer.
-# And it's multi-user, so we need to keep track of the state for each user.
-IS_HUGGINGFACE_SPACES = is_huggingface_spaces()
 
 @dataclass
 class Config:
@@ -68,19 +60,7 @@ CONFIG_LOCAL = Config(
     enable_purge_old_runs=False,
     browser_state_secret="insert-your-secret-here",
 )
-CONFIG_HUGGINGFACE_SPACES = Config(
-    use_uuid_as_run_id=True,
-    visible_top_header=False,
-    visible_open_output_dir_button=False,
-    visible_openrouter_api_key_textbox=True,
-    visible_llm_info=False,
-    allow_only_openrouter_models=True,
-    run_planner_check_api_key_is_provided=True,
-    enable_purge_old_runs=True,
-    browser_state_secret=huggingface_spaces_browserstate_secret(),
-)
-
-CONFIG = CONFIG_HUGGINGFACE_SPACES if IS_HUGGINGFACE_SPACES else CONFIG_LOCAL
+CONFIG = CONFIG_LOCAL
 
 MODULE_PATH_PIPELINE = "planexe.plan.run_plan_pipeline"
 DEFAULT_PROMPT_UUID = "4dc34d55-0d0d-4e9d-92f4-23765f49dd29"
@@ -116,8 +96,6 @@ logger.info(f"LLMInfo.error_message_list: {llm_info.error_message_list}")
 
 trimmed_llm_config_items = []
 if CONFIG.allow_only_openrouter_models:
-    # On Hugging Face Spaces, show only openrouter models.
-    # Since it's not possible to run Ollama nor LM Studio.
     trimmed_llm_config_items = [item for item in llm_info.llm_config_items if item.id.startswith("openrouter")]
 else:
     trimmed_llm_config_items = llm_info.llm_config_items
