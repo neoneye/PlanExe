@@ -17,16 +17,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy application code and supporting files
 COPY worker_plan /app/worker_plan
-COPY frontend_gradio /app/frontend_gradio
 COPY README.md llm_config.json .env.example /app/
 
-# Install PlanExe with the Gradio UI extras
+# Install PlanExe worker
 RUN pip install --upgrade pip \
-    && pip install --editable ./worker_plan[gradio-ui]
+    && pip install --editable ./worker_plan
 
 # Default location for generated plans
 RUN mkdir -p /app/run
 
-EXPOSE 7860
+EXPOSE 8000
 
-CMD ["python", "/app/frontend_gradio/app_text2plan.py"]
+CMD ["uvicorn", "worker_plan_api.app:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,32 +1,27 @@
 """
 Start the UI in single user mode.
-PROMPT> python -m planexe.plan.app_text2plan
-
+PROMPT> python frontend_gradio/app_text2plan.py
 """
-from datetime import datetime
-import gradio as gr
-import os
-import subprocess
-import time
-import sys
-import threading
-import logging
-import json
-import shutil
-from pathlib import Path
 from dataclasses import dataclass
 from math import ceil
+from pathlib import Path
+from typing import Optional
+import gradio as gr
+import httpx
+import json
+import logging
+import os
+import sys
+import threading
+import time
 from planexe.llm_factory import LLMInfo, OllamaStatus
-from planexe.plan.generate_run_id import generate_run_id, RUN_ID_PREFIX
-from planexe.plan.create_zip_archive import create_zip_archive
+from create_zip_archive import create_zip_archive
 from planexe.plan.filenames import FilenameEnum
-from planexe.plan.plan_file import PlanFile
+from planexe.plan.generate_run_id import RUN_ID_PREFIX
 from planexe.plan.speedvsdetail import SpeedVsDetailEnum
-from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
-from planexe.plan.start_time import StartTime
 from planexe.prompt.prompt_catalog import PromptCatalog
-from planexe.purge.purge_old_runs import start_purge_scheduler
-from planexe.utils.time_since_last_modification import time_since_last_modification
+from purge_old_runs import start_purge_scheduler
+from time_since_last_modification import time_since_last_modification
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -62,16 +57,14 @@ CONFIG_LOCAL = Config(
 )
 CONFIG = CONFIG_LOCAL
 
-MODULE_PATH_PIPELINE = "planexe.plan.run_plan_pipeline"
 DEFAULT_PROMPT_UUID = "4dc34d55-0d0d-4e9d-92f4-23765f49dd29"
-
-# Set to True if you want the pipeline process output relayed to your console.
-RELAY_PROCESS_OUTPUT = False
 
 # Global constant for the zip creation interval (in seconds)
 ZIP_INTERVAL_SECONDS = 10
 
-RUN_DIR = "run"
+RUN_DIR = os.environ.get("PLANEXE_RUN_DIR", "run")
+WORKER_PLAN_URL = os.environ.get("WORKER_PLAN_URL", "http://worker_plan:8000")
+WORKER_PLAN_TIMEOUT_SECONDS = float(os.environ.get("WORKER_PLAN_TIMEOUT", "30"))
 
 # Load prompt catalog and examples.
 prompt_catalog = PromptCatalog()
@@ -110,12 +103,41 @@ for config_index, config_item in enumerate(trimmed_llm_config_items):
     tuple_item = (config_item.label, config_item.id)
     available_model_names.append(tuple_item)
 
-def has_pipeline_complete_file(path_dir: str):
+def has_pipeline_complete_file(path_dir: str) -> bool:
     """
     Checks if the pipeline has completed by looking for the completion file.
     """
-    files = os.listdir(path_dir)
+    if not os.path.exists(path_dir):
+        return False
+    try:
+        files = os.listdir(path_dir)
+    except FileNotFoundError:
+        return False
     return FilenameEnum.PIPELINE_COMPLETE.value in files
+
+
+class WorkerClient:
+    def __init__(self, base_url: str, timeout_seconds: float):
+        self.base_url = base_url.rstrip("/")
+        self.client = httpx.Client(base_url=self.base_url, timeout=timeout_seconds)
+
+    def start_run(self, payload: dict) -> dict:
+        response = self.client.post("/runs", json=payload)
+        response.raise_for_status()
+        return response.json()
+
+    def stop_run(self, run_id: str) -> dict:
+        response = self.client.post(f"/runs/{run_id}/stop")
+        response.raise_for_status()
+        return response.json()
+
+    def get_status(self, run_id: str) -> dict:
+        response = self.client.get(f"/runs/{run_id}")
+        response.raise_for_status()
+        return response.json()
+
+
+worker_client = WorkerClient(WORKER_PLAN_URL, WORKER_PLAN_TIMEOUT_SECONDS)
 
 class MarkdownBuilder:
     """
@@ -140,7 +162,14 @@ class MarkdownBuilder:
 
     def list_files(self, path_dir: str):
         self.add_line("### Output files")
-        files = os.listdir(path_dir)
+        if not os.path.exists(path_dir):
+            self.add_code_block("Output directory not available yet.")
+            return
+        try:
+            files = os.listdir(path_dir)
+        except Exception as exc:
+            self.add_code_block(f"Unable to list files: {exc}")
+            return
         files.sort()
         filenames = "\n".join(files)
         self.add_code_block(filenames)
@@ -160,8 +189,8 @@ class SessionState:
         self.llm_model = default_model_value
         # Settings: The speedvsdetail that the user has picked.
         self.speedvsdetail = SpeedVsDetailEnum.ALL_DETAILS_BUT_SLOW
-        # Holds the subprocess.Popen object for the currently running pipeline process.
-        self.active_proc = None
+        # The run id of the currently running pipeline process (managed by worker service).
+        self.active_run_id: Optional[str] = None
         # A threading.Event used to signal that the running process should stop.
         self.stop_event = threading.Event()
         # Stores the unique identifier of the last submitted run.
@@ -237,6 +266,9 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
     session_state.stop_event.clear()
 
     submit_or_retry = submit_or_retry_button.lower()
+    run_id = None
+    run_path = None
+    display_run_dir = None
 
     if submit_or_retry == "retry":
         if not session_state.latest_run_id:
@@ -251,32 +283,6 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
         print(f"Retrying the run with ID: {run_id}")
         if not os.path.exists(run_path):
             raise Exception(f"The run path is supposed to exist from an earlier run. However the no run path exists: {run_path}")
-        
-    elif submit_or_retry == "submit":
-        start_time: datetime = datetime.now().astimezone()
-        run_id = generate_run_id(use_uuid=CONFIG.use_uuid_as_run_id, start_time=start_time)
-        run_path = os.path.join(RUN_DIR, run_id)
-        absolute_container_run_dir = os.path.abspath(run_path)
-        host_run_dir_base = os.environ.get("PLANEXE_HOST_RUN_DIR")
-        display_run_dir = os.path.join(host_run_dir_base, run_id) if host_run_dir_base else absolute_container_run_dir
-        display_run_dir = os.path.abspath(display_run_dir)
-
-        print(f"Submitting a new run with ID: {run_id}")
-        # Prepare a new run directory.
-        session_state.latest_run_id = run_id
-        session_state.latest_run_dir_container = absolute_container_run_dir
-        session_state.latest_run_dir_display = display_run_dir
-        if os.path.exists(run_path):
-            raise Exception(f"The run path is not supposed to exist at this point. However the run path already exists: {run_path}")
-        os.makedirs(run_path)
-
-        # Create the start_time file.
-        start_time_file = StartTime.create(start_time)
-        start_time_file.save(os.path.join(run_path, FilenameEnum.START_TIME.value))
-
-        # Create the initial plan file.
-        plan_file = PlanFile.create(vague_plan_description=plan_prompt, start_time=start_time)
-        plan_file.save(os.path.join(run_path, FilenameEnum.INITIAL_PLAN.value))
 
     # Create a SpeedVsDetailEnum instance from the session_state.speedvsdetail.
     # Sporadic I have experienced that session_state.speedvsdetail is a string and other times it's a SpeedVsDetailEnum.
@@ -287,53 +293,52 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
     elif isinstance(speedvsdetail, SpeedVsDetailEnum):
         speedvsdetail_string = speedvsdetail.value
 
-    # Set environment variables for the pipeline.
-    env = os.environ.copy()
-    env[PipelineEnvironmentEnum.RUN_ID_DIR.value] = absolute_container_run_dir
-    env[PipelineEnvironmentEnum.LLM_MODEL.value] = session_state.llm_model
-    env[PipelineEnvironmentEnum.SPEED_VS_DETAIL.value] = speedvsdetail_string
+    payload = {
+        "submit_or_retry": submit_or_retry,
+        "plan_prompt": plan_prompt,
+        "llm_model": session_state.llm_model,
+        "speed_vs_detail": speedvsdetail_string,
+        "openrouter_api_key": session_state.openrouter_api_key or None,
+        "use_uuid_as_run_id": CONFIG.use_uuid_as_run_id,
+    }
+    if run_id:
+        payload["run_id"] = run_id
 
-    # If there is a non-empty OpenRouter API key, set it as an environment variable.
-    if session_state.openrouter_api_key and len(session_state.openrouter_api_key) > 0:
-        print("Setting OpenRouter API key as environment variable.")
-        env["OPENROUTER_API_KEY"] = session_state.openrouter_api_key
-    else:
-        print("No OpenRouter API key provided.")
+    try:
+        start_response = worker_client.start_run(payload)
+    except httpx.HTTPError as exc:
+        raise ValueError(f"Failed to contact worker_plan service: {exc}") from exc
+
+    run_id = start_response.get("run_id", run_id)
+    if not run_id:
+        raise ValueError("Worker did not return a run_id.")
+
+    run_path = start_response.get("run_dir") or os.path.join(RUN_DIR, run_id)
+    run_path = os.path.abspath(run_path)
+    session_state.latest_run_id = run_id
+    session_state.latest_run_dir_container = run_path
+    host_run_dir_base = os.environ.get("PLANEXE_HOST_RUN_DIR")
+    display_run_dir = os.path.abspath(os.path.join(host_run_dir_base, run_id)) if host_run_dir_base else run_path
+    session_state.latest_run_dir_display = display_run_dir
+    session_state.active_run_id = run_id
+    worker_pid = start_response.get("pid")
+    print(f"Process started on worker. Run ID: {run_id}. PID: {worker_pid}")
 
     start_time = time.perf_counter()
     # Initialize the last zip creation time to be ZIP_INTERVAL_SECONDS in the past
     last_zip_time = time.time() - ZIP_INTERVAL_SECONDS
     most_recent_zip_file = None
 
-    # Launch the pipeline as a separate Python process.
-    command = [sys.executable, "-m", MODULE_PATH_PIPELINE]
-    print(f"Executing command: {' '.join(command)}")
-    if RELAY_PROCESS_OUTPUT:
-        session_state.active_proc = subprocess.Popen(
-            command,
-            cwd=".",
-            env=env,
-            stdout=None,
-            stderr=None
-        )
-    else:
-        session_state.active_proc = subprocess.Popen(
-            command,
-            cwd=".",
-            env=env,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-
-    # Obtain process id
-    child_process_id = session_state.active_proc.pid
-    print(f"Process started. Process ID: {child_process_id}")
-
     # Poll the output directory every second.
     while True:
-        # Check if the process has ended.
-        if session_state.active_proc.poll() is not None:
-            break
+        try:
+            status_response = worker_client.get_status(run_id)
+        except httpx.HTTPError as exc:
+            logger.warning(f"Failed to fetch status for run_id={run_id}: {exc}")
+            status_response = None
+
+        pipeline_complete = has_pipeline_complete_file(run_path)
+        running = status_response.get("running", True) if status_response else True
 
         # print("running...")
         end_time = time.perf_counter()
@@ -342,30 +347,37 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
         # If a stop has been requested, terminate the process.
         if session_state.stop_event.is_set():
             try:
-                session_state.active_proc.terminate()
+                worker_client.stop_run(run_id)
             except Exception as e:
                 print("Error terminating process:", e)
 
             markdown_builder = MarkdownBuilder()
             markdown_builder.status("Process terminated by user.")
             markdown_builder.path_to_run_dir(display_run_dir)
-            markdown_builder.list_files(run_path)
-            zip_file_path = create_zip_archive(run_path)
+            if os.path.exists(run_path):
+                markdown_builder.list_files(run_path)
+            zip_file_path = create_zip_archive(run_path) if os.path.exists(run_path) else None
             if zip_file_path:
                 most_recent_zip_file = zip_file_path
             yield markdown_builder.to_markdown(), most_recent_zip_file, session_state
             break
 
-        last_update = ceil(time_since_last_modification(run_path))
+        last_update = ceil(time_since_last_modification(run_path)) if os.path.exists(run_path) else 0
         markdown_builder = MarkdownBuilder()
-        markdown_builder.status(f"Working. {duration} seconds elapsed. Last output update was {last_update} seconds ago.")
+        if running or pipeline_complete:
+            markdown_builder.status(f"Working. {duration} seconds elapsed. Last output update was {last_update} seconds ago.")
+        else:
+            markdown_builder.status(f"Process inactive. {duration} seconds elapsed. Last output update was {last_update} seconds ago.")
         markdown_builder.path_to_run_dir(display_run_dir)
-        markdown_builder.list_files(run_path)
+        if os.path.exists(run_path):
+            markdown_builder.list_files(run_path)
+        else:
+            markdown_builder.add_line("Output directory not created yet.")
 
         # Create a new zip archive every ZIP_INTERVAL_SECONDS seconds.
         current_time = time.time()
         if current_time - last_zip_time >= ZIP_INTERVAL_SECONDS:
-            zip_file_path = create_zip_archive(run_path)
+            zip_file_path = create_zip_archive(run_path) if os.path.exists(run_path) else None
             if zip_file_path:
                 most_recent_zip_file = zip_file_path
             last_zip_time = current_time
@@ -373,22 +385,28 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
         yield markdown_builder.to_markdown(), most_recent_zip_file, session_state
 
         # If the pipeline complete file is found, finish streaming.
-        if has_pipeline_complete_file(run_path):
+        if pipeline_complete:
+            break
+
+        if not running:
             break
 
         time.sleep(1)
     
-    # Wait for the process to end and clear the active process.
-    returncode = 'NOT SET'
-    if session_state.active_proc is not None:
-        session_state.active_proc.wait()
-        returncode = session_state.active_proc.returncode
-        session_state.active_proc = None
+    session_state.active_run_id = None
+
+    # Fetch latest status for final message.
+    try:
+        status_response = worker_client.get_status(run_id)
+    except httpx.HTTPError:
+        status_response = None
+
+    returncode = status_response.get("returncode") if status_response else None
 
     # Process has completed.
     end_time = time.perf_counter()
     duration = int(ceil(end_time - start_time))
-    print(f"Process ended. returncode: {returncode}. Process ID: {child_process_id}. Duration: {duration} seconds.")
+    print(f"Process ended. returncode: {returncode}. Run ID: {run_id}. Duration: {duration} seconds.")
 
     if has_pipeline_complete_file(run_path):
         status_message = "Completed."
@@ -402,7 +420,7 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
     markdown_builder.list_files(run_path)
 
     # Create zip archive
-    zip_file_path = create_zip_archive(run_path)
+    zip_file_path = create_zip_archive(run_path) if os.path.exists(run_path) else None
     if zip_file_path:
         most_recent_zip_file = zip_file_path
 
@@ -415,15 +433,16 @@ def stop_planner(session_state: SessionState):
 
     session_state.stop_event.set()
 
-    if session_state.active_proc is not None:
-        try:
-            if session_state.active_proc.poll() is None:
-                session_state.active_proc.terminate()
-            msg = "Stop signal sent. Process termination requested."
-        except Exception as e:
-            msg = f"Error terminating process: {e}"
-    else:
+    active_run_id = session_state.active_run_id
+    if not active_run_id:
         msg = "No active process to stop."
+        return msg, session_state
+
+    try:
+        worker_client.stop_run(active_run_id)
+        msg = "Stop signal sent. Process termination requested."
+    except Exception as e:
+        msg = f"Error terminating process: {e}"
 
     return msg, session_state
 

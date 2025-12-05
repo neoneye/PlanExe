@@ -2,7 +2,12 @@ import unittest
 import os
 import shutil
 import time
-from planexe.purge.purge_old_runs import purge_old_runs
+import sys
+
+# Ensure the frontend_gradio directory is on the path for imports.
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from purge_old_runs import purge_old_runs
 
 class TestPurgeOldRuns(unittest.TestCase):
     def setUp(self):

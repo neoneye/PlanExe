@@ -37,7 +37,7 @@ git clone https://github.com/neoneye/PlanExe.git
 cd PlanExe
 python3 -m venv venv
 source venv/bin/activate
-(venv) pip install './frontend_gradio[gradio-ui]'
+(venv) pip install './worker_plan[gradio-ui]'
 ```
 
 # Configuration
@@ -53,7 +53,11 @@ Recommendation: I recommend **Config A** as it offers the most straightforward p
 PlanExe comes with a Gradio-based web interface. To start the local web server:
 
 ```bash
-(venv) python -m planexe.plan.app_text2plan
+# Terminal 1: start the worker that runs the pipeline
+(venv) uvicorn worker_plan_api.app:app --host 0.0.0.0 --port 8000
+
+# Terminal 2: start the Gradio frontend (lives in ./frontend_gradio) and point it at the worker
+(venv) WORKER_PLAN_URL=http://localhost:8000 python frontend_gradio/app_text2plan.py
 ```
 
 This command launches a server at http://localhost:7860. Open that link in your browser, type a vague idea or description, and PlanExe will produce a detailed plan.

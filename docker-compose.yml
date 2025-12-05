@@ -1,9 +1,39 @@
 services:
+  worker_plan:
+    build:
+      context: .
+      dockerfile: worker_plan/Dockerfile
+    container_name: worker_plan
+    env_file:
+      - .env
+    environment:
+      PLANEXE_CONFIG_PATH: /app
+      PLANEXE_HOST_RUN_DIR: ${PLANEXE_HOST_RUN_DIR:-${PWD}/run}
+      PLANEXE_RUN_DIR: /app/run
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./.env:/app/.env:ro
+      - ./llm_config.json:/app/llm_config.json:ro
+      - ./run:/app/run
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: sync
+          path: ./worker_plan
+          target: /app/worker_plan
+        - action: rebuild
+          path: ./worker_plan/pyproject.toml
+        - action: restart
+          path: ./docker-compose.yml
+
   frontend_gradio:
     build:
       context: .
       dockerfile: frontend_gradio/Dockerfile
     container_name: frontend_gradio
+    depends_on:
+      - worker_plan
     env_file:
       - .env
     environment:
@@ -11,6 +41,8 @@ services:
       GRADIO_SERVER_NAME: 0.0.0.0
       GRADIO_SERVER_PORT: 7860
       PLANEXE_HOST_RUN_DIR: ${PLANEXE_HOST_RUN_DIR:-${PWD}/run}
+      PLANEXE_RUN_DIR: /app/run
+      WORKER_PLAN_URL: ${WORKER_PLAN_URL:-http://worker_plan:8000}
     ports:
       - "7860:7860"
     volumes:
@@ -26,12 +58,15 @@ services:
         - action: restart
           path: ./frontend_gradio
         - action: sync
+          path: ./worker_plan
+          target: /app/worker_plan
+        - action: sync
           path: ./llm_config.json
           target: /app/llm_config.json
         - action: sync
           path: ./.env
           target: /app/.env
         - action: rebuild
-          path: ./frontend_gradio/pyproject.toml
+          path: ./worker_plan/pyproject.toml
         - action: restart
           path: ./docker-compose.yml
