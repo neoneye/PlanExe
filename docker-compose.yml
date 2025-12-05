@@ -10,6 +10,7 @@ services:
       PLANEXE_CONFIG_PATH: /app
       PLANEXE_HOST_RUN_DIR: ${PLANEXE_HOST_RUN_DIR:-${PWD}/run}
       PLANEXE_RUN_DIR: /app/run
+      WORKER_RELAY_PROCESS_OUTPUT: "true"
     ports:
       - "8000:8000"
     volumes:
