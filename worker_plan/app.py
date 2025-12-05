@@ -12,7 +12,7 @@ from typing import Dict, Literal, Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from planexe.plan.filenames import FilenameEnum
+from worker_plan_api.filenames import FilenameEnum
 from planexe.plan.generate_run_id import generate_run_id
 from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
 from planexe.plan.plan_file import PlanFile
@@ -229,4 +229,4 @@ def healthcheck() -> dict:
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("worker_plan_api.app:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run("worker_plan.app:app", host="0.0.0.0", port=8000, reload=False)

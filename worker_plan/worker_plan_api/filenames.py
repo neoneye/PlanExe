@@ -125,4 +125,3 @@ class ExtraFilenameEnum(str, Enum):
     EXPECTED_FILENAMES1_JSON = "expected_filenames1.json"
     PIPELINE_STOP_REQUESTED_FLAG = "pipeline_stop_requested.txt"
     TRACK_ACTIVITY_JSONL = "track_activity.jsonl"
-    

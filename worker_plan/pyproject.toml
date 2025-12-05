@@ -143,7 +143,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["planexe*", "worker_plan_api*"]
+include = ["planexe*", "worker_plan_api*", "worker_plan*"]
 
 [tool.setuptools.package-data]
 "planexe.prompt.data" = ["*.jsonl"]

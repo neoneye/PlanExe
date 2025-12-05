@@ -16,7 +16,7 @@ import threading
 import time
 from planexe.llm_factory import LLMInfo, OllamaStatus
 from create_zip_archive import create_zip_archive
-from planexe.plan.filenames import FilenameEnum
+from worker_plan_api.filenames import FilenameEnum
 from planexe.plan.generate_run_id import RUN_ID_PREFIX
 from planexe.plan.speedvsdetail import SpeedVsDetailEnum
 from planexe.prompt.prompt_catalog import PromptCatalog
