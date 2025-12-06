@@ -17,12 +17,12 @@ import importlib.resources
 from planexe.plan.start_time import StartTime
 from planexe.utils.planexe_dotenv import DotEnvKeyEnum, PlanExeDotEnv
 from planexe.utils.planexe_config import PlanExeConfig
-from planexe.plan.generate_run_id import generate_run_id
 from planexe.plan.plan_file import PlanFile
 from worker_plan_api.filenames import FilenameEnum, ExtraFilenameEnum
 from planexe.prompt.prompt_catalog import PromptCatalog
 from planexe.llm_factory import SPECIAL_AUTO_ID, get_llm_names_by_priority, get_llm
 from worker_plan_api.speedvsdetail import SpeedVsDetailEnum
+from worker_plan_api.generate_run_id import generate_run_id
 from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
 from llama_index.core.llms import ChatMessage, MessageRole
 
@@ -265,7 +265,8 @@ class MyFlaskApp:
         @self.app.route("/jobs", methods=["POST"])
         def create_job():
             try:
-                run_id = generate_run_id(CONFIG.use_uuid_as_run_id)
+                start_time = datetime.now().astimezone()
+                run_id = generate_run_id(CONFIG.use_uuid_as_run_id, start_time)
                 run_id_dir = (self.planexe_run_dir / run_id).absolute()
                 response_data, status_code = self._create_job_internal(run_id, run_id_dir)
                 return jsonify(response_data), status_code            

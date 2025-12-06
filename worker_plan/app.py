@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from worker_plan_api.filenames import FilenameEnum
-from planexe.plan.generate_run_id import generate_run_id
+from worker_plan_api.generate_run_id import generate_run_id
 from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
 from planexe.plan.plan_file import PlanFile
 from planexe.plan.start_time import StartTime
