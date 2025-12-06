@@ -1,8 +1,5 @@
-from enum import Enum
+"""Shim to keep existing imports working."""
 
+from worker_plan_api.speedvsdetail import SpeedVsDetailEnum
 
-class SpeedVsDetailEnum(str, Enum):
-    """How much detail should the pipeline produce versus speed."""
-
-    ALL_DETAILS_BUT_SLOW = "all_details_but_slow"
-    FAST_BUT_SKIP_DETAILS = "fast_but_skip_details"
+__all__ = ["SpeedVsDetailEnum"]

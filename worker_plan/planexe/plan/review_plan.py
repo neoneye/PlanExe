@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from llama_index.core.llms import ChatMessage, MessageRole, ChatResponse
 from llama_index.core.llms.llm import LLM
-from planexe.plan.speedvsdetail import SpeedVsDetailEnum
+from worker_plan_api.speedvsdetail import SpeedVsDetailEnum
 from planexe.llm_util.llm_executor import LLMExecutor, LLMModelFromName, PipelineStopRequested
 
 logger = logging.getLogger(__name__)

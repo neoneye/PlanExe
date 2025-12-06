@@ -19,10 +19,10 @@ from planexe.utils.planexe_dotenv import DotEnvKeyEnum, PlanExeDotEnv
 from planexe.utils.planexe_config import PlanExeConfig
 from planexe.plan.generate_run_id import generate_run_id
 from planexe.plan.plan_file import PlanFile
-from planexe.plan.filenames import FilenameEnum, ExtraFilenameEnum
+from worker_plan_api.filenames import FilenameEnum, ExtraFilenameEnum
 from planexe.prompt.prompt_catalog import PromptCatalog
 from planexe.llm_factory import SPECIAL_AUTO_ID, get_llm_names_by_priority, get_llm
-from planexe.plan.speedvsdetail import SpeedVsDetailEnum
+from worker_plan_api.speedvsdetail import SpeedVsDetailEnum
 from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
 from llama_index.core.llms import ChatMessage, MessageRole
 

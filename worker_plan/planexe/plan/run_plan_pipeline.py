@@ -21,8 +21,8 @@ from planexe.plan.pipeline_config import PIPELINE_CONFIG
 from planexe.lever.deduplicate_levers import DeduplicateLevers
 from planexe.lever.scenarios_markdown import ScenariosMarkdown
 from planexe.lever.strategic_decisions_markdown import StrategicDecisionsMarkdown
-from planexe.plan.filenames import FilenameEnum, ExtraFilenameEnum
-from planexe.plan.speedvsdetail import SpeedVsDetailEnum
+from worker_plan_api.filenames import FilenameEnum, ExtraFilenameEnum
+from worker_plan_api.speedvsdetail import SpeedVsDetailEnum
 from planexe.assume.identify_purpose import IdentifyPurpose
 from planexe.assume.identify_plan_type import IdentifyPlanType
 from planexe.assume.physical_locations import PhysicalLocations
