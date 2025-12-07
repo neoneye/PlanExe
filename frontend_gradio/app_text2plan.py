@@ -14,7 +14,8 @@ import os
 import sys
 import threading
 import time
-from planexe.llm_factory import OllamaStatus, obtain_llm_info
+from worker_plan_api.llm_info import OllamaStatus
+from planexe.llm_factory import obtain_llm_info
 from create_zip_archive import create_zip_archive
 from worker_plan_api.filenames import FilenameEnum
 from worker_plan_api.generate_run_id import RUN_ID_PREFIX

@@ -4,12 +4,10 @@ Create a LLM instances.
 PROMPT> python -m planexe.llm_factory
 """
 import logging
-from enum import Enum
-from dataclasses import dataclass
+from typing import Optional, Any
 from planexe.utils.planexe_dotenv import PlanExeDotEnv
 from planexe.utils.planexe_config import PlanExeConfig, PlanExeConfigError
 from planexe.utils.planexe_llmconfig import PlanExeLLMConfig
-from typing import Optional, Any
 from llama_index.core.llms.llm import LLM
 from llama_index.llms.mistralai import MistralAI
 from llama_index.llms.ollama import Ollama
@@ -20,6 +18,7 @@ from llama_index.llms.groq import Groq
 from llama_index.llms.lmstudio import LMStudio
 from llama_index.llms.openrouter import OpenRouter
 from planexe.llm_util.ollama_info import OllamaInfo
+from worker_plan_api.llm_info import LLMConfigItem, LLMInfo, OllamaStatus
 
 # You can disable this if you don't want to send app info to OpenRouter.
 SEND_APP_INFO_TO_OPENROUTER = True
@@ -33,24 +32,6 @@ logger = logging.getLogger(__name__)
 __all__ = ["get_llm", "LLMInfo", "get_llm_names_by_priority", "SPECIAL_AUTO_ID", "is_valid_llm_name", "obtain_llm_info"]
 
 planexe_llmconfig = PlanExeLLMConfig.load()
-
-class OllamaStatus(str, Enum):
-    no_ollama_models = 'no ollama models in the llm_config.json file'
-    ollama_not_running = 'ollama is NOT running'
-    mixed = 'Mixed. Some ollama models are running, but some are NOT running.'
-    ollama_running = 'Ollama is running'
-
-
-@dataclass
-class LLMConfigItem:
-    id: str
-    label: str
-
-@dataclass
-class LLMInfo:
-    llm_config_items: list[LLMConfigItem]
-    ollama_status: OllamaStatus
-    error_message_list: list[str]
 
 def obtain_llm_info() -> LLMInfo:
     """
