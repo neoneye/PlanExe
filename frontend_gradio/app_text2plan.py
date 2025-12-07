@@ -19,7 +19,7 @@ from create_zip_archive import create_zip_archive
 from worker_plan_api.filenames import FilenameEnum
 from worker_plan_api.generate_run_id import RUN_ID_PREFIX
 from worker_plan_api.speedvsdetail import SpeedVsDetailEnum
-from planexe.prompt.prompt_catalog import PromptCatalog
+from worker_plan_api.prompt_catalog import PromptCatalog
 from purge_old_runs import start_purge_scheduler
 from time_since_last_modification import time_since_last_modification
 
