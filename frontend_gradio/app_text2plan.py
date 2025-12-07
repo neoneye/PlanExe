@@ -14,7 +14,7 @@ import os
 import sys
 import threading
 import time
-from planexe.llm_factory import LLMInfo, OllamaStatus
+from planexe.llm_factory import OllamaStatus, obtain_llm_info
 from create_zip_archive import create_zip_archive
 from worker_plan_api.filenames import FilenameEnum
 from worker_plan_api.generate_run_id import RUN_ID_PREFIX
@@ -83,7 +83,7 @@ gradio_examples = []
 for prompt_item in all_prompts:
     gradio_examples.append([prompt_item.prompt])
 
-llm_info = LLMInfo.obtain_info()
+llm_info = obtain_llm_info()
 logger.info(f"LLMInfo.ollama_status: {llm_info.ollama_status.value}")
 logger.info(f"LLMInfo.error_message_list: {llm_info.error_message_list}")
 

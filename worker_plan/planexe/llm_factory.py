@@ -30,7 +30,7 @@ SPECIAL_AUTO_LABEL = 'Auto'
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["get_llm", "LLMInfo", "get_llm_names_by_priority", "SPECIAL_AUTO_ID", "is_valid_llm_name"]
+__all__ = ["get_llm", "LLMInfo", "get_llm_names_by_priority", "SPECIAL_AUTO_ID", "is_valid_llm_name", "obtain_llm_info"]
 
 planexe_llmconfig = PlanExeLLMConfig.load()
 
@@ -52,97 +52,96 @@ class LLMInfo:
     ollama_status: OllamaStatus
     error_message_list: list[str]
 
-    @classmethod
-    def obtain_info(cls) -> 'LLMInfo':
-        """
-        Returns a list of available LLM names.
-        """
+def obtain_llm_info() -> LLMInfo:
+    """
+    Returns a list of available LLM names and Ollama status.
+    """
 
-        # Probe each Ollama service endpoint just once.
-        error_message_list = []
-        ollama_info_per_host = {}
-        count_running = 0
-        count_not_running = 0
-        for config_id, config in planexe_llmconfig.llm_config_dict.items():
-            if config.get("class") != "Ollama":
-                continue
-            arguments = config.get("arguments", {})
-            model = arguments.get("model", None)
-            base_url = arguments.get("base_url", None)
+    # Probe each Ollama service endpoint just once.
+    error_message_list = []
+    ollama_info_per_host = {}
+    count_running = 0
+    count_not_running = 0
+    for config_id, config in planexe_llmconfig.llm_config_dict.items():
+        if config.get("class") != "Ollama":
+            continue
+        arguments = config.get("arguments", {})
+        model = arguments.get("model", None)
+        base_url = arguments.get("base_url", None)
 
-            if base_url in ollama_info_per_host:
-                # Already got info for this host. No need to get it again.
-                continue
+        if base_url in ollama_info_per_host:
+            # Already got info for this host. No need to get it again.
+            continue
 
-            ollama_info = OllamaInfo.obtain_info(base_url=base_url)
-            ollama_info_per_host[base_url] = ollama_info
+        ollama_info = OllamaInfo.obtain_info(base_url=base_url)
+        ollama_info_per_host[base_url] = ollama_info
 
-            running_on = "localhost" if base_url is None else base_url
+        running_on = "localhost" if base_url is None else base_url
 
-            if ollama_info.is_running:
-                count_running += 1
-            else:
-                count_not_running += 1
-
-            if not ollama_info.is_running:
-                print(f"Ollama is not running on {running_on}. Please start the Ollama service, in order to use the models via Ollama.")
-            elif ollama_info.error_message:
-                print(f"Error message: {ollama_info.error_message}")
-                error_message_list.append(ollama_info.error_message)
-
-        # Prepare the list of available LLM config items.
-        llm_config_items = []
-
-        # This is a special case. It will cycle through the available LLM models, if the first one fails, try the next one.
-        llm_config_items.append(LLMConfigItem(id=SPECIAL_AUTO_ID, label=SPECIAL_AUTO_LABEL))
-
-        # The rest are the LLM models specified in the llm_config.json file.
-        for config_id, config in planexe_llmconfig.llm_config_dict.items():
-            priority = config.get("priority", None)
-            if priority:
-                label_with_priority = f"{config_id} (prio: {priority})"
-            else:
-                label_with_priority = config_id
-
-            if config.get("class") != "Ollama":
-                item = LLMConfigItem(id=config_id, label=label_with_priority)
-                llm_config_items.append(item)
-                continue
-
-            # Get info about the each LLM config item that is using Ollama.
-            arguments = config.get("arguments", {})
-            model = arguments.get("model", None)
-            base_url = arguments.get("base_url", None)
-
-            ollama_info = ollama_info_per_host[base_url]
-
-            is_model_available = ollama_info.is_model_available(model)
-            if is_model_available:
-                label = label_with_priority
-            else:
-                label = f"{label_with_priority} ❌ unavailable"
-            
-            if ollama_info.is_running and not is_model_available:
-                error_message = f"Problem with config `\"{config_id}\"`: The model `\"{model}\"` is not available in Ollama. Compare model names in `llm_config.json` with the names available in Ollama."
-                error_message_list.append(error_message)
-            
-            item = LLMConfigItem(id=config_id, label=label)
-            llm_config_items.append(item)
-
-        if count_not_running == 0 and count_running > 0:
-            ollama_status = OllamaStatus.ollama_running
-        elif count_not_running > 0 and count_running == 0:
-            ollama_status = OllamaStatus.ollama_not_running
-        elif count_not_running > 0 and count_running > 0:
-            ollama_status = OllamaStatus.mixed
+        if ollama_info.is_running:
+            count_running += 1
         else:
-            ollama_status = OllamaStatus.no_ollama_models
+            count_not_running += 1
 
-        return LLMInfo(
-            llm_config_items=llm_config_items, 
-            ollama_status=ollama_status,
-            error_message_list=error_message_list,
-        )
+        if not ollama_info.is_running:
+            print(f"Ollama is not running on {running_on}. Please start the Ollama service, in order to use the models via Ollama.")
+        elif ollama_info.error_message:
+            print(f"Error message: {ollama_info.error_message}")
+            error_message_list.append(ollama_info.error_message)
+
+    # Prepare the list of available LLM config items.
+    llm_config_items = []
+
+    # This is a special case. It will cycle through the available LLM models, if the first one fails, try the next one.
+    llm_config_items.append(LLMConfigItem(id=SPECIAL_AUTO_ID, label=SPECIAL_AUTO_LABEL))
+
+    # The rest are the LLM models specified in the llm_config.json file.
+    for config_id, config in planexe_llmconfig.llm_config_dict.items():
+        priority = config.get("priority", None)
+        if priority:
+            label_with_priority = f"{config_id} (prio: {priority})"
+        else:
+            label_with_priority = config_id
+
+        if config.get("class") != "Ollama":
+            item = LLMConfigItem(id=config_id, label=label_with_priority)
+            llm_config_items.append(item)
+            continue
+
+        # Get info about the each LLM config item that is using Ollama.
+        arguments = config.get("arguments", {})
+        model = arguments.get("model", None)
+        base_url = arguments.get("base_url", None)
+
+        ollama_info = ollama_info_per_host[base_url]
+
+        is_model_available = ollama_info.is_model_available(model)
+        if is_model_available:
+            label = label_with_priority
+        else:
+            label = f"{label_with_priority} ❌ unavailable"
+        
+        if ollama_info.is_running and not is_model_available:
+            error_message = f"Problem with config `\"{config_id}\"`: The model `\"{model}\"` is not available in Ollama. Compare model names in `llm_config.json` with the names available in Ollama."
+            error_message_list.append(error_message)
+        
+        item = LLMConfigItem(id=config_id, label=label)
+        llm_config_items.append(item)
+
+    if count_not_running == 0 and count_running > 0:
+        ollama_status = OllamaStatus.ollama_running
+    elif count_not_running > 0 and count_running == 0:
+        ollama_status = OllamaStatus.ollama_not_running
+    elif count_not_running > 0 and count_running > 0:
+        ollama_status = OllamaStatus.mixed
+    else:
+        ollama_status = OllamaStatus.no_ollama_models
+
+    return LLMInfo(
+        llm_config_items=llm_config_items, 
+        ollama_status=ollama_status,
+        error_message_list=error_message_list,
+    )
 
 def get_llm_names_by_priority() -> list[str]:
     """

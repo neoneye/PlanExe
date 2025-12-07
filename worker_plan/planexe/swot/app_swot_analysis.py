@@ -4,7 +4,7 @@ PROMPT> python -m planexe.swot.app_swot_analysis
 import gradio as gr
 import logging
 from planexe.swot.swot_analysis import SWOTAnalysis
-from planexe.llm_factory import LLMInfo, get_llm
+from planexe.llm_factory import get_llm, obtain_llm_info
 from planexe.prompt.prompt_catalog import PromptCatalog
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ gradio_examples = []
 for prompt_item in all_prompts:
     gradio_examples.append([prompt_item.prompt])
 
-llm_info = LLMInfo.obtain_info()
+llm_info = obtain_llm_info()
 logger.info(f"LLMInfo.ollama_status: {llm_info.ollama_status.value}")
 logger.info(f"LLMInfo.error_message_list: {llm_info.error_message_list}")
 
