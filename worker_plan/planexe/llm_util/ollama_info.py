@@ -4,6 +4,9 @@ PROMPT> python -m planexe.llm_util.ollama_info
 from dataclasses import dataclass
 from typing import Optional
 
+DEFAULT_OLLAMA_PORT = "11434"
+FALLBACK_DOCKER_HOST = f"http://host.docker.internal:{DEFAULT_OLLAMA_PORT}"
+
 @dataclass
 class OllamaInfo:
     """
@@ -14,26 +17,51 @@ class OllamaInfo:
     is_running: bool
     error_message: Optional[str] = None
 
+    @staticmethod
+    def _normalize_host(base_url: Optional[str]) -> Optional[str]:
+        """Ensure the host has a scheme. None means use the client's default host/env."""
+        if not base_url:
+            return None
+        if base_url.startswith(("http://", "https://")):
+            return base_url
+        return f"http://{base_url}"
+
+    @classmethod
+    def _candidate_hosts(cls, base_url: Optional[str]) -> list[Optional[str]]:
+        """
+        Return the list of hosts to try. If the user supplied a host, only try that.
+        Otherwise, try the default client host first, then fall back to host.docker.internal
+        to support containers talking to the host's Ollama daemon.
+        """
+        normalized = cls._normalize_host(base_url)
+        if normalized:
+            return [normalized]
+        return [None, FALLBACK_DOCKER_HOST]
+
     @classmethod
     def obtain_info(cls, base_url: Optional[str] = None) -> 'OllamaInfo':
         """Retrieves information about the Ollama service."""
         try:
             # Only import ollama if it's available
-            from ollama import ListResponse, Client
-            client = Client(host=base_url, timeout=5)
-            list_response: ListResponse = client.list()
+            from ollama import Client
         except ImportError as e:
             error_message = f"OllamaInfo base_url={base_url}. The 'ollama' library was not found: {e}"
             return OllamaInfo(model_names=[], is_running=False, error_message=error_message)
-        except ConnectionError as e:
-            error_message = f"OllamaInfo base_url={base_url}. Error connecting to Ollama: {e}"
-            return OllamaInfo(model_names=[], is_running=False, error_message=error_message)
-        except Exception as e:
-            error_message = f"OllamaInfo base_url={base_url}. An unexpected error occurred: {e}"
-            return OllamaInfo(model_names=[], is_running=False, error_message=error_message)
 
-        model_names = [model.model for model in list_response.models]
-        return OllamaInfo(model_names=model_names, is_running=True, error_message=None)
+        errors = []
+        for host in cls._candidate_hosts(base_url):
+            try:
+                client = Client(timeout=5) if host is None else Client(host=host, timeout=5)
+                list_response = client.list()
+                model_names = [model.model for model in list_response.models]
+                return OllamaInfo(model_names=model_names, is_running=True, error_message=None)
+            except ConnectionError as e:
+                errors.append(f"host={host or 'default'} connection error: {e}")
+            except Exception as e:
+                errors.append(f"host={host or 'default'} unexpected error: {e}")
+
+        error_message = "; ".join(errors) if errors else None
+        return OllamaInfo(model_names=[], is_running=False, error_message=error_message)
     
     def is_model_available(self, find_model: str) -> bool:
         """
