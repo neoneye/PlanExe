@@ -5,11 +5,19 @@ import json
 import logging
 import os
 import importlib.resources
+import uuid
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
-from planexe.uuid_util.is_valid_uuid import is_valid_uuid
 
 logger = logging.getLogger(__name__)
+
+def is_valid_uuid(value: str) -> bool:
+    try:
+        uuid.UUID(value)
+        return True
+    except ValueError:
+        return False
+
 
 @dataclass
 class PromptItem:

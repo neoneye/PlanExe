@@ -14,9 +14,11 @@ from pydantic import BaseModel, Field
 
 from worker_plan_api.filenames import FilenameEnum
 from worker_plan_api.generate_run_id import generate_run_id
+from worker_plan_api.llm_info import LLMInfo
 from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
 from planexe.plan.plan_file import PlanFile
 from planexe.plan.start_time import StartTime
+from planexe.llm_factory import obtain_llm_info
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -219,6 +221,11 @@ def run_status(run_id: str) -> RunStatusResponse:
         pipeline_complete=pipeline_complete,
         stop_requested=stop_requested,
     )
+
+
+@app.get("/llm-info", response_model=LLMInfo)
+def llm_info() -> LLMInfo:
+    return obtain_llm_info()
 
 
 @app.get("/healthz")

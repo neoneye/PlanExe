@@ -19,6 +19,11 @@ Troubleshooting
 - If the pipeline stops immediately with missing module errors, rebuild with `--no-cache` so new files are inside the images.
 - If you change environment variables (e.g., `WORKER_RELAY_PROCESS_OUTPUT`), restart: `docker compose down` then `docker compose up`.
 - To clean out containers, network, and orphans: `docker compose down --remove-orphans`.
+- To reclaim disk space when builds start failing with `No space left on device`:
+  - See current usage: `docker system df`
+  - Aggressively prune (images, caches, networks not in use): `docker system prune -a`
+    - Expect a confirmation prompt; this removed ~37 GB here by deleting unused images and build cache.
+  - If needed, prune build cache separately: `docker builder prune`
 
 Environment notes
 -----------------

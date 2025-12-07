@@ -3,26 +3,26 @@ FROM python:3.13-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PLANEXE_CONFIG_PATH=/app \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    PIP_PREFER_BINARY=1 \
+    PYTHONPATH=/app
 
 WORKDIR /app
 
-# System dependencies required for audio processing and building Python wheels
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    ffmpeg \
-    git \
-    xdg-utils \
-    && rm -rf /var/lib/apt/lists/*
+# Copy dependency list early for better caching
+COPY frontend_gradio/requirements.txt /app/frontend_gradio/requirements.txt
+
+# Install dependencies for the Gradio UI using binary wheels where possible.
+# Use a buildx cache mount so downloads/build artifacts don’t bloat the image layer.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    TMPDIR=/root/.cache/pip/tmp \
+    pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir --prefer-binary --requirement /app/frontend_gradio/requirements.txt
 
 # Copy application code and supporting files
-COPY worker_plan /app/worker_plan
+COPY worker_plan/worker_plan_api /app/worker_plan_api
 COPY frontend_gradio /app/frontend_gradio
 COPY README.md llm_config.json .env.example /app/
-
-# Install PlanExe with the Gradio UI extras
-RUN pip install --upgrade pip \
-    && pip install --editable ./worker_plan[gradio-ui]
 
 # Default location for generated plans
 RUN mkdir -p /app/run

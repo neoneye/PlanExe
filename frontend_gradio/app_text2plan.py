@@ -14,8 +14,7 @@ import os
 import sys
 import threading
 import time
-from worker_plan_api.llm_info import OllamaStatus
-from planexe.llm_factory import obtain_llm_info
+from worker_plan_api.llm_info import LLMInfo, OllamaStatus
 from create_zip_archive import create_zip_archive
 from worker_plan_api.filenames import FilenameEnum
 from worker_plan_api.generate_run_id import RUN_ID_PREFIX
@@ -84,26 +83,6 @@ gradio_examples = []
 for prompt_item in all_prompts:
     gradio_examples.append([prompt_item.prompt])
 
-llm_info = obtain_llm_info()
-logger.info(f"LLMInfo.ollama_status: {llm_info.ollama_status.value}")
-logger.info(f"LLMInfo.error_message_list: {llm_info.error_message_list}")
-
-trimmed_llm_config_items = []
-if CONFIG.allow_only_openrouter_models:
-    trimmed_llm_config_items = [item for item in llm_info.llm_config_items if item.id.startswith("openrouter")]
-else:
-    trimmed_llm_config_items = llm_info.llm_config_items
-
-
-# Create tupples for the Gradio Radio buttons.
-available_model_names = []
-default_model_value = None
-for config_index, config_item in enumerate(trimmed_llm_config_items):
-    if config_index == 0:
-        default_model_value = config_item.id
-    tuple_item = (config_item.label, config_item.id)
-    available_model_names.append(tuple_item)
-
 def has_pipeline_complete_file(path_dir: str) -> bool:
     """
     Checks if the pipeline has completed by looking for the completion file.
@@ -132,6 +111,11 @@ class WorkerClient:
         response.raise_for_status()
         return response.json()
 
+    def get_llm_info(self) -> LLMInfo:
+        response = self.client.get("/llm-info")
+        response.raise_for_status()
+        return LLMInfo.model_validate(response.json())
+
     def get_status(self, run_id: str) -> dict:
         response = self.client.get(f"/runs/{run_id}")
         response.raise_for_status()
@@ -139,6 +123,24 @@ class WorkerClient:
 
 
 worker_client = WorkerClient(WORKER_PLAN_URL, WORKER_PLAN_TIMEOUT_SECONDS)
+llm_info: LLMInfo = worker_client.get_llm_info()
+logger.info(f"LLMInfo.ollama_status: {llm_info.ollama_status.value}")
+logger.info(f"LLMInfo.error_message_list: {llm_info.error_message_list}")
+
+trimmed_llm_config_items = []
+if CONFIG.allow_only_openrouter_models:
+    trimmed_llm_config_items = [item for item in llm_info.llm_config_items if item.id.startswith("openrouter")]
+else:
+    trimmed_llm_config_items = llm_info.llm_config_items
+
+# Create tuples for the Gradio Radio buttons.
+available_model_names = []
+default_model_value = None
+for config_index, config_item in enumerate(trimmed_llm_config_items):
+    if config_index == 0:
+        default_model_value = config_item.id
+    tuple_item = (config_item.label, config_item.id)
+    available_model_names.append(tuple_item)
 
 class MarkdownBuilder:
     """

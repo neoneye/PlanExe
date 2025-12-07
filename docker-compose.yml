@@ -17,6 +17,12 @@ services:
       - ./.env:/app/.env:ro
       - ./llm_config.json:/app/llm_config.json:ro
       - ./run:/app/run
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz').read()"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     restart: unless-stopped
     develop:
       watch:
@@ -34,7 +40,8 @@ services:
       dockerfile: frontend_gradio/Dockerfile
     container_name: frontend_gradio
     depends_on:
-      - worker_plan
+      worker_plan:
+        condition: service_healthy
     env_file:
       - .env
     environment:
