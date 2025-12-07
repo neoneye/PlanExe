@@ -1,22 +1,16 @@
 """
 PROMPT> python3 -m worker_plan_api.prompt_catalog
 """
+import importlib.resources
 import json
 import logging
 import os
-import importlib.resources
-import uuid
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
+from worker_plan_api.uuid_util.is_valid_uuid import is_valid_uuid
 
 logger = logging.getLogger(__name__)
-
-def is_valid_uuid(value: str) -> bool:
-    try:
-        uuid.UUID(value)
-        return True
-    except ValueError:
-        return False
 
 
 @dataclass

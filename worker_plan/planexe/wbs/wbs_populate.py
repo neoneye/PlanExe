@@ -1,7 +1,7 @@
 import json
 import logging
 from planexe.wbs.wbs_task import WBSTask, WBSProject
-from planexe.uuid_util.is_valid_uuid import is_valid_uuid
+from worker_plan_api.uuid_util.is_valid_uuid import is_valid_uuid
 
 logger = logging.getLogger(__name__)
 
@@ -212,4 +212,3 @@ class WBSPopulate:
                 task.set_field('resources_needed', subtask_resources_needed)
             parent_task.task_children.append(task)
             # logger.debug(f"Added task {task_id} to parent task {task_parent_id}")
-

@@ -1,6 +1,7 @@
 import unittest
 import uuid
-from planexe.uuid_util.is_valid_uuid import is_valid_uuid
+
+from worker_plan_api.uuid_util.is_valid_uuid import is_valid_uuid
 
 class TestIsValidUUID(unittest.TestCase):
     def test_valid_uuid_hardcoded(self):
