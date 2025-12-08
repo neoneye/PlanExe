@@ -1,6 +1,6 @@
 [build]
 # Build using the existing Dockerfile for the Gradio frontend
-builder = "DOCKER"
+builder = "DOCKERFILE"
 dockerfilePath = "frontend_gradio/Dockerfile"
 context = "."
 
