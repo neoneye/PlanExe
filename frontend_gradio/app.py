@@ -1,6 +1,6 @@
 """
 Start the UI in single user mode.
-PROMPT> python frontend_gradio/app_text2plan.py
+PROMPT> python frontend_gradio/app.py
 """
 from dataclasses import dataclass
 from math import ceil
@@ -635,7 +635,7 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
         outputs=[api_key_warning]
     )
 
-def run_app_text2plan():
+def run_app():
     if CONFIG.enable_purge_old_runs:
         start_purge_scheduler(run_dir=os.path.abspath(RUN_DIR), purge_interval_seconds=60*60, prefix=RUN_ID_PREFIX)
 
@@ -645,4 +645,4 @@ def run_app_text2plan():
     demo_text2plan.launch()
 
 if __name__ == "__main__":
-    run_app_text2plan()
+    run_app()

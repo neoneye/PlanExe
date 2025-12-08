@@ -29,4 +29,4 @@ RUN mkdir -p /app/run
 
 EXPOSE 7860
 
-CMD ["python", "/app/frontend_gradio/app_text2plan.py"]
+CMD ["python", "/app/frontend_gradio/app.py"]
