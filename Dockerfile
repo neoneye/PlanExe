@@ -13,10 +13,7 @@ WORKDIR /app
 COPY frontend_gradio/requirements.txt /app/frontend_gradio/requirements.txt
 
 # Install dependencies for the Gradio UI using binary wheels where possible.
-# Use a buildx cache mount so downloads/build artifacts don’t bloat the image layer.
-RUN --mount=type=cache,target=/root/.cache/pip \
-    TMPDIR=/root/.cache/pip/tmp \
-    pip install --no-cache-dir --upgrade pip \
+RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir --prefer-binary --requirement /app/frontend_gradio/requirements.txt
 
 # Copy application code and supporting files
