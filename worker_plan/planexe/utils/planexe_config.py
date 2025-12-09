@@ -80,8 +80,8 @@ class PlanExeConfig:
 
         logger.debug("PlanExeConfig.load() creating a new instance...")
         planexe_config_path = cls.resolve_planexe_config_path()
-        dotenv_path = cls.find_file_in_search_order(ConfigNameEnum.DOTENV.value, planexe_config_path)
-        llm_config_json_path = cls.find_file_in_search_order(ConfigNameEnum.LLM_CONFIG_JSON.value, planexe_config_path)        
+        dotenv_path = cls.find_file_in_search_order(ConfigNameEnum.DOTENV.value, planexe_config_path, is_optional=True)
+        llm_config_json_path = cls.find_file_in_search_order(ConfigNameEnum.LLM_CONFIG_JSON.value, planexe_config_path)
         cls._instance = cls(
             planexe_config_path=planexe_config_path,
             dotenv_path=dotenv_path,
@@ -117,7 +117,7 @@ class PlanExeConfig:
         return path_obj
 
     @classmethod
-    def find_file_in_search_order(cls, filename: str, planexe_config_path: Optional[Path]) -> Optional[Path]:
+    def find_file_in_search_order(cls, filename: str, planexe_config_path: Optional[Path], is_optional: bool = False) -> Optional[Path]:
         """
         Finds a specific configuration file based on a precedence of locations.
 
@@ -128,6 +128,7 @@ class PlanExeConfig:
 
         :param filename: The name of the file to find (e.g., ".env").
         :param planexe_config_path: The validated absolute directory path from PLANEXE_CONFIG_PATH.
+        :param is_optional: When True, missing file is logged at INFO instead of WARNING.
         :return: The Path to the file if found, otherwise None.
         """
         # Step 1: Check if PLANEXE_CONFIG_PATH is set and contains the file
@@ -149,7 +150,10 @@ class PlanExeConfig:
             logger.debug(f"Found {filename!r} at root_file_path: {root_file_path!r}")
             return root_file_path
 
-        logger.warning(f"{filename!r} not found in any of the search locations (ENV_VAR, CWD, Project Root).")
+        if is_optional:
+            logger.info(f"Optional file {filename!r} not found in any of the search locations (ENV_VAR, CWD, Project Root).")
+        else:
+            logger.warning(f"{filename!r} not found in any of the search locations (ENV_VAR, CWD, Project Root).")
         return None
 
 if __name__ == "__main__":
