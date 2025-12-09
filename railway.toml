@@ -1,9 +1,0 @@
-[build]
-# Build using the existing Dockerfile for the Gradio frontend
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
-context = "."
-
-# Rely on the CMD in the Dockerfile (`python /app/frontend_gradio/app.py`)
-[deploy]
-restartPolicyType = "ALWAYS"

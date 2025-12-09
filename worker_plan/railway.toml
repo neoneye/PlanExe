@@ -1,0 +1,8 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "/worker_plan/Dockerfile"
+context = "."
+
+[deploy]
+restartPolicyType = "NEVER"
+restartPolicyMaxRetries = 3
