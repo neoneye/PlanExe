@@ -65,6 +65,8 @@ ZIP_INTERVAL_SECONDS = 10
 RUN_DIR = os.environ.get("PLANEXE_RUN_DIR", "run")
 WORKER_PLAN_URL = os.environ.get("WORKER_PLAN_URL", "http://worker_plan:8000")
 WORKER_PLAN_TIMEOUT_SECONDS = float(os.environ.get("WORKER_PLAN_TIMEOUT", "30"))
+GRADIO_SERVER_NAME = os.environ.get("GRADIO_SERVER_NAME", "0.0.0.0")
+GRADIO_SERVER_PORT = int(os.environ.get("PORT", os.environ.get("GRADIO_SERVER_PORT", "7860")))
 
 # Load prompt catalog and examples.
 prompt_catalog = PromptCatalog()
@@ -663,7 +665,11 @@ def run_app():
     # print("Environment variables Gradio:\n" + get_env_as_string() + "\n\n\n")
 
     print("Press Ctrl+C to exit.")
-    demo_text2plan.launch()
+    demo_text2plan.launch(
+        server_name=GRADIO_SERVER_NAME,
+        server_port=GRADIO_SERVER_PORT,
+        share=False,
+    )
 
 if __name__ == "__main__":
     run_app()
