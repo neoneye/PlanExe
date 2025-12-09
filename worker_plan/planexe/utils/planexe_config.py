@@ -1,5 +1,5 @@
 """
-Locate PlanExe's config files, like .env and llm_config.json.
+Locate PlanExe's config files, like .env and llm_config.json. The .env file is optional when the environment variables are provided by the host.
 
 Finds config files by checking the following locations in order:
 1. The directory specified by the PLANEXE_CONFIG_PATH environment variable. It must be an absolute path.
@@ -51,12 +51,11 @@ class PlanExeConfig:
     def raise_if_required_files_not_found(self) -> None:
         """
         Raises a PlanExeConfigError if required configuration files are not found.
+        The .env file is optional (environment variables can be provided by the host).
 
         :raises: PlanExeConfigError if required files are not found
         """
         missing_files = []
-        if self.dotenv_path is None:
-            missing_files.append(ConfigNameEnum.DOTENV.value)
         if self.llm_config_json_path is None:
             missing_files.append(ConfigNameEnum.LLM_CONFIG_JSON.value)
         
@@ -64,6 +63,8 @@ class PlanExeConfig:
             msg = f"Required configuration file(s) not found: {', '.join(missing_files)}"
             logger.error(msg)
             raise PlanExeConfigError(msg)
+        if self.dotenv_path is None:
+            logger.info("Optional configuration file '.env' not found; relying on environment variables only.")
         # If no missing files, method completes silently.
     
     @classmethod

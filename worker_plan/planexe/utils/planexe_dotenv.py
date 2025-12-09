@@ -1,5 +1,5 @@
 """
-Load PlanExe's .env file, containing secrets such as API keys, like: OPENROUTER_API_KEY.
+Load PlanExe's environment, combining the OS environment and optional .env file values.
 
 PROMPT> python -m planexe.utils.planexe_dotenv
 """
@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 from dotenv import dotenv_values
 import logging
-from planexe.utils.planexe_config import PlanExeConfig, PlanExeConfigError
+from planexe.utils.planexe_config import PlanExeConfig
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -20,17 +20,23 @@ class DotEnvKeyEnum(str, Enum):
 
 @dataclass
 class PlanExeDotEnv:
-    dotenv_path: Path
+    dotenv_path: Optional[Path]
     dotenv_dict: dict[str, str]
 
     @classmethod
     def load(cls):
         config = PlanExeConfig.load()
-        if config.dotenv_path is None:
-            raise PlanExeConfigError("Required configuration file '.env' was not found. Cannot create a PlanExeDotEnv instance.")
         dotenv_path = config.dotenv_path
         env_before = os.environ.copy()
-        dotenv_dict = dotenv_values(dotenv_path=dotenv_path)
+
+        # Load from .env if present, otherwise fall back to an empty dict.
+        dotenv_file_values = {}
+        if dotenv_path is not None:
+            dotenv_file_values = {k: v for k, v in dotenv_values(dotenv_path=dotenv_path).items() if v is not None}
+
+        # Merge .env file values with the real environment (environment variables take precedence).
+        dotenv_dict = {**dotenv_file_values, **os.environ}
+
         if env_before != os.environ:
             logger.error("PlanExeDotEnv.load() The dotenv_values() modified the environment variables. My assumption is that it doesn't do that. If you see this, please report it as a bug.")
             logger.error(f"PlanExeDotEnv.load() The dotenv_values() modified the environment variables. count before: {len(env_before)}, count after: {len(os.environ)}")
@@ -43,9 +49,7 @@ class PlanExeDotEnv:
         )
 
     def update_os_environ(self):
-        """
-        Update the os.environ with the .env file content.
-        """
+        """Update os.environ with the resolved environment values."""
         count_before = len(os.environ)
         os.environ.update(self.dotenv_dict)
         count_after = len(os.environ)

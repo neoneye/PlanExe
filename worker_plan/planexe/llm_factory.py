@@ -145,7 +145,7 @@ def get_llm(llm_name: Optional[str] = None, **kwargs: Any) -> LLM:
     Returns an LLM instance based on the config.json file or a fallback default.
 
     :param llm_name: The name/key of the LLM to instantiate.
-                     If None, falls back to DEFAULT_LLM in .env (or 'ollama-llama3.1').
+                     If None, falls back to DEFAULT_LLM from the environment/.env (or 'ollama-llama3.1').
     :param kwargs: Additional keyword arguments to override default model parameters.
     :return: An instance of a LlamaIndex LLM class.
     """
