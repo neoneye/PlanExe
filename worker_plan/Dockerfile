@@ -12,11 +12,8 @@ WORKDIR /app
 COPY worker_plan /app/worker_plan
 COPY README.md llm_config.json .env.example /app/
 
-# Install PlanExe worker. Use a pip cache mount to reduce layer size and avoid temp space issues.
-RUN --mount=type=cache,target=/root/.cache/pip \
-    TMPDIR=/root/.cache/pip/tmp \
-    pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir --prefer-binary --editable ./worker_plan
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir --prefer-binary /app/worker_plan
 
 # Default location for generated plans
 RUN mkdir -p /app/run
