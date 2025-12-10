@@ -7,6 +7,23 @@
 - An pilot project for a [Human as-a Service](https://neoneye.github.io/PlanExe-web/20251012_human_as_a_service_protocol_report.html).
 - See more [examples here](https://neoneye.github.io/PlanExe-web/examples/).
 
+### What is PlanExe?
+
+PlanExe is an open-source tool, that turns a single plain-english goal statement into a 40-page, strategic plan in ~15 minutes using a local or cloud models. It's an accelerator for outlines, but no silver bullet for polished plans.
+
+Typical output contains:
+- Executive summary
+- Gantt chart
+- Governance structure
+- Role descriptions
+- Stakeholder maps
+- Risk registers
+- SWOT analyses
+
+The technical quality of structure, formatting, and coherence is consistently excellent—often superior to human junior/mid-tier consulting drafts. However, budgets remain headline-only, timelines contain errors, metrics are usually vague, and legal/operational realism is weak on high-stakes topics. A usable, client-ready version still requires weeks to months of skilled human refinement.
+
+PlanExe removes 70–90 % of the labor for the planning scaffold on any topic, legal or illegal, but the final 10–30 % that separates a polished document from a credible, defensible plan remains human-only work.
+
 ---
 
 <details>
