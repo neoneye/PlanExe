@@ -2,14 +2,17 @@ import logging
 import os
 import subprocess
 import sys
+import tempfile
 import threading
 import time
+import zipfile
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Literal, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from worker_plan_api.filenames import FilenameEnum
@@ -246,6 +249,58 @@ def run_files(run_id: str) -> RunFilesResponse:
         raise HTTPException(status_code=500, detail=f"Unable to list files: {exc}") from exc
 
     return RunFilesResponse(run_id=run_id, run_dir=str(run_dir), files=files)
+
+
+def create_zip_for_run(run_dir: Path) -> Path:
+    """
+    Create a temporary zip of a run directory (skipping log.txt) and return the path.
+    Caller is responsible for cleanup of the returned file.
+    """
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run directory does not exist: {run_dir}")
+
+    fd, tmp_path = tempfile.mkstemp(prefix=f"{run_dir.name}_", suffix=".zip")
+    os.close(fd)
+    try:
+        with zipfile.ZipFile(tmp_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for root, _, files in os.walk(run_dir):
+                for file in files:
+                    if file == "log.txt":
+                        continue
+                    file_path = Path(root) / file
+                    zipf.write(file_path, file_path.relative_to(run_dir))
+    except Exception as exc:
+        try:
+            os.remove(tmp_path)
+        except Exception:
+            pass
+        logger.warning("Error creating zip for run dir %s: %s", run_dir, exc)
+        raise HTTPException(status_code=500, detail=f"Unable to create zip: {exc}") from exc
+
+    return Path(tmp_path)
+
+
+@app.get("/runs/{run_id}/zip")
+def run_zip(run_id: str, background_tasks: BackgroundTasks) -> FileResponse:
+    run_dir = (RUN_BASE_PATH / run_id).resolve()
+    if not run_dir.is_relative_to(RUN_BASE_PATH):
+        raise HTTPException(status_code=400, detail="Invalid run directory.")
+
+    try:
+        zip_path = create_zip_for_run(run_dir)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.warning("Unexpected error creating zip for run %s: %s", run_id, exc)
+        raise HTTPException(status_code=500, detail="Unable to create zip.") from exc
+
+    background_tasks.add_task(zip_path.unlink, missing_ok=True)
+    return FileResponse(
+        path=zip_path,
+        media_type="application/zip",
+        filename=f"{run_id}.zip",
+        background=background_tasks,
+    )
 
 
 @app.get("/llm-info", response_model=LLMInfo)

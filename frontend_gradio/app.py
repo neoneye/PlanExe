@@ -12,10 +12,10 @@ import json
 import logging
 import os
 import sys
+import tempfile
 import threading
 import time
 from worker_plan_api.llm_info import LLMInfo, OllamaStatus
-from create_zip_archive import create_zip_archive
 from worker_plan_api.generate_run_id import RUN_ID_PREFIX
 from worker_plan_api.speedvsdetail import SpeedVsDetailEnum
 from worker_plan_api.prompt_catalog import PromptCatalog
@@ -103,6 +103,35 @@ def fetch_run_files(run_id: str) -> tuple[Optional[list[str]], Optional[str]]:
         return None, f"Unable to fetch files: {exc}"
 
 
+def fetch_run_zip(run_id: str, existing_zip_path: Optional[str]) -> tuple[Optional[str], Optional[str]]:
+    """
+    Fetch a fresh zip from worker_plan, replace the existing temp zip if any,
+    and return the local path plus an optional error message.
+    """
+    try:
+        zip_bytes = worker_client.download_run_zip(run_id)
+    except httpx.HTTPStatusError as exc:
+        status_code = exc.response.status_code if exc.response else "unknown"
+        return existing_zip_path, f"Failed to create zip (status {status_code})."
+    except Exception as exc:
+        return existing_zip_path, f"Failed to create zip: {exc}"
+
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, prefix=f"{run_id}_", suffix=".zip") as tmp_file:
+            tmp_file.write(zip_bytes)
+            tmp_path = tmp_file.name
+    except Exception as exc:
+        return existing_zip_path, f"Unable to save zip: {exc}"
+
+    if existing_zip_path and os.path.exists(existing_zip_path):
+        try:
+            os.remove(existing_zip_path)
+        except Exception:
+            pass
+
+    return tmp_path, None
+
+
 class WorkerClient:
     def __init__(self, base_url: str, timeout_seconds: float):
         self.base_url = base_url.rstrip("/")
@@ -132,6 +161,11 @@ class WorkerClient:
         response = self.client.get(f"/runs/{run_id}/files")
         response.raise_for_status()
         return response.json()
+
+    def download_run_zip(self, run_id: str) -> bytes:
+        response = self.client.get(f"/runs/{run_id}/zip")
+        response.raise_for_status()
+        return response.content
 
 
 worker_client = WorkerClient(WORKER_PLAN_URL, WORKER_PLAN_TIMEOUT_SECONDS)
@@ -361,7 +395,8 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
     start_time = time.perf_counter()
     # Initialize the last zip creation time to be ZIP_INTERVAL_SECONDS in the past
     last_zip_time = time.time() - ZIP_INTERVAL_SECONDS
-    most_recent_zip_file = None
+    current_zip_path: Optional[str] = None
+    zip_error: Optional[str] = None
 
     # Poll the output directory every second.
     status_response = None
@@ -392,10 +427,7 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
             markdown_builder.status("Process terminated by user.")
             markdown_builder.path_to_run_dir(display_run_dir)
             markdown_builder.list_files(files, files_error)
-            zip_file_path = create_zip_archive(run_path) if os.path.exists(run_path) else None
-            if zip_file_path:
-                most_recent_zip_file = zip_file_path
-            yield markdown_builder.to_markdown(), most_recent_zip_file, session_state
+            yield markdown_builder.to_markdown(), gr.update(value=current_zip_path), session_state
             break
 
         last_update = ceil(time_since_last_modification(run_path)) if os.path.exists(run_path) else 0
@@ -407,15 +439,15 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
         markdown_builder.path_to_run_dir(display_run_dir)
         markdown_builder.list_files(files, files_error)
 
-        # Create a new zip archive every ZIP_INTERVAL_SECONDS seconds.
+        # Periodic zip refresh.
         current_time = time.time()
         if current_time - last_zip_time >= ZIP_INTERVAL_SECONDS:
-            zip_file_path = create_zip_archive(run_path) if os.path.exists(run_path) else None
-            if zip_file_path:
-                most_recent_zip_file = zip_file_path
+            current_zip_path, zip_error = fetch_run_zip(run_id, current_zip_path)
             last_zip_time = current_time
+            if zip_error:
+                markdown_builder.add_line(f"Zip status: {zip_error}")
 
-        yield markdown_builder.to_markdown(), most_recent_zip_file, session_state
+        yield markdown_builder.to_markdown(), gr.update(value=current_zip_path), session_state
 
         # If the pipeline complete file is found, finish streaming.
         if pipeline_complete:
@@ -454,12 +486,12 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
     files, files_error = fetch_run_files(run_id)
     markdown_builder.list_files(files, files_error)
 
-    # Create zip archive
-    zip_file_path = create_zip_archive(run_path) if os.path.exists(run_path) else None
-    if zip_file_path:
-        most_recent_zip_file = zip_file_path
+    # Final zip refresh.
+    current_zip_path, zip_error = fetch_run_zip(run_id, current_zip_path)
+    if zip_error:
+        markdown_builder.add_line(f"Zip status: {zip_error}")
 
-    yield markdown_builder.to_markdown(), most_recent_zip_file, session_state
+    yield markdown_builder.to_markdown(), gr.update(value=current_zip_path), session_state
 
 def stop_planner(session_state: SessionState):
     """
@@ -480,6 +512,7 @@ def stop_planner(session_state: SessionState):
         msg = f"Error terminating process: {e}"
 
     return msg, session_state
+
 
 def open_output_dir(session_state: SessionState):
     """
@@ -624,6 +657,7 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
         inputs=session_state,
         outputs=[status_markdown, session_state]
     )
+    # The download file value is updated by run_planner generator outputs.
 
     # Unified change callbacks for settings.
     openrouter_api_key_text.change(
