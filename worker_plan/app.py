@@ -69,6 +69,12 @@ class RunStatusResponse(BaseModel):
     stop_requested: bool
 
 
+class RunFilesResponse(BaseModel):
+    run_id: str
+    run_dir: str
+    files: list[str] = Field(default_factory=list)
+
+
 @dataclass
 class RunProcessInfo:
     run_id: str
@@ -221,6 +227,25 @@ def run_status(run_id: str) -> RunStatusResponse:
         pipeline_complete=pipeline_complete,
         stop_requested=stop_requested,
     )
+
+
+@app.get("/runs/{run_id}/files", response_model=RunFilesResponse)
+def run_files(run_id: str) -> RunFilesResponse:
+    run_dir = (RUN_BASE_PATH / run_id).resolve()
+    if not run_dir.is_relative_to(RUN_BASE_PATH):
+        raise HTTPException(status_code=400, detail="Invalid run directory.")
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run directory does not exist: {run_dir}")
+
+    try:
+        files = sorted(os.listdir(run_dir))
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Run directory does not exist: {run_dir}")
+    except Exception as exc:
+        logger.warning("Unable to list files for run %s: %s", run_id, exc)
+        raise HTTPException(status_code=500, detail=f"Unable to list files: {exc}") from exc
+
+    return RunFilesResponse(run_id=run_id, run_dir=str(run_dir), files=files)
 
 
 @app.get("/llm-info", response_model=LLMInfo)

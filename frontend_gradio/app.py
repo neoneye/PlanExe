@@ -16,7 +16,6 @@ import threading
 import time
 from worker_plan_api.llm_info import LLMInfo, OllamaStatus
 from create_zip_archive import create_zip_archive
-from worker_plan_api.filenames import FilenameEnum
 from worker_plan_api.generate_run_id import RUN_ID_PREFIX
 from worker_plan_api.speedvsdetail import SpeedVsDetailEnum
 from worker_plan_api.prompt_catalog import PromptCatalog
@@ -85,17 +84,23 @@ gradio_examples = []
 for prompt_item in all_prompts:
     gradio_examples.append([prompt_item.prompt])
 
-def has_pipeline_complete_file(path_dir: str) -> bool:
+def fetch_run_files(run_id: str) -> tuple[Optional[list[str]], Optional[str]]:
     """
-    Checks if the pipeline has completed by looking for the completion file.
+    Fetch the current list of output files for a run from worker_plan.
+    Returns a tuple of (files, error_message).
     """
-    if not os.path.exists(path_dir):
-        return False
+    if not run_id:
+        return None, "No run_id available yet."
     try:
-        files = os.listdir(path_dir)
-    except FileNotFoundError:
-        return False
-    return FilenameEnum.PIPELINE_COMPLETE.value in files
+        response = worker_client.list_run_files(run_id)
+        return response.get("files", []), None
+    except httpx.HTTPStatusError as exc:
+        status_code = exc.response.status_code if exc.response else "unknown"
+        if status_code == 404:
+            return None, "Output directory not available yet."
+        return None, f"Unable to fetch files (status {status_code})."
+    except Exception as exc:
+        return None, f"Unable to fetch files: {exc}"
 
 
 class WorkerClient:
@@ -120,6 +125,11 @@ class WorkerClient:
 
     def get_status(self, run_id: str) -> dict:
         response = self.client.get(f"/runs/{run_id}")
+        response.raise_for_status()
+        return response.json()
+
+    def list_run_files(self, run_id: str) -> dict:
+        response = self.client.get(f"/runs/{run_id}/files")
         response.raise_for_status()
         return response.json()
 
@@ -186,17 +196,17 @@ class MarkdownBuilder:
         self.add_line("### Output dir")
         self.add_code_block(absolute_path_to_run_dir)
 
-    def list_files(self, path_dir: str):
+    def list_files(self, files: Optional[list[str]], error_message: Optional[str] = None):
         self.add_line("### Output files")
-        if not os.path.exists(path_dir):
+        if error_message:
+            self.add_code_block(error_message)
+            return
+        if files is None:
             self.add_code_block("Output directory not available yet.")
             return
-        try:
-            files = os.listdir(path_dir)
-        except Exception as exc:
-            self.add_code_block(f"Unable to list files: {exc}")
+        if len(files) == 0:
+            self.add_code_block("No files found.")
             return
-        files.sort()
         filenames = "\n".join(files)
         self.add_code_block(filenames)
 
@@ -307,8 +317,6 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
         session_state.latest_run_dir_container = absolute_container_run_dir
         session_state.latest_run_dir_display = display_run_dir
         print(f"Retrying the run with ID: {run_id}")
-        if not os.path.exists(run_path):
-            raise Exception(f"The run path is supposed to exist from an earlier run. However the no run path exists: {run_path}")
 
     # Create a SpeedVsDetailEnum instance from the session_state.speedvsdetail.
     # Sporadic I have experienced that session_state.speedvsdetail is a string and other times it's a SpeedVsDetailEnum.
@@ -356,6 +364,8 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
     most_recent_zip_file = None
 
     # Poll the output directory every second.
+    status_response = None
+    pipeline_complete = False
     while True:
         try:
             status_response = worker_client.get_status(run_id)
@@ -363,8 +373,9 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
             logger.warning(f"Failed to fetch status for run_id={run_id}: {exc}")
             status_response = None
 
-        pipeline_complete = has_pipeline_complete_file(run_path)
+        pipeline_complete = status_response.get("pipeline_complete", False) if status_response else False
         running = status_response.get("running", True) if status_response else True
+        files, files_error = fetch_run_files(run_id)
 
         # print("running...")
         end_time = time.perf_counter()
@@ -380,8 +391,7 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
             markdown_builder = MarkdownBuilder()
             markdown_builder.status("Process terminated by user.")
             markdown_builder.path_to_run_dir(display_run_dir)
-            if os.path.exists(run_path):
-                markdown_builder.list_files(run_path)
+            markdown_builder.list_files(files, files_error)
             zip_file_path = create_zip_archive(run_path) if os.path.exists(run_path) else None
             if zip_file_path:
                 most_recent_zip_file = zip_file_path
@@ -395,10 +405,7 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
         else:
             markdown_builder.status(f"Process inactive. {duration} seconds elapsed. Last output update was {last_update} seconds ago.")
         markdown_builder.path_to_run_dir(display_run_dir)
-        if os.path.exists(run_path):
-            markdown_builder.list_files(run_path)
-        else:
-            markdown_builder.add_line("Output directory not created yet.")
+        markdown_builder.list_files(files, files_error)
 
         # Create a new zip archive every ZIP_INTERVAL_SECONDS seconds.
         current_time = time.time()
@@ -428,13 +435,14 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
         status_response = None
 
     returncode = status_response.get("returncode") if status_response else None
+    pipeline_complete = status_response.get("pipeline_complete", pipeline_complete) if status_response else pipeline_complete
 
     # Process has completed.
     end_time = time.perf_counter()
     duration = int(ceil(end_time - start_time))
     print(f"Process ended. returncode: {returncode}. Run ID: {run_id}. Duration: {duration} seconds.")
 
-    if has_pipeline_complete_file(run_path):
+    if pipeline_complete:
         status_message = "Completed."
     else:
         status_message = "Stopped prematurely, the output may be incomplete."
@@ -443,7 +451,8 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
     markdown_builder = MarkdownBuilder()
     markdown_builder.status(f"{status_message} {duration} seconds elapsed.")
     markdown_builder.path_to_run_dir(display_run_dir)
-    markdown_builder.list_files(run_path)
+    files, files_error = fetch_run_files(run_id)
+    markdown_builder.list_files(files, files_error)
 
     # Create zip archive
     zip_file_path = create_zip_archive(run_path) if os.path.exists(run_path) else None
