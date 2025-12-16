@@ -1,13 +1,23 @@
 # PlanExe
 
-**What does PlanExe do:** Turn your idea into a comprehensive plan in minutes, not months.
+<p align="center">
+  <img src="extra/planexe-humanoid-factory.gif?raw=true" alt="PlanExe - Turn your idea into a comprehensive plan in minutes, not months." width="700">
+</p>
+
+<p align="center">
+  <strong>Turn your idea into a comprehensive plan in minutes, not months.</strong>
+</p>
+
+---
+
+## Example plans generated with PlanExe
 
 - A business plan for a [Minecraft-themed escape room](https://neoneye.github.io/PlanExe-web/20251016_minecraft_escape_report.html).
 - A business plan for a [Faraday cage manufacturing company](https://neoneye.github.io/PlanExe-web/20250720_faraday_enclosure_report.html).
 - A pilot project for a [Human as-a Service](https://neoneye.github.io/PlanExe-web/20251012_human_as_a_service_protocol_report.html).
 - See more [examples here](https://neoneye.github.io/PlanExe-web/examples/).
 
-### What is PlanExe?
+## What is PlanExe?
 
 PlanExe is an open-source tool, that turns a single plain-english goal statement into a 40-page, strategic plan in ~15 minutes using a local or cloud models. It's an accelerator for outlines, but no silver bullet for polished plans.
 
@@ -86,9 +96,7 @@ To stop the server at any time, press `Ctrl+C` in your terminal.
 
 <br>
 
-You input a vague description of what you want and PlanExe outputs a plan. [See generated plans here](https://neoneye.github.io/PlanExe-web/use-cases/).
-
-![Video of PlanExe](/extra/planexe-humanoid-factory.gif?raw=true "Video of PlanExe")
+You input a vague description of what you want and PlanExe outputs a plan.
 
 [YouTube video: Using PlanExe to plan a lunar base](https://www.youtube.com/watch?v=7AM2F1C4CGI)
 
