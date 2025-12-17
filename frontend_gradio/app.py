@@ -19,7 +19,6 @@ from worker_plan_api.llm_info import LLMInfo, OllamaStatus
 from worker_plan_api.generate_run_id import RUN_ID_PREFIX
 from worker_plan_api.speedvsdetail import SpeedVsDetailEnum
 from worker_plan_api.prompt_catalog import PromptCatalog
-from purge_old_runs import start_purge_scheduler
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -39,7 +38,6 @@ class Config:
     visible_openrouter_api_key_textbox: bool
     allow_only_openrouter_models: bool
     run_planner_check_api_key_is_provided: bool
-    enable_purge_old_runs: bool
     browser_state_secret: str
 
 CONFIG_LOCAL = Config(
@@ -50,7 +48,6 @@ CONFIG_LOCAL = Config(
     visible_llm_info=True,
     allow_only_openrouter_models=False,
     run_planner_check_api_key_is_provided=False,
-    enable_purge_old_runs=False,
     browser_state_secret="insert-your-secret-here",
 )
 CONFIG = CONFIG_LOCAL
@@ -165,6 +162,16 @@ class WorkerClient:
         response = self.client.get(f"/runs/{run_id}/zip")
         response.raise_for_status()
         return response.content
+
+    def purge_runs(self, max_age_hours: Optional[float] = None, prefix: Optional[str] = None) -> dict:
+        payload = {}
+        if max_age_hours is not None:
+            payload["max_age_hours"] = max_age_hours
+        if prefix is not None:
+            payload["prefix"] = prefix
+        response = self.client.post("/purge-runs", json=payload)
+        response.raise_for_status()
+        return response.json()
 
 
 worker_client = WorkerClient(WORKER_PLAN_URL, WORKER_PLAN_TIMEOUT_SECONDS)
@@ -540,6 +547,22 @@ def open_output_dir(session_state: SessionState):
         parts.append(mac_hint)
     return "\n\n".join(parts), session_state
 
+
+def trigger_purge_runs(max_age_hours, prefix, session_state: SessionState):
+    """
+    Calls the worker to purge old runs on demand.
+    """
+    try:
+        response = worker_client.purge_runs(max_age_hours=max_age_hours, prefix=prefix or None)
+        msg = response.get("message", "Purge requested.")
+    except httpx.HTTPStatusError as exc:
+        status_code = exc.response.status_code if exc.response else "unknown"
+        msg = f"Failed to purge runs (status {status_code})."
+    except Exception as exc:
+        msg = f"Failed to purge runs: {exc}"
+    return msg, session_state
+
+
 def check_api_key(session_state: SessionState):
     """Checks if the API key is provided and returns a warning if not."""
     if CONFIG.visible_openrouter_api_key_textbox and (not session_state.openrouter_api_key or len(session_state.openrouter_api_key) == 0):
@@ -611,6 +634,23 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
             info="Sign up at [OpenRouter](https://openrouter.ai/) to get an API key. A small top-up (e.g. 5 USD) is needed to access paid models.",
             visible=CONFIG.visible_openrouter_api_key_textbox
         )
+
+    with gr.Tab("Advanced"):
+        gr.Markdown("Trigger a manual purge of old `PlanExe_TIMESTAMP` dirs from the run directory.")
+        purge_max_age_hours = gr.Number(
+            label="Max age (hours). Dirs older than this will be purged.",
+            value=24,
+            minimum=1,
+            maximum=240,
+            precision=2,
+        )
+        purge_prefix = gr.Textbox(
+            label="Run prefix to purge. Only dirs with this prefix will be purged.",
+            value=RUN_ID_PREFIX,
+            placeholder="Prefix to match, leave empty to use worker default",
+        )
+        purge_button = gr.Button("Purge old runs now")
+        purge_status = gr.Markdown("")
 
     with gr.Tab("Join the community"):
         gr.Markdown("""
@@ -690,6 +730,12 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
         outputs=[api_key_warning]
     )
 
+    purge_button.click(
+        fn=trigger_purge_runs,
+        inputs=[purge_max_age_hours, purge_prefix, session_state],
+        outputs=[purge_status, session_state]
+    )
+
     # Initialize settings on load from persistent browser_state.
     demo_text2plan.load(
         fn=initialize_browser_settings,
@@ -702,9 +748,6 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
     )
 
 def run_app():
-    if CONFIG.enable_purge_old_runs:
-        start_purge_scheduler(run_dir=os.path.abspath(RUN_DIR), purge_interval_seconds=60*60, prefix=RUN_ID_PREFIX)
-
     # print("Environment variables Gradio:\n" + get_env_as_string() + "\n\n\n")
 
     print("Press Ctrl+C to exit.")

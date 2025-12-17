@@ -1,11 +1,12 @@
+import datetime
 import logging
 import os
 import shutil
-import datetime
 import threading
 import time
 
 logger = logging.getLogger(__name__)
+
 
 def purge_old_runs(run_dir: str, max_age_hours: float = 1.0, prefix: str = "myrun_") -> None:
     """
@@ -13,11 +14,11 @@ def purge_old_runs(run_dir: str, max_age_hours: float = 1.0, prefix: str = "myru
     """
     if not os.path.isabs(run_dir):
         raise ValueError(f"run_dir must be an absolute path: {run_dir}")
-    
+
     if not os.path.exists(run_dir):
         logger.error(f"run_dir does not exist: {run_dir} -- skipping purge")
         return
-    
+
     logger.info("Running purge...")
     now = datetime.datetime.now()
     cutoff = now - datetime.timedelta(hours=max_age_hours)
@@ -51,13 +52,31 @@ def purge_old_runs(run_dir: str, max_age_hours: float = 1.0, prefix: str = "myru
         except Exception as e:
             logger.error(f"Error processing {item} in {run_dir}: {e}")
             count_error += 1
-    logger.info(f"Purge complete: {count_deleted} deleted, {count_skip_recent} skipped (recent), {count_skip_without_prefix} skipped (no prefix), {count_error} errors")
+    logger.info(
+        "Purge complete: %s deleted, %s skipped (recent), %s skipped (no prefix), %s errors",
+        count_deleted,
+        count_skip_recent,
+        count_skip_without_prefix,
+        count_error,
+    )
 
-def start_purge_scheduler(run_dir: str, purge_interval_seconds: float = 3600, prefix: str = "myrun_") -> None:
+
+def start_purge_scheduler(
+    run_dir: str,
+    purge_interval_seconds: float = 3600,
+    max_age_hours: float = 1.0,
+    prefix: str = "myrun_",
+) -> None:
     """
     Start the purge scheduler in a background thread.
     """
-    logger.info(f"Starting purge scheduler for {run_dir} every {purge_interval_seconds} seconds. Prefix: {prefix}")
+    logger.info(
+        "Starting purge scheduler for %s every %s seconds. Prefix: %s. Max age hours: %s",
+        run_dir,
+        purge_interval_seconds,
+        prefix,
+        max_age_hours,
+    )
 
     if not os.path.isabs(run_dir):
         raise ValueError(f"run_dir must be an absolute path: {run_dir}")
@@ -67,7 +86,7 @@ def start_purge_scheduler(run_dir: str, purge_interval_seconds: float = 3600, pr
         Schedules the purge_old_runs function to run periodically.
         """
         while True:
-            purge_old_runs(run_dir, prefix=prefix)
+            purge_old_runs(run_dir, max_age_hours=max_age_hours, prefix=prefix)
             time.sleep(purge_interval_seconds)
 
     purge_thread = threading.Thread(target=purge_scheduler, daemon=True)

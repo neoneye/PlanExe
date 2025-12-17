@@ -16,13 +16,14 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from worker_plan_api.filenames import FilenameEnum
-from worker_plan_api.generate_run_id import generate_run_id
+from worker_plan_api.generate_run_id import RUN_ID_PREFIX, generate_run_id
 from worker_plan_api.llm_info import LLMInfo
 from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
 from planexe.plan.plan_file import PlanFile
 from planexe.plan.start_time import StartTime
 from planexe.llm_factory import obtain_llm_info
 from worker_plan.time_since_last_modification import time_since_last_modification
+from worker_plan.purge_old_runs import purge_old_runs, start_purge_scheduler
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -35,6 +36,10 @@ MODULE_PATH_PIPELINE = "planexe.plan.run_plan_pipeline"
 RUN_BASE_PATH = Path(os.environ.get("PLANEXE_RUN_DIR", "run")).resolve()
 RELAY_PROCESS_OUTPUT = os.environ.get("WORKER_RELAY_PROCESS_OUTPUT", "false").lower() == "true"
 APP_ROOT = Path(os.environ.get("PLANEXE_CONFIG_PATH", Path(".").resolve())).resolve()
+PURGE_ENABLED = os.environ.get("PLANEXE_PURGE_ENABLED", "false").lower() == "true"
+PURGE_MAX_AGE_HOURS = float(os.environ.get("PLANEXE_PURGE_MAX_AGE_HOURS", "1"))
+PURGE_INTERVAL_SECONDS = float(os.environ.get("PLANEXE_PURGE_INTERVAL_SECONDS", "3600"))
+PURGE_PREFIX = os.environ.get("PLANEXE_PURGE_RUN_PREFIX", RUN_ID_PREFIX)
 
 RUN_BASE_PATH.mkdir(parents=True, exist_ok=True)
 
@@ -78,6 +83,16 @@ class RunFilesResponse(BaseModel):
     run_id: str
     run_dir: str
     files: list[str] = Field(default_factory=list)
+
+
+class PurgeRunsRequest(BaseModel):
+    max_age_hours: Optional[float] = Field(None, description="Delete runs older than this many hours.")
+    prefix: Optional[str] = Field(None, description="Only purge runs with this prefix.")
+
+
+class PurgeRunsResponse(BaseModel):
+    status: str
+    message: str
 
 
 @dataclass
@@ -312,9 +327,45 @@ def llm_info() -> LLMInfo:
     return obtain_llm_info()
 
 
+@app.post("/purge-runs", response_model=PurgeRunsResponse)
+def purge_runs(request: PurgeRunsRequest) -> PurgeRunsResponse:
+    purge_prefix = request.prefix if request.prefix is not None else PURGE_PREFIX
+    max_age_hours = request.max_age_hours if request.max_age_hours is not None else PURGE_MAX_AGE_HOURS
+
+    try:
+        purge_old_runs(str(RUN_BASE_PATH), max_age_hours=max_age_hours, prefix=purge_prefix)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.warning("Unexpected error during purge: %s", exc)
+        raise HTTPException(status_code=500, detail="Unable to purge runs.") from exc
+
+    return PurgeRunsResponse(
+        status="ok",
+        message=f"Purged runs older than {max_age_hours} hours with prefix '{purge_prefix}'.",
+    )
+
+
 @app.get("/healthz")
 def healthcheck() -> dict:
     return {"status": "ok", "run_base_path": str(RUN_BASE_PATH)}
+
+
+@app.on_event("startup")
+def start_background_tasks() -> None:
+    if not PURGE_ENABLED:
+        logger.info("Purge scheduler disabled. Set PLANEXE_PURGE_ENABLED=true to enable.")
+        return
+
+    try:
+        start_purge_scheduler(
+            run_dir=str(RUN_BASE_PATH),
+            purge_interval_seconds=PURGE_INTERVAL_SECONDS,
+            max_age_hours=PURGE_MAX_AGE_HOURS,
+            prefix=PURGE_PREFIX,
+        )
+    except Exception as exc:
+        logger.warning("Unable to start purge scheduler: %s", exc)
 
 
 if __name__ == "__main__":
