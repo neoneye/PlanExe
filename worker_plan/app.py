@@ -22,6 +22,7 @@ from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
 from planexe.plan.plan_file import PlanFile
 from planexe.plan.start_time import StartTime
 from planexe.llm_factory import obtain_llm_info
+from worker_plan.time_since_last_modification import time_since_last_modification
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -70,6 +71,7 @@ class RunStatusResponse(BaseModel):
     returncode: Optional[int]
     pipeline_complete: bool
     stop_requested: bool
+    last_update_seconds_ago: Optional[float]
 
 
 class RunFilesResponse(BaseModel):
@@ -206,6 +208,7 @@ def stop_run(run_id: str) -> StopRunResponse:
 def run_status(run_id: str) -> RunStatusResponse:
     run_dir = (RUN_BASE_PATH / run_id).resolve()
     pipeline_complete = has_pipeline_complete_file(run_dir)
+    last_update_seconds_ago = time_since_last_modification(run_dir)
 
     with process_lock:
         info = process_store.get(run_id)
@@ -229,6 +232,7 @@ def run_status(run_id: str) -> RunStatusResponse:
         returncode=returncode,
         pipeline_complete=pipeline_complete,
         stop_requested=stop_requested,
+        last_update_seconds_ago=last_update_seconds_ago,
     )
 
 

@@ -20,7 +20,6 @@ from worker_plan_api.generate_run_id import RUN_ID_PREFIX
 from worker_plan_api.speedvsdetail import SpeedVsDetailEnum
 from worker_plan_api.prompt_catalog import PromptCatalog
 from purge_old_runs import start_purge_scheduler
-from time_since_last_modification import time_since_last_modification
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -430,7 +429,8 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
             yield markdown_builder.to_markdown(), gr.update(value=current_zip_path), session_state
             break
 
-        last_update = ceil(time_since_last_modification(run_path)) if os.path.exists(run_path) else 0
+        last_update_raw = status_response.get("last_update_seconds_ago") if status_response else None
+        last_update = ceil(last_update_raw) if last_update_raw is not None else 0
         markdown_builder = MarkdownBuilder()
         if running or pipeline_complete:
             markdown_builder.status(f"Working. {duration} seconds elapsed. Last output update was {last_update} seconds ago.")
