@@ -29,3 +29,34 @@ Environment notes
 -----------------
 - The worker exports logs to stdout when `WORKER_RELAY_PROCESS_OUTPUT=true` (set in `docker-compose.yml`).
 - Shared volumes: `./run` is mounted into both services; `.env` and `llm_config.json` are mounted read-only. Ensure they exist on the host before starting.***
+
+One-shot env setup (avoid manual exports)
+----------------------------------------
+Run once per terminal session to emit exports for `PLANEXE_OPEN_DIR_SERVER_URL` and related values:
+```bash
+eval "$(python setup_env.py)"
+```
+This keeps `.env` reserved for secrets while still seeding the shell for Docker commands.
+
+Host opener (Open Output Dir)
+-----------------------------
+Because Docker containers cannot launch host apps, the `Open Output Dir` button needs a host-side service:
+
+1) Start host opener **before** Docker (on the host):
+```bash
+eval "$(python setup_env.py)"
+cd open_dir_server
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python app.py
+```
+2) Configure the frontend container to call it:
+- Set `PLANEXE_OPEN_DIR_SERVER_URL` so the container can reach the host opener (containers cannot guess this URL):
+  - macOS/Windows (Docker Desktop): `http://host.docker.internal:5100`
+  - Linux: often `http://172.17.0.1:5100` or add `host.docker.internal` in `/etc/hosts` pointing to the docker bridge IP.
+  - If you override host/port for the opener, reflect that in the URL.
+- Provide the variable via your shell env, `.env`, or docker compose environment for `frontend_gradio`.
+  - macOS (zsh default shell): `export PLANEXE_OPEN_DIR_SERVER_URL=http://host.docker.internal:5100` then `docker compose up`
+  - macOS example (`.env`): add `PLANEXE_OPEN_DIR_SERVER_URL=http://host.docker.internal:5100` then `docker compose up`
+

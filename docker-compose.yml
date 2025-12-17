@@ -51,6 +51,7 @@ services:
       PLANEXE_HOST_RUN_DIR: ${PLANEXE_HOST_RUN_DIR:-${PWD}/run}
       PLANEXE_RUN_DIR: /app/run
       WORKER_PLAN_URL: ${WORKER_PLAN_URL:-http://worker_plan:8000}
+      PLANEXE_OPEN_DIR_SERVER_URL: ${PLANEXE_OPEN_DIR_SERVER_URL:-}
     ports:
       - "7860:7860"
     volumes:

@@ -62,6 +62,7 @@ WORKER_PLAN_URL = os.environ.get("WORKER_PLAN_URL", "http://worker_plan:8000")
 WORKER_PLAN_TIMEOUT_SECONDS = float(os.environ.get("WORKER_PLAN_TIMEOUT", "30"))
 GRADIO_SERVER_NAME = os.environ.get("GRADIO_SERVER_NAME", "0.0.0.0")
 GRADIO_SERVER_PORT = int(os.environ.get("PORT", os.environ.get("GRADIO_SERVER_PORT", "7860")))
+OPEN_DIR_SERVER_URL = os.environ.get("PLANEXE_OPEN_DIR_SERVER_URL")
 
 # Load prompt catalog and examples.
 prompt_catalog = PromptCatalog()
@@ -524,27 +525,56 @@ def stop_planner(session_state: SessionState):
 def open_output_dir(session_state: SessionState):
     """
     Presents a host-visible path (and clickable link) to the latest output directory.
-    Note: containers cannot launch host-native file explorers; users must open manually.
+    If a host opener service is configured, it requests the host to open the path; otherwise it shows manual instructions.
     """
 
     container_run_dir = session_state.latest_run_dir_container
     display_run_dir = session_state.latest_run_dir_display or container_run_dir
 
-    if not container_run_dir or not os.path.exists(container_run_dir):
+    if not container_run_dir:
+        return "No plan has been submitted, cannot open dir.", session_state
+
+    if not os.path.exists(container_run_dir):
         return "No output directory available.", session_state
 
     open_path = display_run_dir or container_run_dir
-    try:
-        file_uri = Path(open_path).resolve().as_uri()
-    except Exception:
-        file_uri = None
+    parts = []
+    opener_succeeded = False
 
-    # Browsers often block file:// links; provide explicit instructions.
-    mac_hint = f'Run on host: `open "{open_path}"`' if sys.platform == "darwin" else ""
-    link_part = f"[{open_path}]({file_uri})" if file_uri else open_path
-    parts = [f"Open manually: {link_part}"]
-    if mac_hint:
-        parts.append(mac_hint)
+    # Attempt to ask the host opener service (running outside Docker) to open the path.
+    if OPEN_DIR_SERVER_URL:
+        try:
+            response = httpx.post(f"{OPEN_DIR_SERVER_URL.rstrip('/')}/open", json={"path": open_path})
+            response.raise_for_status()
+            data = response.json()
+            msg = data.get("message", "Requested host to open directory.")
+            parts.append(msg)
+            opener_succeeded = True
+        except httpx.HTTPStatusError as exc:
+            status_code = exc.response.status_code if exc.response else "unknown"
+            error_detail = None
+            try:
+                error_payload = exc.response.json()
+                error_detail = error_payload.get("message")
+            except Exception:
+                pass
+            detail_msg = f" ({error_detail})" if error_detail else ""
+            parts.append(f"Host opener error (status {status_code}){detail_msg}.")
+        except Exception as exc:
+            parts.append(f"Failed to contact host opener: {exc}")
+    else:
+        parts.append("Host opener service not configured (set PLANEXE_OPEN_DIR_SERVER_URL).")
+
+    # Include manual instructions only when the opener is not available or failed.
+    if not opener_succeeded:
+        try:
+            file_uri = Path(open_path).resolve().as_uri()
+        except Exception:
+            file_uri = None
+
+        link_part = f"[{open_path}]({file_uri})" if file_uri else open_path
+        parts.append(f"Open manually: {link_part}")
+
     return "\n\n".join(parts), session_state
 
 
