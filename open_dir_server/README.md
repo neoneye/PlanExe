@@ -10,6 +10,7 @@
 
 ## Setup (virtual environment)
 ```bash
+eval "$(python setup_env.py)"
 cd open_dir_server
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
@@ -28,7 +29,8 @@ Frontend configuration:
 ## Start the server
 From `open_dir_server`:
 ```bash
-source venv/bin/activate  # if not already
+eval "$(python setup_env.py)"
+source venv/bin/activate
 python app.py
 ```
 The service will listen on `PLANEXE_OPEN_DIR_SERVER_HOST:PLANEXE_OPEN_DIR_SERVER_PORT`.
