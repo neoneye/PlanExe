@@ -60,7 +60,8 @@ ZIP_INTERVAL_SECONDS = 10
 WORKER_PLAN_URL = os.environ.get("PLANEXE_WORKER_PLAN_URL", "http://worker_plan:8000")
 WORKER_PLAN_TIMEOUT_SECONDS = float(os.environ.get("PLANEXE_WORKER_PLAN_TIMEOUT", "30"))
 GRADIO_SERVER_NAME = os.environ.get("PLANEXE_GRADIO_SERVER_NAME", "0.0.0.0")
-GRADIO_SERVER_PORT = int(os.environ.get("PLANEXE_GRADIO_SERVER_PORT", "7860"))
+# Railway and other PaaS set PORT for the ingress; fall back to the app-specific env var.
+GRADIO_SERVER_PORT = int(os.environ.get("PORT") or os.environ.get("PLANEXE_GRADIO_SERVER_PORT", "7860"))
 OPEN_DIR_SERVER_URL = os.environ.get("PLANEXE_OPEN_DIR_SERVER_URL")
 
 # Load prompt catalog and examples.
