@@ -15,11 +15,15 @@ This directory contains the PlanExe Gradio frontend.
 
 ## Password
 
+Leave `PLANEXE_PASSWORD` unset when running PlanExe on your own computer.
+
+However when running in the cloud, here you may want password protection.
+
 Set `PLANEXE_PASSWORD` to turn on Gradio’s basic auth. Example:
 
 ```bash
 export PLANEXE_PASSWORD=123
-docker compose up frontend_gradio
+docker compose up
 ```
 
-Then open the app and log in with username `user` and password `123`. Leave `PLANEXE_PASSWORD` unset for local, no-auth runs.
+Then open the app and log in with username `user` and password `123`.
