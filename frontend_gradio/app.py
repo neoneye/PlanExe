@@ -536,6 +536,13 @@ def stop_planner(session_state: SessionState):
     return msg, session_state
 
 
+def clear_status(session_state: SessionState):
+    """
+    Clears the status message area when starting a new action.
+    """
+    return "", session_state
+
+
 def open_output_dir(session_state: SessionState):
     """
     Presents a host-visible path (and clickable link) to the latest output directory.
@@ -723,6 +730,10 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
 
     # Submit and Retry buttons call run_planner and update the state.
     submit_btn.click(
+        fn=clear_status,
+        inputs=session_state,
+        outputs=[status_markdown, session_state]
+    ).then(
         fn=run_planner,
         inputs=[submit_btn, prompt_input, browser_state, session_state],
         outputs=[output_markdown, download_output, session_state]
@@ -732,6 +743,10 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
         outputs=[api_key_warning]
     )
     retry_btn.click(
+        fn=clear_status,
+        inputs=session_state,
+        outputs=[status_markdown, session_state]
+    ).then(
         fn=run_planner,
         inputs=[retry_btn, prompt_input, browser_state, session_state],
         outputs=[output_markdown, download_output, session_state]
