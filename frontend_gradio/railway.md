@@ -1,0 +1,8 @@
+# Railway Configuration
+
+```
+PLANEXE_GRADIO_SERVER_NAME="0.0.0.0"
+PLANEXE_GRADIO_SERVER_PORT="80"
+PLANEXE_CONFIG_PATH="/app"
+PLANEXE_WORKER_PLAN_URL="http://worker_plan:8000"
+```
