@@ -806,6 +806,7 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
 def run_app():
     # print("Environment variables Gradio:\n" + get_env_as_string() + "\n\n\n")
 
+    logger.info("Starting Gradio UI on %s:%s (worker=%s)", GRADIO_SERVER_NAME, GRADIO_SERVER_PORT, WORKER_PLAN_URL)
     print("Press Ctrl+C to exit.")
     demo_text2plan.launch(
         server_name=GRADIO_SERVER_NAME,
