@@ -57,10 +57,10 @@ DEFAULT_PROMPT_UUID = "4dc34d55-0d0d-4e9d-92f4-23765f49dd29"
 # Global constant for the zip creation interval (in seconds)
 ZIP_INTERVAL_SECONDS = 10
 
-WORKER_PLAN_URL = os.environ.get("WORKER_PLAN_URL", "http://worker_plan:8000")
-WORKER_PLAN_TIMEOUT_SECONDS = float(os.environ.get("WORKER_PLAN_TIMEOUT", "30"))
-GRADIO_SERVER_NAME = os.environ.get("GRADIO_SERVER_NAME", "0.0.0.0")
-GRADIO_SERVER_PORT = int(os.environ.get("PORT", os.environ.get("GRADIO_SERVER_PORT", "7860")))
+WORKER_PLAN_URL = os.environ.get("PLANEXE_WORKER_PLAN_URL", "http://worker_plan:8000")
+WORKER_PLAN_TIMEOUT_SECONDS = float(os.environ.get("PLANEXE_WORKER_PLAN_TIMEOUT", "30"))
+GRADIO_SERVER_NAME = os.environ.get("PLANEXE_GRADIO_SERVER_NAME", "0.0.0.0")
+GRADIO_SERVER_PORT = int(os.environ.get("PLANEXE_GRADIO_SERVER_PORT", "7860"))
 OPEN_DIR_SERVER_URL = os.environ.get("PLANEXE_OPEN_DIR_SERVER_URL")
 
 # Load prompt catalog and examples.

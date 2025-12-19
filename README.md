@@ -57,7 +57,7 @@ PlanExe comes with a Gradio-based web interface. To start the local web server:
 (venv) uvicorn worker_plan.app:app --host 0.0.0.0 --port 8000
 
 # Terminal 2: start the Gradio frontend (lives in ./frontend_gradio) and point it at the worker
-(venv) WORKER_PLAN_URL=http://localhost:8000 python frontend_gradio/app.py
+(venv) PLANEXE_WORKER_PLAN_URL=http://localhost:8000 python frontend_gradio/app.py
 ```
 
 This command launches a server at http://localhost:7860. Open that link in your browser, type a vague idea or description, and PlanExe will produce a detailed plan.
