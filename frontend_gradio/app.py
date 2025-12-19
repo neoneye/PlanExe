@@ -65,6 +65,7 @@ GRADIO_SERVER_PORT = int(os.environ.get("PORT") or os.environ.get("PLANEXE_GRADI
 OPEN_DIR_SERVER_URL = os.environ.get("PLANEXE_OPEN_DIR_SERVER_URL")
 GRADIO_AUTH_PASSWORD = os.environ.get("PLANEXE_PASSWORD")
 GRADIO_AUTH = ("user", GRADIO_AUTH_PASSWORD) if GRADIO_AUTH_PASSWORD else None
+OPEN_DIR_BUTTON_INITIAL_VISIBILITY = CONFIG.visible_open_output_dir_button and bool(OPEN_DIR_SERVER_URL)
 
 # Load prompt catalog and examples.
 prompt_catalog = PromptCatalog()
@@ -129,6 +130,26 @@ def fetch_run_zip(run_id: str, existing_zip_path: Optional[str]) -> tuple[Option
             pass
 
     return tmp_path, None
+
+
+def is_open_dir_service_running(timeout_seconds: float = 3.0) -> bool:
+    """
+    Checks if the optional host opener service is reachable.
+    """
+    if not CONFIG.visible_open_output_dir_button:
+        return False
+    if not OPEN_DIR_SERVER_URL:
+        logger.info("Open dir button hidden: PLANEXE_OPEN_DIR_SERVER_URL not set.")
+        return False
+
+    health_url = f"{OPEN_DIR_SERVER_URL.rstrip('/')}/healthz"
+    try:
+        response = httpx.get(health_url, timeout=timeout_seconds)
+        response.raise_for_status()
+        return True
+    except Exception as exc:
+        logger.info("Open dir button hidden: opener service not reachable at %s (%s)", health_url, exc)
+        return False
 
 
 class WorkerClient:
@@ -614,6 +635,13 @@ def open_output_dir(session_state: SessionState):
     return "\n\n".join(parts), session_state
 
 
+def update_open_dir_button_visibility():
+    """
+    Used by Gradio load event to hide/show the Open Output Dir button depending on opener availability.
+    """
+    return gr.update(visible=is_open_dir_service_running())
+
+
 def trigger_purge_runs(max_age_hours, prefix, session_state: SessionState):
     """
     Calls the worker to purge old runs on demand.
@@ -652,7 +680,7 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
                     submit_btn = gr.Button("Submit", variant='primary')
                     stop_btn = gr.Button("Stop")
                     retry_btn = gr.Button("Retry")
-                    open_dir_btn = gr.Button("Open Output Dir", visible=CONFIG.visible_open_output_dir_button)
+                    open_dir_btn = gr.Button("Open Output Dir", visible=OPEN_DIR_BUTTON_INITIAL_VISIBILITY)
 
                 output_markdown = gr.Markdown("Output will appear here...")
                 status_markdown = gr.Markdown("Status messages will appear here...")
@@ -819,6 +847,10 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
         fn=check_api_key,
         inputs=[session_state],
         outputs=[api_key_warning]
+    )
+    demo_text2plan.load(
+        fn=update_open_dir_button_visibility,
+        outputs=[open_dir_btn]
     )
 
 def run_app():
