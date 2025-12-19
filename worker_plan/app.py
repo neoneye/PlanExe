@@ -34,6 +34,7 @@ logging.basicConfig(
 
 MODULE_PATH_PIPELINE = "planexe.plan.run_plan_pipeline"
 RUN_BASE_PATH = Path(os.environ.get("PLANEXE_RUN_DIR", "run")).resolve()
+HOST_RUN_DIR_BASE = os.environ.get("PLANEXE_HOST_RUN_DIR")
 RELAY_PROCESS_OUTPUT = os.environ.get("WORKER_RELAY_PROCESS_OUTPUT", "false").lower() == "true"
 APP_ROOT = Path(os.environ.get("PLANEXE_CONFIG_PATH", Path(".").resolve())).resolve()
 PURGE_ENABLED = os.environ.get("PLANEXE_PURGE_ENABLED", "false").lower() == "true"
@@ -57,6 +58,7 @@ class StartRunRequest(BaseModel):
 class StartRunResponse(BaseModel):
     run_id: str
     run_dir: str
+    display_run_dir: str
     pid: int
     status: str
 
@@ -71,6 +73,8 @@ class StopRunResponse(BaseModel):
 class RunStatusResponse(BaseModel):
     run_id: str
     run_dir: str
+    display_run_dir: str
+    run_dir_exists: bool
     pid: Optional[int]
     running: bool
     returncode: Optional[int]
@@ -125,6 +129,19 @@ def has_pipeline_complete_file(path_dir: Path) -> bool:
         return FilenameEnum.PIPELINE_COMPLETE.value in os.listdir(path_dir)
     except FileNotFoundError:
         return False
+
+
+def build_display_run_dir(run_dir: Path) -> str:
+    """
+    Returns a user-facing path string for the run directory.
+    If PLANEXE_HOST_RUN_DIR is set, map to that base to hint where to find the run on the host.
+    """
+    if HOST_RUN_DIR_BASE:
+        try:
+            return str(Path(HOST_RUN_DIR_BASE) / run_dir.name)
+        except Exception:
+            return str(run_dir)
+    return str(run_dir)
 
 
 def build_env(run_dir: Path, llm_model: str, speed_vs_detail: str, openrouter_api_key: Optional[str]) -> Dict[str, str]:
@@ -192,7 +209,15 @@ def start_run(request: StartRunRequest) -> StartRunResponse:
     with process_lock:
         process_store[run_id] = info
 
-    return StartRunResponse(run_id=run_id, run_dir=str(run_dir), pid=process.pid, status="running")
+    display_run_dir = build_display_run_dir(run_dir)
+
+    return StartRunResponse(
+        run_id=run_id,
+        run_dir=str(run_dir),
+        display_run_dir=display_run_dir,
+        pid=process.pid,
+        status="running",
+    )
 
 
 @app.post("/runs/{run_id}/stop", response_model=StopRunResponse)
@@ -224,6 +249,8 @@ def run_status(run_id: str) -> RunStatusResponse:
     run_dir = (RUN_BASE_PATH / run_id).resolve()
     pipeline_complete = has_pipeline_complete_file(run_dir)
     last_update_seconds_ago = time_since_last_modification(run_dir)
+    run_dir_exists = run_dir.exists()
+    display_run_dir = build_display_run_dir(run_dir)
 
     with process_lock:
         info = process_store.get(run_id)
@@ -242,6 +269,8 @@ def run_status(run_id: str) -> RunStatusResponse:
     return RunStatusResponse(
         run_id=run_id,
         run_dir=str(run_dir),
+        display_run_dir=display_run_dir,
+        run_dir_exists=run_dir_exists,
         pid=pid,
         running=running,
         returncode=returncode,

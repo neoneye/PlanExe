@@ -57,7 +57,6 @@ DEFAULT_PROMPT_UUID = "4dc34d55-0d0d-4e9d-92f4-23765f49dd29"
 # Global constant for the zip creation interval (in seconds)
 ZIP_INTERVAL_SECONDS = 10
 
-RUN_DIR = os.environ.get("PLANEXE_RUN_DIR", "run")
 WORKER_PLAN_URL = os.environ.get("WORKER_PLAN_URL", "http://worker_plan:8000")
 WORKER_PLAN_TIMEOUT_SECONDS = float(os.environ.get("WORKER_PLAN_TIMEOUT", "30"))
 GRADIO_SERVER_NAME = os.environ.get("GRADIO_SERVER_NAME", "0.0.0.0")
@@ -272,9 +271,8 @@ class SessionState:
         self.stop_event = threading.Event()
         # Stores the unique identifier of the last submitted run.
         self.latest_run_id = None
-        # Stores the absolute path (inside the current runtime) to the directory for the last submitted run.
-        self.latest_run_dir_container = None
-        # Stores a host-visible path (if provided via env) to the directory for the last submitted run.
+        # Paths reported by the worker for the last submitted run.
+        self.latest_run_dir = None
         self.latest_run_dir_display = None
 
     def __deepcopy__(self, memo):
@@ -344,19 +342,15 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
 
     submit_or_retry = submit_or_retry_button.lower()
     run_id = None
-    run_path = None
+    run_dir = None
     display_run_dir = None
 
     if submit_or_retry == "retry":
         if not session_state.latest_run_id:
             raise ValueError("No previous run to retry. Please submit a plan first.")
         run_id = session_state.latest_run_id
-        run_path = os.path.join(RUN_DIR, run_id)
-        absolute_container_run_dir = os.path.abspath(run_path)
-        host_run_dir_base = os.environ.get("PLANEXE_HOST_RUN_DIR")
-        display_run_dir = os.path.abspath(os.path.join(host_run_dir_base, run_id)) if host_run_dir_base else absolute_container_run_dir
-        session_state.latest_run_dir_container = absolute_container_run_dir
-        session_state.latest_run_dir_display = display_run_dir
+        run_dir = session_state.latest_run_dir
+        display_run_dir = session_state.latest_run_dir_display
         print(f"Retrying the run with ID: {run_id}")
 
     # Create a SpeedVsDetailEnum instance from the session_state.speedvsdetail.
@@ -388,12 +382,10 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
     if not run_id:
         raise ValueError("Worker did not return a run_id.")
 
-    run_path = start_response.get("run_dir") or os.path.join(RUN_DIR, run_id)
-    run_path = os.path.abspath(run_path)
+    run_dir = start_response.get("run_dir", run_dir)
+    display_run_dir = start_response.get("display_run_dir") or run_dir
     session_state.latest_run_id = run_id
-    session_state.latest_run_dir_container = run_path
-    host_run_dir_base = os.environ.get("PLANEXE_HOST_RUN_DIR")
-    display_run_dir = os.path.abspath(os.path.join(host_run_dir_base, run_id)) if host_run_dir_base else run_path
+    session_state.latest_run_dir = run_dir
     session_state.latest_run_dir_display = display_run_dir
     session_state.active_run_id = run_id
     worker_pid = start_response.get("pid")
@@ -415,6 +407,16 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
             logger.warning(f"Failed to fetch status for run_id={run_id}: {exc}")
             status_response = None
 
+        if status_response:
+            run_dir = status_response.get("run_dir", run_dir)
+            display_from_status = status_response.get("display_run_dir")
+            if display_from_status:
+                display_run_dir = display_from_status
+            session_state.latest_run_dir = run_dir
+            session_state.latest_run_dir_display = display_run_dir
+
+        run_dir_display_text = display_run_dir or run_dir or "Unavailable"
+
         pipeline_complete = status_response.get("pipeline_complete", False) if status_response else False
         running = status_response.get("running", True) if status_response else True
         files, files_error = fetch_run_files(run_id)
@@ -432,7 +434,7 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
 
             markdown_builder = MarkdownBuilder()
             markdown_builder.status("Process terminated by user.")
-            markdown_builder.path_to_run_dir(display_run_dir)
+            markdown_builder.path_to_run_dir(run_dir_display_text)
             markdown_builder.list_files(files, files_error)
             yield markdown_builder.to_markdown(), gr.update(value=current_zip_path), session_state
             break
@@ -444,7 +446,7 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
             markdown_builder.status(f"Working. {duration} seconds elapsed. Last output update was {last_update} seconds ago.")
         else:
             markdown_builder.status(f"Process inactive. {duration} seconds elapsed. Last output update was {last_update} seconds ago.")
-        markdown_builder.path_to_run_dir(display_run_dir)
+        markdown_builder.path_to_run_dir(run_dir_display_text)
         markdown_builder.list_files(files, files_error)
 
         # Periodic zip refresh.
@@ -473,6 +475,15 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
         status_response = worker_client.get_status(run_id)
     except httpx.HTTPError:
         status_response = None
+    if status_response:
+        run_dir = status_response.get("run_dir", run_dir)
+        display_from_status = status_response.get("display_run_dir")
+        if display_from_status:
+            display_run_dir = display_from_status
+        session_state.latest_run_dir = run_dir
+        session_state.latest_run_dir_display = display_run_dir
+
+    run_dir_display_text = display_run_dir or run_dir or "Unavailable"
 
     returncode = status_response.get("returncode") if status_response else None
     pipeline_complete = status_response.get("pipeline_complete", pipeline_complete) if status_response else pipeline_complete
@@ -490,7 +501,7 @@ def run_planner(submit_or_retry_button, plan_prompt, browser_state, session_stat
     # Final file listing update.
     markdown_builder = MarkdownBuilder()
     markdown_builder.status(f"{status_message} {duration} seconds elapsed.")
-    markdown_builder.path_to_run_dir(display_run_dir)
+    markdown_builder.path_to_run_dir(run_dir_display_text)
     files, files_error = fetch_run_files(run_id)
     markdown_builder.list_files(files, files_error)
 
@@ -528,16 +539,31 @@ def open_output_dir(session_state: SessionState):
     If a host opener service is configured, it requests the host to open the path; otherwise it shows manual instructions.
     """
 
-    container_run_dir = session_state.latest_run_dir_container
-    display_run_dir = session_state.latest_run_dir_display or container_run_dir
-
-    if not container_run_dir:
+    if not session_state.latest_run_id:
         return "No plan has been submitted, cannot open dir.", session_state
 
-    if not os.path.exists(container_run_dir):
+    try:
+        status_response = worker_client.get_status(session_state.latest_run_id)
+    except httpx.HTTPStatusError as exc:
+        status_code = exc.response.status_code if exc.response else "unknown"
+        return f"Unable to fetch run info (status {status_code}).", session_state
+    except Exception as exc:
+        return f"Unable to contact worker: {exc}", session_state
+
+    run_dir = status_response.get("run_dir")
+    display_run_dir = status_response.get("display_run_dir") or run_dir
+    run_dir_exists = status_response.get("run_dir_exists", True)
+
+    session_state.latest_run_dir = run_dir
+    session_state.latest_run_dir_display = display_run_dir
+
+    if not run_dir_exists:
         return "No output directory available.", session_state
 
-    open_path = display_run_dir or container_run_dir
+    open_path = display_run_dir or run_dir
+    if not open_path:
+        return "Run directory is unavailable.", session_state
+
     parts = []
     opener_succeeded = False
 
@@ -568,7 +594,7 @@ def open_output_dir(session_state: SessionState):
     # Include manual instructions only when the opener is not available or failed.
     if not opener_succeeded:
         try:
-            file_uri = Path(open_path).resolve().as_uri()
+            file_uri = Path(open_path).absolute().as_uri()
         except Exception:
             file_uri = None
 
