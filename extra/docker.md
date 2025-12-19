@@ -17,7 +17,7 @@ While developing
 Troubleshooting
 ---------------
 - If the pipeline stops immediately with missing module errors, rebuild with `--no-cache` so new files are inside the images.
-- If you change environment variables (e.g., `WORKER_RELAY_PROCESS_OUTPUT`), restart: `docker compose down` then `docker compose up`.
+- If you change environment variables (e.g., `PLANEXE_WORKER_RELAY_PROCESS_OUTPUT`), restart: `docker compose down` then `docker compose up`.
 - To clean out containers, network, and orphans: `docker compose down --remove-orphans`.
 - To reclaim disk space when builds start failing with `No space left on device`:
   - See current usage: `docker system df`
@@ -27,7 +27,7 @@ Troubleshooting
 
 Environment notes
 -----------------
-- The worker exports logs to stdout when `WORKER_RELAY_PROCESS_OUTPUT=true` (set in `docker-compose.yml`).
+- The worker exports logs to stdout when `PLANEXE_WORKER_RELAY_PROCESS_OUTPUT=true` (set in `docker-compose.yml`).
 - Shared volumes: `./run` is mounted into both services; `.env` and `llm_config.json` are mounted read-only. Ensure they exist on the host before starting.***
 
 One-shot env setup (avoid manual exports)

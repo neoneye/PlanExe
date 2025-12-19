@@ -35,7 +35,7 @@ logging.basicConfig(
 MODULE_PATH_PIPELINE = "planexe.plan.run_plan_pipeline"
 RUN_BASE_PATH = Path(os.environ.get("PLANEXE_RUN_DIR", "run")).resolve()
 HOST_RUN_DIR_BASE = os.environ.get("PLANEXE_HOST_RUN_DIR")
-RELAY_PROCESS_OUTPUT = os.environ.get("WORKER_RELAY_PROCESS_OUTPUT", "false").lower() == "true"
+RELAY_PROCESS_OUTPUT = os.environ.get("PLANEXE_WORKER_RELAY_PROCESS_OUTPUT", "false").lower() == "true"
 APP_ROOT = Path(os.environ.get("PLANEXE_CONFIG_PATH", Path(".").resolve())).resolve()
 PURGE_ENABLED = os.environ.get("PLANEXE_PURGE_ENABLED", "false").lower() == "true"
 PURGE_MAX_AGE_HOURS = float(os.environ.get("PLANEXE_PURGE_MAX_AGE_HOURS", "1"))
