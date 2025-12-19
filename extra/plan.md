@@ -61,6 +61,9 @@ or the prompt may be overly specific so PlanExe attends to the wrong things.
 Suggest changes to the initial prompt. This can be by picking a bigger budget, a different technology,
 a different set of levers, fixing typos.
 
+- User specifies a budget of 0..100 USD. Which is unrealistic, when the plan is to hire a team, and work on it for months.
+- User leaves out physical location(s). So PlanExe picks a random location in a different part of the world.
+
 **Grid search:** Currently PlanExe only generates a plan for 1 permutation of levers.
 A plan may have 10 levers with 3-5 settings. Here it could be interesting to create 
 100 full plans, each with a different combination of levers. Compare the generated plans against each other 
