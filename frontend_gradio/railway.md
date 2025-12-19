@@ -4,6 +4,7 @@
 PLANEXE_GRADIO_SERVER_NAME="0.0.0.0"
 PLANEXE_CONFIG_PATH="/app"
 PLANEXE_WORKER_PLAN_URL="http://worker_plan:8000"
+PLANEXE_PASSWORD="password"
 ```
 
 In the deploy log I can see this

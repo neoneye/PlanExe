@@ -63,6 +63,8 @@ GRADIO_SERVER_NAME = os.environ.get("PLANEXE_GRADIO_SERVER_NAME", "0.0.0.0")
 # Railway and other PaaS set PORT for the ingress; fall back to the app-specific env var.
 GRADIO_SERVER_PORT = int(os.environ.get("PORT") or os.environ.get("PLANEXE_GRADIO_SERVER_PORT", "7860"))
 OPEN_DIR_SERVER_URL = os.environ.get("PLANEXE_OPEN_DIR_SERVER_URL")
+GRADIO_AUTH_PASSWORD = os.environ.get("PLANEXE_PASSWORD")
+GRADIO_AUTH = ("user", GRADIO_AUTH_PASSWORD) if GRADIO_AUTH_PASSWORD else None
 
 # Load prompt catalog and examples.
 prompt_catalog = PromptCatalog()
@@ -813,6 +815,7 @@ def run_app():
         server_name=GRADIO_SERVER_NAME,
         server_port=GRADIO_SERVER_PORT,
         share=False,
+        auth=GRADIO_AUTH,
     )
 
 if __name__ == "__main__":
