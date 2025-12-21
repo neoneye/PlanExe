@@ -5,6 +5,21 @@ This directory hosts the shared `planexe` package and the FastAPI worker that ex
 - `planexe/`: core planning logic.
 - `worker_plan_api/`: shared types (e.g., filenames) used by both the worker and frontend.
 
+## Run locally with a venv
+
+For a faster edit/run loop without Docker. Work from inside `worker_plan` so its dependencies stay isolated (they may be incompatible with `frontend_gradio`):
+
+```bash
+cd worker_plan
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -e .
+uvicorn worker_plan.app:app --host 0.0.0.0 --port 8000
+```
+
+The frontend can then point at `http://localhost:8000` via `PLANEXE_WORKER_PLAN_URL`.
+
 ## Environment variables
 
 | Variable | Default | Purpose |
