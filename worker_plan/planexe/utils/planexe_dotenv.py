@@ -42,7 +42,7 @@ class PlanExeDotEnv:
             logger.error(f"PlanExeDotEnv.load() The dotenv_values() modified the environment variables. count before: {len(env_before)}, count after: {len(os.environ)}")
             logger.error(f"PlanExeDotEnv.load() The dotenv_values() modified the environment variables. content before: {env_before!r}, content after: {os.environ!r}")
         else:
-            logger.debug(f"PlanExeDotEnv.load() Great!This is what is expected. The dotenv_values() did not modify the environment variables. number of items: {len(os.environ)}")
+            logger.debug(f"PlanExeDotEnv.load() Great! This is what is expected. The dotenv_values() did not modify the environment variables. number of items: {len(os.environ)}")
         return cls(
             dotenv_path=dotenv_path, 
             dotenv_dict=dotenv_dict
