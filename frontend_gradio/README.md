@@ -10,9 +10,11 @@ For a faster edit/run loop without Docker. Work from inside `frontend_gradio` so
 cd frontend_gradio
 python3 -m venv .venv
 source .venv/bin/activate
+# Keep PYTHONPATH empty while installing to avoid pip seeing the worker_plan package and emitting conflicts
+PYTHONPATH= pip install --upgrade pip
+PYTHONPATH= pip install -r requirements.txt
+# Set PYTHONPATH only after dependencies are installed
 export PYTHONPATH=$PWD/../worker_plan:$PYTHONPATH  # so worker_plan_api can be imported without pulling worker deps into this venv
-pip install --upgrade pip
-pip install -r requirements.txt
 # Optional: point to your running worker_plan (defaults to http://worker_plan:8000)
 export PLANEXE_OPEN_DIR_SERVER_URL=http://localhost:5100
 export PLANEXE_WORKER_PLAN_URL=http://localhost:8000
