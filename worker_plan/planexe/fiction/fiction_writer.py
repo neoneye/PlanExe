@@ -122,6 +122,7 @@ if __name__ == "__main__":
     query = prompt_item.prompt
 
     llm = get_llm("ollama-llama3.1")
+    # llm = get_llm("docker-ollama-llama3.1")
     # llm = get_llm("lmstudio-qwen2.5-7b-instruct-1m")
     # llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
     # llm = get_llm("ollama-qwen")

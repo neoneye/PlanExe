@@ -147,6 +147,7 @@ include = ["planexe*", "worker_plan_api*", "worker_plan*"]
 
 [tool.setuptools.package-data]
 "planexe.prompt.data" = ["*.jsonl"]
+"planexe.fiction.data" = ["*.jsonl"]
 "planexe.ui_flask.templates" = ["*.html"]
 "planexe.schedule" = ["*.html"]
 "planexe.report" = ["*.html"]
