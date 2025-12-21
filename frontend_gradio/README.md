@@ -2,6 +2,26 @@
 
 This directory contains the PlanExe Gradio frontend.
 
+## Run locally with a venv
+
+For a faster edit/run loop without Docker. Work from inside `frontend_gradio` so its dependencies stay isolated (they may be incompatible with `worker_plan`):
+
+```bash
+cd frontend_gradio
+python3 -m venv .venv
+source .venv/bin/activate
+export PYTHONPATH=$PWD/../worker_plan:$PYTHONPATH  # so worker_plan_api can be imported without pulling worker deps into this venv
+pip install --upgrade pip
+pip install -r requirements.txt
+# Optional: point to your running worker_plan (defaults to http://worker_plan:8000)
+export PLANEXE_WORKER_PLAN_URL=http://localhost:8000
+python app.py
+```
+
+Then open http://localhost:7860 (or your `PLANEXE_GRADIO_SERVER_PORT`). Run `deactivate` when you are done with the venv.
+
+If you prefer to install the shared API package instead of using `PYTHONPATH`, run `pip install -e ../worker_plan` (this will bring the worker dependencies into the same venv).
+
 ## Environment variables
 
 | Variable | Default | Purpose |
