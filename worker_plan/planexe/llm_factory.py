@@ -9,12 +9,12 @@ from planexe.utils.planexe_dotenv import PlanExeDotEnv
 from planexe.utils.planexe_config import PlanExeConfig, PlanExeConfigError
 from planexe.utils.planexe_llmconfig import PlanExeLLMConfig
 from llama_index.core.llms.llm import LLM
-from llama_index.llms.mistralai import MistralAI
+# from llama_index.llms.mistralai import MistralAI
 from llama_index.llms.ollama import Ollama
 from llama_index.llms.openai_like import OpenAILike
 from llama_index.llms.openai import OpenAI
-from llama_index.llms.together import TogetherLLM
-from llama_index.llms.groq import Groq
+# from llama_index.llms.together import TogetherLLM
+# from llama_index.llms.groq import Groq
 from llama_index.llms.lmstudio import LMStudio
 from llama_index.llms.openrouter import OpenRouter
 from planexe.llm_util.ollama_info import OllamaInfo
