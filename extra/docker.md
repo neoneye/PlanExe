@@ -6,6 +6,7 @@ Basic lifecycle
 - Build fresh (no cache) after code moves: `docker compose build --no-cache worker_plan frontend_gradio`
 - Start services: `docker compose up`
 - Stop services (leave images): `docker compose down`
+- Build fresh and start services: `docker compose build --no-cache worker_plan frontend_gradio && docker compose up`
 
 While developing
 ----------------
