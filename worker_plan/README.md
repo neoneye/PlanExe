@@ -18,7 +18,7 @@ pip install -e .
 export PYTHONPATH=$PWD/..:$PYTHONPATH  # ensure the local package (sibling folder name worker_plan) is on the path
 export PLANEXE_CONFIG_PATH=$(dirname "$(pwd)")
 export PLANEXE_RUN_DIR=$(dirname "$(pwd)")/run
-.venv/bin/python -m uvicorn worker_plan.app:app --host 0.0.0.0 --port 8000
+.venv/bin/python -m uvicorn worker_plan.app:app --host localhost --port 8000
 ```
 
 The frontend can then point at `http://localhost:8000` via `PLANEXE_WORKER_PLAN_URL`.
