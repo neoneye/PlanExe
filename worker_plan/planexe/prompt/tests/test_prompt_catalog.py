@@ -1,20 +1,15 @@
-import os
+from pathlib import Path
 import unittest
 
-from worker_plan_api.prompt_catalog import PromptCatalog
+from planexe.prompt.prompt_catalog import PromptCatalog
 
 
 class TestPromptCatalog(unittest.TestCase):
     def create_prompt_catalog(self) -> PromptCatalog:
-        test_data_path = os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "prompt",
-            "test_data",
-            "prompts_simple.jsonl",
-        )
+        test_data_path = Path(__file__).resolve().parent.parent / "test_data" / "prompts_simple.jsonl"
+        self.assertTrue(test_data_path.is_file(), f"Missing test data file: {test_data_path}")
         prompt_catalog = PromptCatalog()
-        prompt_catalog.load(test_data_path)
+        prompt_catalog.load(str(test_data_path))
         return prompt_catalog
 
     def test_find_simple(self):
