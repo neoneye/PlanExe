@@ -7,18 +7,26 @@ This directory hosts the shared `planexe` package and the FastAPI worker that ex
 
 ## Run locally with a venv
 
-For a faster edit/run loop without Docker. Work from inside `worker_plan` so its dependencies stay isolated (they may be incompatible with `frontend_gradio`):
+For a faster edit/run loop without Docker. Work from inside `worker_plan` so its dependencies stay isolated (they may be incompatible with `frontend_gradio`). Use Python 3.13 — several native wheels (pydantic-core, orjson, tiktoken, greenlet, jiter) do not yet publish for 3.14 and will fail to build.
 
 ```bash
 cd worker_plan
-python3 -m venv .venv
+python3.13 -m venv .venv  # or your Python 3.13 path
 source .venv/bin/activate
 pip install --upgrade pip
 pip install -e .
-uvicorn worker_plan.app:app --host 0.0.0.0 --port 8000
+export PYTHONPATH=$PWD/..:$PYTHONPATH  # ensure the local package (sibling folder name worker_plan) is on the path
+.venv/bin/python -m uvicorn worker_plan.app:app --host 0.0.0.0 --port 8000
 ```
 
 The frontend can then point at `http://localhost:8000` via `PLANEXE_WORKER_PLAN_URL`.
+
+If you hit `ModuleNotFoundError: No module named 'worker_plan'`, ensure you:
+- are in `PlanExe/worker_plan` (not a subfolder)
+- ran `pip install -e .` in this venv without errors
+- exported `PYTHONPATH=$PWD/..:$PYTHONPATH` before starting uvicorn (the package lives one level up when your CWD is `worker_plan`)
+
+If you must stay on Python 3.14, expect source builds and potential failures; exporting `PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1` before `pip install -e .` may allow wheels to build, but 3.13 is recommended for a smooth setup.
 
 ## Environment variables
 
