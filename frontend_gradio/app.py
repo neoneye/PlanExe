@@ -612,9 +612,10 @@ def open_output_dir(session_state: SessionState):
             error_detail = None
             try:
                 error_payload = exc.response.json()
-                error_detail = error_payload.get("message")
+                error_detail = error_payload.get("message") or error_payload.get("detail")
             except Exception:
-                pass
+                if exc.response is not None:
+                    error_detail = exc.response.text.strip() or None
             detail_msg = f" ({error_detail})" if error_detail else ""
             parts.append(f"Host opener error (status {status_code}){detail_msg}.")
         except Exception as exc:
