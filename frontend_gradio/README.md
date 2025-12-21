@@ -14,6 +14,7 @@ export PYTHONPATH=$PWD/../worker_plan:$PYTHONPATH  # so worker_plan_api can be i
 pip install --upgrade pip
 pip install -r requirements.txt
 # Optional: point to your running worker_plan (defaults to http://worker_plan:8000)
+export PLANEXE_OPEN_DIR_SERVER_URL=http://localhost:5100
 export PLANEXE_WORKER_PLAN_URL=http://localhost:8000
 python app.py
 ```
