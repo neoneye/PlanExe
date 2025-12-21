@@ -16,6 +16,7 @@ source .venv/bin/activate
 pip install --upgrade pip
 pip install -e .
 export PYTHONPATH=$PWD/..:$PYTHONPATH  # ensure the local package (sibling folder name worker_plan) is on the path
+export PLANEXE_CONFIG_PATH=$(dirname "$(pwd)")
 .venv/bin/python -m uvicorn worker_plan.app:app --host 0.0.0.0 --port 8000
 ```
 
