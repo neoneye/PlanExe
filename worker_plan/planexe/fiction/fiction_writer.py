@@ -1,6 +1,8 @@
 """
 Based on short description, make a longer description.
 
+PROMPT> cd worker_plan
+PROMPT> source .venv/bin/activate
 PROMPT> python -m planexe.fiction.fiction_writer
 """
 import json
@@ -119,8 +121,9 @@ if __name__ == "__main__":
         raise ValueError("Prompt item not found.")
     query = prompt_item.prompt
 
-    llm = get_llm("ollama-llama3.1") # works
-    # llm = get_llm("openrouter-paid-gemini-2.0-flash-001") # works
+    llm = get_llm("ollama-llama3.1")
+    # llm = get_llm("lmstudio-qwen2.5-7b-instruct-1m")
+    # llm = get_llm("openrouter-paid-gemini-2.0-flash-001")
     # llm = get_llm("ollama-qwen")
     # llm = get_llm("ollama-phi")
     # llm = get_llm("deepseek-chat")
