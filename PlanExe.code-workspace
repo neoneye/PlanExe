@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"name": "frontend_gradio",
+			"path": "frontend_gradio"
+		},
+		{
+			"name": "worker_plan",
+			"path": "worker_plan"
+		},
+		{
+			"name": "PlanExe",
+			"path": "."
+		}
+	],
+	"settings": {
+		"workbench.activityBar.orientation": "vertical"
+	}
+}
