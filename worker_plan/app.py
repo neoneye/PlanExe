@@ -6,6 +6,7 @@ import tempfile
 import threading
 import time
 import zipfile
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -119,7 +120,15 @@ class RunProcessInfo:
 
 process_store: Dict[str, RunProcessInfo] = {}
 process_lock = threading.Lock()
-app = FastAPI(title="PlanExe Worker", version="0.1.0")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_background_tasks()
+    yield
+
+
+app = FastAPI(title="PlanExe Worker", version="0.1.0", lifespan=lifespan)
 
 
 def has_pipeline_complete_file(path_dir: Path) -> bool:
@@ -380,7 +389,6 @@ def healthcheck() -> dict:
     return {"status": "ok", "run_base_path": str(RUN_BASE_PATH)}
 
 
-@app.on_event("startup")
 def start_background_tasks() -> None:
     if not PURGE_ENABLED:
         logger.info("Purge scheduler disabled. Set PLANEXE_PURGE_ENABLED=true to enable.")
