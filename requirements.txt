@@ -1,1 +1,0 @@
--r frontend_gradio/requirements.txt
