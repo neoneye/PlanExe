@@ -731,16 +731,16 @@ with gr.Blocks(title="PlanExe") as demo_text2plan:
         )
 
     with gr.Tab("Advanced"):
-        gr.Markdown("Trigger a manual purge of old `PlanExe_TIMESTAMP` dirs from the run directory.")
+        gr.Markdown("Trigger a manual purge of old `PlanExe_TIMESTAMP` dirs and `PlanExe_TIMESTAMP.zip` files from the run directory.")
         purge_max_age_hours = gr.Number(
-            label="Max age (hours). Dirs older than this will be purged.",
+            label="Max age (hours). Dirs and files older than this will be purged.",
             value=24,
             minimum=1,
             maximum=240,
             precision=2,
         )
         purge_prefix = gr.Textbox(
-            label="Run prefix to purge. Only dirs with this prefix will be purged.",
+            label="Run prefix to purge. Dirs and files with this prefix will be purged.",
             value=RUN_ID_PREFIX,
             placeholder="Prefix to match, leave empty to use worker default",
         )
