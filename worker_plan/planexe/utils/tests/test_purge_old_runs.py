@@ -2,12 +2,8 @@ import unittest
 import os
 import shutil
 import time
-import sys
 
-# Ensure the worker_plan directory is on the path for imports.
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from worker_plan.purge_old_runs import purge_old_runs
+from planexe.utils.purge_old_runs import purge_old_runs
 
 
 class TestPurgeOldRuns(unittest.TestCase):

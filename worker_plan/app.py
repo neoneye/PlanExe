@@ -23,7 +23,7 @@ from planexe.plan.plan_file import PlanFile
 from planexe.plan.start_time import StartTime
 from planexe.llm_factory import obtain_llm_info
 from planexe.utils.time_since_last_modification import time_since_last_modification
-from worker_plan.purge_old_runs import purge_old_runs, start_purge_scheduler
+from planexe.utils.purge_old_runs import purge_old_runs, start_purge_scheduler
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
