@@ -3,10 +3,10 @@
 Basic lifecycle
 ---------------
 - Stop everything: `docker compose down`
-- Build fresh (no cache) after code moves: `docker compose build --no-cache worker_plan frontend_gradio`
+- Build fresh (no cache) after code moves: `docker compose build --no-cache database_postgres worker_plan frontend_gradio`
 - Start services: `docker compose up`
 - Stop services (leave images): `docker compose down`
-- Build fresh and start services: `docker compose build --no-cache worker_plan frontend_gradio && docker compose up`
+- Build fresh and start services: `docker compose build --no-cache database_postgres worker_plan frontend_gradio && docker compose up`
 
 While developing
 ----------------
@@ -27,6 +27,7 @@ Troubleshooting
 ---------------
 - If the pipeline stops immediately with missing module errors, rebuild with `--no-cache` so new files are inside the images.
 - If you change environment variables (e.g., `PLANEXE_WORKER_RELAY_PROCESS_OUTPUT`), restart: `docker compose down` then `docker compose up`.
+- If `database_postgres` fails to start because host port 5432 is in use, set a host port with `export PLANEXE_POSTGRES_PORT=5435` (or any free port) before `docker compose up`.
 - To clean out containers, network, and orphans: `docker compose down --remove-orphans`.
 - To reclaim disk space when builds start failing with `No space left on device`:
   - See current usage: `docker system df`
@@ -38,6 +39,7 @@ Environment notes
 -----------------
 - The worker exports logs to stdout when `PLANEXE_WORKER_RELAY_PROCESS_OUTPUT=true` (set in `docker-compose.yml`).
 - Shared volumes: `./run` is mounted into both services; `.env` and `llm_config.json` are mounted read-only. Ensure they exist on the host before starting.***
+- Database: Postgres runs in `database_postgres` and listens on host `${PLANEXE_POSTGRES_PORT:-5432}` mapped to container `5432`; data is persisted in the named volume `database_postgres_data`.
 
 One-shot env setup (avoid manual exports)
 ----------------------------------------

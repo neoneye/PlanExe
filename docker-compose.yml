@@ -1,4 +1,25 @@
 services:
+  database_postgres:
+    build:
+      context: .
+      dockerfile: database_postgres/Dockerfile
+    container_name: database_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-planexe}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-planexe}
+      POSTGRES_DB: ${POSTGRES_DB:-planexe}
+    ports:
+      - "${PLANEXE_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - database_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-planexe}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
   worker_plan:
     build:
       context: .
@@ -78,3 +99,6 @@ services:
           path: ./worker_plan/pyproject.toml
         - action: restart
           path: ./docker-compose.yml
+
+volumes:
+  database_postgres_data:

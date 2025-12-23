@@ -3,8 +3,9 @@ Docker Compose for PlanExe
 
 TL;DR
 -----
-- Two containers: `frontend_gradio` (UI on 7860) and `worker_plan` (API on 8000); the frontend waits for the worker’s health check.
+- Three containers: `database_postgres` (DB on `${PLANEXE_POSTGRES_PORT:-5432}`), `frontend_gradio` (UI on 7860), and `worker_plan` (API on 8000); the frontend waits for the worker’s health check.
 - Shared host files: `.env` and `llm_config.json` mounted read-only; `./run` bind-mounted so outputs/logs persist; `.env` is also loaded via `env_file`.
+- Postgres defaults to user/db/password `planexe`; override via env or `.env`; data lives in the `database_postgres_data` volume.
 - Env defaults live in `docker-compose.yml` but can be overridden in `.env` or your shell (URLs, timeouts, run dirs, optional auth and opener URL).
 - `develop.watch` syncs code/config for both services; rebuild with `--no-cache` after big moves or dependency changes; restart policy is `unless-stopped`.
 
@@ -12,7 +13,7 @@ Quickstart (run from repo root)
 -------------------------------
 - Up: `docker compose up` (or `docker compose watch` if supported).
 - Down: `docker compose down` (add `--remove-orphans` if stray containers linger).
-- Rebuild clean: `docker compose build --no-cache worker_plan frontend_gradio`.
+- Rebuild clean: `docker compose build --no-cache database_postgres worker_plan frontend_gradio`.
 - Logs: `docker compose logs -f worker_plan` or `... frontend_gradio`.
 - One-off inside a container: `docker compose run --rm worker_plan python -m planexe.fiction.fiction_writer` (use `exec` if already running).
 - Ensure `.env` and `llm_config.json` exist; copy `.env.example` to `.env` if you need a starter.
@@ -29,6 +30,14 @@ What compose sets up
 --------------------
 - Reusable local stack with consistent env/paths under `/app` in each container.
 - Shared run dir: `PLANEXE_RUN_DIR=/app/run` in the containers, bound to `${PLANEXE_HOST_RUN_DIR:-${PWD}/run}` on the host so outputs persist.
+- Postgres data volume: `database_postgres_data` keeps the database files outside the repo tree.
+
+Service: `database_postgres` (Postgres DB)
+------------------------------------------
+- Purpose: Storage in a Postgres database for future queue + event logging work; exposes `${PLANEXE_POSTGRES_PORT:-5432}` on the host mapped to 5432 in the container.
+- Build: `database_postgres/Dockerfile` (uses the official Postgres image).
+- Env defaults: `POSTGRES_USER=planexe`, `POSTGRES_PASSWORD=planexe`, `POSTGRES_DB=planexe`, `PLANEXE_POSTGRES_PORT=5432` (override with env/.env).
+- Data/health: data in the named volume `database_postgres_data`; healthcheck uses `pg_isready`.
 
 Service: `frontend_gradio` (user UI)
 ------------------------------------
@@ -49,7 +58,8 @@ Service: `worker_plan` (pipeline API)
 
 Usage notes
 -----------
-- Ports: host `8000->worker_plan`, `7860->frontend_gradio`; change mappings in `docker-compose.yml` if needed.
+- Ports: host `8000->worker_plan`, `7860->frontend_gradio`, `PLANEXE_POSTGRES_PORT (default 5432)->database_postgres`; change mappings in `docker-compose.yml` if needed.
 - `.env` must exist before `docker compose up`; it is both loaded and mounted read-only. Same for `llm_config.json`. If missing, start from `.env.example`.
 - Host opener: set `PLANEXE_OPEN_DIR_SERVER_URL` so the frontend can reach your host opener service (see `extra/docker.md` for OS-specific URLs and optional `extra_hosts` on Linux).
 - To relocate outputs, set `PLANEXE_HOST_RUN_DIR` (or edit the bind mount) to another host path.
+- Database: connect on `localhost:${PLANEXE_POSTGRES_PORT:-5432}` with `planexe/planexe` by default; data persists via the `database_postgres_data` volume.
