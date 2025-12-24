@@ -1,0 +1,6 @@
+# Railway Configuration
+
+```
+PLANEXE_FRONTEND_MULTIUSER_PORT="5000"
+PLANEXE_FRONTEND_MULTIUSER_DB_HOST="database_postgres"
+```
