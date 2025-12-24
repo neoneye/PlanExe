@@ -100,5 +100,29 @@ services:
         - action: restart
           path: ./docker-compose.yml
 
+  frontend_multiuser:
+    build:
+      context: .
+      dockerfile: frontend_multiuser/Dockerfile
+    container_name: frontend_multiuser
+    depends_on:
+      database_postgres:
+        condition: service_healthy
+    environment:
+      PLANEXE_FRONTEND_MULTIUSER_DB_HOST: ${PLANEXE_FRONTEND_MULTIUSER_DB_HOST:-database_postgres}
+      PLANEXE_FRONTEND_MULTIUSER_DB_PORT: ${PLANEXE_FRONTEND_MULTIUSER_DB_PORT:-5432}
+      PLANEXE_FRONTEND_MULTIUSER_DB_NAME: ${POSTGRES_DB:-planexe}
+      PLANEXE_FRONTEND_MULTIUSER_DB_USER: ${POSTGRES_USER:-planexe}
+      PLANEXE_FRONTEND_MULTIUSER_DB_PASSWORD: ${POSTGRES_PASSWORD:-planexe}
+    ports:
+      - "${PLANEXE_FRONTEND_MULTIUSER_PORT:-5001}:5000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health').read()"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
 volumes:
   database_postgres_data:
