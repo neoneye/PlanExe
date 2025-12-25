@@ -11,6 +11,7 @@ import sys
 import time
 import json
 import uuid
+from urllib.parse import quote_plus
 from typing import Dict, Optional, Tuple, Any
 from dataclasses import dataclass
 import subprocess
@@ -34,8 +35,7 @@ from planexe.llm_factory import SPECIAL_AUTO_ID, get_llm_names_by_priority, get_
 from planexe.plan.speedvsdetail import SpeedVsDetailEnum
 from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
 from llama_index.core.llms import ChatMessage, MessageRole
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
 from model_taskitem import TaskItem, TaskState
 from model_event import EventType, EventItem
 from model_worker import WorkerItem
@@ -59,6 +59,17 @@ DEMO_FORM_RUN_PROMPT_UUIDS = [
     "00e1c738-a663-476a-b950-62785922f6f0",
     "3ca89453-e65b-4828-994f-dff0b679444a"
 ]
+
+def build_postgres_uri_from_env(env: Dict[str, str]) -> Tuple[str, Dict[str, str]]:
+    """Construct a SQLAlchemy URI for Postgres using environment variables."""
+    host = env.get("PLANEXE_FRONTEND_MULTIUSER_DB_HOST") or env.get("POSTGRES_HOST") or "database_postgres"
+    port = str(env.get("PLANEXE_FRONTEND_MULTIUSER_DB_PORT") or env.get("POSTGRES_PORT") or "5432")
+    dbname = env.get("PLANEXE_FRONTEND_MULTIUSER_DB_NAME") or env.get("POSTGRES_DB") or "planexe"
+    user = env.get("PLANEXE_FRONTEND_MULTIUSER_DB_USER") or env.get("POSTGRES_USER") or "planexe"
+    password = env.get("PLANEXE_FRONTEND_MULTIUSER_DB_PASSWORD") or env.get("POSTGRES_PASSWORD") or "planexe"
+    uri = f"postgresql+psycopg2://{quote_plus(user)}:{quote_plus(password)}@{host}:{port}/{dbname}"
+    safe_config = {"host": host, "port": port, "dbname": dbname, "user": user}
+    return uri, safe_config
 
 @dataclass
 class Config:
@@ -171,18 +182,30 @@ class MyFlaskApp:
         self.prompt_catalog.load_simple_plan_prompts()
 
         # Point to the "templates" dir.
-        template_folder = os.path.join(os.path.dirname(__file__), "templates")
+        # Prefer top-level templates dir (frontend_multiuser/templates) when running from Docker image.
+        default_template_folder = Path(__file__).parent / "templates"
+        alt_template_folder = Path(__file__).parent.parent / "templates"
+        template_folder = default_template_folder if default_template_folder.exists() else alt_template_folder
         logger.info(f"MyFlaskApp.__init__. template_folder: {template_folder!r}")
-        self.app = Flask(__name__, template_folder=template_folder)
+        self.app = Flask(__name__, template_folder=str(template_folder))
         
         # Load configuration from config.py
         self.app.config.from_pyfile('config.py')
 
+        db_settings: Dict[str, str] = {}
         sqlalchemy_database_uri = self.planexe_dotenv.get("SQLALCHEMY_DATABASE_URI")
         if sqlalchemy_database_uri is None:
-            raise Exception(f"SQLALCHEMY_DATABASE_URI is not set in the .env file. Please set it in the .env file.")
+            sqlalchemy_database_uri, db_settings = build_postgres_uri_from_env(self.planexe_dotenv.dotenv_dict)
+            logger.info(
+                "Using Postgres defaults for SQLAlchemy: %(host)s:%(port)s/%(dbname)s user=%(user)s",
+                db_settings
+            )
+        else:
+            logger.info("Using SQLALCHEMY_DATABASE_URI from environment or .env file.")
+
         self.app.config['SQLALCHEMY_DATABASE_URI'] = sqlalchemy_database_uri
-        self.app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_recycle' : 280}
+        self.app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_recycle': 280, 'pool_pre_ping': True}
+        self.database_settings = db_settings if db_settings else {"uri_source": "SQLALCHEMY_DATABASE_URI"}
         
         # Initialize database
         from planexe_db_singleton import db
@@ -226,7 +249,8 @@ class MyFlaskApp:
             return None
         
         # Setup Flask-Admin
-        self.admin = Admin(self.app, name='PlanExe Admin', template_mode='bootstrap3', index_view=MyAdminIndexView())
+        # Flask-Admin versions bundled in the image don't accept template_mode; stick with defaults.
+        self.admin = Admin(self.app, name='PlanExe Admin', index_view=MyAdminIndexView())
         
         # Add database tables to admin panel
         self.admin.add_view(TaskItemView(model=TaskItem, session=self.db.session, name="Task"))
@@ -323,6 +347,20 @@ class MyFlaskApp:
         @self.app.route('/')
         def index():
             return render_template('index.html')
+
+        @self.app.route('/health')
+        def health():
+            response_payload = {"status": "ok", "database_target": self.database_settings}
+            try:
+                self.db.session.execute(text("SELECT 1"))
+                response_payload["database"] = "ok"
+                status_code = 200
+            except Exception as exc:
+                logger.error("Health check failed", exc_info=True)
+                response_payload["status"] = "error"
+                response_payload["database"] = f"error: {exc.__class__.__name__}"
+                status_code = 500
+            return jsonify(response_payload), status_code
 
         @self.app.route('/login', methods=['GET', 'POST'])
         def login():
@@ -1107,7 +1145,14 @@ class MyFlaskApp:
                 job.process.wait() # Wait for termination
 
 
-    def run_server(self, debug=True, host='127.0.0.1', port=5000):
+    def run_server(self, debug: bool = False, host: str = "0.0.0.0", port: int = 5000):
+        env_debug = os.environ.get("PLANEXE_FRONTEND_MULTIUSER_DEBUG")
+        if env_debug is not None:
+            debug = env_debug.lower() in ("1", "true", "yes", "on")
+        host = os.environ.get("PLANEXE_FRONTEND_MULTIUSER_HOST", host)
+        port_str = os.environ.get("PLANEXE_FRONTEND_MULTIUSER_APP_PORT") or os.environ.get("PLANEXE_FRONTEND_MULTIUSER_PORT")
+        if port_str:
+            port = int(port_str)
         self.app.run(debug=debug, host=host, port=port)
 
 if __name__ == '__main__':
@@ -1116,4 +1161,4 @@ if __name__ == '__main__':
         format='%(asctime)s - %(name)s - %(levelname)s - %(process)d - %(threadName)s - %(message)s'
     )
     flask_app_instance = MyFlaskApp()
-    flask_app_instance.run_server(debug=True)
+    flask_app_instance.run_server()

@@ -7,8 +7,9 @@ dependencies = [
     "flask>=3.0.0",
     "flask-admin>=1.6.1",
     "flask-login>=0.6.3",
-    "sqlalchemy-utils>=0.41.1",
     "flask-sqlalchemy>=3.1.1",
-    "pymysql>=1.1.0",
+    "psycopg2-binary>=2.9.10",
+    "python-dotenv>=1.0.1",
+    "sqlalchemy-utils>=0.41.1",
     "WTForms==3.1.2" # This is an older version of WTForms. Since WTForms 3.2.1 breaks the "edit" button in the admin panel.
 ] 
