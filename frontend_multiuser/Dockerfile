@@ -19,4 +19,4 @@ WORKDIR /app/frontend_multiuser
 
 EXPOSE 5000
 
-CMD ["python", "/app/frontend_multiuser/app.py"]
+CMD ["python", "/app/frontend_multiuser/src/app.py"]
