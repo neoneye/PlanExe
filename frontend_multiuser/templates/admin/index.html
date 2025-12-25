@@ -1,0 +1,170 @@
+{% extends 'admin/master.html' %}
+
+{% block head_css %}
+  {{ super() }}
+  <style>
+    .content-wrapper {
+      max-width: 800px;
+      margin: 0 auto !important;
+      padding: 2rem;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    h1 {
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 2.5rem;
+    }
+    .nav-links {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .legacy-links-no-longer-used {
+      background: #bf6060;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .nav-links a,
+    .nav-links button {
+      display: block;
+      width: 100%;
+      padding: 1rem;
+      margin: 0.5rem 0;
+      text-decoration: none;
+      border-radius: 5px;
+      transition: transform 0.3s ease, background 0.3s ease;
+      text-align: left;
+      font-size: 1rem;
+      background: #f8f9fa;
+      color: #3498db;
+      border: none;
+      cursor: pointer;
+    }
+    .nav-links a:hover,
+    .nav-links button:hover {
+      background: #e9ecef;
+      transform: translateX(5px);
+      color: #2980b9;
+    }
+    .description {
+      color: #666;
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+  </style>
+{% endblock %}
+
+{% block body %}
+<h1>PlanExe Developer Tools</h1>
+<p>Welcome to the developer page. This page is protected and only accessible to admins.</p>
+<h2>Primary links</h2>
+<div class="nav-links">
+  <a href="/ping">
+    Ping LLMs
+    <div class="description">Check if they are all running</div>
+  </a>
+  <a href="/demo_form_run_via_database_method_get">
+    Form run via database - GET method - End to end test - textarea input
+    <div class="description">Wraps the Run page inside an &lt;iframe&gt; and sends the payload via GET method, doesn't allow for longer prompts. The entire url including the prompt is captured in the logs, potentially leaking sensitive info.</div>
+  </a>
+  <a href="/demo_form_run_via_database_method_post">
+    Form run via database - POST method - End to end test - textarea input
+    <div class="description">Wraps the Run page inside an &lt;iframe&gt; and sends the payload via POST method, allows for longer prompts. The payload is not captured in the logs, so it's not leaking sensitive info.</div>
+  </a>
+  <a href="/demo_instant_run_via_database_developer_method_get">
+    Instant run via database - GET method - <b>Developer</b> mode - End to end test - hardcoded input
+    <div class="description">Wraps the Run page inside an &lt;iframe&gt; and sends the payload via GET method, doesn't allow for longer prompts. The entire url including the prompt is captured in the logs, potentially leaking sensitive info.</div>
+  </a>
+  <a href="/demo_instant_run_via_database_developer_method_post">
+    Instant run via database - POST method - <b>Developer</b> mode - End to end test - hardcoded input
+    <div class="description">Wraps the Run page inside an &lt;iframe&gt; and sends the payload via POST, allows for longer prompts. The payload is not captured in the logs, so it's not leaking sensitive info.</div>
+  </a>
+  <a href="/demo_instant_run_via_database_production_method_get">
+    Instant run via database - GET method - <b>Production</b> mode - End to end test - hardcoded input
+    <div class="description">Wraps the Run page inside an &lt;iframe&gt; and sends the payload via GET method, doesn't allow for longer prompts. The entire url including the prompt is captured in the logs, potentially leaking sensitive info.</div>
+  </a>
+  <a href="/demo_instant_run_via_database_production_method_post">
+    Instant run via database - POST method - <b>Production</b> mode - End to end test - hardcoded input
+    <div class="description">Wraps the Run page inside an &lt;iframe&gt; and sends the payload via POST method, allows for longer prompts. The payload is not captured in the logs, so it's not leaking sensitive info.</div>
+  </a>
+</div>
+<h2>Endpoints that takes parameters</h2>
+<div class="nav-links legacy-links-no-longer-used">
+  <a href="/run?user_id=junkuuid">
+    Run with only user_id
+    <div class="description">Execute PlanExe</div>
+  </a>
+  <a href="/run?prompt=improve%20efficiency%20of%20solar%20panels">
+    Run with only prompt
+    <div class="description">Execute PlanExe</div>
+  </a>
+  <a href="/viewplan?run_id=11f18d7f-4c6a-4f40-aac2-0a9402617df4">
+    View Plan
+    <div class="description">View the generated PlanExe report</div>
+  </a>
+</div>
+<h2>Abbandoned code, related to PythonAnywhere and sockets</h2>
+<p>PythonAnywhere doesn't allow sockets for longer than 5 minutes, so it may appear as if it's working for a 
+  while and then disconnect for no reason, this is because of the 5 minute limit on PythonAnywhere.</p>
+<div class="nav-links legacy-links-no-longer-used">
+  <a href="/demo_eventsource">
+    EventSource. 5 minute limit on PythonAnywhere. Hard to debug.
+    <div class="description">Check that EventSource is working. This would have been the ideal way to update the progressbar in realtime.</div>
+  </a>
+</div>
+<h2>Abbandoned code, related to PythonAnywhere and separate processes</h2>
+<p>PythonAnywhere doesn't allow running separate processes for longer than 5 minutes, so it may appear as if it's working for a 
+  while and then crash for no reason, this is because of the 5 minute limit on PythonAnywhere.</p>
+<div class="nav-links legacy-links-no-longer-used">
+  <button onclick="stopAllJobs()">
+    Stop All Jobs running as separate processes
+    <div class="description">Stop all currently running jobs</div>
+  </button>
+  <a href="/demo_instant_run_in_separate_process">
+    Instant run in a separate process - End to end test - hardcoded input
+    <div class="description">Wraps the Run page inside an &lt;iframe&gt;</div>
+  </a>
+  <a href="/demo_form_run_in_separate_process">
+    Form run in separate process - End to end test - textarea input
+    <div class="description">Wraps the Run page inside an &lt;iframe&gt;</div>
+  </a>
+  <a href="/demo_subprocess_run_simple">
+    subprocess.run with simple command
+    <div class="description">Check that subprocess.run is working</div>
+  </a>
+  <a href="/demo_subprocess_run_medium">
+    subprocess.run with python pinging OpenRouter. No dependencies.
+    <div class="description">Check that subprocess.run + python + OpenRouter is working</div>
+  </a>
+  <a href="/demo_subprocess_run_advanced">
+    subprocess.run with python pinging OpenRouter. Uses LlamaIndex.
+    <div class="description">Check that subprocess.run + python + OpenRouter + LlamaIndex is working</div>
+  </a>
+  <a href="/troubleshoot_truncation">
+    Troubleshoot truncation
+    <div class="description">Check if the /run endpoint truncates the prompt parameter</div>
+  </a>
+</div>
+{% endblock %}
+
+{% block tail %}
+  {{ super() }}
+<script>
+    function stopAllJobs() {
+        fetch('/jobs/stop_all', {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message || data.error);
+        })
+        .catch(error => {
+            alert('Error stopping jobs: ' + error);
+        });
+    }
+</script> 
+{% endblock %}

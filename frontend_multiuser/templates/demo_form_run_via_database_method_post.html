@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo form run via database. POST method.</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .iframe-container {
+            width: 100%;
+            height: 80vh;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: none; /* Initially hidden */
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .input-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .example-prompt-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .example-prompt-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background-color: #f0f0f0;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        .example-prompt-buttons button:hover {
+            background-color: #e0e0e0;
+            transform: translateY(-1px);
+        }
+        #prompt {
+            width: 100%;
+            height: 200px;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            line-height: 1.5;
+            resize: vertical;
+            transition: border-color 0.2s ease;
+            box-sizing: border-box;
+        }
+        #prompt:focus {
+            outline: none;
+            border-color: #0066cc;
+            box-shadow: 0 0 0 3px rgba(0,102,204,0.1);
+        }
+        .checkbox-container {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checkbox-container input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .checkbox-container label {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+            cursor: pointer;
+        }
+        #submit-button {
+            display: block;
+            width: 100%;
+            padding: 15px 30px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        #submit-button:hover {
+            background-color: #0052a3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #submit-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .userid-container {
+            text-align: center;
+            margin-top: 25px;
+            font-family: monospace;
+            font-size: 16px;
+            color: #666;
+        }
+        .userid-container span {
+            font-weight: bold;
+        }
+        .char-count-label {
+            margin-top: 5px;
+            text-align: right;
+            font-size: 12px;
+            color: #666;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Demo form run via database. POST method.</h1>
+        <a href="/admin" style="display: inline-block; margin-bottom: 20px; color: #0066cc; text-decoration: none;">← Back to Admin</a>
+        <div class="input-container">
+            <div class="example-prompt-buttons">
+                <!-- Buttons will be dynamically generated here -->
+            </div>
+            <textarea id="prompt"></textarea>
+            <div class="char-count-label" id="char-count">Characters: 0 | Bytes: 0</div>
+            <div class="checkbox-container">
+                <input type="checkbox" id="fast-checkbox" checked>
+                <label for="fast-checkbox">Fast, but fewer details</label>
+            </div>
+            <div class="checkbox-container">
+                <input type="checkbox" id="developer-checkbox" checked>
+                <label for="developer-checkbox">Developer mode when checked. When unchecked it's production mode.</label>
+            </div>
+            <button id="submit-button">Submit via POST</button>
+        </div>
+        <div class="iframe-container">
+            <iframe name="run-iframe" title="Run Page"></iframe>
+        </div>
+        <div class="userid-container">User ID: <span>{{ user_id }}</span></div>
+    </div>
+
+    <!-- Hidden form used to POST to /run into the iframe -->
+    <form id="run-form" action="/run" method="POST" target="run-iframe" style="display: none">
+        <input type="hidden" name="prompt" id="form-prompt" value="">
+        <input type="hidden" name="user_id" value="{{ user_id }}">
+        <input type="hidden" name="nonce" value="{{ nonce }}">
+        <!-- Flags are submitted only when enabled (not disabled) -->
+        <input type="hidden" name="fast" id="form-fast" value="true">
+        <input type="hidden" name="developer" id="form-developer" value="true">
+    </form>
+
+    <script>
+        const prompts = JSON.parse('{{ prompts|tojson|safe }}');
+
+        // Function to update character and byte count
+        function updateCharCount() {
+            const textarea = document.getElementById('prompt');
+            const charCountLabel = document.getElementById('char-count');
+            const text = textarea.value;
+            
+            // Count characters (UTF-8 code points)
+            const charCount = text.length;
+            
+            // Count bytes (UTF-8 encoded)
+            const byteCount = new TextEncoder().encode(text).length;
+            
+            charCountLabel.textContent = `Characters: ${charCount} | Bytes: ${byteCount}`;
+        }
+
+        // Set default prompt on page load
+        window.onload = function() {
+            document.getElementById('prompt').value = prompts[0];
+            
+            // Update count on page load
+            updateCharCount();
+            
+            // Add event listener for real-time updates
+            document.getElementById('prompt').addEventListener('input', updateCharCount);
+            
+            // Dynamically create example buttons
+            const buttonContainer = document.querySelector('.example-prompt-buttons');
+            prompts.forEach((prompt, index) => {
+                const button = document.createElement('button');
+                button.id = `example-${index + 1}-button`;
+                button.textContent = `Example ${index + 1}`;
+                button.addEventListener('click', function() {
+                    document.getElementById('prompt').value = prompts[index];
+                    updateCharCount(); // Update count when example is clicked
+                });
+                buttonContainer.appendChild(button);
+            });
+        };
+
+        document.getElementById('submit-button').addEventListener('click', function() {
+            const promptValue = document.getElementById('prompt').value;
+            const fastChecked = document.getElementById('fast-checkbox').checked;
+            const developerChecked = document.getElementById('developer-checkbox').checked;
+            const iframeContainer = document.querySelector('.iframe-container');
+            const inputContainer = document.querySelector('.input-container');
+
+            // Populate form fields
+            const form = document.getElementById('run-form');
+            document.getElementById('form-prompt').value = promptValue;
+
+            // Submit flags only when checked (disable when unchecked so they are not submitted)
+            const fastInput = document.getElementById('form-fast');
+            const developerInput = document.getElementById('form-developer');
+            fastInput.disabled = !fastChecked;      // default fast is enabled in UI
+            developerInput.disabled = !developerChecked;
+
+            // Submit the form to the iframe
+            form.submit();
+
+            // Show the iframe container and hide the input container
+            iframeContainer.style.display = 'block';
+            inputContainer.style.display = 'none';
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Progress</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .progress-container {
+            text-align: center;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.3s ease-in-out;
+        }
+        .progress-message {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #333;
+        }
+        .progress-label {
+            font-size: 1.2rem;
+            color: #666;
+            margin-top: 1rem;
+        }
+        .parameters {
+            margin-bottom: 1rem;
+        }
+        .parameter {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-container">
+        <h2>Don't close this page. Your plan will be visible after it's generated.</h2>
+        <div class="progress-bar" id="progress-bar"></div>
+        <div class="progress-message" id="progress-message"></div>
+        <div class="progress-label">Server Progress</div>
+    </div>
+
+    <script>
+        const progressMessageElement = document.getElementById('progress-message');
+        const progressBarElement = document.getElementById('progress-bar');
+        const progressBarFill = document.createElement('div');
+        progressBarFill.className = 'progress-bar-fill';
+        progressBarElement.appendChild(progressBarFill);
+        const eventSource = new EventSource(`/progress_separate_process?user_id={{ user_id }}`);
+
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const is_completed = data.status == "completed";
+            progressMessageElement.textContent = data.progress_message;
+            
+            // Update progress bar
+            if (data.progress_percentage !== undefined) {
+                progressBarFill.style.width = `${data.progress_percentage}%`;
+            }
+            
+            if (is_completed) {
+                // when the operation has completed redirect to the viewplan page
+                window.location.href = `/viewplan_separate_process?user_id={{ user_id }}`;
+            }
+        };
+
+        eventSource.onerror = function(event) {
+            console.error('EventSource failed', event);
+            eventSource.close();
+        };
+    </script>
+</body>
+</html> 

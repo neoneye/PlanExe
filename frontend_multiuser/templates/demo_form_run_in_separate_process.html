@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo form run in separate process</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .iframe-container {
+            width: 100%;
+            height: 80vh;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: none; /* Initially hidden */
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .input-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .example-prompt-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .example-prompt-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background-color: #f0f0f0;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        .example-prompt-buttons button:hover {
+            background-color: #e0e0e0;
+            transform: translateY(-1px);
+        }
+        #prompt {
+            width: 100%;
+            height: 200px;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            line-height: 1.5;
+            resize: vertical;
+            transition: border-color 0.2s ease;
+            box-sizing: border-box;
+        }
+        #prompt:focus {
+            outline: none;
+            border-color: #0066cc;
+            box-shadow: 0 0 0 3px rgba(0,102,204,0.1);
+        }
+        #submit-button {
+            display: block;
+            width: 100%;
+            padding: 15px 30px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        #submit-button:hover {
+            background-color: #0052a3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #submit-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .userid-container {
+            text-align: center;
+            margin-top: 25px;
+            font-family: monospace;
+            font-size: 16px;
+            color: #666;
+        }
+        .userid-container span {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Demo form run in separate process</h1>
+        <a href="/admin" style="display: inline-block; margin-bottom: 20px; color: #0066cc; text-decoration: none;">← Back to Admin</a>
+        <div class="input-container">
+            <div class="example-prompt-buttons">
+                <!-- Buttons will be dynamically generated here -->
+            </div>
+            <textarea id="prompt"></textarea>
+            <button id="submit-button">Submit</button>
+        </div>
+        <div class="iframe-container">
+            <iframe src="" title="Run Page"></iframe>
+        </div>
+        <div class="userid-container">User ID: <span>{{ user_id }}</span></div>
+    </div>
+
+    <script>
+        const prompts = JSON.parse('{{ prompts|tojson|safe }}');
+
+        // Set default prompt on page load
+        window.onload = function() {
+            document.getElementById('prompt').value = prompts[0];
+            
+            // Dynamically create example buttons
+            const buttonContainer = document.querySelector('.example-prompt-buttons');
+            prompts.forEach((prompt, index) => {
+                const button = document.createElement('button');
+                button.id = `example-${index + 1}-button`;
+                button.textContent = `Example ${index + 1}`;
+                button.addEventListener('click', function() {
+                    document.getElementById('prompt').value = prompts[index];
+                });
+                buttonContainer.appendChild(button);
+            });
+        };
+
+        document.getElementById('submit-button').addEventListener('click', function() {
+            const prompt = document.getElementById('prompt').value;
+            const iframeContainer = document.querySelector('.iframe-container');
+            const inputContainer = document.querySelector('.input-container');
+            const iframe = iframeContainer.querySelector('iframe');
+            
+            // Update iframe src with the prompt
+            iframe.src = `/run_separate_process?prompt=${encodeURIComponent(prompt)}&user_id={{ user_id }}`;
+            
+            // Show the iframe container and hide the input container
+            iframeContainer.style.display = 'block';
+            inputContainer.style.display = 'none';
+        });
+    </script>
+</body>
+</html> 
