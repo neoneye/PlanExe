@@ -1,6 +1,7 @@
 import logging
 import os
 import subprocess
+import json
 import sys
 import tempfile
 import threading
@@ -13,7 +14,7 @@ from pathlib import Path
 from typing import Dict, Literal, Optional
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from worker_plan_api.filenames import FilenameEnum
@@ -22,9 +23,10 @@ from worker_plan_api.llm_info import LLMInfo
 from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
 from worker_plan_api.plan_file import PlanFile
 from worker_plan_api.start_time import StartTime
-from planexe.llm_factory import obtain_llm_info
+from planexe.llm_factory import obtain_llm_info, get_llm_names_by_priority, get_llm
 from planexe.utils.time_since_last_modification import time_since_last_modification
 from planexe.utils.purge_old_runs import purge_old_runs, start_purge_scheduler
+from llama_index.core.llms import ChatMessage, MessageRole
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -363,6 +365,63 @@ def run_zip(run_id: str, background_tasks: BackgroundTasks) -> FileResponse:
 @app.get("/llm-info", response_model=LLMInfo)
 def llm_info() -> LLMInfo:
     return obtain_llm_info()
+
+
+@app.get("/llm-ping")
+def llm_ping() -> StreamingResponse:
+    """
+    Stream ping results for each configured LLM model.
+    Mirrors the previous Flask UI behavior but runs inside worker_plan.
+    """
+
+    def event_stream():
+        logger.info("Starting llm-ping stream")
+        try:
+            llm_names = get_llm_names_by_priority()
+        except Exception as exc:  # pragma: no cover - runtime probe
+            logger.error("llm-ping failed to enumerate llm names: %s", exc)
+            yield f"data: {json.dumps({'name': 'worker_plan', 'status': 'error', 'response_time': 0, 'response': str(exc)})}\n\n"
+            yield f"data: {json.dumps({'name': 'server', 'status': 'done', 'response_time': 0, 'response': ''})}\n\n"
+            return
+
+        for llm_name in llm_names:
+            yield f"data: {json.dumps({'name': llm_name, 'status': 'pinging', 'response_time': 0, 'response': 'Pinging model…'})}\n\n"
+            try:
+                start_time = time.time()
+                llm = get_llm(llm_name)
+                chat_message_list = [
+                    ChatMessage(
+                        role=MessageRole.USER,
+                        content="Hello, this is a test message. Please respond with 'OK' if you can read this."
+                    )
+                ]
+                response = llm.chat(chat_message_list)
+                end_time = time.time()
+
+                response_text = getattr(getattr(response, "message", None), "content", None)
+                if response_text is None:
+                    response_text = str(response)
+
+                payload = {
+                    "name": llm_name,
+                    "status": "success",
+                    "response_time": int((end_time - start_time) * 1000),
+                    "response": response_text
+                }
+            except Exception as exc:  # pragma: no cover - runtime probe
+                logger.error("llm-ping error for %s: %s", llm_name, exc)
+                payload = {
+                    "name": llm_name,
+                    "status": "error",
+                    "response_time": 0,
+                    "response": str(exc)
+                }
+            yield f"data: {json.dumps(payload)}\n\n"
+
+        logger.info("llm-ping stream complete")
+        yield f"data: {json.dumps({'name': 'server', 'status': 'done', 'response_time': 0, 'response': ''})}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @app.post("/purge-runs", response_model=PurgeRunsResponse)

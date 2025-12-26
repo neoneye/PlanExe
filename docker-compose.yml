@@ -108,6 +108,8 @@ services:
     depends_on:
       database_postgres:
         condition: service_healthy
+      worker_plan:
+        condition: service_healthy
     env_file:
       - .env
     environment:

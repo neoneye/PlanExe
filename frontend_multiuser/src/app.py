@@ -23,18 +23,19 @@ from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.contrib.sqla import ModelView
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from functools import wraps
+import urllib.request
+from urllib.error import URLError
 from flask import make_response
+import requests
 from planexe.utils.planexe_dotenv import DotEnvKeyEnum, PlanExeDotEnv
 from planexe.utils.planexe_config import PlanExeConfig
-from planexe.plan.generate_run_id import generate_run_id
-from planexe.plan.start_time import StartTime
+from worker_plan_api.generate_run_id import generate_run_id
+from worker_plan_api.start_time import StartTime
 from worker_plan_api.plan_file import PlanFile
-from planexe.plan.filenames import FilenameEnum, ExtraFilenameEnum
-from planexe.prompt.prompt_catalog import PromptCatalog
-from planexe.llm_factory import SPECIAL_AUTO_ID, get_llm_names_by_priority, get_llm
-from planexe.plan.speedvsdetail import SpeedVsDetailEnum
+from worker_plan_api.filenames import FilenameEnum, ExtraFilenameEnum
+from worker_plan_api.prompt_catalog import PromptCatalog
+from worker_plan_api.speedvsdetail import SpeedVsDetailEnum
 from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
-from llama_index.core.llms import ChatMessage, MessageRole
 from sqlalchemy import text
 from model_taskitem import TaskItem, TaskState
 from model_event import EventType, EventItem
@@ -52,6 +53,8 @@ MODULE_PATH_PIPELINE = "planexe.plan.run_plan_pipeline"
 RUN_DIR = "run"
 
 SHOW_DEMO_PLAN = False
+
+SPECIAL_AUTO_ID = "auto"
 
 DEMO_INSTANT_RUN_PROMPT_UUID = "4dc34d55-0d0d-4e9d-92f4-23765f49dd29"
 DEMO_FORM_RUN_PROMPT_UUIDS = [
@@ -171,6 +174,9 @@ class MyFlaskApp:
             debug_planexe_run_dir = 'default'
             self.planexe_run_dir = self.planexe_project_root / RUN_DIR
         logger.info(f"MyFlaskApp.__init__. planexe_run_dir ({debug_planexe_run_dir}): {self.planexe_run_dir!r}")
+
+        self.worker_plan_url = (os.environ.get("PLANEXE_WORKER_PLAN_URL") or "http://worker_plan:8000").rstrip("/")
+        logger.info(f"MyFlaskApp.__init__. worker_plan_url: {self.worker_plan_url}")
 
         self._start_check()
 
@@ -311,6 +317,21 @@ class MyFlaskApp:
         if issue_count > 0:
             raise Exception(f"There are {issue_count} issues with the python executable and project root directory")
 
+    def _fetch_worker_plan_llm_info(self) -> Tuple[Optional[dict], Optional[str]]:
+        """
+        Fetch LLM configuration info from the worker_plan service.
+        Returns a tuple of (payload, error_message).
+        """
+        url = f"{self.worker_plan_url}/llm-info"
+        try:
+            with urllib.request.urlopen(url, timeout=5) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            return payload, None
+        except URLError as exc:
+            return None, f"Failed to reach worker_plan at {url}: {exc.reason}"
+        except Exception as exc:
+            return None, f"Error fetching worker_plan llm-info: {exc}"
+
     def _create_job_internal(self, run_id: str, run_id_dir: Path) -> Tuple[Dict[str, Any], int]:
         """
         Internal logic for creating a job.
@@ -389,55 +410,31 @@ class MyFlaskApp:
         @login_required
         def ping_stream():
             def generate():
-                llm_names = get_llm_names_by_priority()
-
-                for llm_name in llm_names:
-                    # Send "pinging" status
-                    yield f"data: {json.dumps({
-                        'name': llm_name,
-                        'status': 'pinging',
-                        'response_time': 0,
-                        'response': 'Pinging model…'
-                    })}\n\n"
-
-                    try:
-                        start_time = time.time()
-                        llm = get_llm(llm_name)
-                        
-                        # Test message
-                        chat_message_list = [
-                            ChatMessage(
-                                role=MessageRole.USER,
-                                content="Hello, this is a test message. Please respond with 'OK' if you can read this."
-                            )
-                        ]
-                        
-                        response = llm.chat(chat_message_list)
-                        end_time = time.time()
-                        
-                        result = {
-                            'name': llm_name,
-                            'status': 'success',
-                            'response_time': int((end_time - start_time) * 1000),  # Convert to milliseconds
-                            'response': response.message.content
-                        }
-                    except Exception as e:
-                        result = {
-                            'name': llm_name,
-                            'status': 'error',
-                            'response_time': 0,
-                            'response': str(e)
-                        }
-                    
-                    yield f"data: {json.dumps(result)}\n\n"
-
-                # Send final "done" status
-                yield f"data: {json.dumps({
-                    'name': 'server',
-                    'status': 'done',
-                    'response_time': 0,
-                    'response': ''
-                })}\n\n"
+                url = f"{self.worker_plan_url}/llm-ping"
+                logger.info("Proxying LLM ping stream from %s", url)
+                try:
+                    with requests.get(
+                        url,
+                        stream=True,
+                        timeout=(5, 300),
+                        headers={"Accept": "text/event-stream"},
+                    ) as resp:
+                        if resp.status_code != 200:
+                            msg = f"worker_plan responded with {resp.status_code}"
+                            logger.error("LLM ping proxy error: %s", msg)
+                            yield f"data: {json.dumps({'name': 'worker_plan', 'status': 'error', 'response_time': 0, 'response': msg})}\n\n"
+                            yield f"data: {json.dumps({'name': 'server', 'status': 'done', 'response_time': 0, 'response': ''})}\n\n"
+                            return
+                        for line in resp.iter_lines(decode_unicode=True):
+                            if line is None or line.strip() == "":
+                                continue
+                            # Re-emit each SSE line with proper terminator.
+                            yield f"{line}\n\n"
+                except Exception as exc:  # pragma: no cover - runtime proxy
+                    logger.error("LLM ping proxy exception: %s", exc)
+                    error_payload = {'name': 'worker_plan', 'status': 'error', 'response_time': 0, 'response': str(exc)}
+                    yield f"data: {json.dumps(error_payload)}\n\n"
+                    yield f"data: {json.dumps({'name': 'server', 'status': 'done', 'response_time': 0, 'response': ''})}\n\n"
 
             response = Response(generate(), mimetype='text/event-stream')
             response.headers['X-Accel-Buffering'] = 'no'  # Disable Nginx buffering
