@@ -3,7 +3,7 @@ Docker Compose for PlanExe
 
 TL;DR
 -----
-- Four containers: `database_postgres` (DB on `${PLANEXE_POSTGRES_PORT:-5432}`), `frontend_gradio` (UI on 7860), `worker_plan` (API on 8000), and `frontend_multiuser` (Flask DB ping UI on `${PLANEXE_FRONTEND_MULTIUSER_PORT:-5001}`); `frontend_gradio` waits for the worker to be healthy and `frontend_multiuser` waits for Postgres health.
+- Four containers: `database_postgres` (DB on `${PLANEXE_POSTGRES_PORT:-5432}`), `frontend_gradio` (UI on 7860), `worker_plan` (API on 8000), and `frontend_multiuser` (UI on `${PLANEXE_FRONTEND_MULTIUSER_PORT:-5001}`); `frontend_gradio` waits for the worker to be healthy and `frontend_multiuser` waits for Postgres health.
 - Shared host files: `.env` and `llm_config.json` mounted read-only; `./run` bind-mounted so outputs/logs persist; `.env` is also loaded via `env_file`.
 - Postgres defaults to user/db/password `planexe`; override via env or `.env`; data lives in the `database_postgres_data` volume.
 - Env defaults live in `docker-compose.yml` but can be overridden in `.env` or your shell (URLs, timeouts, run dirs, optional auth and opener URL).
