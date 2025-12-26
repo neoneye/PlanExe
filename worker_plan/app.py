@@ -21,7 +21,7 @@ from worker_plan_api.generate_run_id import RUN_ID_PREFIX, generate_run_id
 from worker_plan_api.llm_info import LLMInfo
 from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
 from planexe.plan.plan_file import PlanFile
-from planexe.plan.start_time import StartTime
+from worker_plan_api.start_time import StartTime
 from planexe.llm_factory import obtain_llm_info
 from planexe.utils.time_since_last_modification import time_since_last_modification
 from planexe.utils.purge_old_runs import purge_old_runs, start_purge_scheduler

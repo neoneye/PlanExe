@@ -1,9 +1,9 @@
 from datetime import datetime
 import unittest
 import pytz
-from planexe.plan.start_time import StartTime
 
-class TestStartTime(unittest.TestCase):        
+from worker_plan_api.start_time import StartTime
+class TestStartTime(unittest.TestCase):
     def test_create_current_time(self):
         """Test that current time is properly handled"""
         # Arrange
