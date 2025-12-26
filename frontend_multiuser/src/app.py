@@ -415,7 +415,7 @@ class MyFlaskApp:
         self.database_settings = db_settings if db_settings else {"uri_source": "SQLALCHEMY_DATABASE_URI"}
         
         # Initialize database
-        from planexe_db_singleton import db
+        from database_api.planexe_db_singleton import db
         self.db = db
         self.db.init_app(self.app)
         

@@ -11,10 +11,11 @@ Shared database models used by multiple PlanExe services (e.g., `frontend_multiu
 ## How to import
 Add the repo root (containing `database_api/`) to `PYTHONPATH`, then:
 ```python
+from database_api.planexe_db_singleton import db
 from database_api.model_event import EventType, EventItem
 from database_api.model_taskitem import TaskItem, TaskState
 from database_api.model_worker import WorkerItem
 from database_api.model_nonce import NonceItem
 ```
 
-Each model expects a `db` instance to be available in the module namespace (e.g., via `from planexe_db_singleton import db` in your service). Keep the models as-is to avoid divergence across services.
+Each model expects a `db` instance to be available in the module namespace (e.g., via `from database_api.planexe_db_singleton import db` in your service). Keep the models as-is to avoid divergence across services.

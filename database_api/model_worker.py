@@ -3,7 +3,7 @@ from datetime import datetime, UTC
 from typing import Optional
 import logging
 
-from planexe_db_singleton import db # Assuming your db instance is here
+from database_api.planexe_db_singleton import db
 
 logger = logging.getLogger(__name__)
 

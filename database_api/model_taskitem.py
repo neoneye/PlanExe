@@ -1,7 +1,7 @@
 import enum
 import uuid
 from datetime import datetime, UTC
-from planexe_db_singleton import db
+from database_api.planexe_db_singleton import db
 from sqlalchemy_utils import UUIDType
 from sqlalchemy import JSON
 

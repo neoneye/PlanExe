@@ -6,7 +6,7 @@ import logging
 import enum
 from typing import Optional
 from datetime import datetime, UTC
-from planexe_db_singleton import db
+from database_api.planexe_db_singleton import db
 from sqlalchemy import JSON, Text
 
 logger = logging.getLogger(__name__)
