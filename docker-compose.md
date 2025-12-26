@@ -40,17 +40,17 @@ Service: `database_postgres` (Postgres DB)
 - Env defaults: `POSTGRES_USER=planexe`, `POSTGRES_PASSWORD=planexe`, `POSTGRES_DB=planexe`, `PLANEXE_POSTGRES_PORT=5432` (override with env/.env).
 - Data/health: data in the named volume `database_postgres_data`; healthcheck uses `pg_isready`.
 
-Service: `frontend_gradio` (user UI)
+Service: `frontend_gradio` (single user UI)
 ------------------------------------
-- Purpose: Gradio UI the user interacts with; waits for a healthy worker and serves on port 7860.
+- Purpose: Single user Gradio UI; waits for a healthy worker and serves on port 7860. Does not use database.
 - Build: `frontend_gradio/Dockerfile`.
 - Env defaults: `PLANEXE_WORKER_PLAN_URL=http://worker_plan:8000`, timeout, server host/port, optional password, optional `PLANEXE_OPEN_DIR_SERVER_URL` for the host opener.
 - Volumes: mirrors the worker (`.env` ro, `llm_config.json` ro, `run/` rw) so both share config and outputs.
 - Watch: sync frontend code, shared API code in `worker_plan/`, and config files; rebuild on `worker_plan/pyproject.toml`; restart on compose edits.
 
-Service: `frontend_multiuser` (DB ping UI)
+Service: `frontend_multiuser` (multi user UI)
 ------------------------------------------
-- Purpose: Minimal Flask UI that pings Postgres with `SELECT 1` when you click **Ping database**.
+- Purpose: Multi-user Flask UI with admin views (tasks/events/nonce/workers) backed by Postgres.
 - Build: `frontend_multiuser/Dockerfile`.
 - Env defaults: DB host `database_postgres`, port `5432`, db/user/password `planexe` (follows `POSTGRES_*`); container listens on fixed port `5000`, host maps `${PLANEXE_FRONTEND_MULTIUSER_PORT:-5001}`.
 - Health: depends on `database_postgres` health; its own healthcheck hits `/health` on port 5000.
