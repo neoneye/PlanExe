@@ -12,6 +12,7 @@ WORKDIR /app
 # Copy application code and supporting files
 COPY worker_plan/worker_plan_api /app/worker_plan_api
 COPY worker_plan/worker_plan_api /app/frontend_multiuser/worker_plan_api
+COPY database_api /app/database_api
 COPY frontend_multiuser /app/frontend_multiuser
 COPY README.md llm_config.json .env.example /app/
 

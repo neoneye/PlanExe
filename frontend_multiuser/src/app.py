@@ -25,6 +25,7 @@ _CURRENT_FILE = Path(__file__).resolve()
 _PROJECT_ROOT = _CURRENT_FILE.parents[2]
 _CANDIDATE_IMPORT_PATHS = [
     _CURRENT_FILE.parents[1],  # /app/frontend_multiuser
+    _PROJECT_ROOT,  # /app
     _PROJECT_ROOT / "worker_plan_api",  # copied worker_plan_api
     _PROJECT_ROOT / "worker_plan",  # sibling worker_plan source tree
     _CURRENT_FILE.parents[1] / "worker_plan_api",  # optional vendored worker_plan_api inside frontend
@@ -51,10 +52,10 @@ from worker_plan_api.filenames import FilenameEnum, ExtraFilenameEnum
 from worker_plan_api.prompt_catalog import PromptCatalog
 from worker_plan_api.speedvsdetail import SpeedVsDetailEnum
 from sqlalchemy import text
-from model_taskitem import TaskItem, TaskState
-from model_event import EventType, EventItem
-from model_worker import WorkerItem
-from model_nonce import NonceItem
+from database_api.model_taskitem import TaskItem, TaskState
+from database_api.model_event import EventType, EventItem
+from database_api.model_worker import WorkerItem
+from database_api.model_nonce import NonceItem
 from planexe_modelviews import WorkerItemView, TaskItemView, NonceItemView
 logger = logging.getLogger(__name__)
 
