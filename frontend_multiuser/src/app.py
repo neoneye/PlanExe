@@ -4,6 +4,7 @@ Flask UI for PlanExe-server.
 PROMPT> python3 -m src.app
 """
 from datetime import datetime, UTC
+import importlib.util
 import logging
 import os
 import re
@@ -12,12 +13,28 @@ import time
 import json
 import uuid
 from urllib.parse import quote_plus
-from typing import Dict, Optional, Tuple, Any
+from typing import ClassVar, Dict, Optional, Tuple, Any
 from dataclasses import dataclass
 import subprocess
 import threading
 from enum import Enum
 from pathlib import Path
+
+# Ensure local sources (frontend_multiuser) and shared worker_plan_api can be imported without installing worker_plan.
+_CURRENT_FILE = Path(__file__).resolve()
+_PROJECT_ROOT = _CURRENT_FILE.parents[2]
+_CANDIDATE_IMPORT_PATHS = [
+    _CURRENT_FILE.parents[1],  # /app/frontend_multiuser
+    _PROJECT_ROOT / "worker_plan_api",  # copied worker_plan_api
+    _PROJECT_ROOT / "worker_plan",  # sibling worker_plan source tree
+    _CURRENT_FILE.parents[1] / "worker_plan_api",  # optional vendored worker_plan_api inside frontend
+]
+for _candidate in _CANDIDATE_IMPORT_PATHS:
+    if _candidate.exists():
+        _candidate_str = str(_candidate)
+        if _candidate_str not in sys.path:
+            sys.path.insert(0, _candidate_str)
+
 from flask import Flask, render_template, Response, request, jsonify, send_file, redirect, url_for
 from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.contrib.sqla import ModelView
@@ -27,23 +44,202 @@ import urllib.request
 from urllib.error import URLError
 from flask import make_response
 import requests
-from planexe.utils.planexe_dotenv import DotEnvKeyEnum, PlanExeDotEnv
-from planexe.utils.planexe_config import PlanExeConfig
 from worker_plan_api.generate_run_id import generate_run_id
 from worker_plan_api.start_time import StartTime
 from worker_plan_api.plan_file import PlanFile
 from worker_plan_api.filenames import FilenameEnum, ExtraFilenameEnum
 from worker_plan_api.prompt_catalog import PromptCatalog
 from worker_plan_api.speedvsdetail import SpeedVsDetailEnum
-from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
 from sqlalchemy import text
 from model_taskitem import TaskItem, TaskState
 from model_event import EventType, EventItem
 from model_worker import WorkerItem
 from model_nonce import NonceItem
 from planexe_modelviews import WorkerItemView, TaskItemView, NonceItemView
-
 logger = logging.getLogger(__name__)
+
+# Best-effort probe for the pipeline module; avoid crashing if the package is absent.
+def _has_pipeline_module() -> bool:
+    try:
+        return importlib.util.find_spec(MODULE_PATH_PIPELINE) is not None
+    except ModuleNotFoundError:
+        return False
+    except Exception as exc:
+        logger.warning("Error checking for pipeline module %s: %s", MODULE_PATH_PIPELINE, exc)
+        return False
+
+try:
+    from planexe.utils.planexe_dotenv import DotEnvKeyEnum, PlanExeDotEnv  # type: ignore
+    from planexe.utils.planexe_config import PlanExeConfig  # type: ignore
+    from planexe.plan.pipeline_environment import PipelineEnvironmentEnum  # type: ignore
+except ModuleNotFoundError:
+    # Lightweight fallbacks so the frontend can run without installing the full worker_plan package.
+    from dotenv import dotenv_values
+
+    class DotEnvKeyEnum(str, Enum):
+        PATH_TO_PYTHON = "PATH_TO_PYTHON"
+        PLANEXE_RUN_DIR = "PLANEXE_RUN_DIR"
+
+    class PlanExeConfigError(Exception):
+        pass
+
+    @dataclass
+    class PlanExeConfig:
+        planexe_config_path: Optional[Path]
+        dotenv_path: Optional[Path]
+        llm_config_json_path: Optional[Path]
+
+        _instance: ClassVar[Optional["PlanExeConfig"]] = None
+
+        def raise_if_required_files_not_found(self) -> None:
+            missing_files = []
+            if self.llm_config_json_path is None:
+                missing_files.append("llm_config.json")
+
+            if missing_files:
+                msg = f"Required configuration file(s) not found: {', '.join(missing_files)}"
+                logger.error(msg)
+                raise PlanExeConfigError(msg)
+            if self.dotenv_path is None:
+                logger.info("Optional configuration file '.env' not found; relying on environment variables only.")
+
+        @classmethod
+        def load(cls) -> "PlanExeConfig":
+            if cls._instance is not None:
+                return cls._instance
+
+            planexe_config_path = cls.resolve_planexe_config_path()
+            dotenv_path = cls.find_file_in_search_order(".env", planexe_config_path, is_optional=True)
+            llm_config_json_path = cls.find_file_in_search_order("llm_config.json", planexe_config_path)
+            cls._instance = cls(
+                planexe_config_path=planexe_config_path,
+                dotenv_path=dotenv_path,
+                llm_config_json_path=llm_config_json_path
+            )
+            return cls._instance
+
+        @classmethod
+        def resolve_planexe_config_path(cls) -> Optional[Path]:
+            path_str = os.environ.get("PLANEXE_CONFIG_PATH")
+            if path_str is None:
+                logger.debug("PLANEXE_CONFIG_PATH is not set")
+                return None
+            try:
+                path_obj = Path(path_str)
+            except Exception as e:
+                logger.error(f"Invalid PLANEXE_CONFIG_PATH string '{path_str!r}': {e!r}")
+                return None
+            if not path_obj.is_absolute():
+                logger.error(f"PLANEXE_CONFIG_PATH must be an absolute path: {path_obj!r}")
+                return None
+            if not path_obj.is_dir():
+                logger.error(f"PLANEXE_CONFIG_PATH must be a directory: {path_obj!r}")
+                return None
+            logger.debug(f"Using PLANEXE_CONFIG_PATH: {path_obj!r}")
+            return path_obj
+
+        @classmethod
+        def find_file_in_search_order(cls, filename: str, planexe_config_path: Optional[Path], is_optional: bool = False) -> Optional[Path]:
+            if planexe_config_path is not None:
+                config_file_path = planexe_config_path / filename
+                if config_file_path.is_file():
+                    logger.debug(f"Found {filename!r} at config_file_path: {config_file_path!r}")
+                    return config_file_path
+
+            cwd_file_path = Path.cwd() / filename
+            if cwd_file_path.is_file():
+                logger.debug(f"Found {filename!r} at cwd_file_path: {cwd_file_path!r}")
+                return cwd_file_path
+
+            root_file_path = Path(__file__).parent.parent.parent / filename
+            if root_file_path.is_file():
+                logger.debug(f"Found {filename!r} at root_file_path: {root_file_path!r}")
+                return root_file_path
+
+            if is_optional:
+                logger.info(f"Optional file {filename!r} not found in any of the search locations (ENV_VAR, CWD, Project Root).")
+            else:
+                logger.warning(f"{filename!r} not found in any of the search locations (ENV_VAR, CWD, Project Root).")
+            return None
+
+    @dataclass
+    class PlanExeDotEnv:
+        dotenv_path: Optional[Path]
+        dotenv_dict: dict[str, str]
+
+        @classmethod
+        def load(cls):
+            config = PlanExeConfig.load()
+            dotenv_path = config.dotenv_path
+            env_before = os.environ.copy()
+
+            dotenv_file_values: dict[str, str] = {}
+            if dotenv_path is not None:
+                dotenv_file_values = {k: v for k, v in dotenv_values(dotenv_path=dotenv_path).items() if v is not None}
+
+            dotenv_dict = {**dotenv_file_values, **os.environ}
+
+            if env_before != os.environ:
+                logger.error("PlanExeDotEnv.load() The dotenv_values() modified the environment variables. count before: %s, count after: %s", len(env_before), len(os.environ))
+            else:
+                logger.debug("PlanExeDotEnv.load() The dotenv_values() did not modify the environment variables. number of items: %s", len(os.environ))
+            return cls(
+                dotenv_path=dotenv_path,
+                dotenv_dict=dotenv_dict
+            )
+
+        def update_os_environ(self):
+            count_before = len(os.environ)
+            os.environ.update(self.dotenv_dict)
+            count_after = len(os.environ)
+            logger.debug("PlanExeDotEnv.update_os_environ() Updated os.environ with the .env file content. number of items before: %s, number after: %s", count_before, count_after)
+
+        def get(self, key: str) -> Optional[str]:
+            return self.dotenv_dict.get(key)
+
+        def get_absolute_path_to_file(self, key: str) -> Optional[Path]:
+            path_str = self.dotenv_dict.get(key)
+            if path_str is None:
+                logger.debug("%s is not set", key)
+                return None
+            try:
+                path_obj = Path(path_str)
+            except Exception as e:
+                logger.error("Invalid %s string %r: %r", key, path_str, e)
+                return None
+            if not path_obj.is_absolute():
+                logger.error("%s must be an absolute path: %r", key, path_obj)
+                return None
+            if not path_obj.is_file():
+                logger.error("%s must be a file: %r", key, path_obj)
+                return None
+            logger.debug("Using %s: %r", key, path_obj)
+            return path_obj
+
+        def get_absolute_path_to_dir(self, key: str) -> Optional[Path]:
+            path_str = self.dotenv_dict.get(key)
+            if path_str is None:
+                logger.debug("%s is not set", key)
+                return None
+            try:
+                path_obj = Path(path_str)
+            except Exception as e:
+                logger.error("Invalid %s string %r: %r", key, path_str, e)
+                return None
+            if not path_obj.is_absolute():
+                logger.error("%s must be an absolute path: %r", key, path_obj)
+                return None
+            if not path_obj.is_dir():
+                logger.error("%s must be a directory: %r", key, path_obj)
+                return None
+            logger.debug("Using %s: %r", key, path_obj)
+            return path_obj
+
+    class PipelineEnvironmentEnum(str, Enum):
+        """Fallback enum for pipeline environment variables."""
+        RUN_ID_DIR = "RUN_ID_DIR"
+        LLM_MODEL = "LLM_MODEL"
+        SPEED_VS_DETAIL = "SPEED_VS_DETAIL"
 
 # IDEA: move secrets to env vars.
 ADMIN_USERNAME = "admin"
@@ -177,6 +373,10 @@ class MyFlaskApp:
 
         self.worker_plan_url = (os.environ.get("PLANEXE_WORKER_PLAN_URL") or "http://worker_plan:8000").rstrip("/")
         logger.info(f"MyFlaskApp.__init__. worker_plan_url: {self.worker_plan_url}")
+
+        self.pipeline_module_available = _has_pipeline_module()
+        if not self.pipeline_module_available:
+            logger.warning("Pipeline module %s not found; pipeline-backed endpoints are disabled.", MODULE_PATH_PIPELINE)
 
         self._start_check()
 
@@ -340,6 +540,8 @@ class MyFlaskApp:
         """
         if not run_id:
             return {"error": "run_id is required"}, 400
+        if not self.pipeline_module_available:
+            return {"error": f"Pipeline module {MODULE_PATH_PIPELINE} is not available in this image. Please run worker_plan for execution."}, 503
 
         if run_id in self.jobs:
             return {"error": "run_id already exists"}, 409
@@ -562,6 +764,10 @@ class MyFlaskApp:
         @self.app.route('/run_separate_process')
         @login_required
         def run_separate_process():
+            if not self.pipeline_module_available:
+                logger.error("endpoint /run_separate_process. Pipeline module %s unavailable.", MODULE_PATH_PIPELINE)
+                return jsonify({"error": f"Pipeline module {MODULE_PATH_PIPELINE} is not available in this image."}), 503
+
             prompt_param = request.args.get('prompt', '')
             user_id_param = request.args.get('user_id', '')
 
@@ -889,6 +1095,10 @@ class MyFlaskApp:
         def demo_subprocess_run_medium():
             topic = 'subprocess.run with python pinging OpenRouter'
             template = 'check_is_working.html'
+            if not self.pipeline_module_available:
+                message = f"Pipeline module {MODULE_PATH_PIPELINE} is not available in this image."
+                logger.error("demo_subprocess_run_medium. %s", message)
+                return render_template(template, topic=topic, output=None, error=message)
             try:
                 env = os.environ.copy()
                 logger.info(f"demo_subprocess_run_medium. planexe_dotenv: {self.planexe_dotenv!r}")
@@ -919,6 +1129,10 @@ class MyFlaskApp:
         def demo_subprocess_run_advanced():
             topic = 'subprocess.run with python pinging OpenRouter. Uses LlamaIndex.'
             template = 'check_is_working.html'
+            if not self.pipeline_module_available:
+                message = f"Pipeline module {MODULE_PATH_PIPELINE} is not available in this image."
+                logger.error("demo_subprocess_run_advanced. %s", message)
+                return render_template(template, topic=topic, output=None, error=message)
             try:
                 env = os.environ.copy()
                 logger.info(f"demo_subprocess_run_advanced. planexe_dotenv: {self.planexe_dotenv!r}")
@@ -1038,6 +1252,12 @@ class MyFlaskApp:
         """Run the actual job in a subprocess"""
         
         try:
+            if not self.pipeline_module_available:
+                job.status = JobStatus.failed
+                job.error = f"Pipeline module {MODULE_PATH_PIPELINE} is not available in this image."
+                logger.error("_run_job called without available pipeline module for run_id %s.", job.run_id)
+                return
+
             run_id_dir = job.run_id_dir
             if not run_id_dir.exists():
                 raise Exception(f"The run_id_dir directory is supposed to exist at this point. However the output directory does not exist: {run_id_dir!r}")
