@@ -1,5 +1,5 @@
 """
-PROMPT> python -m planexe.plan.plan_file
+PROMPT> python -m worker_plan_api.plan_file
 """
 from datetime import datetime
 from dataclasses import dataclass

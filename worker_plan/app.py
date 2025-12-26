@@ -20,7 +20,7 @@ from worker_plan_api.filenames import FilenameEnum
 from worker_plan_api.generate_run_id import RUN_ID_PREFIX, generate_run_id
 from worker_plan_api.llm_info import LLMInfo
 from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
-from planexe.plan.plan_file import PlanFile
+from worker_plan_api.plan_file import PlanFile
 from worker_plan_api.start_time import StartTime
 from planexe.llm_factory import obtain_llm_info
 from planexe.utils.time_since_last_modification import time_since_last_modification

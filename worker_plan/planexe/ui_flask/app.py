@@ -17,7 +17,7 @@ import importlib.resources
 from worker_plan_api.start_time import StartTime
 from planexe.utils.planexe_dotenv import DotEnvKeyEnum, PlanExeDotEnv
 from planexe.utils.planexe_config import PlanExeConfig
-from planexe.plan.plan_file import PlanFile
+from worker_plan_api.plan_file import PlanFile
 from worker_plan_api.filenames import FilenameEnum, ExtraFilenameEnum
 from planexe.prompt.prompt_catalog import PromptCatalog
 from planexe.llm_factory import SPECIAL_AUTO_ID, get_llm_names_by_priority, get_llm
