@@ -396,8 +396,17 @@ class MyFlaskApp:
         logger.info(f"MyFlaskApp.__init__. template_folder: {template_folder!r}")
         self.app = Flask(__name__, template_folder=str(template_folder))
         
-        # Load configuration from config.py
-        self.app.config.from_pyfile('config.py')
+        # Load configuration from config.py when present; otherwise use safe defaults.
+        config_path = Path(__file__).with_name("config.py")
+        if config_path.exists():
+            logger.info("Loading Flask config from %s", config_path)
+            self.app.config.from_pyfile(str(config_path))
+        else:
+            logger.warning("Config file not found at %s; using fallback settings.", config_path)
+            self.app.config.from_mapping(
+                SECRET_KEY=os.environ.get("SECRET_KEY", "dev-secret-key"),
+                SQLALCHEMY_TRACK_MODIFICATIONS=False,
+            )
 
         db_settings: Dict[str, str] = {}
         sqlalchemy_database_uri = self.planexe_dotenv.get("SQLALCHEMY_DATABASE_URI")
