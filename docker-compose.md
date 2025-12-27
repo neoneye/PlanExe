@@ -64,6 +64,15 @@ Service: `worker_plan` (pipeline API)
 - Volumes: `.env` (ro), `llm_config.json` (ro), `run/` (rw).
 - Watch: sync `worker_plan/` into `/app/worker_plan`, rebuild on `worker_plan/pyproject.toml`, restart on compose edits.
 
+Service: `worker_plan_database` (DB-backed worker)
+--------------------------------------------------
+- Purpose: polls `TaskItem` rows in Postgres, marks them processing, runs the PlanExe pipeline, and writes progress/events back to the DB; no HTTP port exposed.
+- Build: `worker_plan_database/Dockerfile` (ships `worker_plan` code, shared `database_api` models, and this worker subclass).
+- Depends on: `database_postgres` health.
+- Env defaults: derives `SQLALCHEMY_DATABASE_URI` from `PLANEXE_WORKER_PLAN_DB_HOST|PORT|NAME|USER|PASSWORD` (fallbacks to `database_postgres` + `planexe/planexe` on 5432); `PLANEXE_CONFIG_PATH=/app`, `PLANEXE_RUN_DIR=/app/run`.
+- Volumes: `.env` (ro), `llm_config.json` (ro), `run/` (rw for pipeline output), `log/` (rw for rotating worker logs).
+- Entrypoint: `python -m worker_plan_database.app` (runs the long-lived poller loop).
+
 Usage notes
 -----------
 - Ports: host `8000->worker_plan`, `7860->frontend_gradio`, `${PLANEXE_FRONTEND_MULTIUSER_PORT:-5001}->frontend_multiuser`, `PLANEXE_POSTGRES_PORT (default 5432)->database_postgres`; change mappings in `docker-compose.yml` if needed.

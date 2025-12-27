@@ -55,6 +55,31 @@ services:
         - action: restart
           path: ./docker-compose.yml
 
+  worker_plan_database:
+    build:
+      context: .
+      dockerfile: worker_plan_database/Dockerfile
+    container_name: worker_plan_database
+    depends_on:
+      database_postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      PLANEXE_CONFIG_PATH: /app
+      PLANEXE_RUN_DIR: /app/run
+      PLANEXE_WORKER_PLAN_DB_HOST: ${PLANEXE_WORKER_PLAN_DB_HOST:-database_postgres}
+      PLANEXE_WORKER_PLAN_DB_PORT: ${PLANEXE_WORKER_PLAN_DB_PORT:-5432}
+      PLANEXE_WORKER_PLAN_DB_NAME: ${POSTGRES_DB:-planexe}
+      PLANEXE_WORKER_PLAN_DB_USER: ${POSTGRES_USER:-planexe}
+      PLANEXE_WORKER_PLAN_DB_PASSWORD: ${POSTGRES_PASSWORD:-planexe}
+    volumes:
+      - ./.env:/app/.env:ro
+      - ./llm_config.json:/app/llm_config.json:ro
+      - ./run:/app/run
+      - ./log:/app/log
+    restart: unless-stopped
+
   frontend_gradio:
     build:
       context: .

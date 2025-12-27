@@ -19,6 +19,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional
+from urllib.parse import quote_plus
 import uuid
 
 WORKER_ID = os.environ.get("PLANEXE_WORKER_ID") or str(uuid.uuid4())
@@ -114,19 +115,19 @@ try:
     from planexe.plan.run_plan_pipeline import ExecutePipeline, HandleTaskCompletionParameters
     from planexe.plan.pipeline_config import PIPELINE_CONFIG
     from planexe.plan.speedvsdetail import SpeedVsDetailEnum
-    from planexe.plan.start_time import StartTime
-    from planexe.plan.plan_file import PlanFile
+    from worker_plan_api.start_time import StartTime
+    from worker_plan_api.plan_file import PlanFile
     from planexe.plan.filenames import FilenameEnum
     from planexe.utils.planexe_dotenv import PlanExeDotEnv
     from planexe.llm_util.llm_executor import PipelineStopRequested
     from planexe.llm_util.track_activity import TrackActivity
     from planexe.plan.filenames import ExtraFilenameEnum
     logger.debug("Importing required modules... PlanExe-server.")
-    from planexe_db_singleton import db
-    from model_taskitem import TaskItem, TaskState
-    from model_event import EventType, EventItem
-    from model_worker import WorkerItem
-    from machai import MachAI
+    from database_api.planexe_db_singleton import db
+    from database_api.model_taskitem import TaskItem, TaskState
+    from database_api.model_event import EventType, EventItem
+    from database_api.model_worker import WorkerItem
+    from worker_plan_database.machai import MachAI
     from flask import Flask
     logger.debug("All modules imported successfully.")
 except ImportError as e:
@@ -136,6 +137,17 @@ except ImportError as e:
 planexe_dotenv = PlanExeDotEnv.load()
 logger.info(f"{Path(__file__).name}. planexe_dotenv: {planexe_dotenv!r}")
 
+def build_postgres_uri_from_env(env: dict[str, str]) -> tuple[str, dict[str, str]]:
+    """Construct a SQLAlchemy URI for Postgres using environment variables."""
+    host = env.get("PLANEXE_WORKER_PLAN_DB_HOST") or env.get("PLANEXE_FRONTEND_MULTIUSER_DB_HOST") or env.get("POSTGRES_HOST") or "database_postgres"
+    port = str(env.get("PLANEXE_WORKER_PLAN_DB_PORT") or env.get("PLANEXE_FRONTEND_MULTIUSER_DB_PORT") or env.get("POSTGRES_PORT") or "5432")
+    dbname = env.get("PLANEXE_WORKER_PLAN_DB_NAME") or env.get("PLANEXE_FRONTEND_MULTIUSER_DB_NAME") or env.get("POSTGRES_DB") or "planexe"
+    user = env.get("PLANEXE_WORKER_PLAN_DB_USER") or env.get("PLANEXE_FRONTEND_MULTIUSER_DB_USER") or env.get("POSTGRES_USER") or "planexe"
+    password = env.get("PLANEXE_WORKER_PLAN_DB_PASSWORD") or env.get("PLANEXE_FRONTEND_MULTIUSER_DB_PASSWORD") or env.get("POSTGRES_PASSWORD") or "planexe"
+    uri = f"postgresql+psycopg2://{quote_plus(user)}:{quote_plus(password)}@{host}:{port}/{dbname}"
+    safe_config = {"host": host, "port": port, "dbname": dbname, "user": user}
+    return uri, safe_config
+
 PIPELINE_CONFIG.enable_csv_export = True
 logger.info(f"PIPELINE_CONFIG: {PIPELINE_CONFIG!r}")
 
@@ -144,10 +156,12 @@ app = Flask(__name__)
 app.config.from_pyfile('config.py')
 sqlalchemy_database_uri = planexe_dotenv.get("SQLALCHEMY_DATABASE_URI")
 if sqlalchemy_database_uri is None:
-    logger.critical(f"SQLALCHEMY_DATABASE_URI is not set in the .env file. Please set it in the .env file.")
-    raise Exception(f"SQLALCHEMY_DATABASE_URI is not set in the .env file. Please set it in the .env file.")
+    sqlalchemy_database_uri, db_settings = build_postgres_uri_from_env(planexe_dotenv.dotenv_dict)
+    logger.info(f"SQLALCHEMY_DATABASE_URI not set. Using Postgres defaults from environment: {db_settings}")
+else:
+    logger.info("Using SQLALCHEMY_DATABASE_URI from environment or .env file.")
 app.config['SQLALCHEMY_DATABASE_URI'] = sqlalchemy_database_uri
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_recycle' : 280}
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_recycle' : 280, 'pool_pre_ping': True}
 db.init_app(app)
 
 def worker_process_started() -> None:
