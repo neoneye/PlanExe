@@ -8,11 +8,13 @@ PROMPT> RUN_ID_DIR=/absolute/path/to/PlanExe_20250216_150332 python -m planexe.p
 """
 from dataclasses import dataclass, field
 from datetime import date, datetime
+import os
 import logging
 import json
 from typing import Any, Optional
 import luigi
 from pathlib import Path
+import sys
 from llama_index.core.llms.llm import LLM
 from planexe.diagnostics.redline_gate import RedlineGate
 from planexe.diagnostics.premise_attack import PremiseAttack
@@ -3991,9 +3993,40 @@ class DemoStoppingExecutePipeline(ExecutePipeline):
         raise PipelineStopRequested("Demo: Stopping the pipeline after task completion")
 
 
+def configure_logging(run_id_dir: Path) -> int:
+    """
+    Configure logging for console (plain text) and file output.
+    Returns the console log level that was applied.
+    """
+    level_name = os.environ.get("PLANEXE_LOG_LEVEL", "INFO").upper()
+    resolved_level = getattr(logging, level_name, None)
+    if not isinstance(resolved_level, int):
+        resolved_level = logging.INFO
+
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    root_logger = logging.getLogger()
+    root_logger.handlers.clear()
+    root_logger.setLevel(resolved_level)
+
+    stdout_handler = logging.StreamHandler(stream=sys.stdout)
+    stdout_handler.setLevel(resolved_level)
+    stdout_handler.setFormatter(formatter)
+    root_logger.addHandler(stdout_handler)
+
+    log_file: Path = run_id_dir / ExtraFilenameEnum.LOG_TXT.value
+    file_handler = logging.FileHandler(log_file, mode="a")
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(formatter)
+    root_logger.addHandler(file_handler)
+
+    return resolved_level
+
+
 if __name__ == '__main__':
-    import colorlog
-    import sys
     from llama_index.core.instrumentation import get_dispatcher
     from planexe.llm_util.track_activity import TrackActivity
 
@@ -4006,35 +4039,12 @@ if __name__ == '__main__':
         print(f"Exiting... {msg}")
         sys.exit(1)
 
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
-
-    # Log messages on the console
-    colored_formatter = colorlog.ColoredFormatter(
-        "%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt='%Y-%m-%d %H:%M:%S',
-        log_colors={
-            'DEBUG':    'cyan',
-            'INFO':     'green',
-            'WARNING':  'yellow',
-            'ERROR':    'red',
-            'CRITICAL': 'red,bg_white',
-        }
+    console_level = configure_logging(run_id_dir)
+    logger.info(
+        "pipeline_environment: %r (log_level=%s)",
+        pipeline_environment,
+        logging.getLevelName(console_level),
     )
-    stdout_handler = colorlog.StreamHandler(stream=sys.stdout)
-    stdout_handler.setFormatter(colored_formatter)
-    stdout_handler.setLevel(logging.DEBUG)
-    logger.addHandler(stdout_handler)
-
-    # Capture logs messages to 'run/yyyymmdd_hhmmss/log.txt'
-    file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    log_file: Path = run_id_dir / ExtraFilenameEnum.LOG_TXT.value
-    file_handler = logging.FileHandler(log_file, mode='a')
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(file_formatter)
-    logger.addHandler(file_handler)
-
-    logger.info(f"pipeline_environment: {pipeline_environment!r}")
 
     # Example logging messages
     if False:

@@ -12,3 +12,7 @@ In the deploy log I can see this
 Starting Gradio UI on 0.0.0.0:8080
 ```
 So Railway seems to prefer using port 8080.
+
+## Logging
+- Set `PLANEXE_LOG_LEVEL` (for example `INFO`, `WARNING`, or `DEBUG`) in Railway to control both the worker service and pipeline console logs.
+- Console logs are now plain text (no ANSI color codes), so Railway logs stay readable.

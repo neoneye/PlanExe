@@ -29,8 +29,10 @@ from planexe.utils.purge_old_runs import purge_old_runs, start_purge_scheduler
 from llama_index.core.llms import ChatMessage, MessageRole
 
 logger = logging.getLogger(__name__)
+log_level_name = os.environ.get("PLANEXE_LOG_LEVEL", "INFO").upper()
+log_level = getattr(logging, log_level_name, logging.INFO)
 logging.basicConfig(
-    level=logging.INFO,
+    level=log_level,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler()],
 )
