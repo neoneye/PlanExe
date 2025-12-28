@@ -7,7 +7,8 @@ Subclass of the `worker_plan` service that runs the PlanExe pipeline against the
 - Uses the same `planexe` code as `worker_plan`, plus the shared `database_api` models.
 
 ## Docker usage
-- Build/run with docker compose: `docker compose up --build worker_plan_database`
+- Build/run single worker: `docker compose up --build worker_plan_database`
+- Run three workers (each with `PLANEXE_WORKER_ID=1/2/3`): `docker compose up -d worker_plan_database_1 worker_plan_database_2 worker_plan_database_3`
 - Reads `SQLALCHEMY_DATABASE_URI` when provided, otherwise builds one from:
   - `PLANEXE_WORKER_PLAN_DB_HOST|PORT|NAME|USER|PASSWORD`
   - falls back to the `database_postgres` service defaults (`planexe/planexe` on port 5432)
