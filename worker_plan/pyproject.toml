@@ -126,17 +126,6 @@ dependencies = [
 "Homepage" = "https://github.com/neoneye/planexe"
 "Discord" = "https://neoneye.github.io/PlanExe-web/discord.html"
 
-# Optional dependencies for different UI configurations
-[project.optional-dependencies]
-gradio-ui = [
-    "gradio==5.16.0",
-    "gradio_client==1.7.0",
-]
-
-flask-ui = [
-    "Flask==3.1.1",
-]
-
 # Build system configuration
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]

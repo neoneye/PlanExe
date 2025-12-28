@@ -19,7 +19,7 @@ COPY README.md llm_config.json .env.example /app/
 # Install the core planexe package plus Flask support and database drivers.
 RUN set -eux; \
     pip install --no-cache-dir --upgrade pip; \
-    pip install --no-cache-dir --prefer-binary /app/worker_plan[flask-ui]; \
+    pip install --no-cache-dir --prefer-binary /app/worker_plan; \
     pip install --no-cache-dir --prefer-binary -r /app/worker_plan_database/requirements.txt
 
 # Ensure output directories exist (mounted in docker-compose).
