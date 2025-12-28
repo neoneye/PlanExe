@@ -11,14 +11,13 @@ WORKDIR /app
 
 # Copy application code and supporting files
 COPY worker_plan/worker_plan_api /app/worker_plan_api
-COPY worker_plan/worker_plan_api /app/frontend_multiuser/worker_plan_api
 COPY database_api /app/database_api
 COPY frontend_multiuser /app/frontend_multiuser
 COPY README.md llm_config.json .env.example /app/
 
 # Install dependencies from frontend_multiuser pyproject
 RUN set -eux; \
-    pip install --no-cache-dir --upgrade pip; \
+    pip install --no-cache-dir "pip==24.3.1"; \
     pip install --no-cache-dir --prefer-binary /app/frontend_multiuser
 
 # Default location for generated plans
