@@ -1385,7 +1385,7 @@ class MyFlaskApp:
 if __name__ == '__main__':
     logging.basicConfig(
         level=logging.DEBUG, 
-        format='%(asctime)s - %(name)s - %(levelname)s - %(process)d - %(threadName)s - %(message)s'
+        format='%(asctime)s - %(name)s - %(levelname)s - %(threadName)s - %(message)s'
     )
     flask_app_instance = MyFlaskApp()
     flask_app_instance.run_server()

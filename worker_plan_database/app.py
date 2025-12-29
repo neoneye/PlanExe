@@ -40,7 +40,7 @@ CONTINUE_GENERATING_PLAN_DESPITE_BROWSER_INACTIVE = True
 HEARTBEAT_INTERVAL_IN_SECONDS = 60
 
 # --- Configure Logging Section ---
-log_format_str = '%(asctime)s - %(name)s - %(process)d - %(levelname)s - %(message)s'
+log_format_str = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 log_formatter = logging.Formatter(log_format_str)
 log_level_name = os.environ.get("PLANEXE_LOG_LEVEL", "INFO").upper()
 log_level = getattr(logging, log_level_name, None)
@@ -72,7 +72,7 @@ logger.info(
     root_handlers,
     getattr(stream_handler.stream, "name", "stdout")
 )
-logger.info(f"----- PlanExe-server: {Path(__file__).name} SCRIPT IS BEING ACCESSED (PID: {os.getpid()}, WORKER_ID: {WORKER_ID}) -----")
+logger.info(f"----- PlanExe-server: {Path(__file__).name} SCRIPT IS BEING ACCESSED (WORKER_ID: {WORKER_ID}) -----")
 
 # Configure specific loggers to send their output to stdout via the root logger.
 loggers_to_redirect_via_root = {
