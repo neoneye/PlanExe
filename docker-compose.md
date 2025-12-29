@@ -53,7 +53,7 @@ Service: `frontend_multiuser` (multi user UI)
 ------------------------------------------
 - Purpose: Multi-user Flask UI with admin views (tasks/events/nonce/workers) backed by Postgres.
 - Build: `frontend_multiuser/Dockerfile`.
-- Env defaults: DB host `database_postgres`, port `5432`, db/user/password `planexe` (follows `POSTGRES_*`); container listens on fixed port `5000`, host maps `${PLANEXE_FRONTEND_MULTIUSER_PORT:-5001}`.
+- Env defaults: DB host `database_postgres`, port `5432`, db/user/password `planexe` (follows `POSTGRES_*`); admin credentials must be provided via `PLANEXE_FRONTEND_MULTIUSER_ADMIN_USERNAME`/`PLANEXE_FRONTEND_MULTIUSER_ADMIN_PASSWORD` (compose will fail if missing); container listens on fixed port `5000`, host maps `${PLANEXE_FRONTEND_MULTIUSER_PORT:-5001}`.
 - Health: depends on `database_postgres` health; its own healthcheck hits `/health` on port 5000.
 
 Service: `worker_plan` (pipeline API)

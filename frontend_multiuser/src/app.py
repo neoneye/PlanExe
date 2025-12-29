@@ -242,10 +242,6 @@ except ModuleNotFoundError:
         LLM_MODEL = "LLM_MODEL"
         SPEED_VS_DETAIL = "SPEED_VS_DETAIL"
 
-# IDEA: move secrets to env vars.
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "admin"
-
 MODULE_PATH_PIPELINE = "planexe.plan.run_plan_pipeline"
 RUN_DIR = "run"
 
@@ -350,6 +346,15 @@ class MyFlaskApp:
         # original environment of the shell + the .env content.
         # I prefer NEVER to modify the os.environ for the current process, and instead spawn a child process with the modified os.environ.
         self.planexe_dotenv.update_os_environ()
+
+        self.admin_username = (self.planexe_dotenv.get("PLANEXE_FRONTEND_MULTIUSER_ADMIN_USERNAME") or "").strip()
+        self.admin_password = (self.planexe_dotenv.get("PLANEXE_FRONTEND_MULTIUSER_ADMIN_PASSWORD") or "").strip()
+        if not self.admin_username or not self.admin_password:
+            raise ValueError("Admin credentials must be set via PLANEXE_FRONTEND_MULTIUSER_ADMIN_USERNAME and PLANEXE_FRONTEND_MULTIUSER_ADMIN_PASSWORD.")
+        if self.admin_username == "admin" and self.admin_password == "admin":
+            logger.warning("Admin credentials are set to the default admin/admin; set PLANEXE_FRONTEND_MULTIUSER_ADMIN_USERNAME/PLANEXE_FRONTEND_MULTIUSER_ADMIN_PASSWORD to unique values.")
+        else:
+            logger.info("Admin credentials loaded from PLANEXE_FRONTEND_MULTIUSER_ADMIN_USERNAME/PLANEXE_FRONTEND_MULTIUSER_ADMIN_PASSWORD.")
 
         override_path_to_python = self.planexe_dotenv.get_absolute_path_to_file(DotEnvKeyEnum.PATH_TO_PYTHON.value)
         if isinstance(override_path_to_python, Path):
@@ -460,7 +465,7 @@ class MyFlaskApp:
         
         @self.login_manager.user_loader
         def load_user(user_id):
-            if user_id == 'admin':
+            if user_id == self.admin_username:
                 return User(user_id)
             return None
         
@@ -600,8 +605,8 @@ class MyFlaskApp:
             if request.method == 'POST':
                 username = request.form.get('username')
                 password = request.form.get('password')
-                if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-                    user = User("admin")
+                if username == self.admin_username and password == self.admin_password:
+                    user = User(self.admin_username)
                     login_user(user)
                     return redirect(url_for('admin.index'))
                 return 'Invalid credentials', 401
