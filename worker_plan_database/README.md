@@ -12,5 +12,6 @@ Subclass of the `worker_plan` service that runs the PlanExe pipeline against the
 - Reads `SQLALCHEMY_DATABASE_URI` when provided, otherwise builds one from:
   - `PLANEXE_WORKER_PLAN_DB_HOST|PORT|NAME|USER|PASSWORD`
   - falls back to the `database_postgres` service defaults (`planexe/planexe` on port 5432)
-- Volumes mounted in compose: `./run` (pipeline output), `./log` (rotating worker logs), `.env`, `llm_config.json`
+- Logs stream to stdout with [12-factor style logging](https://12factor.net/logs). Configure with `PLANEXE_LOG_LEVEL` (defaults to `INFO`).
+- Volumes mounted in compose: `./run` (pipeline output), `.env`, `llm_config.json`
 - Entrypoint: `python -m worker_plan_database.app`

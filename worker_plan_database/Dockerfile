@@ -22,7 +22,7 @@ RUN set -eux; \
     pip install --no-cache-dir --prefer-binary /app/worker_plan; \
     pip install --no-cache-dir --prefer-binary -r /app/worker_plan_database/requirements.txt
 
-# Ensure output directories exist (mounted in docker-compose).
-RUN mkdir -p /app/run /app/log
+# Ensure output directory exists (mounted in docker-compose).
+RUN mkdir -p /app/run
 
 CMD ["python", "-m", "worker_plan_database.app"]

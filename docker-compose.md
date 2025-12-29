@@ -4,7 +4,7 @@ Docker Compose for PlanExe
 TL;DR
 -----
 - Services: `database_postgres` (DB on `${PLANEXE_POSTGRES_PORT:-5432}`), `frontend_gradio` (UI on 7860), `worker_plan` (API on 8000), `frontend_multiuser` (UI on `${PLANEXE_FRONTEND_MULTIUSER_PORT:-5001}`), plus DB workers (`worker_plan_database` and `worker_plan_database_1/2/3`); `frontend_gradio` waits for the worker to be healthy and `frontend_multiuser` waits for Postgres health.
-- Shared host files: `.env` and `llm_config.json` mounted read-only; `./run` bind-mounted so outputs/logs persist; `.env` is also loaded via `env_file`.
+- Shared host files: `.env` and `llm_config.json` mounted read-only; `./run` bind-mounted so outputs persist; `.env` is also loaded via `env_file`.
 - Postgres defaults to user/db/password `planexe`; override via env or `.env`; data lives in the `database_postgres_data` volume.
 - Env defaults live in `docker-compose.yml` but can be overridden in `.env` or your shell (URLs, timeouts, run dirs, optional auth and opener URL).
 - `develop.watch` syncs code/config for `worker_plan` and `frontend_gradio`; rebuild with `--no-cache` after big moves or dependency changes; restart policy is `unless-stopped`.
@@ -71,7 +71,7 @@ Service: `worker_plan_database` (DB-backed worker)
 - Build: `worker_plan_database/Dockerfile` (ships `worker_plan` code, shared `database_api` models, and this worker subclass).
 - Depends on: `database_postgres` health.
 - Env defaults: derives `SQLALCHEMY_DATABASE_URI` from `PLANEXE_WORKER_PLAN_DB_HOST|PORT|NAME|USER|PASSWORD` (fallbacks to `database_postgres` + `planexe/planexe` on 5432); `PLANEXE_CONFIG_PATH=/app`, `PLANEXE_RUN_DIR=/app/run`.
-- Volumes: `.env` (ro), `llm_config.json` (ro), `run/` (rw for pipeline output), `log/` (rw for rotating worker logs).
+- Volumes: `.env` (ro), `llm_config.json` (ro), `run/` (rw for pipeline output).
 - Entrypoint: `python -m worker_plan_database.app` (runs the long-lived poller loop).
 - Multiple workers: compose defines `worker_plan_database_1/2/3` with `PLANEXE_WORKER_ID` set to `1/2/3`. Start the trio with:
   - `docker compose up -d worker_plan_database_1 worker_plan_database_2 worker_plan_database_3`

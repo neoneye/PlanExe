@@ -19,7 +19,6 @@ x-worker_plan_database-base: &worker_plan_database_base
     - ./.env:/app/.env:ro
     - ./llm_config.json:/app/llm_config.json:ro
     - ./run:/app/run
-    - ./log:/app/log
   restart: unless-stopped
 
 services:

@@ -2,34 +2,19 @@
 This project monitors the database for pending TaskItems and automatically changes their status to processing
 when found. It then executes the pipeline for each task.
 
-I initially made it to work on PythonAnywhere, where I needed a reliable way to process tasks.
-
-All logging goes to a single rotating file.
-This version aims to ensure Luigi's operational messages are captured in the log file.
-
 PROMPT> PLANEXE_WORKER_ID=1 python -m app.py
 """
-
-# Python standard library imports - VERY FIRST
 from datetime import UTC, datetime
 import os
 import sys
 import time
 import logging
-from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote_plus
 import uuid
 
 WORKER_ID = os.environ.get("PLANEXE_WORKER_ID") or str(uuid.uuid4())
-
-# To make anything appear in PythonAnywhere's log, I have to print to stderr.
-# There is around 15 minutes latency between when the script is started and when the log appears!
-# I prefer to log to a separate file, and steer clear of stderr.
-print(f"----- PlanExe-server: {Path(__file__).name} SCRIPT IS BEING ACCESSED. WORKER_ID: {WORKER_ID} -----", file=sys.stderr)
-sys.stdout.flush()
-sys.stderr.flush()
 
 # Attempt to configure Luigi VERY EARLY to prevent its default logging setup.
 try:
@@ -42,11 +27,10 @@ except ImportError:
 
 # --- Global Paths ---
 BASE_DIR = Path(__file__).parent.parent.absolute()
-LOG_DIR = BASE_DIR / "log"
-LOG_DIR.mkdir(exist_ok=True)
+BASE_DIR_RUN = BASE_DIR / "run"
+BASE_DIR_RUN.mkdir(exist_ok=True)
 
 PLANEXE_CONFIG_PATH_VAR = BASE_DIR
-BASE_DIR_RUN = BASE_DIR / "run"
 
 # Since 2021, Chrome penalizes tabs that are not in focus, disallowing faster than 60 Hz updates.
 # So considering 60 seconds of inactivity, and a few seconds of processing time, 60 + some buffer, I end up with 80 seconds.
@@ -58,33 +42,39 @@ HEARTBEAT_INTERVAL_IN_SECONDS = 60
 # --- Configure Logging Section ---
 log_format_str = '%(asctime)s - %(name)s - %(process)d - %(levelname)s - %(message)s'
 log_formatter = logging.Formatter(log_format_str)
+log_level_name = os.environ.get("PLANEXE_LOG_LEVEL", "INFO").upper()
+log_level = getattr(logging, log_level_name, None)
+invalid_log_level = not isinstance(log_level, int)
+if invalid_log_level:
+    log_level = logging.INFO
+    log_level_name = "INFO"
 
-sanitized_worker_id = WORKER_ID.replace(':', '_').replace('/', '_')
-log_file_name = f"always_on_task_{sanitized_worker_id}.log"
-track_activity_file_name_fallback = f"always_on_task_track_activity_{sanitized_worker_id}.jsonl"
-track_activity_fallback_path = LOG_DIR / track_activity_file_name_fallback
-file_handler = RotatingFileHandler(
-    LOG_DIR / log_file_name,
-    maxBytes=10*1024*1024,
-    backupCount=5,
-    encoding='utf-8'
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(log_formatter)
+
+logging.basicConfig(
+    level=log_level,
+    handlers=[stream_handler],
+    force=True
 )
-file_handler.setFormatter(log_formatter)
-file_handler.setLevel(logging.DEBUG)
 
-# 1. Configure the root logger: Set its level and ensure it ONLY has our file_handler.
-root_logger = logging.getLogger()
-root_logger.setLevel(logging.DEBUG)
-root_logger.handlers = [file_handler] # Assign new list with only our handler
-
-# 2. Capture standard warnings and route them through the logging system.
+# Capture standard warnings and route them through the logging system.
 logging.captureWarnings(True) # 'py.warnings' logger will propagate to root.
 
-# 3. Get the logger for the current module (__main__) and log script start.
+# Get the logger for the current module (__main__) and log script start.
 logger = logging.getLogger(__name__) # Gets __main__ logger
+if invalid_log_level:
+    logger.warning("Invalid PLANEXE_LOG_LEVEL provided; defaulting to INFO.")
+root_handlers = [type(h).__name__ for h in logging.getLogger().handlers]
+logger.info(
+    "Logging configured for worker_plan_database (level=%s, handlers=%s, stream=%s)",
+    logging.getLevelName(log_level),
+    root_handlers,
+    getattr(stream_handler.stream, "name", "stdout")
+)
 logger.info(f"----- PlanExe-server: {Path(__file__).name} SCRIPT IS BEING ACCESSED (PID: {os.getpid()}, WORKER_ID: {WORKER_ID}) -----")
 
-# 4. Configure specific loggers to send their output to the log file VIA the root logger.
+# Configure specific loggers to send their output to stdout via the root logger.
 loggers_to_redirect_via_root = {
     'luigi': logging.DEBUG,
     'luigi-interface': logging.DEBUG,
@@ -101,7 +91,7 @@ for name, level in loggers_to_redirect_via_root.items():
     lg.handlers = []
     lg.propagate = True
 
-logger.debug("Logging fully configured. All configured loggers should now write to the log file via root.")
+logger.debug("Logging fully configured. All configured loggers now write to stdout via root.")
 
 # --- Environment Setup ---
 os.environ["PLANEXE_CONFIG_PATH"] = str(PLANEXE_CONFIG_PATH_VAR)
@@ -289,10 +279,14 @@ class ServerExecutePipeline(ExecutePipeline):
             )
 
 # Every time a LLM/reasoning model is used, it gets registered in the "track_activity" file.
-# A llm_executor_uuid is written to the log.txt file, and referenced in the "track_activity" file, so it's possible to
-# see the cross-reference what happened when there is a problem with the LLM/reasoning model.
-# Storing the track_activity file in the LOG_DIR is a fallback, so it's possible to see the track_activity file even if the run_id_dir is not available.
+# The llm_executor_uuid is written to stdout, and referenced in the "track_activity" file, so it's possible to
+# cross-reference what happened when there is a problem with the LLM/reasoning model.
+# Storing the track_activity file in the BASE_DIR_RUN is a fallback, so it's possible to see the track_activity file even if the run_id_dir is not available.
 # The "track_activity" file is supposed to be stored in the run_id_dir.
+# If there exist a "track_activity_X_fallback.jsonl" file, then the LLM/reasoning models have been used outside the worker_plan pipeline, which is unusual.
+sanitized_worker_id = WORKER_ID.replace(':', '_').replace('/', '_')
+track_activity_file_name_fallback = f"track_activity_{sanitized_worker_id}_fallback.jsonl"
+track_activity_fallback_path = BASE_DIR_RUN / track_activity_file_name_fallback
 track_activity = TrackActivity(jsonl_file_path=track_activity_fallback_path, write_to_logger=False)
 get_dispatcher().add_event_handler(track_activity)
 
