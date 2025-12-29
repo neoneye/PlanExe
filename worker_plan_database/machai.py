@@ -4,6 +4,7 @@ Mach-AI API client.
 PROMPT> python -m machai
 """
 import logging
+import os
 from pathlib import Path
 import requests
 import traceback
@@ -11,9 +12,26 @@ from enum import Enum
 
 logger = logging.getLogger(__name__)
 
-# IDEA: move secrets to env vars.
-URL_PLANEXE_IFRAME_GENERATOR_CONFIRMATION_PRODUCTION = 'https://example.com/iframe_generator_confirmation'
-URL_PLANEXE_IFRAME_GENERATOR_CONFIRMATION_DEVELOPMENT = 'https://example.com/iframe_generator_confirmation'
+ENV_VAR_PLANEXE_IFRAME_GENERATOR_CONFIRMATION_PRODUCTION = "PLANEXE_IFRAME_GENERATOR_CONFIRMATION_PRODUCTION_URL"
+ENV_VAR_PLANEXE_IFRAME_GENERATOR_CONFIRMATION_DEVELOPMENT = "PLANEXE_IFRAME_GENERATOR_CONFIRMATION_DEVELOPMENT_URL"
+
+
+def _require_confirmation_url(env_var_name: str) -> str:
+    """
+    Read the confirmation endpoint from an environment variable.
+    Raise immediately when not configured to avoid long feedback cycles later.
+    """
+    value = os.environ.get(env_var_name)
+    if not value or not value.strip():
+        raise RuntimeError(
+            f"Missing required environment variable {env_var_name!r} for MachAI confirmations."
+        )
+    return value
+
+
+CONFIRMATION_URL_PRODUCTION = _require_confirmation_url(ENV_VAR_PLANEXE_IFRAME_GENERATOR_CONFIRMATION_PRODUCTION)
+CONFIRMATION_URL_DEVELOPMENT = _require_confirmation_url(ENV_VAR_PLANEXE_IFRAME_GENERATOR_CONFIRMATION_DEVELOPMENT)
+
 
 class ConfirmationStatus(str, Enum):
     # The report has been generated successfully.
@@ -29,12 +47,12 @@ class MachAI:
     @classmethod
     def create(cls, use_machai_developer_endpoint: bool) -> 'MachAI':
         if use_machai_developer_endpoint:
-            return cls(url=URL_PLANEXE_IFRAME_GENERATOR_CONFIRMATION_DEVELOPMENT, url_mode='developer')
-        else:
-            return cls(url=URL_PLANEXE_IFRAME_GENERATOR_CONFIRMATION_PRODUCTION, url_mode='production')
+            return cls(url=CONFIRMATION_URL_DEVELOPMENT, url_mode='developer')
+        return cls(url=CONFIRMATION_URL_PRODUCTION, url_mode='production')
 
     def inner_post_confirmation(self, session_id: str, status: ConfirmationStatus, message: str, plan_name: str, output: str) -> bool:
         """Make a POST request to confirm that the report has been generated or failed."""
+
         logger.debug(f"MachAI.post_confirmation. session_id {session_id!r}. status {status.value!r}. message {message!r}. plan_name {plan_name!r}. url_mode {self.url_mode!r}.")
         
         # Prepare the data to send

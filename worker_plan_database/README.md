@@ -5,6 +5,7 @@ Subclass of the `worker_plan` service that runs the PlanExe pipeline against the
 - Polls `TaskItem` rows, marks them processing, and runs the pipeline.
 - Reports state/progress back to the DB and posts confirmations to MachAI.
 - Uses the same `planexe` code as `worker_plan`, plus the shared `database_api` models.
+- Configure MachAI confirmation endpoints with `PLANEXE_IFRAME_GENERATOR_CONFIRMATION_PRODUCTION_URL` and `PLANEXE_IFRAME_GENERATOR_CONFIRMATION_DEVELOPMENT_URL` (both are required; the worker fails fast if missing).
 
 ## Docker usage
 - Build/run single worker: `docker compose up --build worker_plan_database`
