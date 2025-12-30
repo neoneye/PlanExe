@@ -4,7 +4,7 @@ PROMPT> python test.py
 
 Behavior:
 - If not already running with the worker_plan venv (preferred) or frontend_single_user venv, re-executes itself with the first one found so project deps are available.
-- Keeps cwd at repo root and adds worker_plan to PYTHONPATH so planexe/worker_plan_api imports resolve without extra setup.
+- Keeps cwd at repo root and adds worker_plan to PYTHONPATH so worker_plan_internal/worker_plan_api imports resolve without extra setup.
 - Then discovers and runs all test_*.py under the repo once.
 """
 import os

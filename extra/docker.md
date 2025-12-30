@@ -20,7 +20,7 @@ Run individual files
 --------------------
 - Rebuild the worker image when code or data files change: `docker compose build --no-cache worker_plan`.
 - Run a one-off module inside the worker image (same deps/env as the API):  
-  `docker compose run --rm worker_plan python -m planexe.fiction.fiction_writer` (swap the module path as needed). If containers are already up, use `docker compose exec worker_plan python -m ...` instead.
+  `docker compose run --rm worker_plan python -m worker_plan_internal.fiction.fiction_writer` (swap the module path as needed). If containers are already up, use `docker compose exec worker_plan python -m ...` instead.
 - For host Ollama access, set `base_url` in `llm_config.json` to `http://host.docker.internal:11434` (default Ollama port). On Linux, add `extra_hosts: ["host.docker.internal:host-gateway"]` under `worker_plan` if that hostname is missing, or use your bridge IP.
 - Ensure required env vars (e.g., `DEFAULT_LLM`) are available via `.env` or your shell before running the command.
 

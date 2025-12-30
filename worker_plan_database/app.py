@@ -23,7 +23,7 @@ try:
     luigi_config = luigi.configuration.get_config()
     luigi_config.set('core', 'no_configure_logging', 'true')
 except ImportError:
-    pass # Luigi might be imported later by planexe
+    pass # Luigi might be imported later by worker_plan_internal
 
 # --- Global Paths ---
 BASE_DIR = Path(__file__).parent.parent.absolute()
@@ -102,16 +102,16 @@ try:
     logger.debug("Importing required modules... LlamaIndex.")
     from llama_index.core.instrumentation import get_dispatcher
     logger.debug("Importing required modules... PlanExe.")
-    from planexe.plan.run_plan_pipeline import ExecutePipeline, HandleTaskCompletionParameters
-    from planexe.plan.pipeline_config import PIPELINE_CONFIG
-    from planexe.plan.speedvsdetail import SpeedVsDetailEnum
+    from worker_plan_internal.plan.run_plan_pipeline import ExecutePipeline, HandleTaskCompletionParameters
+    from worker_plan_internal.plan.pipeline_config import PIPELINE_CONFIG
+    from worker_plan_internal.plan.speedvsdetail import SpeedVsDetailEnum
     from worker_plan_api.start_time import StartTime
     from worker_plan_api.plan_file import PlanFile
-    from planexe.plan.filenames import FilenameEnum
-    from planexe.utils.planexe_dotenv import PlanExeDotEnv
-    from planexe.llm_util.llm_executor import PipelineStopRequested
-    from planexe.llm_util.track_activity import TrackActivity
-    from planexe.plan.filenames import ExtraFilenameEnum
+    from worker_plan_internal.plan.filenames import FilenameEnum
+    from worker_plan_internal.utils.planexe_dotenv import PlanExeDotEnv
+    from worker_plan_internal.llm_util.llm_executor import PipelineStopRequested
+    from worker_plan_internal.llm_util.track_activity import TrackActivity
+    from worker_plan_internal.plan.filenames import ExtraFilenameEnum
     logger.debug("Importing required modules... PlanExe-server.")
     from database_api.planexe_db_singleton import db
     from database_api.model_taskitem import TaskItem, TaskState

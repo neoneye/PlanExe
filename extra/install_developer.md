@@ -64,7 +64,7 @@ You have multiple options.
 #### Option 4A - Using PlanExe's Gradio UI
 
 ```bash
-(venv) python -m planexe.plan.app_text2plan
+(venv) python -m worker_plan_internal.plan.app_text2plan
 ```
 
 Follow any on-screen instructions or open the specified URL in your web browser.
@@ -72,7 +72,7 @@ Follow any on-screen instructions or open the specified URL in your web browser.
 #### Option 4B - Using PlanExe's Flask UI
 
 ```bash
-(venv) python -m planexe.ui_flask.app
+(venv) python -m worker_plan_internal.ui_flask.app
 ```
 
 Follow any on-screen instructions or open the specified URL in your web browser.

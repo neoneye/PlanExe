@@ -2,13 +2,13 @@
 
 ## 2025-june-5
 
-I have renamed the root dir of the project from `src` to `planexe`.
-Since `import planexe` makes more sense than `import src`.
+Renamed the core package from `planexe` to `worker_plan_internal` (originally `src`), keeping imports aligned with the worker naming scheme.
+Since `import worker_plan_internal` makes more sense than `import src`.
 
 When running the Gradio UI. The new way is:
 
 ```bash
-PROMPT> python -m planexe.plan.app_text2plan
+PROMPT> python -m worker_plan_internal.plan.app_text2plan
 ```
 
 The old way was like this:

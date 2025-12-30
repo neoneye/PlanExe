@@ -20,12 +20,12 @@ from pydantic import BaseModel, Field
 from worker_plan_api.filenames import FilenameEnum
 from worker_plan_api.generate_run_id import RUN_ID_PREFIX, generate_run_id
 from worker_plan_api.llm_info import LLMInfo
-from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
+from worker_plan_internal.plan.pipeline_environment import PipelineEnvironmentEnum
 from worker_plan_api.plan_file import PlanFile
 from worker_plan_api.start_time import StartTime
-from planexe.llm_factory import obtain_llm_info, get_llm_names_by_priority, get_llm
-from planexe.utils.time_since_last_modification import time_since_last_modification
-from planexe.utils.purge_old_runs import purge_old_runs, start_purge_scheduler
+from worker_plan_internal.llm_factory import obtain_llm_info, get_llm_names_by_priority, get_llm
+from worker_plan_internal.utils.time_since_last_modification import time_since_last_modification
+from worker_plan_internal.utils.purge_old_runs import purge_old_runs, start_purge_scheduler
 from llama_index.core.llms import ChatMessage, MessageRole
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()],
 )
 
-MODULE_PATH_PIPELINE = "planexe.plan.run_plan_pipeline"
+MODULE_PATH_PIPELINE = "worker_plan_internal.plan.run_plan_pipeline"
 DEFAULT_APP_ROOT = Path(__file__).parent.resolve()
 APP_ROOT = Path(os.environ.get("PLANEXE_CONFIG_PATH", DEFAULT_APP_ROOT)).resolve()
 RUN_BASE_PATH = Path(os.environ.get("PLANEXE_RUN_DIR", APP_ROOT / "run")).resolve()

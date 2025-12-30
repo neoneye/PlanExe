@@ -1,5 +1,5 @@
 """
-Traverse all the files in the planexe package and extract all system prompts to a "system_prompts.jsonl" file.
+Traverse all the files in the worker_plan_internal package and extract all system prompts to a "system_prompts.jsonl" file.
 The "system_prompts.jsonl" file is to be used for prompt engineering.
 
 The file should be in the following format:
@@ -20,7 +20,7 @@ import json
 from pathlib import Path
 from typing import List, Dict
 
-def find_system_prompts_in_file(file_path: Path, planexe_path: Path) -> List[Dict]:
+def find_system_prompts_in_file(file_path: Path, package_path: Path) -> List[Dict]:
     """
     Extract system prompts from a single Python file.
     
@@ -51,8 +51,8 @@ def find_system_prompts_in_file(file_path: Path, planexe_path: Path) -> List[Dic
         # Calculate line number
         line_number = content[:start_pos].count('\n') + 1
         
-        # Create relative path from planexe directory
-        relative_path = file_path.relative_to(planexe_path)
+        # Create relative path from worker_plan_internal directory
+        relative_path = file_path.relative_to(package_path)
         
         prompt_info = {
             "id": f"{relative_path}:{line_number}",
@@ -64,13 +64,13 @@ def find_system_prompts_in_file(file_path: Path, planexe_path: Path) -> List[Dic
     
     return prompts
 
-def find_all_python_files(planexe_dir: Path) -> List[Path]:
+def find_all_python_files(package_dir: Path) -> List[Path]:
     """
-    Find all Python files in the planexe directory recursively.
+    Find all Python files in the worker_plan_internal directory recursively.
     """
     python_files = []
     
-    for root, dirs, files in os.walk(planexe_dir):
+    for root, dirs, files in os.walk(package_dir):
         # Skip __pycache__, proof_of_concepts, and other common directories to ignore
         dirs[:] = [d for d in dirs if not d.startswith('.') and d != '__pycache__' and d != 'proof_of_concepts']
         
@@ -81,24 +81,24 @@ def find_all_python_files(planexe_dir: Path) -> List[Path]:
     python_files.sort()
     return python_files
 
-def extract_all_system_prompts(planexe_path: Path) -> List[Dict]:
+def extract_all_system_prompts(package_path: Path) -> List[Dict]:
     """
-    Extract all system prompts from all Python files in the planexe directory.
+    Extract all system prompts from all Python files in the worker_plan_internal directory.
     """
-    if not planexe_path.exists():
-        raise FileNotFoundError(f"Directory {planexe_path!r} not found")
+    if not package_path.exists():
+        raise FileNotFoundError(f"Directory {package_path!r} not found")
     
     all_prompts = []
-    python_files = find_all_python_files(planexe_path)
+    python_files = find_all_python_files(package_path)
     
     print(f"Found {len(python_files)} Python files to process...")
     
     for file_path in python_files:
-        prompts = find_system_prompts_in_file(file_path, planexe_path)
+        prompts = find_system_prompts_in_file(file_path, package_path)
         all_prompts.extend(prompts)
         
         if prompts:
-            print(f"Found {len(prompts)} system prompt(s) in {file_path.relative_to(planexe_path)}")
+            print(f"Found {len(prompts)} system prompt(s) in {file_path.relative_to(package_path)}")
     
     return all_prompts
 
@@ -117,11 +117,11 @@ def main():
     """
     Main function to extract system prompts and save them to JSONL.
     """
-    # Get the directory where this script is located, then go up one level to find planexe
+    # Get the directory where this script is located, then go up one level to find worker_plan_internal
     script_dir = Path(__file__).parent
-    input_dir = script_dir / ".." / "planexe"
+    input_dir = script_dir / ".." / "worker_plan" / "worker_plan_internal"
     try:
-        print("Extracting system prompts from planexe package...")
+        print("Extracting system prompts from worker_plan_internal package...")
         prompts = extract_all_system_prompts(input_dir)
         
         if not prompts:

@@ -132,12 +132,12 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["planexe*", "worker_plan_api*", "worker_plan*"]
+include = ["worker_plan_internal*", "worker_plan_api*", "worker_plan*"]
 
 [tool.setuptools.package-data]
-"planexe.prompt.data" = ["*.jsonl"]
-"planexe.fiction.data" = ["*.jsonl"]
-"planexe.ui_flask.templates" = ["*.html"]
-"planexe.schedule" = ["*.html"]
-"planexe.report" = ["*.html"]
+"worker_plan_internal.prompt.data" = ["*.jsonl"]
+"worker_plan_internal.fiction.data" = ["*.jsonl"]
+"worker_plan_internal.ui_flask.templates" = ["*.html"]
+"worker_plan_internal.schedule" = ["*.html"]
+"worker_plan_internal.report" = ["*.html"]
 "worker_plan_api.prompt.data" = ["*.jsonl"]

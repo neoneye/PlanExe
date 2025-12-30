@@ -52,11 +52,11 @@ def _has_pipeline_module() -> bool:
         logger.warning("Error checking for pipeline module %s: %s", MODULE_PATH_PIPELINE, exc)
         return False
 
-from planexe.utils.planexe_dotenv import DotEnvKeyEnum, PlanExeDotEnv
-from planexe.utils.planexe_config import PlanExeConfig
-from planexe.plan.pipeline_environment import PipelineEnvironmentEnum
+from worker_plan_internal.utils.planexe_dotenv import DotEnvKeyEnum, PlanExeDotEnv
+from worker_plan_internal.utils.planexe_config import PlanExeConfig
+from worker_plan_internal.plan.pipeline_environment import PipelineEnvironmentEnum
 
-MODULE_PATH_PIPELINE = "planexe.plan.run_plan_pipeline"
+MODULE_PATH_PIPELINE = "worker_plan_internal.plan.run_plan_pipeline"
 RUN_DIR = "run"
 
 SHOW_DEMO_PLAN = False
@@ -935,7 +935,7 @@ class MyFlaskApp:
                 logger.info(f"demo_subprocess_run_medium. path_to_python: {self.path_to_python!r}")
                 env["OPENROUTER_API_KEY"] = self.planexe_dotenv.get("OPENROUTER_API_KEY")
                 result = subprocess.run(
-                    [str(self.path_to_python), "-m", "planexe.proof_of_concepts.run_ping_simple"],
+                    [str(self.path_to_python), "-m", "worker_plan_internal.proof_of_concepts.run_ping_simple"],
                     capture_output=True,
                     text=True,
                     check=True,
@@ -969,7 +969,7 @@ class MyFlaskApp:
                 logger.info(f"demo_subprocess_run_advanced. path_to_python: {self.path_to_python!r}")
                 env["OPENROUTER_API_KEY"] = self.planexe_dotenv.get("OPENROUTER_API_KEY")
                 result = subprocess.run(
-                    [str(self.path_to_python), "-m", "planexe.proof_of_concepts.run_ping_medium"],
+                    [str(self.path_to_python), "-m", "worker_plan_internal.proof_of_concepts.run_ping_medium"],
                     capture_output=True,
                     text=True,
                     check=True,

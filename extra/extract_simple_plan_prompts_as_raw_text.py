@@ -1,6 +1,6 @@
 """
 Extract the plan prompts from this file
-PlanExe/planexe/prompt/data/simple_plan_prompts.jsonl
+PlanExe/worker_plan/worker_plan_internal/prompt/data/simple_plan_prompts.jsonl
 
 It has this format
 {"id": "d3e10877-446f-4eb0-8027-864e923973b0", "prompt": "Construct a train bridge between Denmark and England.", "tags": ["denmark", "england", "bridge", "business"]}
@@ -22,7 +22,7 @@ import os
 def extract_prompts():
     # Get the path to the JSONL file
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    jsonl_path = os.path.join(script_dir, '..', 'planexe', 'prompt', 'data', 'simple_plan_prompts.jsonl')
+    jsonl_path = os.path.join(script_dir, '..', 'worker_plan', 'worker_plan_internal', 'prompt', 'data', 'simple_plan_prompts.jsonl')
     
     # Check if file exists
     if not os.path.exists(jsonl_path):
