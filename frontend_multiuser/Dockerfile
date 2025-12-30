@@ -5,7 +5,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PLANEXE_CONFIG_PATH=/app \
     PIP_NO_CACHE_DIR=1 \
     PIP_PREFER_BINARY=1 \
-    PYTHONPATH=/app/frontend_multiuser:/app/frontend_multiuser/src:/app/worker_plan_api
+    PYTHONPATH=/app:/app/frontend_multiuser:/app/frontend_multiuser/src
 
 WORKDIR /app
 

@@ -16,11 +16,18 @@ Flask-based multi-user UI for PlanExe. Runs in Docker, uses Postgres (defaults t
 - `PLANEXE_CONFIG_PATH`: defaults to `/app` so PlanExe picks up `.env` + `llm_config.json` that compose mounts.
 
 ## Local devevelopment without Docker
+The container sets `PYTHONPATH=/app:/app/frontend_multiuser:/app/frontend_multiuser/src`, so `worker_plan_api` is importable without hacks. Locally you need to mirror that.
+
 ```bash
 cd frontend_multiuser
 python -m venv .venv
 source .venv/bin/activate
-export PYTHONPATH="$(pwd):$(pwd)/src:$(pwd)/../worker_plan/worker_plan_api"
+# Option A (recommended): install the shared code once
+pip install --prefer-binary -e ../worker_plan
+
+# Option B: use PYTHONPATH if you don't want to install worker_plan locally
+export PYTHONPATH="$(pwd):$(pwd)/src:$(pwd)/../worker_plan"
+
 pip install --prefer-binary -e .
 PLANEXE_FRONTEND_MULTIUSER_DB_HOST=localhost PLANEXE_FRONTEND_MULTIUSER_DB_PORT=${PLANEXE_POSTGRES_PORT:-5432} python src/app.py
 ```

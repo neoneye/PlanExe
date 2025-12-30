@@ -19,23 +19,6 @@ import subprocess
 import threading
 from enum import Enum
 from pathlib import Path
-
-# Ensure local sources (frontend_multiuser) and shared worker_plan_api can be imported without installing worker_plan.
-_CURRENT_FILE = Path(__file__).resolve()
-_PROJECT_ROOT = _CURRENT_FILE.parents[2]
-_CANDIDATE_IMPORT_PATHS = [
-    _CURRENT_FILE.parents[1],  # /app/frontend_multiuser
-    _PROJECT_ROOT,  # /app
-    _PROJECT_ROOT / "worker_plan_api",  # copied worker_plan_api
-    _PROJECT_ROOT / "worker_plan",  # sibling worker_plan source tree
-    _CURRENT_FILE.parents[1] / "worker_plan_api",  # optional vendored worker_plan_api inside frontend
-]
-for _candidate in _CANDIDATE_IMPORT_PATHS:
-    if _candidate.exists():
-        _candidate_str = str(_candidate)
-        if _candidate_str not in sys.path:
-            sys.path.insert(0, _candidate_str)
-
 from flask import Flask, render_template, Response, request, jsonify, send_file, redirect, url_for
 from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.contrib.sqla import ModelView
