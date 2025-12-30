@@ -1,6 +1,6 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "/frontend_multiuser/Dockerfile"
+dockerfilePath = "/frontend_multi_user/Dockerfile"
 context = "."
 
 [deploy]

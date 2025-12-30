@@ -2,7 +2,7 @@
 This module provides a centralized SQLAlchemy database instance.
 
 The database instance is imported and used across multiple files:
-- frontend_multiuser/src/app.py: For initializing Flask-SQLAlchemy and creating database tables
+- frontend_multi_user/src/app.py: For initializing Flask-SQLAlchemy and creating database tables
 - database_api/model_PLACEHOLDER.py: For defining database models and their relationships
 
 This pattern helps avoid circular imports and maintains a clean separation of concerns.

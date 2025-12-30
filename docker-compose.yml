@@ -150,11 +150,11 @@ services:
         - action: restart
           path: ./docker-compose.yml
 
-  frontend_multiuser:
+  frontend_multi_user:
     build:
       context: .
-      dockerfile: frontend_multiuser/Dockerfile
-    container_name: frontend_multiuser
+      dockerfile: frontend_multi_user/Dockerfile
+    container_name: frontend_multi_user
     depends_on:
       database_postgres:
         condition: service_healthy

@@ -3,10 +3,10 @@
 Basic lifecycle
 ---------------
 - Stop everything: `docker compose down`
-- Build fresh (no cache) after code moves: `docker compose build --no-cache database_postgres worker_plan frontend_gradio frontend_multiuser`
+- Build fresh (no cache) after code moves: `docker compose build --no-cache database_postgres worker_plan frontend_gradio frontend_multi_user`
 - Start services: `docker compose up`
 - Stop services (leave images): `docker compose down`
-- Build fresh and start services: `docker compose build --no-cache database_postgres worker_plan frontend_gradio frontend_multiuser && docker compose up`
+- Build fresh and start services: `docker compose build --no-cache database_postgres worker_plan frontend_gradio frontend_multi_user && docker compose up`
 
 While developing
 ----------------
@@ -14,7 +14,7 @@ While developing
   If watch misses changes after file moves, rerun the no-cache build above.
 - View worker logs (pipeline errors show here): `docker compose logs -f worker_plan`
 - View frontend logs: `docker compose logs -f frontend_gradio`
-- View multiuser ping UI logs: `docker compose logs -f frontend_multiuser`
+- View multiuser ping UI logs: `docker compose logs -f frontend_multi_user`
 
 Run individual files
 --------------------
@@ -29,7 +29,7 @@ Troubleshooting
 - If the pipeline stops immediately with missing module errors, rebuild with `--no-cache` so new files are inside the images.
 - If you change environment variables (e.g., `PLANEXE_WORKER_RELAY_PROCESS_OUTPUT`), restart: `docker compose down` then `docker compose up`.
 - If `database_postgres` fails to start because host port 5432 is in use, set a host port with `export PLANEXE_POSTGRES_PORT=5435` (or any free port) before `docker compose up`.
-- If `frontend_multiuser` can’t start because host port 5000 is busy, map it elsewhere: `export PLANEXE_FRONTEND_MULTIUSER_PORT=5001` (or another free port) before `docker compose up`.
+- If `frontend_multi_user` can’t start because host port 5000 is busy, map it elsewhere: `export PLANEXE_FRONTEND_MULTIUSER_PORT=5001` (or another free port) before `docker compose up`.
 - To clean out containers, network, and orphans: `docker compose down --remove-orphans`.
 - To reclaim disk space when builds start failing with `No space left on device`:
   - See current usage: `docker system df`

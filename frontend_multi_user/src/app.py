@@ -208,7 +208,7 @@ class MyFlaskApp:
         self.prompt_catalog.load_simple_plan_prompts()
 
         # Point to the "templates" dir.
-        # Prefer top-level templates dir (frontend_multiuser/templates) when running from Docker image.
+        # Prefer top-level templates dir (frontend_multi_user/templates) when running from Docker image.
         default_template_folder = Path(__file__).parent / "templates"
         alt_template_folder = Path(__file__).parent.parent / "templates"
         template_folder = default_template_folder if default_template_folder.exists() else alt_template_folder
