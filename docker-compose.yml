@@ -172,10 +172,6 @@ services:
       PLANEXE_FRONTEND_MULTIUSER_ADMIN_PASSWORD: ${PLANEXE_FRONTEND_MULTIUSER_ADMIN_PASSWORD:-admin}
     ports:
       - "${PLANEXE_FRONTEND_MULTIUSER_PORT:-5001}:5000"
-    volumes:
-      - ./.env:/app/.env:ro
-      - ./llm_config.json:/app/llm_config.json:ro
-      - ./run:/app/run
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health').read()"]
       interval: 5s
