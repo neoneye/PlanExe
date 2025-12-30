@@ -1,7 +1,7 @@
 {
 	"folders": [
 		{
-			"path": "frontend_gradio"
+			"path": "frontend_single_user"
 		},
 		{
 			"path": "worker_plan"

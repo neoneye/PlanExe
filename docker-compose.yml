@@ -105,11 +105,11 @@ services:
       <<: *worker_plan_database_env
       PLANEXE_WORKER_ID: "3"
 
-  frontend_gradio:
+  frontend_single_user:
     build:
       context: .
-      dockerfile: frontend_gradio/Dockerfile
-    container_name: frontend_gradio
+      dockerfile: frontend_single_user/Dockerfile
+    container_name: frontend_single_user
     depends_on:
       worker_plan:
         condition: service_healthy
@@ -132,10 +132,10 @@ services:
     develop:
       watch:
         - action: sync
-          path: ./frontend_gradio
-          target: /app/frontend_gradio
+          path: ./frontend_single_user
+          target: /app/frontend_single_user
         - action: restart
-          path: ./frontend_gradio
+          path: ./frontend_single_user
         - action: sync
           path: ./worker_plan
           target: /app/worker_plan

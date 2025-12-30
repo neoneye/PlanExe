@@ -3,7 +3,7 @@ Run all tests in the current directory and subdirs.
 PROMPT> python test.py
 
 Behavior:
-- If not already running with the worker_plan venv (preferred) or frontend_gradio venv, re-executes itself with the first one found so project deps are available.
+- If not already running with the worker_plan venv (preferred) or frontend_single_user venv, re-executes itself with the first one found so project deps are available.
 - Keeps cwd at repo root and adds worker_plan to PYTHONPATH so planexe/worker_plan_api imports resolve without extra setup.
 - Then discovers and runs all test_*.py under the repo once.
 """
@@ -14,12 +14,12 @@ from pathlib import Path
 import logging
 import unittest
 
-# If we're not already using the worker_plan virtualenv, re-exec into it (fallback to frontend_gradio if worker venv is missing).
+# If we're not already using the worker_plan virtualenv, re-exec into it (fallback to frontend_single_user if worker venv is missing).
 PROJECT_ROOT = Path(__file__).resolve().parent
 _RERUN_ENV = "PLANEXE_TEST_RERUN"
 if os.environ.get(_RERUN_ENV) != "1":
     worker_python = PROJECT_ROOT / "worker_plan" / ".venv" / "bin" / "python"
-    frontend_python = PROJECT_ROOT / "frontend_gradio" / ".venv" / "bin" / "python"
+    frontend_python = PROJECT_ROOT / "frontend_single_user" / ".venv" / "bin" / "python"
     current_python = Path(sys.executable).resolve()
     worker_resolved = worker_python.resolve() if worker_python.is_file() else None
     target_python = worker_python if worker_python.is_file() else (frontend_python if frontend_python.is_file() else None)

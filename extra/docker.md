@@ -3,17 +3,17 @@
 Basic lifecycle
 ---------------
 - Stop everything: `docker compose down`
-- Build fresh (no cache) after code moves: `docker compose build --no-cache database_postgres worker_plan frontend_gradio frontend_multi_user`
+- Build fresh (no cache) after code moves: `docker compose build --no-cache database_postgres worker_plan frontend_single_user frontend_multi_user`
 - Start services: `docker compose up`
 - Stop services (leave images): `docker compose down`
-- Build fresh and start services: `docker compose build --no-cache database_postgres worker_plan frontend_gradio frontend_multi_user && docker compose up`
+- Build fresh and start services: `docker compose build --no-cache database_postgres worker_plan frontend_single_user frontend_multi_user && docker compose up`
 
 While developing
 ----------------
 - Live rebuild/restart on changes: `docker compose watch` (requires Docker Desktop 4.28+).  
   If watch misses changes after file moves, rerun the no-cache build above.
 - View worker logs (pipeline errors show here): `docker compose logs -f worker_plan`
-- View frontend logs: `docker compose logs -f frontend_gradio`
+- View frontend logs: `docker compose logs -f frontend_single_user`
 - View multiuser ping UI logs: `docker compose logs -f frontend_multi_user`
 
 Run individual files
@@ -70,7 +70,7 @@ python app.py
   - macOS/Windows (Docker Desktop): `http://host.docker.internal:5100`
   - Linux: often `http://172.17.0.1:5100` or add `host.docker.internal` in `/etc/hosts` pointing to the docker bridge IP.
   - If you override host/port for the opener, reflect that in the URL.
-- Provide the variable via your shell env, `.env`, or docker compose environment for `frontend_gradio`.
+- Provide the variable via your shell env, `.env`, or docker compose environment for `frontend_single_user`.
   - macOS (zsh default shell): `export PLANEXE_OPEN_DIR_SERVER_URL=http://host.docker.internal:5100` then `docker compose up`
   - macOS example (`.env`): add `PLANEXE_OPEN_DIR_SERVER_URL=http://host.docker.internal:5100` then `docker compose up`
 

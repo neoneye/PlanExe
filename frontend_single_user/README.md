@@ -1,13 +1,13 @@
-# Frontend Gradio
+# Frontend Single User
 
-This directory contains the PlanExe Gradio frontend.
+This directory contains the PlanExe single-user Gradio frontend.
 
 ## Run locally with a venv
 
-For a faster edit/run loop without Docker. Work from inside `frontend_gradio` so its dependencies stay isolated (they may be incompatible with `worker_plan`):
+For a faster edit/run loop without Docker. Work from inside `frontend_single_user` so its dependencies stay isolated (they may be incompatible with `worker_plan`):
 
 ```bash
-cd frontend_gradio
+cd frontend_single_user
 python3 -m venv .venv
 source .venv/bin/activate
 # Keep PYTHONPATH empty while installing to avoid pip seeing the worker_plan package and emitting conflicts

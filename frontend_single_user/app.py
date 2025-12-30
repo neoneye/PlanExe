@@ -1,6 +1,6 @@
 """
 Start the UI in single user mode.
-PROMPT> python frontend_gradio/app.py
+PROMPT> python frontend_single_user/app.py
 """
 from dataclasses import dataclass
 from math import ceil
