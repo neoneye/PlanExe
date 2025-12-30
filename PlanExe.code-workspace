@@ -1,12 +1,31 @@
 {
 	"folders": [
 		{
+			"name": "database_api",
+			"path": "database_api"
+		},
+		{
+			"name": "frontend_single_user",
 			"path": "frontend_single_user"
 		},
 		{
+			"name": "frontend_multi_user",
+			"path": "frontend_multi_user"
+		},
+		{
+			"name": "open_dir_server",
+			"path": "open_dir_server"
+		},
+		{
+			"name": "worker_plan",
 			"path": "worker_plan"
 		},
 		{
+			"name": "worker_plan_database",
+			"path": "worker_plan_database"
+		},
+		{
+			"name": "PlanExe",
 			"path": "."
 		}
 	]
