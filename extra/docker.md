@@ -15,9 +15,10 @@ Now I'm going with Docker. Hopefully it turns out to be less fragile.
 ## While developing
 - Live rebuild/restart on changes: `docker compose watch` (requires Docker Desktop 4.28+).  
   If watch misses changes after file moves, rerun the no-cache build above.
-- View worker logs (pipeline errors show here): `docker compose logs -f worker_plan`
-- View frontend logs: `docker compose logs -f frontend_single_user`
-- View multiuser ping UI logs: `docker compose logs -f frontend_multi_user`
+- View logs: 
+  - `docker compose logs -f worker_plan`
+  - `docker compose logs -f frontend_single_user`
+  - `docker compose logs -f frontend_multi_user`
 
 ## Run individual files
 - Rebuild the worker image when code or data files change: `docker compose build --no-cache worker_plan`.
