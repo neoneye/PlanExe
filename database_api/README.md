@@ -1,4 +1,4 @@
-# database_api
+# Database API
 
 Shared database models used by multiple PlanExe services (e.g., `frontend_multi_user`, future `worker_plan_database`). Models live here to keep them out of `worker_plan_api`, which stays worker-focused and lightweight.
 

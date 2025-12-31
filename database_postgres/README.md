@@ -1,6 +1,6 @@
-# database_postgres
+# Database Postgres
 
-Postgres container for PlanExe. Intended for future use as a queue/event store.
+Database container for PlanExe. Used as a queue mechanism for planning tasks. The `worker_plan_database` listens for an incoming task, and runs PlanExe and then goes back to listen for more incoming tasks.
 
 In a **single user** environment, then this is overkill. The file system is sufficient.
 
