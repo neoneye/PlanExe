@@ -81,16 +81,6 @@ There may be issues with: assumptions, numbers, flaws.
 
 # Secondary issues
 
-## Dependencies can't be upgraded
-
-Dependency hell. It's too hard to update PlanExe's dependencies. The **Gradio UI** and the **Flask UI** and the **LlamaIndex model wrappers**.
-If I update one package, then some other package is incompatible with that version.
-I want to trim the PlanExe to the minimal number of dependencies.
-Idea: Split the current repo into a **core** repo with few dependencies, and a **ui** with UI related dependencies, and when using the **ui** repo then add the **LlamaIndex model wrappers** needed.
-
-I'm considering switching from `pip` to `uv`. When doing experiments with MCP the way forward seems to be with `uv`.
-
-
 ## Luigi can run tasks in parallel
 
 I'm not making use of it. However I'm having this limitation: The PythonAnywhere doesn't like long running child processes/threads, anything longer than 5 minutes gets killed. There are always-on workers, but these must not spawn long running processes/threads. I'm considering finding another provider.
