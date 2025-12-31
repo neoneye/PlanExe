@@ -756,7 +756,7 @@ class MyFlaskApp:
         @self.app.route('/viewplan')
         def viewplan():
             run_id = request.args.get('run_id', '')
-            logger.info(f"Progress endpoint received run_id: {run_id!r}")
+            logger.info(f"ViewPlan endpoint requested for run_id: {run_id!r}")
             # lookup the task in the database
             task = self.db.session.get(TaskItem, run_id)
             if task is None:
@@ -767,16 +767,26 @@ class MyFlaskApp:
             if SHOW_DEMO_PLAN:
                 run_id = '20250524_universal_manufacturing'
 
-            logger.info(f"ViewPlan endpoint. run_id={run_id!r}")
+            report_url = f"{self.worker_plan_url}/runs/{run_id}/report"
+            logger.info(f"Fetching plan report from worker_plan. run_id={run_id!r} url={report_url}")
+            try:
+                resp = requests.get(report_url, timeout=15)
+            except requests.RequestException as exc:
+                logger.error(f"Error fetching report from worker_plan for run_id={run_id!r}: {exc}", exc_info=True)
+                return jsonify({"error": "Unable to fetch report from worker service", "details": str(exc)}), 502
 
-            run_id_dir = (self.planexe_run_dir / str(run_id)).absolute()
-            if not run_id_dir.exists():
-                raise Exception(f"Run directory not found at {run_id_dir!r}. Please ensure the run directory exists before viewing the plan.")
+            if resp.status_code != 200:
+                logger.error(
+                    "worker_plan responded with %s for run_id=%s: %s",
+                    resp.status_code,
+                    run_id,
+                    resp.text[:500],
+                )
+                return jsonify({"error": "Unable to fetch plan from worker", "status_code": resp.status_code}), resp.status_code
 
-            path_to_html_file = run_id_dir / FilenameEnum.REPORT.value
-            if not path_to_html_file.exists():
-                raise Exception(f"The html file does not exist at this point. However the html file should exist: {path_to_html_file!r}")
-            return send_file(str(path_to_html_file), mimetype='text/html')
+            response = make_response(resp.content)
+            response.headers['Content-Type'] = resp.headers.get('Content-Type', 'text/html')
+            return response
 
         @self.app.route('/demo_instant_run_in_separate_process')
         @login_required

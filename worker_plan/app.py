@@ -313,6 +313,32 @@ def run_files(run_id: str) -> RunFilesResponse:
     return RunFilesResponse(run_id=run_id, run_dir=str(run_dir), files=files)
 
 
+@app.get("/runs/{run_id}/report")
+def run_report(run_id: str) -> FileResponse:
+    """
+    Serve the generated plan report for a run.
+    """
+    run_dir = (RUN_BASE_PATH / run_id).resolve()
+    if not run_dir.is_relative_to(RUN_BASE_PATH):
+        raise HTTPException(status_code=400, detail="Invalid run directory.")
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run directory does not exist: {run_dir}")
+
+    report_path = run_dir / FilenameEnum.REPORT.value
+    if not report_path.exists():
+        raise HTTPException(status_code=404, detail=f"Report file not found for run {run_id}")
+
+    try:
+        return FileResponse(
+            path=report_path,
+            media_type="text/html",
+            filename=FilenameEnum.REPORT.value,
+        )
+    except Exception as exc:
+        logger.warning("Unable to serve report for run %s: %s", run_id, exc)
+        raise HTTPException(status_code=500, detail="Unable to serve report.") from exc
+
+
 def create_zip_for_run(run_dir: Path) -> Path:
     """
     Create a temporary zip of a run directory (skipping log.txt) and return the path.
