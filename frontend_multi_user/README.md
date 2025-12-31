@@ -1,4 +1,6 @@
-# frontend_multi_user
+# Frontend multi user - Experimental
+
+**My recommendation: Avoid this, instead go with `frontend_single_user`.** This multi user UI is the bare minimum, unpolished. It has a queue mechanism, admin UI, but it has no user account management. I use it for handling multiple users. It requires lots of setup to get working. It's not something that simply works out of the box. Save yourself the trouble, go with `frontend_single_user` instead.
 
 Flask-based multi-user UI for PlanExe. Runs in Docker, uses Postgres (defaults to the `database_postgres` service), and only needs the lightweight `worker_plan_api` helpers (no full `worker_plan` install).
 
