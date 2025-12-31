@@ -35,6 +35,7 @@ from worker_plan_api.filenames import FilenameEnum, ExtraFilenameEnum
 from worker_plan_api.prompt_catalog import PromptCatalog
 from worker_plan_api.speedvsdetail import SpeedVsDetailEnum
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from database_api.model_taskitem import TaskItem, TaskState
 from database_api.model_event import EventType, EventItem
 from database_api.model_worker import WorkerItem
@@ -247,10 +248,7 @@ class MyFlaskApp:
         self.db = db
         self.db.init_app(self.app)
         
-        # Create database tables
-        with self.app.app_context():
-            self.db.create_all()
-            
+        def _seed_initial_records() -> None:
             # Add initial records if the table is empty
             if TaskItem.query.count() == 0:
                 tasks = TaskItem.demo_items()
@@ -258,19 +256,50 @@ class MyFlaskApp:
                     self.db.session.add(task)
                 self.db.session.commit()
 
-            # Add initial records if the table is empty
             if EventItem.query.count() == 0:
                 events = EventItem.demo_items()
                 for event in events:
                     self.db.session.add(event)
                 self.db.session.commit()
 
-            # Add initial records if the table is empty
             if NonceItem.query.count() == 0:
                 nonce_items = NonceItem.demo_items()
                 for nonce_item in nonce_items:
                     self.db.session.add(nonce_item)
                 self.db.session.commit()
+
+        def _create_tables_with_retry(attempts: int = 5, delay_seconds: float = 2.0) -> None:
+            last_exc: Optional[Exception] = None
+            for attempt in range(1, attempts + 1):
+                try:
+                    with self.app.app_context():
+                        self.db.create_all()
+                        _seed_initial_records()
+                    return
+                except OperationalError as exc:
+                    last_exc = exc
+                    logger.warning(
+                        "Database init attempt %s/%s failed: %s. Retrying in %.1fs",
+                        attempt,
+                        attempts,
+                        exc,
+                        delay_seconds,
+                    )
+                    time.sleep(delay_seconds)
+                except Exception as exc:  # pragma: no cover - startup guardrail
+                    last_exc = exc
+                    logger.error(
+                        "Unexpected error during database init attempt %s/%s: %s",
+                        attempt,
+                        attempts,
+                        exc,
+                        exc_info=True,
+                    )
+                    time.sleep(delay_seconds)
+            if last_exc:
+                raise last_exc
+
+        _create_tables_with_retry()
         
         # Setup Flask-Login
         self.login_manager = LoginManager()
