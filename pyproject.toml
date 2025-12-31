@@ -1,6 +1,6 @@
 [project]
 name = "PlanExe"
-version = "2025.5.20"
+version = "2025.12.31"
 description = "Transform ideas to plans"
 authors = [{ name="Simon Strandgaard", email="neoneye@gmail.com" }]
 readme = "README.md"
