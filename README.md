@@ -49,47 +49,54 @@ You can generate 1 plan for free.
 ---
 
 <details>
-<summary><strong> Installation (Click to expand)</strong></summary>
+<summary><strong> Run locally with Docker (Click to expand)</strong></summary>
 
 <br>
 
-**Prerequisite:** You are a python developer with machine learning experience.
+**Prerequisite:** Docker with Docker Compose installed; you only need basic [Docker](https://en.wikipedia.org/wiki/Docker_(software)) knowledge. No local Python setup is required because everything runs in containers.
 
-# Installation
+### Quickstart: single-user UI + worker (frontend_single_user + worker_plan)
 
-Typical python installation procedure:
+1. Clone the repo and enter it:
 
 ```bash
 git clone https://github.com/neoneye/PlanExe.git
 cd PlanExe
-python3 -m venv venv
-source venv/bin/activate
-(venv) pip install './worker_plan[gradio-ui]'
 ```
 
-# Configuration
+2. Provide an LLM provider. Copy `.env.example` to `.env` and fill in `OPENROUTER_API_KEY` with your key from [OpenRouter](https://openrouter.ai/). The containers mount `.env` and `llm_config.json`; pick a model profile there. For host-side Ollama, use the `docker-ollama-llama3.1` entry and ensure Ollama is listening on `http://host.docker.internal:11434`.
+
+3. Start the stack (first run builds the images):
+
+```bash
+docker compose up worker_plan frontend_single_user
+```
+
+   The worker listens on http://localhost:8000 and the UI comes up on http://localhost:7860 after the worker healthcheck passes.
+
+4. Open http://localhost:7860 in your browser. Optional: set `PLANEXE_PASSWORD` in `.env` to require a password. Enter your idea, click the generate button, and watch progress with:
+
+```bash
+docker compose logs -f worker_plan
+```
+
+   Outputs are written to `run/` on the host (mounted into both containers).
+
+5. Stop with `Ctrl+C` (or `docker compose down`). Rebuild after code/dependency changes:
+
+```bash
+docker compose build --no-cache worker_plan frontend_single_user
+```
+
+For compose tips, alternate ports, or troubleshooting, see `extra/docker.md` or `docker-compose.md`.
+
+### Configuration
 
 **Config A:** Run a model in the cloud using a paid provider. Follow the instructions in [OpenRouter](extra/openrouter.md).
 
-**Config B:** Run models locally on a high-end computer. Follow the instructions for either [Ollama](extra/ollama.md) or [LM Studio](extra/lm_studio.md).
+**Config B:** Run models locally on a high-end computer. Follow the instructions for either [Ollama](extra/ollama.md) or [LM Studio](extra/lm_studio.md). When using host-side tools with Docker, point the model URL at the host (for example `http://host.docker.internal:11434` for Ollama).
 
 Recommendation: I recommend **Config A** as it offers the most straightforward path to getting PlanExe working reliably.
-
-# Usage
-
-PlanExe comes with a Gradio-based web interface. To start the local web server:
-
-```bash
-# Terminal 1: start the worker that runs the pipeline
-(venv) uvicorn worker_plan.app:app --host 0.0.0.0 --port 8000
-
-# Terminal 2: start the Gradio frontend (lives in ./frontend_single_user) and point it at the worker
-(venv) PLANEXE_WORKER_PLAN_URL=http://localhost:8000 python frontend_single_user/app.py
-```
-
-This command launches a server at http://localhost:7860. Open that link in your browser, type a vague idea or description, and PlanExe will produce a detailed plan.
-
-To stop the server at any time, press `Ctrl+C` in your terminal.
 
 </details>
 
