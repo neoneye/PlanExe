@@ -8,7 +8,7 @@ So you no longer have to be python developer to install it on your own computer.
 
 Over the last month I have migrated PlanExe to [Docker](https://www.docker.com/).
 
-So that I can deploy PlanExe on [Railway](https://railway.com/) and similar web providers.
+So that I can deploy PlanExe on [Railway](https://railway.com?referralCode=k00uaQ) and similar web providers.
 
 Previously I have been using PythonAnywhere, and I was stuck in a dependency hell, where I couldn't add packages without breaking other packages.
 
