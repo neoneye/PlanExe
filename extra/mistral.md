@@ -6,6 +6,36 @@ If you are getting started with PlanExe, I (the developer of PlanExe) recommend 
 
 If you want to use Mistral, then [OpenRouter has several mistral models](https://openrouter.ai/models?q=mistral). 
 
+## Docker setup for Mistral
+
+Mistral support is not baked into the Docker image by default. You must add the Mistral LlamaIndex extension to the worker, rebuild the image, and supply your API key.
+
+1) Install Docker (with Docker Compose), then clone the repo and enter it:
+```
+git clone https://github.com/neoneye/PlanExe.git
+cd PlanExe
+```
+2) Enable the Mistral client inside the worker image by editing `worker_plan/pyproject.toml`. Under `[project].dependencies`, add or uncomment these lines:
+```
+"llama-index-llms-mistralai==0.4.0",
+"mistralai==1.5.2",
+```
+   Without this step, the Docker image will not have the `MistralAI` class.
+3) Copy `.env.example` to `.env` and add your key:
+```
+MISTRAL_API_KEY='INSERT-YOUR-SECRET-KEY-HERE'
+```
+4) Add (or keep) a Mistral entry in `llm_config.json` (example below).
+5) Rebuild the images so the new dependencies are baked in:
+```
+docker compose build --no-cache worker_plan frontend_single_user
+```
+6) Start PlanExe:
+```
+docker compose up worker_plan frontend_single_user
+```
+7) Open http://localhost:7860, go to **Settings**, and pick your Mistral model (e.g., `mistral-paid-large`). If you later tweak only `llm_config.json`, just restart the containers (`docker compose restart worker_plan frontend_single_user`); rebuilds are only needed when dependencies change.
+
 ## Why use Mistral?
 
 Mistral can have run your own fine tuned model in the cloud. If you have sensitive business data that you don't want to share with the world, then this is one way to do it.
