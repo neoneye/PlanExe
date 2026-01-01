@@ -46,6 +46,12 @@ class TaskItem(db.Model):
     # Extra parameters provided to the /run endpoint, that may control speedvsdetail, loglevel, and other developer settings.
     parameters = db.Column(JSON, nullable=True, default=None)
 
+    # The generated report HTML (stored when the pipeline succeeds).
+    generated_report_html = db.Column(db.Text, nullable=True)
+
+    # A zip archive of the run directory for this task (stored for both success and failure).
+    run_zip_snapshot = db.Column(db.LargeBinary, nullable=True)
+
     def __repr__(self):
         return f"{self.id}: {self.timestamp_created}, {self.state}, {self.prompt!r}, parameters: {self.parameters!r}"
 

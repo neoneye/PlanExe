@@ -13,6 +13,10 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import quote_plus
 import uuid
+import io
+import zipfile
+import requests
+from sqlalchemy import inspect, text
 
 WORKER_ID = os.environ.get("PLANEXE_WORKER_ID") or str(uuid.uuid4())
 
@@ -155,6 +159,15 @@ app.config['SQLALCHEMY_DATABASE_URI'] = sqlalchemy_database_uri
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_recycle' : 280, 'pool_pre_ping': True}
 db.init_app(app)
 
+def ensure_taskitem_artifact_columns() -> None:
+    insp = inspect(db.engine)
+    columns = {col["name"] for col in insp.get_columns("task_item")}
+    with db.engine.begin() as conn:
+        if "generated_report_html" not in columns:
+            conn.execute(text("ALTER TABLE task_item ADD COLUMN IF NOT EXISTS generated_report_html TEXT"))
+        if "run_zip_snapshot" not in columns:
+            conn.execute(text("ALTER TABLE task_item ADD COLUMN IF NOT EXISTS run_zip_snapshot BYTEA"))
+
 def worker_process_started() -> None:
     planexe_worker_id = os.environ.get("PLANEXE_WORKER_ID")
     event_context = {
@@ -291,6 +304,57 @@ track_activity_fallback_path = BASE_DIR_RUN / track_activity_file_name_fallback
 track_activity = TrackActivity(jsonl_file_path=track_activity_fallback_path, write_to_logger=False)
 get_dispatcher().add_event_handler(track_activity)
 
+def create_zip_bytes(run_dir: Path) -> bytes:
+    """
+    Create an in-memory zip of a run directory (skipping log.txt) and return the bytes.
+    """
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(run_dir):
+            for file in files:
+                if file == "log.txt":
+                    continue
+                file_path = Path(root) / file
+                zipf.write(file_path, file_path.relative_to(run_dir))
+    buffer.seek(0)
+    return buffer.read()
+
+def upload_report_to_worker_plan(run_id: str, report_path: Path) -> None:
+    """
+    Best-effort upload of the generated report to the worker_plan service so the frontend can fetch it
+    even when worker_plan and worker_plan_database do not share a filesystem (e.g., Railway).
+    """
+    worker_plan_url = os.environ.get("PLANEXE_WORKER_PLAN_URL")
+    if not worker_plan_url:
+        return
+
+    if not report_path.exists():
+        logger.warning("Report path not found for run %s at %s; skipping upload to worker_plan.", run_id, report_path)
+        return
+
+    worker_plan_url = worker_plan_url.rstrip("/")
+    url = f"{worker_plan_url}/runs/{run_id}/report"
+
+    try:
+        report_html = report_path.read_text(encoding="utf-8")
+    except Exception as exc:
+        logger.warning("Unable to read report for run %s: %s", run_id, exc)
+        return
+
+    try:
+        response = requests.post(url, json={"report_html": report_html}, timeout=15)
+    except Exception as exc:
+        logger.warning("Error uploading report for run %s to worker_plan: %s", run_id, exc)
+        return
+
+    if response.status_code >= 300:
+        logger.warning(
+            "worker_plan returned %s when uploading report for run %s: %s",
+            response.status_code,
+            run_id,
+            response.text[:500],
+        )
+
 def execute_pipeline_for_job(task_id: str, user_id: str, run_id_dir: Path, speedvsdetail: SpeedVsDetailEnum, use_machai_developer_endpoint: bool):
     start_time = time.time()
     logger.info(f"Executing pipeline for task_id: {task_id!r}, run_id_dir: {run_id_dir!r}, speedvsdetail: {speedvsdetail!r}, use_machai_developer_endpoint: {use_machai_developer_endpoint!r}...")
@@ -310,6 +374,21 @@ def execute_pipeline_for_job(task_id: str, user_id: str, run_id_dir: Path, speed
     end_time = time.time()
     duration_in_seconds = end_time - start_time
     logger.info(f"Pipeline for {run_id_dir!r} executed in {duration_in_seconds:.2f} seconds")
+
+    # Collect artifacts for storage.
+    report_path = run_id_dir / FilenameEnum.REPORT.value
+    report_html: Optional[str] = None
+    if pipeline_instance.has_report_file and report_path.exists():
+        try:
+            report_html = report_path.read_text(encoding='utf-8')
+        except Exception as exc:
+            logger.warning("Unable to read report for task %s: %s", task_id, exc)
+
+    run_zip_bytes: Optional[bytes] = None
+    try:
+        run_zip_bytes = create_zip_bytes(run_id_dir)
+    except Exception as exc:
+        logger.warning("Unable to create zip snapshot for task %s: %s", task_id, exc)
 
     # count number of files in the run_id_dir
     number_of_files_in_run_id_dir: int = len([f for f in run_id_dir.iterdir() if f.is_file()])
@@ -336,6 +415,20 @@ def execute_pipeline_for_job(task_id: str, user_id: str, run_id_dir: Path, speed
         machai_error_message = 'Internal error. The pipeline complete file was found, but no report file was found.'
     else:
         machai_error_message = 'Error. Unable to generate the report. Likely reasons: censorship, restricted content.'
+
+    # Persist artifacts to the TaskItem record.
+    with app.app_context():
+        task = db.session.get(TaskItem, task_id)
+        if task is None:
+            logger.error("Task %s not found while attempting to store report/zip.", task_id)
+        else:
+            task.generated_report_html = report_html if pipeline_instance.has_report_file else None
+            task.run_zip_snapshot = run_zip_bytes
+            try:
+                db.session.commit()
+            except Exception as exc:
+                logger.error("Failed to store report/zip for task %s: %s", task_id, exc, exc_info=True)
+                db.session.rollback()
 
     # Update the TaskItem state to completed or failed
     with app.app_context():
@@ -370,6 +463,7 @@ def execute_pipeline_for_job(task_id: str, user_id: str, run_id_dir: Path, speed
         else:
             logger.warning(f"WBS_LEVEL1_PROJECT_TITLE file not found at {title_path!r}. Using the default plan_name: {plan_name!r}.")
         machai_instance.post_confirmation_ok_with_file(session_id=user_id, path=run_id_dir / FilenameEnum.REPORT.value, plan_name=plan_name)
+        upload_report_to_worker_plan(run_id=str(task_id), report_path=run_id_dir / FilenameEnum.REPORT.value)
     else:
         machai_instance.post_confirmation_error(session_id=user_id, message=str(machai_error_message))
 
@@ -520,6 +614,7 @@ def process_pending_tasks() -> bool:
 def startup_worker():
     with app.app_context():
         try:
+            ensure_taskitem_artifact_columns()
             db.create_all()
             logger.debug(f"Ensured database tables exist.")
             WorkerItem.upsert_heartbeat(worker_id=WORKER_ID)

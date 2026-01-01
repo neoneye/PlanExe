@@ -12,6 +12,7 @@ import sys
 import time
 import json
 import uuid
+import io
 from urllib.parse import quote_plus
 from typing import ClassVar, Dict, Optional, Tuple, Any
 from dataclasses import dataclass
@@ -34,7 +35,7 @@ from worker_plan_api.plan_file import PlanFile
 from worker_plan_api.filenames import FilenameEnum, ExtraFilenameEnum
 from worker_plan_api.prompt_catalog import PromptCatalog
 from worker_plan_api.speedvsdetail import SpeedVsDetailEnum
-from sqlalchemy import text
+from sqlalchemy import text, inspect
 from sqlalchemy.exc import OperationalError
 from database_api.model_taskitem import TaskItem, TaskState
 from database_api.model_event import EventType, EventItem
@@ -248,6 +249,15 @@ class MyFlaskApp:
         self.db = db
         self.db.init_app(self.app)
         
+        def _ensure_taskitem_artifact_columns() -> None:
+            insp = inspect(self.db.engine)
+            columns = {col["name"] for col in insp.get_columns("task_item")}
+            with self.db.engine.begin() as conn:
+                if "generated_report_html" not in columns:
+                    conn.execute(text("ALTER TABLE task_item ADD COLUMN IF NOT EXISTS generated_report_html TEXT"))
+                if "run_zip_snapshot" not in columns:
+                    conn.execute(text("ALTER TABLE task_item ADD COLUMN IF NOT EXISTS run_zip_snapshot BYTEA"))
+
         def _seed_initial_records() -> None:
             # Add initial records if the table is empty
             if TaskItem.query.count() == 0:
@@ -273,6 +283,7 @@ class MyFlaskApp:
             for attempt in range(1, attempts + 1):
                 try:
                     with self.app.app_context():
+                        _ensure_taskitem_artifact_columns()
                         self.db.create_all()
                         _seed_initial_records()
                     return
@@ -792,30 +803,42 @@ class MyFlaskApp:
                 logger.error(f"Task not found for run_id: {run_id!r}")
                 return jsonify({"error": "Task not found"}), 400
 
-            run_id = task.id
             if SHOW_DEMO_PLAN:
                 run_id = '20250524_universal_manufacturing'
+                run_id_dir = (self.planexe_run_dir / run_id).absolute()
+                path_to_html_file = run_id_dir / FilenameEnum.REPORT.value
+                if not path_to_html_file.exists():
+                    return jsonify({"error": "Demo report not found"}), 404
+                return send_file(str(path_to_html_file), mimetype='text/html')
 
-            report_url = f"{self.worker_plan_url}/runs/{run_id}/report"
-            logger.info(f"Fetching plan report from worker_plan. run_id={run_id!r} url={report_url}")
-            try:
-                resp = requests.get(report_url, timeout=15)
-            except requests.RequestException as exc:
-                logger.error(f"Error fetching report from worker_plan for run_id={run_id!r}: {exc}", exc_info=True)
-                return jsonify({"error": "Unable to fetch report from worker service", "details": str(exc)}), 502
+            if not task.generated_report_html:
+                logger.error("Report HTML not found for run_id=%s", run_id)
+                return jsonify({"error": "Report not available"}), 404
 
-            if resp.status_code != 200:
-                logger.error(
-                    "worker_plan responded with %s for run_id=%s: %s",
-                    resp.status_code,
-                    run_id,
-                    resp.text[:500],
-                )
-                return jsonify({"error": "Unable to fetch plan from worker", "status_code": resp.status_code}), resp.status_code
-
-            response = make_response(resp.content)
-            response.headers['Content-Type'] = resp.headers.get('Content-Type', 'text/html')
+            response = make_response(task.generated_report_html)
+            response.headers['Content-Type'] = 'text/html'
             return response
+
+        @self.app.route('/admin/task/<uuid:task_id>/report')
+        @login_required
+        def download_task_report(task_id):
+            task = self.db.session.get(TaskItem, task_id)
+            if task is None or not task.generated_report_html:
+                return "Report not found", 404
+            buffer = io.BytesIO(task.generated_report_html.encode('utf-8'))
+            buffer.seek(0)
+            return send_file(buffer, mimetype='text/html', as_attachment=True, download_name='report.html')
+
+        @self.app.route('/admin/task/<uuid:task_id>/run_zip')
+        @login_required
+        def download_task_run_zip(task_id):
+            task = self.db.session.get(TaskItem, task_id)
+            if task is None or not task.run_zip_snapshot:
+                return "Run zip not found", 404
+            buffer = io.BytesIO(task.run_zip_snapshot)
+            buffer.seek(0)
+            download_name = f"{task_id}.zip"
+            return send_file(buffer, mimetype='application/zip', as_attachment=True, download_name=download_name)
 
         @self.app.route('/demo_instant_run_in_separate_process')
         @login_required

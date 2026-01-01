@@ -2,6 +2,8 @@
 Custom ModelViews for the PlanExe-server tables.
 """
 from flask_admin.contrib.sqla import ModelView
+from markupsafe import Markup
+from flask import url_for
 
 class WorkerItemView(ModelView):
     """Custom ModelView for WorkerItem"""
@@ -12,13 +14,34 @@ class WorkerItemView(ModelView):
 
 class TaskItemView(ModelView):
     """Custom ModelView for TaskItem"""
-    column_list = ['id', 'timestamp_created', 'state', 'prompt', 'progress_percentage', 'progress_message', 'user_id', 'parameters']
+    column_list = [
+        'id',
+        'timestamp_created',
+        'state',
+        'prompt',
+        'progress_percentage',
+        'progress_message',
+        'user_id',
+        'parameters',
+        'generated_report_html',
+        'run_zip_snapshot',
+    ]
+    column_labels = {
+        'generated_report_html': 'Report',
+        'run_zip_snapshot': 'Run Zip',
+    }
     column_default_sort = ('timestamp_created', False)  # Sort by creation timestamp, newest first
     column_searchable_list = ['id', 'prompt', 'user_id']
     column_filters = ['state', 'timestamp_created', 'user_id']
     column_formatters = {
         'id': lambda v, c, m, p: str(m.id)[:8] if m.id else '',
-        'prompt': lambda v, c, m, p: m.prompt[:100] + '...' if m.prompt and len(m.prompt) > 100 else m.prompt
+        'prompt': lambda v, c, m, p: m.prompt[:100] + '...' if m.prompt and len(m.prompt) > 100 else m.prompt,
+        'generated_report_html': lambda v, c, m, p: Markup(
+            f'<a href="{url_for("download_task_report", task_id=str(m.id))}">Download ({len(m.generated_report_html.encode("utf-8")) / 1024:.1f} KB)</a>'
+        ) if m.generated_report_html else '—',
+        'run_zip_snapshot': lambda v, c, m, p: Markup(
+            f'<a href="{url_for("download_task_run_zip", task_id=str(m.id))}">Download ({len(m.run_zip_snapshot) / 1024:.1f} KB)</a>'
+        ) if m.run_zip_snapshot else '—',
     }
 
 class NonceItemView(ModelView):
