@@ -1,6 +1,6 @@
-# worker_plan service
+# Worker plan service
 
-This directory hosts the shared `worker_plan_internal` package and the FastAPI worker that executes the pipeline for the Gradio frontend.
+This directory hosts the shared `worker_plan_internal` package that generates plans.
 
 - `worker_plan_internal/`: core planning logic.
 - `worker_plan_api/`: shared types (e.g., filenames) used by both the worker and frontend.

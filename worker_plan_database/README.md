@@ -1,6 +1,6 @@
-# worker_plan_database
+# Worker plan database
 
-Subclass of the `worker_plan` service that runs the PlanExe pipeline against the shared Postgres database.
+Subclass of the `worker_plan` service that runs the PlanExe pipeline with a Postgres database.
 
 - Polls `TaskItem` rows, marks them processing, and runs the pipeline.
 - Reports state/progress back to the DB and posts confirmations to MachAI.
