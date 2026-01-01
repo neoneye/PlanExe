@@ -36,6 +36,8 @@ PlanExe removes 70–90 % of the labor for the planning scaffold on any topic, b
 
 ---
 
+New to PlanExe? Follow the [Getting Started](extra/getting_started.md) guide.
+
 <details>
 <summary><strong> Try it out now (Click to expand)</strong></summary>
 <br>
