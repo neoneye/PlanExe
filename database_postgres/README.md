@@ -35,6 +35,10 @@ https://github.com/dbeaver/dbeaver
 
 Connect with host `localhost`, port `${PLANEXE_POSTGRES_PORT:-5432}`, database `planexe`, user `planexe`, password `planexe` (or whatever you set in `.env`).
 
+### Railway + DBeaver
+
+DBeaver cannot speak to the Railway Postgres via the Railway CLI tunnel (`railway ssh`/`connect`), because the CLI does not provide a traditional TCP port forward that DBeaver can use. To connect DBeaver to the Railway Postgres, enable Public Networking for the `database_postgres` service in Railway and note the assigned host/port. Require SSL and use a strong username/password before exposing it.
+
 ## Railway backup to local file
 
 Use `database_postgres/download_backup.py` to stream a compressed dump from the Railway `database_postgres` service to your machine.
