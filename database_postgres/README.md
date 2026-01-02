@@ -34,3 +34,18 @@ For managing the database, I recommend using the `DBeaver Community` app, which 
 https://github.com/dbeaver/dbeaver
 
 Connect with host `localhost`, port `${PLANEXE_POSTGRES_PORT:-5432}`, database `planexe`, user `planexe`, password `planexe` (or whatever you set in `.env`).
+
+## Railway backup to local file
+
+Use `database_postgres/download_backup.py` to stream a compressed dump from the Railway `database_postgres` service to your machine.
+
+Prereq: Railway CLI installed and logged in.
+
+```
+python database_postgres/download_backup.py
+```
+
+- Runs `railway link` (skip with `--skip-link` if already linked).
+- Streams `pg_dump -F c -Z9` via `railway ssh` and writes `YYYYMMDD-HHMM.dump` in the current directory.
+- Options: `--output-dir path`, `--filename name.dump`, `--service other_service`.
+- Uses the default Railway env vars `POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB` (planexe/planexe/planexe unless you changed them).
