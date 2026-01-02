@@ -53,3 +53,20 @@ python database_postgres/download_backup.py
 - Streams `pg_dump -F c -Z9` via `railway ssh` and writes `YYYYMMDD-HHMM.dump` in the current directory.
 - Options: `--output-dir path`, `--filename name.dump`, `--service other_service`.
 - Uses the default Railway env vars `POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB` (planexe/planexe/planexe unless you changed them).
+
+### Restore a backup locally
+
+Run a Postgres you can reach (for example `docker compose up database_postgres` on your machine), then restore the custom-format dump:
+
+```bash
+PGPASSWORD=planexe pg_restore \
+  -h localhost \
+  -p 5432 \
+  -U planexe \
+  -d planexe \
+  /path/to/19841231-2359.dump
+```
+
+- The dump is custom format (`pg_dump -F c`), so use `pg_restore`, not `psql`.
+- Ensure the target database exists; add `-c` to drop objects before recreating them if you want a clean restore.
+- If you changed credentials/DB name in `.env` or Railway, use those here.
