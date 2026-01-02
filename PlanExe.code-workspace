@@ -5,6 +5,10 @@
 			"path": "database_api"
 		},
 		{
+			"name": "database_postgres",
+			"path": "database_postgres"
+		},
+		{
 			"name": "frontend_single_user",
 			"path": "frontend_single_user"
 		},
