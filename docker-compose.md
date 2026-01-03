@@ -15,7 +15,7 @@ Quickstart (run from repo root)
 - Up (multi user): `docker compose up frontend_multi_user database_postgres worker_plan worker_plan_database_1 worker_plan_database_2 worker_plan_database_3`.
 - Down: `docker compose down` (add `--remove-orphans` if stray containers linger).
 - Rebuild clean: `docker compose build --no-cache database_postgres worker_plan frontend_single_user frontend_multi_user worker_plan_database worker_plan_database_1 worker_plan_database_2 worker_plan_database_3`.
-- Ping UI: single user -> http://localhost:7860; multi user -> http://localhost:${PLANEXE_FRONTEND_MULTIUSER_PORT:-5001} after the stack is up.
+- UI: single user -> http://localhost:7860; multi user -> http://localhost:5001 after the stack is up.
 - Logs: `docker compose logs -f worker_plan` or `... frontend_single_user`.
 - One-off inside a container: `docker compose run --rm worker_plan python -m worker_plan_internal.fiction.fiction_writer` (use `exec` if already running).
 - Ensure `.env` and `llm_config.json` exist; copy `.env.example` to `.env` if you need a starter.
