@@ -74,11 +74,11 @@ DEMO_FORM_RUN_PROMPT_UUIDS = [
 
 def build_postgres_uri_from_env(env: Dict[str, str]) -> Tuple[str, Dict[str, str]]:
     """Construct a SQLAlchemy URI for Postgres using environment variables."""
-    host = env.get("PLANEXE_FRONTEND_MULTIUSER_DB_HOST") or env.get("POSTGRES_HOST") or "database_postgres"
-    port = str(env.get("PLANEXE_FRONTEND_MULTIUSER_DB_PORT") or env.get("POSTGRES_PORT") or "5432")
-    dbname = env.get("PLANEXE_FRONTEND_MULTIUSER_DB_NAME") or env.get("POSTGRES_DB") or "planexe"
-    user = env.get("PLANEXE_FRONTEND_MULTIUSER_DB_USER") or env.get("POSTGRES_USER") or "planexe"
-    password = env.get("PLANEXE_FRONTEND_MULTIUSER_DB_PASSWORD") or env.get("POSTGRES_PASSWORD") or "planexe"
+    host = env.get("PLANEXE_FRONTEND_MULTIUSER_DB_HOST") or env.get("PLANEXE_POSTGRES_HOST") or "database_postgres"
+    port = str(env.get("PLANEXE_FRONTEND_MULTIUSER_DB_PORT") or env.get("PLANEXE_POSTGRES_PORT") or "5432")
+    dbname = env.get("PLANEXE_FRONTEND_MULTIUSER_DB_NAME") or env.get("PLANEXE_POSTGRES_DB") or "planexe"
+    user = env.get("PLANEXE_FRONTEND_MULTIUSER_DB_USER") or env.get("PLANEXE_POSTGRES_USER") or "planexe"
+    password = env.get("PLANEXE_FRONTEND_MULTIUSER_DB_PASSWORD") or env.get("PLANEXE_POSTGRES_PASSWORD") or "planexe"
     uri = f"postgresql+psycopg2://{quote_plus(user)}:{quote_plus(password)}@{host}:{port}/{dbname}"
     safe_config = {"host": host, "port": port, "dbname": dbname, "user": user}
     return uri, safe_config

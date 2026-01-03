@@ -38,7 +38,7 @@ Service: `database_postgres` (Postgres DB)
 ------------------------------------------
 - Purpose: Storage in a Postgres database for future queue + event logging work; exposes `${PLANEXE_POSTGRES_PORT:-5432}` on the host mapped to 5432 in the container.
 - Build: `database_postgres/Dockerfile` (uses the official Postgres image).
-- Env defaults: `POSTGRES_USER=planexe`, `POSTGRES_PASSWORD=planexe`, `POSTGRES_DB=planexe`, `PLANEXE_POSTGRES_PORT=5432` (override with env/.env).
+- Env defaults: `PLANEXE_POSTGRES_USER=planexe`, `PLANEXE_POSTGRES_PASSWORD=planexe`, `PLANEXE_POSTGRES_DB=planexe`, `PLANEXE_POSTGRES_PORT=5432` (override with env/.env).
 - Data/health: data in the named volume `database_postgres_data`; healthcheck uses `pg_isready`.
 
 Service: `frontend_single_user` (single user UI)
@@ -53,7 +53,7 @@ Service: `frontend_multi_user` (multi user UI)
 ------------------------------------------
 - Purpose: Multi-user Flask UI with admin views (tasks/events/nonce/workers) backed by Postgres.
 - Build: `frontend_multi_user/Dockerfile`.
-- Env defaults: DB host `database_postgres`, port `5432`, db/user/password `planexe` (follows `POSTGRES_*`); admin credentials must be provided via `PLANEXE_FRONTEND_MULTIUSER_ADMIN_USERNAME`/`PLANEXE_FRONTEND_MULTIUSER_ADMIN_PASSWORD` (compose will fail if missing); container listens on fixed port `5000`, host maps `${PLANEXE_FRONTEND_MULTIUSER_PORT:-5001}`.
+- Env defaults: DB host `database_postgres`, port `5432`, db/user/password `planexe` (follows `PLANEXE_POSTGRES_*`); admin credentials must be provided via `PLANEXE_FRONTEND_MULTIUSER_ADMIN_USERNAME`/`PLANEXE_FRONTEND_MULTIUSER_ADMIN_PASSWORD` (compose will fail if missing); container listens on fixed port `5000`, host maps `${PLANEXE_FRONTEND_MULTIUSER_PORT:-5001}`.
 - Health: depends on `database_postgres` health; its own healthcheck hits `/health` on port 5000.
 
 Service: `worker_plan` (pipeline API)

@@ -7,7 +7,7 @@ In a **single user** environment, then this is overkill. The file system is suff
 In a **multi user** environment, then there are many moving parts, and here a database is relevant.
 
 - Build/run via `docker compose up database_postgres` (or `docker compose build database_postgres`).
-- Defaults: `POSTGRES_USER=planexe`, `POSTGRES_PASSWORD=planexe`, `POSTGRES_DB=planexe` (override with env or `.env`).
+- Defaults: `PLANEXE_POSTGRES_USER=planexe`, `PLANEXE_POSTGRES_PASSWORD=planexe`, `PLANEXE_POSTGRES_DB=planexe` (override with env or `.env`).
 - Ports: `${PLANEXE_POSTGRES_PORT:-5432}` on the host mapped to `5432` in the container. Set `PLANEXE_POSTGRES_PORT` in `.env` or your shell to avoid clashes.
 - Data: persisted in the named volume `database_postgres_data`.
 
@@ -52,7 +52,7 @@ python database_postgres/download_backup.py
 - Runs `railway link` (skip with `--skip-link` if already linked).
 - Streams `pg_dump -F c -Z9` via `railway ssh` and writes `YYYYMMDD-HHMM.dump` in the current directory.
 - Options: `--output-dir path`, `--filename name.dump`, `--service other_service`.
-- Uses the default Railway env vars `POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB` (planexe/planexe/planexe unless you changed them).
+- Uses the default Railway env vars `PLANEXE_POSTGRES_USER/PLANEXE_POSTGRES_PASSWORD/PLANEXE_POSTGRES_DB` (planexe/planexe/planexe unless you changed them).
 
 ### Restore a backup locally
 
