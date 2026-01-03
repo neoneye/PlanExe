@@ -13,14 +13,29 @@ In a **multi user** environment, then there are many moving parts, and here a da
 
 ## Choose a host port
 
-If another Postgres is already using the default postgres port 5432, set `PLANEXE_POSTGRES_PORT` before starting the container:
+The default PostgreSQL port is 5432. On developer machines, this port is often already occupied by a local PostgreSQL installation:
+
+- **macOS**: Postgres.app (a popular menu-bar Postgres that auto-starts), Homebrew PostgreSQL (`brew install postgresql`), or pgAdmin's bundled server
+- **Linux**: System PostgreSQL installed via `apt install postgresql`, `dnf install postgresql-server`, etc.
+- **Windows**: PostgreSQL installer, pgAdmin, or other database tools
+
+If port 5432 is in use, Docker will fail to start `database_postgres` with a "port already in use" error.
+
+**Solution**: Set `PLANEXE_POSTGRES_PORT` to a different value before starting the container:
 
 ```bash
-export PLANEXE_POSTGRES_PORT=5555
+export PLANEXE_POSTGRES_PORT=5433
 docker compose up database_postgres
 ```
 
-Replace `5555` with any free host port you prefer.
+Or add it to your `.env` file to make it permanent:
+```
+PLANEXE_POSTGRES_PORT=5433
+```
+
+Replace `5433` with any free host port you prefer.
+
+**Important**: This only affects the HOST port mapping (how you access Postgres from your machine). Inside Docker, containers always communicate with each other on the internal port 5432—this is hardcoded and not affected by `PLANEXE_POSTGRES_PORT`.
 
 ## Verify the container
 

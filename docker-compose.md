@@ -41,6 +41,23 @@ Service: `database_postgres` (Postgres DB)
 - Env defaults: `PLANEXE_POSTGRES_USER=planexe`, `PLANEXE_POSTGRES_PASSWORD=planexe`, `PLANEXE_POSTGRES_DB=planexe`, `PLANEXE_POSTGRES_PORT=5432` (override with env/.env).
 - Data/health: data in the named volume `database_postgres_data`; healthcheck uses `pg_isready`.
 
+### Port conflict with local Postgres
+
+The default PostgreSQL port is 5432. On developer machines, this port is often already occupied by a local PostgreSQL installation:
+- **macOS**: Postgres.app, Homebrew PostgreSQL, or pgAdmin's bundled server
+- **Linux**: System PostgreSQL installed via apt/yum/dnf
+- **Windows**: PostgreSQL installer, pgAdmin, or other database tools
+
+If port 5432 is in use, Docker will fail to start `database_postgres` with a "port already in use" error.
+
+**Solution**: Set `PLANEXE_POSTGRES_PORT` to a different value before starting:
+```bash
+export PLANEXE_POSTGRES_PORT=5433
+docker compose up
+```
+
+**Important**: This only affects the HOST port mapping (how you access Postgres from your machine, e.g., via DBeaver or `psql`). Inside Docker, containers always communicate with each other on the internal port 5432—this is hardcoded and not affected by `PLANEXE_POSTGRES_PORT`.
+
 Service: `frontend_single_user` (single user UI)
 ------------------------------------
 - Purpose: Single user Gradio UI; waits for a healthy worker and serves on port 7860. Does not use database.
@@ -70,7 +87,7 @@ Service: `worker_plan_database` (DB-backed worker)
 - Purpose: polls `TaskItem` rows in Postgres, marks them processing, runs the PlanExe pipeline, and writes progress/events back to the DB; no HTTP port exposed.
 - Build: `worker_plan_database/Dockerfile` (ships `worker_plan` code, shared `database_api` models, and this worker subclass).
 - Depends on: `database_postgres` health.
-- Env defaults: derives `SQLALCHEMY_DATABASE_URI` from `PLANEXE_WORKER_PLAN_DB_HOST|PORT|NAME|USER|PASSWORD` (fallbacks to `database_postgres` + `planexe/planexe` on 5432); `PLANEXE_CONFIG_PATH=/app`, `PLANEXE_RUN_DIR=/app/run`; MachAI confirmation URLs default to `https://example.com/iframe_generator_confirmation` for both `PLANEXE_IFRAME_GENERATOR_CONFIRMATION_PRODUCTION_URL` and `PLANEXE_IFRAME_GENERATOR_CONFIRMATION_DEVELOPMENT_URL` (override with real endpoints).
+- Env defaults: derives `SQLALCHEMY_DATABASE_URI` from `PLANEXE_POSTGRES_HOST|PORT|DB|USER|PASSWORD` (fallbacks to `database_postgres` + `planexe/planexe` on 5432); `PLANEXE_CONFIG_PATH=/app`, `PLANEXE_RUN_DIR=/app/run`; MachAI confirmation URLs default to `https://example.com/iframe_generator_confirmation` for both `PLANEXE_IFRAME_GENERATOR_CONFIRMATION_PRODUCTION_URL` and `PLANEXE_IFRAME_GENERATOR_CONFIRMATION_DEVELOPMENT_URL` (override with real endpoints).
 - Volumes: `.env` (ro), `llm_config.json` (ro), `run/` (rw for pipeline output).
 - Entrypoint: `python -m worker_plan_database.app` (runs the long-lived poller loop).
 - Multiple workers: compose defines `worker_plan_database_1/2/3` with `PLANEXE_WORKER_ID` set to `1/2/3`. Start the trio with:

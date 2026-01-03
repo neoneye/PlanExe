@@ -1,3 +1,18 @@
+# ============================================================================
+# POSTGRES PORT CONFLICT NOTE
+# ============================================================================
+# The default PostgreSQL port is 5432. On developer machines, this port is
+# often already occupied by a local PostgreSQL installation (e.g., Postgres.app
+# on macOS, or a system PostgreSQL on Linux).
+#
+# If port 5432 is in use, set PLANEXE_POSTGRES_PORT to a different value:
+#   export PLANEXE_POSTGRES_PORT=5433
+#   docker compose up
+#
+# This only affects the HOST port mapping (how you access Postgres from your
+# machine). Inside Docker, containers always connect to each other on port 5432.
+# ============================================================================
+
 x-worker_plan_database-base: &worker_plan_database_base
   build:
     context: .
@@ -10,11 +25,13 @@ x-worker_plan_database-base: &worker_plan_database_base
   environment: &worker_plan_database_env
     PLANEXE_CONFIG_PATH: /app
     PLANEXE_RUN_DIR: /app/run
-    PLANEXE_WORKER_PLAN_DB_HOST: ${PLANEXE_WORKER_PLAN_DB_HOST:-database_postgres}
-    PLANEXE_WORKER_PLAN_DB_PORT: ${PLANEXE_WORKER_PLAN_DB_PORT:-5432}
-    PLANEXE_WORKER_PLAN_DB_NAME: ${PLANEXE_POSTGRES_DB:-planexe}
-    PLANEXE_WORKER_PLAN_DB_USER: ${PLANEXE_POSTGRES_USER:-planexe}
-    PLANEXE_WORKER_PLAN_DB_PASSWORD: ${PLANEXE_POSTGRES_PASSWORD:-planexe}
+    # Internal container-to-container connection always uses port 5432.
+    # This is NOT affected by PLANEXE_POSTGRES_PORT (which is for host mapping only).
+    PLANEXE_POSTGRES_HOST: database_postgres
+    PLANEXE_POSTGRES_PORT: "5432"
+    PLANEXE_POSTGRES_DB: ${PLANEXE_POSTGRES_DB:-planexe}
+    PLANEXE_POSTGRES_USER: ${PLANEXE_POSTGRES_USER:-planexe}
+    PLANEXE_POSTGRES_PASSWORD: ${PLANEXE_POSTGRES_PASSWORD:-planexe}
     PLANEXE_IFRAME_GENERATOR_CONFIRMATION_PRODUCTION_URL: ${PLANEXE_IFRAME_GENERATOR_CONFIRMATION_PRODUCTION_URL:-https://example.com/iframe_generator_confirmation}
     PLANEXE_IFRAME_GENERATOR_CONFIRMATION_DEVELOPMENT_URL: ${PLANEXE_IFRAME_GENERATOR_CONFIRMATION_DEVELOPMENT_URL:-https://example.com/iframe_generator_confirmation}
   volumes:
@@ -37,6 +54,10 @@ services:
       POSTGRES_PASSWORD: ${PLANEXE_POSTGRES_PASSWORD:-planexe}
       POSTGRES_DB: ${PLANEXE_POSTGRES_DB:-planexe}
     ports:
+      # PLANEXE_POSTGRES_PORT sets the HOST port (left side). The container always
+      # listens on 5432 internally (right side). If your machine already has a
+      # Postgres running on 5432 (e.g., Postgres.app on macOS), set a different
+      # host port: export PLANEXE_POSTGRES_PORT=5433
       - "${PLANEXE_POSTGRES_PORT:-5432}:5432"
     volumes:
       - database_postgres_data:/var/lib/postgresql/data

@@ -30,14 +30,38 @@ Now I'm going with Docker. Hopefully it turns out to be less fragile.
 ## Troubleshooting
 - If the pipeline stops immediately with missing module errors, rebuild with `--no-cache` so new files are inside the images.
 - If you change environment variables (e.g., `PLANEXE_WORKER_RELAY_PROCESS_OUTPUT`), restart: `docker compose down` then `docker compose up`.
-- If `database_postgres` fails to start because host port 5432 is in use, set a host port with `export PLANEXE_POSTGRES_PORT=5435` (or any free port) before `docker compose up`.
-- If `frontend_multi_user` can’t start because host port 5000 is busy, map it elsewhere: `export PLANEXE_FRONTEND_MULTIUSER_PORT=5001` (or another free port) before `docker compose up`.
+- If `frontend_multi_user` can't start because host port 5000 is busy, map it elsewhere: `export PLANEXE_FRONTEND_MULTIUSER_PORT=5001` (or another free port) before `docker compose up`.
 - To clean out containers, network, and orphans: `docker compose down --remove-orphans`.
 - To reclaim disk space when builds start failing with `No space left on device`:
   - See current usage: `docker system df`
   - Aggressively prune (images, caches, networks not in use): `docker system prune -a`
     - Expect a confirmation prompt; this removed ~37 GB here by deleting unused images and build cache.
   - If needed, prune build cache separately: `docker builder prune`
+
+### Port 5432 already in use (Postgres conflict)
+
+If `database_postgres` fails to start with a "port already in use" error, another PostgreSQL is likely running on your machine. This is common on developer machines where you have:
+- **macOS**: Postgres.app (a popular menu-bar Postgres), Homebrew PostgreSQL (`brew install postgresql`), or pgAdmin's bundled server
+- **Linux**: System PostgreSQL installed via `apt install postgresql` or similar
+- **Windows**: PostgreSQL installer, pgAdmin, or other database tools
+
+**Solution**: Set `PLANEXE_POSTGRES_PORT` to a different value:
+```bash
+export PLANEXE_POSTGRES_PORT=5433
+docker compose up
+```
+
+This only affects the HOST port (how you access Postgres from your machine). Inside Docker, containers always connect to each other on port 5432—this is hardcoded and unaffected by `PLANEXE_POSTGRES_PORT`.
+
+To make this permanent, add to your `.env` file:
+```
+PLANEXE_POSTGRES_PORT=5433
+```
+
+When connecting from your host machine (e.g., DBeaver, `psql`), use the port you set:
+```bash
+psql -h localhost -p 5433 -U planexe -d planexe
+```
 
 ## Environment notes
 - The worker exports logs to stdout when `PLANEXE_WORKER_RELAY_PROCESS_OUTPUT=true` (set in `docker-compose.yml`).

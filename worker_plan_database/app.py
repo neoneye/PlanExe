@@ -134,11 +134,11 @@ logger.info(f"{Path(__file__).name}. planexe_dotenv: {planexe_dotenv!r}")
 
 def build_postgres_uri_from_env(env: dict[str, str]) -> tuple[str, dict[str, str]]:
     """Construct a SQLAlchemy URI for Postgres using environment variables."""
-    host = env.get("PLANEXE_WORKER_PLAN_DB_HOST") or env.get("PLANEXE_FRONTEND_MULTIUSER_DB_HOST") or env.get("PLANEXE_POSTGRES_HOST") or "database_postgres"
-    port = str(env.get("PLANEXE_WORKER_PLAN_DB_PORT") or env.get("PLANEXE_FRONTEND_MULTIUSER_DB_PORT") or env.get("PLANEXE_POSTGRES_PORT") or "5432")
-    dbname = env.get("PLANEXE_WORKER_PLAN_DB_NAME") or env.get("PLANEXE_FRONTEND_MULTIUSER_DB_NAME") or env.get("PLANEXE_POSTGRES_DB") or "planexe"
-    user = env.get("PLANEXE_WORKER_PLAN_DB_USER") or env.get("PLANEXE_FRONTEND_MULTIUSER_DB_USER") or env.get("PLANEXE_POSTGRES_USER") or "planexe"
-    password = env.get("PLANEXE_WORKER_PLAN_DB_PASSWORD") or env.get("PLANEXE_FRONTEND_MULTIUSER_DB_PASSWORD") or env.get("PLANEXE_POSTGRES_PASSWORD") or "planexe"
+    host = env.get("PLANEXE_POSTGRES_HOST") or "database_postgres"
+    port = str(env.get("PLANEXE_POSTGRES_PORT") or "5432")
+    dbname = env.get("PLANEXE_POSTGRES_DB") or "planexe"
+    user = env.get("PLANEXE_POSTGRES_USER") or "planexe"
+    password = env.get("PLANEXE_POSTGRES_PASSWORD") or "planexe"
     uri = f"postgresql+psycopg2://{quote_plus(user)}:{quote_plus(password)}@{host}:{port}/{dbname}"
     safe_config = {"host": host, "port": port, "dbname": dbname, "user": user}
     return uri, safe_config
