@@ -283,8 +283,8 @@ class MyFlaskApp:
             for attempt in range(1, attempts + 1):
                 try:
                     with self.app.app_context():
-                        _ensure_taskitem_artifact_columns()
                         self.db.create_all()
+                        _ensure_taskitem_artifact_columns()
                         _seed_initial_records()
                     return
                 except OperationalError as exc:
