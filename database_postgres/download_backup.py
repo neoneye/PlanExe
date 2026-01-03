@@ -9,12 +9,21 @@ What it does:
 - Runs `railway link` (unless --skip-link).
 - Streams `pg_dump -F c -Z9` over `railway ssh --service database_postgres -- ...`.
 - Saves to ./YYYYMMDD-HHMM.dump by default.
+
+Options:
+  --user       Postgres user (default: $PLANEXE_POSTGRES_USER or 'planexe')
+  --db         Postgres database (default: $PLANEXE_POSTGRES_DB or 'planexe')
+  --skip-link  Skip `railway link` if already linked
+  --service    Railway service name (default: database_postgres)
+  --output-dir Directory for the dump file (default: current directory)
+  --filename   Override dump filename (default: YYYYMMDD-HHMM.dump)
 """
 
 from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -49,6 +58,16 @@ def main() -> None:
         "--filename",
         help="Override dump filename (default: YYYYMMDD-HHMM.dump).",
     )
+    parser.add_argument(
+        "--user",
+        default=os.environ.get("PLANEXE_POSTGRES_USER", "planexe"),
+        help="Postgres user (default: $PLANEXE_POSTGRES_USER or 'planexe').",
+    )
+    parser.add_argument(
+        "--db",
+        default=os.environ.get("PLANEXE_POSTGRES_DB", "planexe"),
+        help="Postgres database (default: $PLANEXE_POSTGRES_DB or 'planexe').",
+    )
     args = parser.parse_args()
 
     if shutil.which("railway") is None:
@@ -70,9 +89,9 @@ def main() -> None:
         "--",
         "pg_dump",
         "-U",
-        "planexe",
+        args.user,
         "-d",
-        "planexe",
+        args.db,
         "-F",
         "c",
         "-Z9",

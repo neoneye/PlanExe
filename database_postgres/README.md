@@ -66,8 +66,13 @@ python database_postgres/download_backup.py
 
 - Runs `railway link` (skip with `--skip-link` if already linked).
 - Streams `pg_dump -F c -Z9` via `railway ssh` and writes `YYYYMMDD-HHMM.dump` in the current directory.
-- Options: `--output-dir path`, `--filename name.dump`, `--service other_service`.
-- Uses the default Railway env vars `PLANEXE_POSTGRES_USER/PLANEXE_POSTGRES_PASSWORD/PLANEXE_POSTGRES_DB` (planexe/planexe/planexe unless you changed them).
+- Options:
+  - `--user` Postgres user (default: `$PLANEXE_POSTGRES_USER` or `planexe`)
+  - `--db` Postgres database (default: `$PLANEXE_POSTGRES_DB` or `planexe`)
+  - `--output-dir path` Directory for the dump file
+  - `--filename name.dump` Override dump filename
+  - `--service other_service` Railway service name
+  - `--skip-link` Skip `railway link` if already linked
 
 ### Restore a backup locally
 
