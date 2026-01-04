@@ -1,4 +1,4 @@
-# Railway Configuration
+# Railway Configuration for `frontend_single_user`
 
 ```
 PLANEXE_GRADIO_SERVER_NAME="0.0.0.0"

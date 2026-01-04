@@ -1,4 +1,4 @@
-# Railway Configuration
+# Railway Configuration for `worker_plan_database`
 
 Create minimum 1 instance. With more traffic, create N instances.
 

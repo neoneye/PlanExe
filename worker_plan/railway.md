@@ -1,4 +1,4 @@
-# Railway Configuration
+# Railway Configuration for `worker_plan`
 
 ```
 OPENROUTER_API_KEY="SECRET-KEY-HERE"

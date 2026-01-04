@@ -1,4 +1,4 @@
-# Railway Configuration
+# Railway Configuration for `frontend_multi_user`
 
 ```
 PLANEXE_FRONTEND_MULTIUSER_ADMIN_PASSWORD="insert-your-password"
