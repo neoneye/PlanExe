@@ -9,6 +9,7 @@ OPENROUTER_API_KEY="SECRET-KEY-HERE"
 PLANEXE_WORKER_ID="1"
 PLANEXE_IFRAME_GENERATOR_CONFIRMATION_PRODUCTION_URL="https://example.com/iframe_confirm_production"
 PLANEXE_IFRAME_GENERATOR_CONFIRMATION_DEVELOPMENT_URL="https://example.com/iframe_confirm_development"
+PLANEXE_POSTGRES_PASSWORD="${{shared.PLANEXE_POSTGRES_PASSWORD}}"
 ```
 
 - Set `OPENROUTER_API_KEY` (and any other model keys in `llm_config.json`) so the pipeline can call the LLM provider.
