@@ -52,7 +52,117 @@ Connect with host `localhost`, port `${PLANEXE_POSTGRES_PORT:-5432}`, database `
 
 ### Railway + DBeaver
 
-DBeaver cannot speak to the Railway Postgres via the Railway CLI tunnel (`railway ssh`/`connect`), because the CLI does not provide a traditional TCP port forward that DBeaver can use. To connect DBeaver to the Railway Postgres, enable Public Networking for the `database_postgres` service in Railway and note the assigned host/port. Require SSL and use a strong username/password before exposing it.
+DBeaver cannot connect via the Railway CLI tunnel (`railway ssh`/`connect`), because the CLI does not provide a traditional TCP port forward. Instead, use Railway's TCP Proxy feature.
+
+#### 1. Enable TCP Proxy in Railway
+
+1. Go to your Railway dashboard → `database_postgres` service
+2. Navigate to **Settings** → **Networking** → **Public Networking**
+3. Add a **TCP Proxy** with port `5432`
+4. Railway will assign a hostname and port, e.g., `subsubdomain.subdomain.example.com:12345`
+
+> **Warning**: Only enable TCP Proxy after setting a secure password (see below).
+
+> **Warning**: The TCP Proxy connection is **unencrypted**. Railway's TCP Proxy forwards raw TCP traffic without adding TLS, and the `postgres:16-alpine` image doesn't have SSL enabled by default. Your password and data travel in plain text. Consider disabling TCP Proxy when not in use, or configure SSL on the PostgreSQL container for production use.
+
+#### 2. Set a secure password
+
+The default password `planexe` is too easy to guess. PostgreSQL only sets the password on first initialization, so if the database already exists:
+
+1. Connect with the current password
+2. Run: `ALTER USER planexe WITH PASSWORD 'your-secure-password';`
+3. Update `POSTGRES_PASSWORD` in Railway's environment variables to match
+
+#### 3. Connect with DBeaver
+
+In DBeaver, create a new PostgreSQL connection with **"Connect by: Host"**:
+
+| Field | Value |
+|-------|-------|
+| Host | Your TCP Proxy hostname (e.g., `subsubdomain.subdomain.example.com`) |
+| Port | Your assigned port (e.g., `12345`, NOT 5432) |
+| Database | `planexe` |
+| Username | `planexe` |
+| Password | Your secure password |
+
+Click **Test Connection** to verify.
+
+#### 4. Security check
+
+Try connecting with password `planexe`. If it succeeds, the password hasn't been changed yet—go back to step 2.
+
+See `railway.md` for more details.
+
+## SSL (Future Plan)
+
+The current setup uses unencrypted connections. For production use with public TCP Proxy exposure, SSL/TLS should be enabled to encrypt traffic between clients and the database.
+
+### What's needed
+
+#### 1. Generate SSL certificates
+
+You'll need a certificate and private key. Options:
+- **Self-signed**: Quick for internal use, but clients must trust the certificate manually
+- **Let's Encrypt**: Free, but requires domain validation (complex for raw TCP)
+- **Commercial CA**: Trusted by default, but costs money
+
+Example self-signed certificate generation:
+
+```bash
+openssl req -new -x509 -days 365 -nodes \
+  -out server.crt \
+  -keyout server.key \
+  -subj "/CN=database_postgres"
+```
+
+#### 2. Update the Dockerfile
+
+Add the certificates and configure PostgreSQL to use them:
+
+```dockerfile
+FROM postgres:16-alpine
+
+# ... existing ENV statements ...
+
+# Copy SSL certificates
+COPY server.crt /var/lib/postgresql/server.crt
+COPY server.key /var/lib/postgresql/server.key
+
+# Set correct permissions (required by PostgreSQL)
+RUN chmod 600 /var/lib/postgresql/server.key && \
+    chown postgres:postgres /var/lib/postgresql/server.crt /var/lib/postgresql/server.key
+
+# Enable SSL in PostgreSQL
+RUN echo "ssl = on" >> /usr/local/share/postgresql/postgresql.conf.sample && \
+    echo "ssl_cert_file = '/var/lib/postgresql/server.crt'" >> /usr/local/share/postgresql/postgresql.conf.sample && \
+    echo "ssl_key_file = '/var/lib/postgresql/server.key'" >> /usr/local/share/postgresql/postgresql.conf.sample
+```
+
+#### 3. Configure DBeaver for SSL
+
+In DBeaver's connection settings:
+
+1. Go to the **SSL** tab
+2. Check **"Use SSL"**
+3. Set **SSL mode**:
+   - `require` — Encrypt connection, don't verify certificate
+   - `verify-ca` — Encrypt and verify certificate against a CA
+   - `verify-full` — Encrypt, verify certificate, and check hostname
+4. For self-signed certs, you may need to import the CA/certificate or set **"Trust all certificates"**
+
+#### 4. Enforce SSL on the server (optional)
+
+To reject unencrypted connections, add to `pg_hba.conf`:
+
+```
+# Require SSL for all remote connections
+hostssl all all 0.0.0.0/0 scram-sha-256
+```
+
+### Resources
+
+- [PostgreSQL SSL Documentation](https://www.postgresql.org/docs/current/ssl-tcp.html)
+- [pg_hba.conf Documentation](https://www.postgresql.org/docs/current/auth-pg-hba-conf.html)
 
 ## Railway backup to local file
 
